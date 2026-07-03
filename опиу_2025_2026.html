@@ -485,15 +485,6 @@ function initCharts(tab){
       {label:'2026',data:GROSS26,backgroundColor:'rgba(16,185,129,.85)',borderRadius:3}
     ]},options:bOpts()});
   }
-}
-function showTab(name,el){
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  el.classList.add('active');
-  initCharts(name);
-}
-
   if(tab==='insights'){
     const AL=["\u042f\u043d\u0432'26", "\u0424\u0435\u0432'26", "\u041c\u0430\u0440'26", "\u0410\u043f\u0440'26", "\u041c\u0430\u0439'26"];
     const FL=["\u0418\u044e\u043d'26", "\u0418\u044e\u043b'26", "\u0410\u0432\u0433'26", "\u0421\u0435\u043d'26", "\u041e\u043a\u0442'26", "\u041d\u043e\u044f'26", "\u0414\u0435\u043a'26"];
@@ -525,11 +516,19 @@ function showTab(name,el){
       type:'bar',
       data:{labels:ALFL,datasets:[
         {label:'Факт',data:[...ANET.slice(0,actualLen),...new Array(FL.length).fill(null)],backgroundColor:ANET.map(v=>v>=0?'rgba(16,185,129,.7)':'rgba(239,68,68,.7)'),borderRadius:3},
-        {label:'Прогноз',data:[...new Array(actualLen).fill(n
-null)],borderRadius:3}
-    ]
+        {label:'Прогноз',data:[...new Array(actualLen).fill(null)],borderRadius:3}
+    ]}
+    });
   }
-});
+}
+function showTab(name,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+  initCharts(name);
+}
+initCharts('overview');
 </script>
 
 
