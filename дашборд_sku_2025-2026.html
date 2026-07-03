@@ -275,32 +275,49 @@ tbody td{padding:8px 12px;vertical-align:middle}
     📊 Топ-5 SKU — сравнительный анализ
   </div>
 
-  <!-- Пироги: выручка -->
+  <!-- 2 колонки: левая = 2025, правая = 2026 -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%">
-    <div class="pcard" style="width:100%">
-      <div class="pcard-title">ТОП-5 по выручке · 2025</div>
-      <div style="position:relative;height:200px"><canvas id="top-pie-2025"></canvas></div>
-      <div id="top-legend-2025" style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:11px"></div>
-    </div>
-    <div class="pcard" style="width:100%">
-      <div class="pcard-title">ТОП-5 по выручке · 2026 (янв–май)</div>
-      <div style="position:relative;height:200px"><canvas id="top-pie-2026"></canvas></div>
-      <div id="top-legend-2026" style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:11px"></div>
-    </div>
-  </div>
 
-  <!-- Пироги: маржа и ВП -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%">
-    <div class="pcard" style="width:100%">
-      <div class="pcard-title">ТОП-5 по марже ВП% · 2026</div>
-      <div style="position:relative;height:200px"><canvas id="top-pie-mg26"></canvas></div>
-      <div id="top-legend-mg26" style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:11px"></div>
+    <!-- Колонка 2025 -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:12px;font-weight:800;color:#1e1b4b;text-transform:uppercase;letter-spacing:.06em;padding:6px 0;border-bottom:2px solid #c4b5fd">📅 2025 год (12 месяцев)</div>
+      <div class="pcard">
+        <div class="pcard-title">ТОП-5 по выручке</div>
+        <div style="position:relative;height:190px"><canvas id="top-pie-2025"></canvas></div>
+        <div id="top-legend-2025" style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:11px"></div>
+      </div>
+      <div class="pcard">
+        <div class="pcard-title">ТОП-5 по марже ВП%</div>
+        <div style="position:relative;height:190px"><canvas id="top-pie-mg25"></canvas></div>
+        <div id="top-legend-mg25" style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:11px"></div>
+      </div>
+      <div class="pcard">
+        <div class="pcard-title">ТОП-5 по валовой прибыли</div>
+        <div style="position:relative;height:190px"><canvas id="top-pie-vp25"></canvas></div>
+        <div id="top-legend-vp25" style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:11px"></div>
+      </div>
     </div>
-    <div class="pcard" style="width:100%">
-      <div class="pcard-title">ТОП-5 по валовой прибыли · 2026</div>
-      <div style="position:relative;height:200px"><canvas id="top-pie-vp26"></canvas></div>
-      <div id="top-legend-vp26" style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:11px"></div>
+
+    <!-- Колонка 2026 -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:12px;font-weight:800;color:#1e1b4b;text-transform:uppercase;letter-spacing:.06em;padding:6px 0;border-bottom:2px solid #a5f3fc">📅 2026 год (янв–май)</div>
+      <div class="pcard">
+        <div class="pcard-title">ТОП-5 по выручке</div>
+        <div style="position:relative;height:190px"><canvas id="top-pie-2026"></canvas></div>
+        <div id="top-legend-2026" style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:11px"></div>
+      </div>
+      <div class="pcard">
+        <div class="pcard-title">ТОП-5 по марже ВП%</div>
+        <div style="position:relative;height:190px"><canvas id="top-pie-mg26"></canvas></div>
+        <div id="top-legend-mg26" style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:11px"></div>
+      </div>
+      <div class="pcard">
+        <div class="pcard-title">ТОП-5 по валовой прибыли</div>
+        <div style="position:relative;height:190px"><canvas id="top-pie-vp26"></canvas></div>
+        <div id="top-legend-vp26" style="margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:11px"></div>
+      </div>
     </div>
+
   </div>
 
   <div class="pcard" style="width:100%">
@@ -1554,25 +1571,33 @@ function buildTopPieCharts(){
   buildPie('top-pie-2025','top-legend-2025', makeTop5(IDX_2025));
   buildPie('top-pie-2026','top-legend-2026', makeTop5(IDX_2026));
 
-  // Top 5 by margin %
-  const top5mg = SKUS.map(s=>{
-    const rev = IDX_2026.reduce((a,i)=>a+(s.monthly_rev[i]||0),0);
-    const vp  = IDX_2026.reduce((a,i)=>a+(s.monthly_vp[i]||0),0);
-    const mg  = rev>50000 ? vp/rev*100 : 0;
-    return {name:s.name.replace(/^(Упак|СН\*|RP\*)\s*/,'').slice(0,30), rev:mg, label: mg.toFixed(1)+'%'};
-  }).filter(s=>s.rev>0).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  function makeTop5mg(idxs){
+    return SKUS.map(s=>{
+      const rev = idxs.reduce((a,i)=>a+(s.monthly_rev[i]||0),0);
+      const vp  = idxs.reduce((a,i)=>a+(s.monthly_vp[i]||0),0);
+      const mg  = rev>50000 ? vp/rev*100 : 0;
+      return {name:s.name.replace(/^(Упак|СН\*|RP\*)\s*/,'').slice(0,30), rev:mg, label:mg.toFixed(1)+'%'};
+    }).filter(s=>s.rev>0).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  }
 
-  const pieEl_mg = document.getElementById('top-pie-mg26');
-  if(pieEl_mg){
-    const c = new Chart(pieEl_mg,{
-      type:'doughnut',
-      data:{labels:top5mg.map(s=>s.name),datasets:[{data:top5mg.map(s=>s.rev),backgroundColor:COLORS,borderColor:'#fff',borderWidth:3,hoverOffset:8}]},
+  function makeTop5vp(idxs){
+    return SKUS.map(s=>{
+      const vp = idxs.reduce((a,i)=>a+(s.monthly_vp[i]||0),0);
+      return {name:s.name.replace(/^(Упак|СН\*|RP\*)\s*/,'').slice(0,30), rev:vp};
+    }).filter(s=>s.rev>0).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  }
+
+  function buildMgPie(canvasId, legendId, top5){
+    const el = document.getElementById(canvasId);
+    if(!el) return;
+    const c = new Chart(el,{type:'doughnut',
+      data:{labels:top5.map(s=>s.name),datasets:[{data:top5.map(s=>s.rev),backgroundColor:COLORS,borderColor:'#fff',borderWidth:3,hoverOffset:8}]},
       options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
         plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw.toFixed(1)}%`}}}}
     });
     topPieCharts.push(c);
-    const leg = document.getElementById('top-legend-mg26');
-    if(leg) leg.innerHTML = top5mg.map((s,i)=>`
+    const leg = document.getElementById(legendId);
+    if(leg) leg.innerHTML = top5.map((s,i)=>`
       <div style="display:flex;align-items:center;gap:7px">
         <div style="width:10px;height:10px;border-radius:2px;background:${COLORS[i]};flex-shrink:0"></div>
         <span style="flex:1;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
@@ -1580,30 +1605,29 @@ function buildTopPieCharts(){
       </div>`).join('');
   }
 
-  // Top 5 by gross VP ₸
-  const top5vp = SKUS.map(s=>{
-    const vp = IDX_2026.reduce((a,i)=>a+(s.monthly_vp[i]||0),0);
-    return {name:s.name.replace(/^(Упак|СН\*|RP\*)\s*/,'').slice(0,30), rev:vp};
-  }).filter(s=>s.rev>0).sort((a,b)=>b.rev-a.rev).slice(0,5);
-
-  const totalVP = top5vp.reduce((a,s)=>a+s.rev,0);
-  const pieEl_vp = document.getElementById('top-pie-vp26');
-  if(pieEl_vp){
-    const c = new Chart(pieEl_vp,{
-      type:'doughnut',
-      data:{labels:top5vp.map(s=>s.name),datasets:[{data:top5vp.map(s=>s.rev),backgroundColor:COLORS,borderColor:'#fff',borderWidth:3,hoverOffset:8}]},
+  function buildVpPie(canvasId, legendId, top5){
+    const el = document.getElementById(canvasId);
+    if(!el) return;
+    const total = top5.reduce((a,s)=>a+s.rev,0);
+    const c = new Chart(el,{type:'doughnut',
+      data:{labels:top5.map(s=>s.name),datasets:[{data:top5.map(s=>s.rev),backgroundColor:COLORS,borderColor:'#fff',borderWidth:3,hoverOffset:8}]},
       options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${fmtM(ctx.raw)} (${Math.round(ctx.raw/totalVP*100)}%)`}}}}
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${fmtM(ctx.raw)} (${Math.round(ctx.raw/total*100)}%)`}}}}
     });
     topPieCharts.push(c);
-    const leg = document.getElementById('top-legend-vp26');
-    if(leg) leg.innerHTML = top5vp.map((s,i)=>`
+    const leg = document.getElementById(legendId);
+    if(leg) leg.innerHTML = top5.map((s,i)=>`
       <div style="display:flex;align-items:center;gap:7px">
         <div style="width:10px;height:10px;border-radius:2px;background:${COLORS[i]};flex-shrink:0"></div>
         <span style="flex:1;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
-        <span style="color:#6b7280;flex-shrink:0">${fmtM(s.rev)} · ${Math.round(s.rev/totalVP*100)}%</span>
+        <span style="color:#6b7280;flex-shrink:0">${fmtM(s.rev)} · ${Math.round(s.rev/total*100)}%</span>
       </div>`).join('');
   }
+
+  buildMgPie('top-pie-mg25','top-legend-mg25', makeTop5mg(IDX_2025));
+  buildMgPie('top-pie-mg26','top-legend-mg26', makeTop5mg(IDX_2026));
+  buildVpPie('top-pie-vp25','top-legend-vp25', makeTop5vp(IDX_2025));
+  buildVpPie('top-pie-vp26','top-legend-vp26', makeTop5vp(IDX_2026));
 }
 
 function setTopYear(yr, btn){
