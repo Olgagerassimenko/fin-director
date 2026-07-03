@@ -1024,7 +1024,7 @@ function buildInsights(){
     <div style="background:#fff;border:0.5px solid #e5e7eb;border-radius:12px;padding:12px 16px;width:100%">
       <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:#9ca3af;margin-bottom:8px">${title}</div>
       <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;align-items:start">
-        <div style="position:relative;height:175px">${left}</div>
+        <div style="position:relative;height:175px;overflow:hidden">${left}</div>
         <div style="display:flex;flex-direction:column;gap:5px;font-size:11px">${right}</div>
       </div>
     </div>`;
@@ -1071,7 +1071,7 @@ function buildInsights(){
 
     ${(()=>{
       // Compute data for recommendations
-      const exitD = computeExitData('all');
+      const exitD = computeExitData(2026);
       const unprofCount = exitD.unprofitable.length;
       const crashCount  = exitD.crashing.length;
       const top3unp = exitD.unprofitable.slice(0,3).map(s=>s.name.replace(/^(Упак|СН\*|RP\*)\s*/,'').slice(0,22)).join(', ');
