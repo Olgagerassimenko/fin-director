@@ -880,8 +880,7 @@ function buildSignals(){
 // ——— Insights tab ———
 
 function exportRecSKUs(type) {
-  const d = computeExitData('all');
-  const idxs = IDX_ALL;
+  const d = computeExitData(2026);
   let rows = [];
   let filename = '';
 
@@ -890,7 +889,7 @@ function exportRecSKUs(type) {
     filename = 'Убыточные_SKU.xlsx';
     rows = d.unprofitable.map(s => ({
       'Позиция': s.name, 'Категория': s.cat,
-      'Выручка 2025 (₸)': Math.round(s.rev), 'Маржа ВП %': +s.margin.toFixed(1),
+      'Выручка 2026 (₸)': Math.round(s.rev), 'Маржа ВП %': +s.margin.toFixed(1),
       'Тренд %': s.trend
     }));
   } else if (type === 1) {
@@ -898,7 +897,7 @@ function exportRecSKUs(type) {
     filename = 'Падающие_продажи_SKU.xlsx';
     rows = d.crashing.map(s => ({
       'Позиция': s.name, 'Категория': s.cat,
-      'Выручка 2025 (₸)': Math.round(s.rev), 'Маржа ВП %': +s.margin.toFixed(1),
+      'Выручка 2026 (₸)': Math.round(s.rev), 'Маржа ВП %': +s.margin.toFixed(1),
       'Тренд %': s.trend
     }));
   } else if (type === 2) {
@@ -906,8 +905,8 @@ function exportRecSKUs(type) {
     filename = 'Маржа_контроль_SKU.xlsx';
     const minMg = 45;
     rows = SKUS.map(s => {
-      const rev = IDX_ALL.reduce((a,i)=>a+(s.monthly_rev[i]||0),0);
-      const vp  = IDX_ALL.reduce((a,i)=>a+(s.monthly_vp[i]||0),0);
+      const rev = IDX_2026.reduce((a,i)=>a+(s.monthly_rev[i]||0),0);
+      const vp  = IDX_2026.reduce((a,i)=>a+(s.monthly_vp[i]||0),0);
       const mg  = rev>0 ? vp/rev*100 : 0;
       return { name:s.name, cat:s.cat, rev, mg };
     }).filter(s=>s.rev>200000&&s.mg<minMg&&s.mg>0)
