@@ -546,7 +546,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   buildAnalyticsCharts();
   buildTopRevList();
   buildExitCards();
-  buildTopPieCharts();
 });
 
 // ——— Detail panel ———
@@ -686,7 +685,6 @@ function switchMain(view,el){
     buildAnalyticsCharts();
   } else if(view==='top'){
     document.getElementById('view-top').style.display='flex';
-    buildTopPieCharts();
   } else if(view==='exit'){
     document.getElementById('view-exit').style.display='flex';
   } else if(view==='signals'){
@@ -1514,121 +1512,6 @@ function buildAnalyticsCharts() {
 
 // ——— Top Revenue List ———
 let topYear = 'all';
-let topPieCharts = [];
-
-function buildTopPieCharts(){
-  // destroy old charts
-  topPieCharts.forEach(c=>c.destroy());
-  topPieCharts = [];
-
-  const COLORS = ['#6d28d9','#2563eb','#0891b2','#059669','#d97706'];
-  const COLORS_LIGHT = ['#ede9fe','#dbeafe','#cffafe','#d1fae5','#fef3c7'];
-
-  function makeTop5(idxs){
-    return SKUS.map(s=>({
-      name: s.name.replace(/^(Упак|СН\*|RP\*)\s*/,'').slice(0,30),
-      rev: idxs.reduce((a,i)=>a+(s.monthly_rev[i]||0),0)
-    })).filter(s=>s.rev>0).sort((a,b)=>b.rev-a.rev).slice(0,5);
-  }
-
-  function buildPie(canvasId, legendId, top5){
-    const total = top5.reduce((a,s)=>a+s.rev,0);
-    const canvas = document.getElementById(canvasId);
-    if(!canvas) return;
-    const chart = new Chart(canvas, {
-      type:'doughnut',
-      data:{
-        labels: top5.map(s=>s.name),
-        datasets:[{
-          data: top5.map(s=>s.rev),
-          backgroundColor: COLORS,
-          borderColor:'#fff',
-          borderWidth:3,
-          hoverOffset:8
-        }]
-      },
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        cutout:'62%',
-        plugins:{
-          legend:{display:false},
-          tooltip:{callbacks:{label:ctx=>' '+fmtM(ctx.raw)+' ('+Math.round(ctx.raw/total*100)+'%)'}}
-        }
-      }
-    });
-    topPieCharts.push(chart);
-
-    // legend
-    const leg = document.getElementById(legendId);
-    if(leg) leg.innerHTML = top5.map((s,i)=>`
-      <div style="display:flex;align-items:center;gap:7px">
-        <div style="width:10px;height:10px;border-radius:2px;background:${COLORS[i]};flex-shrink:0"></div>
-        <span style="flex:1;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
-        <span style="color:#6b7280;flex-shrink:0">${fmtM(s.rev)} · ${Math.round(s.rev/total*100)}%</span>
-      </div>`).join('');
-  }
-
-  buildPie('top-pie-2025','top-legend-2025', makeTop5(IDX_2025));
-  buildPie('top-pie-2026','top-legend-2026', makeTop5(IDX_2026));
-
-  function makeTop5mg(idxs){
-    return SKUS.map(s=>{
-      const rev = idxs.reduce((a,i)=>a+(s.monthly_rev[i]||0),0);
-      const vp  = idxs.reduce((a,i)=>a+(s.monthly_vp[i]||0),0);
-      const mg  = rev>50000 ? vp/rev*100 : 0;
-      return {name:s.name.replace(/^(Упак|СН\*|RP\*)\s*/,'').slice(0,30), rev:mg, label:mg.toFixed(1)+'%'};
-    }).filter(s=>s.rev>0).sort((a,b)=>b.rev-a.rev).slice(0,5);
-  }
-
-  function makeTop5vp(idxs){
-    return SKUS.map(s=>{
-      const vp = idxs.reduce((a,i)=>a+(s.monthly_vp[i]||0),0);
-      return {name:s.name.replace(/^(Упак|СН\*|RP\*)\s*/,'').slice(0,30), rev:vp};
-    }).filter(s=>s.rev>0).sort((a,b)=>b.rev-a.rev).slice(0,5);
-  }
-
-  function buildMgPie(canvasId, legendId, top5){
-    const el = document.getElementById(canvasId);
-    if(!el) return;
-    const c = new Chart(el,{type:'doughnut',
-      data:{labels:top5.map(s=>s.name),datasets:[{data:top5.map(s=>s.rev),backgroundColor:COLORS,borderColor:'#fff',borderWidth:3,hoverOffset:8}]},
-      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw.toFixed(1)}%`}}}}
-    });
-    topPieCharts.push(c);
-    const leg = document.getElementById(legendId);
-    if(leg) leg.innerHTML = top5.map((s,i)=>`
-      <div style="display:flex;align-items:center;gap:7px">
-        <div style="width:10px;height:10px;border-radius:2px;background:${COLORS[i]};flex-shrink:0"></div>
-        <span style="flex:1;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
-        <span style="color:#6b7280;flex-shrink:0">${s.label}</span>
-      </div>`).join('');
-  }
-
-  function buildVpPie(canvasId, legendId, top5){
-    const el = document.getElementById(canvasId);
-    if(!el) return;
-    const total = top5.reduce((a,s)=>a+s.rev,0);
-    const c = new Chart(el,{type:'doughnut',
-      data:{labels:top5.map(s=>s.name),datasets:[{data:top5.map(s=>s.rev),backgroundColor:COLORS,borderColor:'#fff',borderWidth:3,hoverOffset:8}]},
-      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${fmtM(ctx.raw)} (${Math.round(ctx.raw/total*100)}%)`}}}}
-    });
-    topPieCharts.push(c);
-    const leg = document.getElementById(legendId);
-    if(leg) leg.innerHTML = top5.map((s,i)=>`
-      <div style="display:flex;align-items:center;gap:7px">
-        <div style="width:10px;height:10px;border-radius:2px;background:${COLORS[i]};flex-shrink:0"></div>
-        <span style="flex:1;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
-        <span style="color:#6b7280;flex-shrink:0">${fmtM(s.rev)} · ${Math.round(s.rev/total*100)}%</span>
-      </div>`).join('');
-  }
-
-  buildMgPie('top-pie-mg25','top-legend-mg25', makeTop5mg(IDX_2025));
-  buildMgPie('top-pie-mg26','top-legend-mg26', makeTop5mg(IDX_2026));
-  buildVpPie('top-pie-vp25','top-legend-vp25', makeTop5vp(IDX_2025));
-  buildVpPie('top-pie-vp26','top-legend-vp26', makeTop5vp(IDX_2026));
-}
 
 function setTopYear(yr, btn){
   topYear = yr;
@@ -1696,3 +1579,4 @@ function buildTopRevList(){
     {href:'опиу_2025_2026.html',icon:'📈',label:'ОПиУ'},
     {href:'дашборд_дддс_динамик.html',icon:'📊',label:'ДДС Excel'},
     {href:
+<script src="nav.js"></script>
