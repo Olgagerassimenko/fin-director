@@ -106,6 +106,29 @@ result_html = result_html.replace(
     '<title>SKU Себестоимость — ТОО «Фуд завод»</title>'
 )
 
+# Переключаем на локальные файлы если они есть, иначе CDN
+def local_or_cdn(html, cdn_url, local_file):
+    local_path = os.path.join(FOLDER, local_file)
+    if os.path.exists(local_path):
+        return html.replace(cdn_url, local_file)
+    return html
+
+result_html = local_or_cdn(result_html,
+    'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+    'chart.min.js')
+result_html = local_or_cdn(result_html,
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+    'xlsx.min.js')
+result_html = local_or_cdn(result_html,
+    'https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js',
+    'chartjs-annotation.min.js')
+# Шрифты — заменяем на системный стек
+result_html = result_html.replace(
+    "href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap\" rel=\"stylesheet\"",
+    "rel=\"stylesheet\" href=\"data:text/css,\""
+)
+result_html = result_html.replace("font-family:Inter,sans-serif", "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif")
+
 OUT = os.path.join(FOLDER, 'дашборд.html')
 open(OUT, 'w', encoding='utf-8').write(result_html)
 print(f"Сохранено: дашборд.html ({len(result_html)//1024} KB)")
