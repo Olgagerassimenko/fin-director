@@ -7,7 +7,8 @@
     {href:'дашборд_ДДС.html',icon:'💰',label:'ДДС'},
     {href:'дашборд_продажи.html',icon:'🛒',label:'Продажи'},
     {href:'дашборд_себестоимость_2025-2026.html',icon:'💹',label:'Себест.'},
-    {href:'дашборд_sku_2025-2026.html',icon:'🔍',label:'SKU'}
+    {href:'дашборд_sku_2025-2026.html',icon:'🔍',label:'SKU онлайн'},
+    {href:'дашборд_sku_2025-2026_копия.html',icon:'📤',label:'SKU из Excel'}
   ];
   var cur=location.pathname.split('/').pop()||'index.html';
   var s=document.createElement('style');
