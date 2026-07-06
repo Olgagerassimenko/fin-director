@@ -107,15 +107,15 @@ tbody td{padding:8px 12px;vertical-align:middle}
   <div style="text-align:center">
     <div style="font-size:48px;margin-bottom:12px">📊</div>
     <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-.5px">SKU-АНАЛИЗ</div>
-    <div style="font-size:14px;color:rgba(255,255,255,.5);margin-top:6px">Загрузите файл Excel с продажами</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.5);margin-top:6px">Загрузите файл Excel с себестоимостью</div>
   </div>
-  <label id="drop-zone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:420px;height:200px;border:2px dashed rgba(124,58,237,.5);border-radius:20px;cursor:pointer;background:rgba(124,58,237,.08);transition:all .2s">
+  <div id="drop-zone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:420px;height:200px;border:2px dashed rgba(124,58,237,.5);border-radius:20px;background:rgba(124,58,237,.08);transition:all .2s">
     <div style="font-size:36px">📂</div>
-    <div style="font-size:15px;font-weight:700;color:#a78bfa">Нажмите или перетащите файл</div>
-    <div style="font-size:12px;color:rgba(255,255,255,.4)">Продажи 2025-2026гг..xlsx</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.4)">2025-2026 анализ себестоимости СВОДКА.xlsx</div>
+    <button onclick="document.getElementById('xl-input').click()" style="margin-top:4px;padding:12px 32px;background:#7c3aed;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px">📁 Выбрать файл</button>
     <input type="file" id="xl-input" accept=".xlsx" style="display:none" onchange="loadExcel(this.files[0])">
-  </label>
-  <div id="upload-status" style="font-size:13px;color:rgba(255,255,255,.5);min-height:20px"></div>
+  </div>
+  <div id="upload-status" style="font-size:13px;color:rgba(255,255,255,.5);min-height:20px;text-align:center;max-width:400px"></div>
 </div>
 
 <div class="topbar">
@@ -321,7 +321,6 @@ tbody td{padding:8px 12px;vertical-align:middle}
 
 
 <script>
-// ——— Dynamic data from Excel ———
 let SKUS = [];
 const MO = ["янв'25","фев'25","мар'25","апр'25","май'25","июн'25","июл'25","авг'25","сен'25","окт'25","ноя'25","дек'25","янв'26","фев'26","мар'26","апр'26","май'26"]};
 const EXIT_DATA = {"unprofitable": [{"name": "СН* Упак Торт блинный (1шт)", "cat": "СН Торты", "rev": 11173289, "margin": 15.2, "trend": -67}, {"name": "Упак Самса с говядиной готов СМ (1шт=130гр)", "cat": "Выпечка_", "rev": 3802236, "margin": 21.9, "trend": 0}, {"name": "Упак Хлеб тостовый белый (4шт)", "cat": "Хлеб", "rev": 3672949, "margin": 9.3, "trend": 8}, {"name": "Упак Английский завтрак (1порц)", "cat": "Горячее", "rev": 3582200, "margin": 26.5, "trend": 0}, {"name": "Упак Тирамису в стакане (1шт)", "cat": "Десерты", "rev": 3173343, "margin": 24.6, "trend": 0}, {"name": "Упак Улитка с изюмом (Хлебная корзина)(2 шт)", "cat": "Выпечка_", "rev": 2948110, "margin": 29.7, "trend": 3}, {"name": "Упак Салат крабовый лоток (1,700 кг)", "cat": "П/Ф Кулинария", "rev": 2867534, "margin": 27.0, "trend": -12}, {"name": "Упак Курица в грибном соусе с пюре и гречкой (1порц)", "cat": "Горячее", "rev": 2500620, "margin": 29.3, "trend": 250}, {"name": "Упак Пампушки с джусаем лоток (12 шт)", "cat": "П/Ф Кулинария", "rev": 1746360, "margin": 15.1, "trend": 14}, {"name": "Упак Пирожное сникерс (4шт)", "cat": "Десерты", "rev": 1581138, "margin": 21.1, "trend": 0}, {"name": "Упак Салат Морковь по-корейски лоток (1 кг)", "cat": "П/Ф Кулинария", "rev": 1386800, "margin": 27.0, "trend": -4}, {"name": "Упак Бефстроганов new ВУ (1кг)", "cat": "П/Ф Кулинария", "rev": 1274608, "margin": 26.5, "trend": 0}, {"name": "Упак Салат с хрустящей курочкой лоток (0,910 кг)", "cat": "П/Ф Кулинария", "rev": 1211866, "margin": 27.3, "trend": 1}, {"name": "СН* Упак Тарталетка с клубникой new (2шт)", "cat": "СН Десерты", "rev": 1161292, "margin": 20.2, "trend": 37}, {"name": "СН* Упак Тарталетка малиновка (2 шт)", "cat": "СН Десерты", "rev": 1096826, "margin": 29.3, "trend": 7}], "crashing": [{"name": "Упак Круассан с копченой говядиной (1шт)", "cat": "СЭНДВИЧИ", "rev": 14135673, "margin": 60.7, "trend": -100}, {"name": "Упак Манты с говядиной и тыквой (1порц)", "cat": "Горячее", "rev": 9384770, "margin": 42.6, "trend": -100}, {"name": "Упак Поке с курицей", "cat": "Япония", "rev": 8015498, "margin": 59.7, "trend": -100}, {"name": "Упак Картофель с мясом (1порц)", "cat": "Салаты", "rev": 7215350, "margin": 45.8, "trend": -100}, {"name": "Упак Бефстроганов new ВУ (3кг)", "cat": "П/Ф Кулинария", "rev": 4876995, "margin": 43.1, "trend": -100}, {"name": "Упак Каурдак с капустой (1порц)", "cat": "Горячее", "rev": 4583421, "margin": 38.9, "trend": -100}, {"name": "Упак Пицца Четыре сыра (5шт в гофра)", "cat": "Фаст-фуд", "rev": 4435199, "margin": 40.1, "trend": -100}, {"name": "Упак Поке с лососем", "cat": "Япония", "rev": 4099246, "margin": 49.6, "trend": -100}, {"name": "Упак Курица с овощами в соусе терияки с рисом (1порц)", "cat": "Горячее", "rev": 3470563, "margin": 62.1, "trend": -100}, {"name": "ПО* Упак Клаб Сэндвич с индейкой (1шт)", "cat": "СЭНДВИЧИ", "rev": 3306859, "margin": 45.7, "trend": -100}, {"name": "ПО* Упак Клаб Сэндвич крок-месье (1шт)", "cat": "СЭНДВИЧИ", "rev": 3247645, "margin": 37.6, "trend": -100}, {"name": "Упак Сэндвич со шницелем (1шт)", "cat": "СЭНДВИЧИ", "rev": 3181138, "margin": 55.6, "trend": -100}, {"name": "ПО* Упак Люля куриный с рисом и соусом (1порц)", "cat": "Горячее", "rev": 2978780, "margin": 56.4, "trend": -100}, {"name": "ПО* Упак Курица с сыром и гречкой (1порц)", "cat": "Горячее", "rev": 2918096, "margin": 54.3, "trend": -100}, {"name": "ПО* Упак Курица с сыром с рисом и паутини (1порц)", "cat": "Горячее", "rev": 2855334, "margin": 51.4, "trend": -100}], "zombies": [{"name": "Упак Бенто торт S Молочная девочка (1шт)", "cat": "Торты", "rev": 14708400, "margin": 45.2, "trend": 0}, {"name": "Упак Круассан с копченой говядиной (1шт)", "cat": "СЭНДВИЧИ", "rev": 14135673, "margin": 60.7, "trend": -100}, {"name": "Упак Шницель с картофельным пюре и горошком (1порц)", "cat": "Горячее", "rev": 13330364, "margin": 49.8, "trend": 0}, {"name": "Упак Котлета куриная с тушеной капустой (1порц)", "cat": "Горячее", "rev": 9817279, "margin": 41.4, "trend": 0}, {"name": "Упак Онигири с крабом (1шт)", "cat": "Япония", "rev": 9573636, "margin": 59.2, "trend": 0}, {"name": "Упак Манты с говядиной и тыквой (1порц)", "cat": "Горячее", "rev": 9384770, "margin": 42.6, "trend": -100}, {"name": "Упак Фрикадельки в сливочно-томатном соусе с пюре (1порц)", "cat": "Горячее", "rev": 8702839, "margin": 47.1, "trend": 0}, {"name": "Упак Онигири с тобико (1шт)", "cat": "Япония", "rev": 8505809, "margin": 57.1, "trend": 0}, {"name": "Упак Поке с курицей", "cat": "Япония", "rev": 8015498, "margin": 59.7, "trend": -100}, {"name": "Упак Клаб Сэндвич с колбасой (1шт)", "cat": "СЭНДВИЧИ", "rev": 5787313, "margin": 55.0, "trend": 0}, {"name": "Упак Говядина по татарски с гречкой (1порц)", "cat": "Горячее", "rev": 5035140, "margin": 54.1, "trend": 0}, {"name": "Упак Салат с лососем (1порц)", "cat": "Салаты", "rev": 5011047, "margin": 43.4, "trend": 0}, {"name": "ОНИГИРИ С ТОБИКО MAGNUM CHEF 125ГР", "cat": "Япония", "rev": 4894125, "margin": 56.5, "trend": 0}, {"name": "Упак Бефстроганов new ВУ (3кг)", "cat": "П/Ф Кулинария", "rev": 4876995, "margin": 43.1, "trend": -100}, {"name": "Упак Каурдак с капустой (1порц)", "cat": "Горячее", "rev": 4583421, "margin": 38.9, "trend": -100}], "double_trouble": [{"name": "МАНТЫ С ГОВЯДИНОЙ MAGNUM CHEF 265ГР", "cat": "Горячее", "rev": 14723609, "margin": 36.4, "trend": -22}, {"name": "СН* Упак Торт блинный (1шт)", "cat": "СН Торты", "rev": 11173289, "margin": 15.2, "trend": -67}, {"name": "Упак Пельмени с говядиной СМ (5 кг гофра)", "cat": "П/Ф", "rev": 7510314, "margin": 37.0, "trend": -37}, {"name": "Упак Каурдак с капустой (1порц)", "cat": "Горячее", "rev": 4583421, "margin": 38.9, "trend": -100}, {"name": "СН* Упак Пирожное Брауни с карамелью и орехом пекан (3 шт)", "cat": "СН Десерты", "rev": 4278210, "margin": 32.4, "trend": -63}, {"name": "СН* Упак Чизкейк испанский Сан Себастьян (1шт)", "cat": "СН Торты", "rev": 3264764, "margin": 34.7, "trend": -74}, {"name": "ПО* Упак Клаб Сэндвич крок-месье (1шт)", "cat": "СЭНДВИЧИ", "rev": 3247645, "margin": 37.6, "trend": -100}, {"name": "Упак Салат Винегрет лоток (1,500 кг)", "cat": "П/Ф Кулинария", "rev": 3212483, "margin": 38.3, "trend": -28}, {"name": "Упак Пирожное Рафаелло (4шт)", "cat": "Десерты", "rev": 2680223, "margin": 37.9, "trend": -23}, {"name": "ПО* Упак Манты с говядиной (1порц)", "cat": "Горячее", "rev": 2471695, "margin": 38.4, "trend": -100}, {"name": "ПО* Упак Блины с мясом (3шт)", "cat": "Завтраки", "rev": 1573188, "margin": 36.8, "trend": -100}, {"name": "Упак Говядина с грибами ВУ (1 кг)", "cat": "П/Ф Кулинария", "rev": 1471108, "margin": 37.8, "trend": -25}, {"name": "Упак Торт Сникерс с хрустящим арахисом (1шт)", "cat": "СН Торты", "rev": 1394433, "margin": 35.7, "trend": -46}, {"name": "Упак Манты с говядиной (10 шт)", "cat": "П/Ф", "rev": 1169249, "margin": 36.0, "trend": -81}, {"name": "Упак Тирольский пирог (1шт)", "cat": "Десерты", "rev": 1122850, "margin": 30.9, "trend": -72}]};
@@ -1546,127 +1545,136 @@ const IDX_2025 = Array.from({length:12},(_,i)=>i);
 const IDX_2026 = Array.from({length:5},(_,i)=>i+12);
 const IDX_ALL  = Array.from({length:17},(_,i)=>i);
 
-// Revenue column indices in Excel (0-based, from row 5 header row)
-const REV_COLS_25 = [5,7,9,12,14,16,18,20,22,24,26,28]; // Jan-Dec 2025
-const REV_COLS_26 = [5,7,9,12,14];                       // Jan-May 2026
-
 function loadExcel(file) {
   if(!file) return;
   const status = document.getElementById('upload-status');
   status.textContent = 'Читаю файл...';
-  const dz = document.getElementById('drop-zone');
-  dz.style.borderColor = '#7c3aed';
+  status.style.color = 'rgba(255,255,255,.5)';
 
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
       status.textContent = 'Парсю данные...';
-      const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
 
-      // Parse both sheets
       const map = {};
 
-      function parseSheet(wb, sheetName, revCols, moOffset) {
+      wb.SheetNames.forEach(function(sheetName) {
+        // Match sheets like "Отчет о продажах с 01.MM.YYYY п"
+        const m = sheetName.match(/(\d{2})\.(\d{4})/);
+        if(!m) return; // skip СВОДКА and other non-month sheets
+
+        const mo = parseInt(m[1]);
+        const yr = parseInt(m[2]);
+        let moIdx;
+        if(yr === 2025) moIdx = mo - 1;          // 0–11
+        else if(yr === 2026) moIdx = 12 + mo - 1; // 12–16
+        else return;
+        if(moIdx < 0 || moIdx > 16) return;
+
         const ws = wb.Sheets[sheetName];
-        if(!ws) return;
-        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
-        // Data starts at row 6 (index 6), SKU name at col 2
-        for(let r = 6; r < rows.length; r++) {
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+
+        // Row 1–3: title/info, Row 4: headers, Row 5+: data
+        for(let r = 4; r < rows.length; r++) {
           const row = rows[r];
-          const skuName = row[2];
-          if(!skuName || typeof skuName !== 'string' || skuName.trim() === '') continue;
+          if(!row) continue;
+          const catRaw  = row[0];
+          const nameRaw = row[1];
+          if(!nameRaw || typeof nameRaw !== 'string') continue;
+          const n = nameRaw.trim();
+          if(!n) continue;
           // Skip subtotal rows
-          const txType = row[1];
-          if(txType && String(txType).includes('всего')) continue;
-          
-          const name = skuName.trim();
-          if(!map[name]) {
-            map[name] = {
-              name,
-              cat: detectCat(name),
-              monthly_rev: new Array(17).fill(0),
-              monthly_vp:  new Array(17).fill(0),
-              monthly_qty: new Array(17).fill(0),
+          if(n.toLowerCase().startsWith('итого') ||
+             n.toLowerCase().startsWith('всего')) continue;
+
+          const qty = row[3];  // Количество
+          const rev = row[6];  // Выручка, тнг.
+          const vp  = row[7];  // Валовая прибыль, тнг.
+
+          if(!map[n]) {
+            map[n] = {
+              cat: (catRaw && typeof catRaw === 'string') ? catRaw.trim() : 'Прочее',
+              rev: new Array(17).fill(0),
+              vp:  new Array(17).fill(0),
+              qty: 0
             };
           }
-          revCols.forEach((col, mi) => {
-            const v = row[col];
-            const num = v ? Math.abs(parseFloat(String(v).replace(/[^\d.-]/g,''))) : 0;
-            if(!isNaN(num)) map[name].monthly_rev[moOffset + mi] += num;
-          });
+          if(typeof rev === 'number' && rev > 0) map[n].rev[moIdx] += rev;
+          if(typeof vp  === 'number')             map[n].vp[moIdx]  += vp;
+          if(typeof qty === 'number')             map[n].qty        += qty;
         }
-      }
+      });
 
-      parseSheet(wb, 'Продажи 2025', REV_COLS_25, 0);
-      parseSheet(wb, 'Продажи 2026', REV_COLS_26, 12);
-
-      // Build SKUS array
-      SKUS = Object.values(map).map(s => {
-        const total_rev = s.monthly_rev.reduce((a,b)=>a+b,0);
-        const rev25 = IDX_2025.reduce((a,i)=>a+s.monthly_rev[i],0);
-        const rev26 = IDX_2026.reduce((a,i)=>a+s.monthly_rev[i],0);
-        const active = s.monthly_rev.filter(v=>v>0).length;
-        // Trend: compare 2026 avg to 2025 avg
+      SKUS = Object.entries(map).map(function([name, s]) {
+        const total_rev = s.rev.reduce(function(a,b){return a+b;}, 0);
+        const total_vp  = s.vp.reduce(function(a,b){return a+b;}, 0);
+        const rev25 = IDX_2025.reduce(function(a,i){return a+s.rev[i];}, 0);
+        const rev26 = IDX_2026.reduce(function(a,i){return a+s.rev[i];}, 0);
         const avg25 = rev25 / 12;
         const avg26 = rev26 / 5;
-        const trend = avg25 > 0 ? Math.round((avg26/avg25 - 1)*100) : 0;
+        const trend  = avg25 > 0 ? Math.round((avg26/avg25 - 1)*100) : 0;
+        const margin = total_rev > 0 ? Math.round(total_vp/total_rev*100) : 0;
+        const active = s.rev.filter(function(v){return v>0;}).length;
         return {
-          name: s.name,
+          name: name,
           cat: s.cat,
-          total_rev,
-          total_vp: 0,
-          total_qty: 0,
-          margin: 0,
+          total_rev: total_rev,
+          total_vp:  total_vp,
+          total_qty: Math.round(s.qty),
+          margin: margin,
           active_months: active,
-          trend,
-          monthly_rev: s.monthly_rev,
-          monthly_vp: s.monthly_vp,
+          trend: trend,
+          monthly_rev: s.rev,
+          monthly_vp:  s.vp
         };
-      }).filter(s => s.total_rev > 0)
-        .sort((a,b) => b.total_rev - a.total_rev);
+      })
+      .filter(function(s){return s.total_rev > 0;})
+      .sort(function(a,b){return b.total_rev - a.total_rev;});
 
-      status.textContent = `Загружено ${SKUS.length} SKU. Открываю дашборд...`;
-      setTimeout(() => {
+      if(SKUS.length === 0) {
+        status.style.color = '#f87171';
+        status.textContent = '❌ SKU не найдены. Убедитесь что файл содержит листы с названием «Отчет о продажах с 01.MM.YYYY»';
+        return;
+      }
+
+      const top1 = SKUS[0];
+      status.style.color = '#4ade80';
+      status.textContent = '✅ Загружено ' + SKUS.length + ' SKU. Топ-1: ' +
+        top1.name.slice(0,35) + ' (' + (top1.total_rev/1e6).toFixed(1) + ' млн). Открываю...';
+      setTimeout(function() {
         document.getElementById('upload-screen').style.display = 'none';
         initAfterLoad();
-      }, 500);
+      }, 1200);
     } catch(err) {
-      status.textContent = 'Ошибка: ' + err.message;
+      document.getElementById('upload-status').style.color = '#f87171';
+      document.getElementById('upload-status').textContent = '❌ Ошибка: ' + err.message;
+      console.error(err);
     }
   };
   reader.readAsArrayBuffer(file);
 }
 
-function detectCat(name) {
-  const n = name.toLowerCase();
-  if(n.includes('торт') || n.includes('пирожок') || n.includes('сосиска') || n.includes('блин') || n.includes('круасс') || n.includes('панини') || n.includes('выпечк')) return 'Выпечка_';
-  if(n.includes('суп') || n.includes('борщ') || n.includes('лагман')) return 'Горячее';
-  if(n.includes('ролл') || n.includes('кимбаб') || n.includes('кимпаб') || n.includes('суши') || n.includes('сет')) return 'Япония';
-  if(n.includes('плов') || n.includes('манты') || n.includes('шашлык') || n.includes('стейк') || n.includes('шницель') || n.includes('котлет')) return 'Горячее';
-  if(n.includes('гарнир') || n.includes('картоф') || n.includes('рис') || n.includes('пюре')) return 'Гарниры';
-  if(n.includes('напит') || n.includes('чай') || n.includes('кофе') || n.includes('сок') || n.includes('вода') || n.includes('лимонад')) return 'Напитки';
-  if(n.includes('салат') || n.includes('закуск')) return 'Салаты';
-  if(n.includes('десерт') || n.includes('мороже') || n.includes('чизкейк') || n.includes('тирамису')) return 'Десерты';
-  if(n.includes('завтрак') || n.includes('каша') || n.includes('омлет')) return 'Завтраки';
-  return 'Прочее';
-}
-
-// Drag-and-drop
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
   const dz = document.getElementById('drop-zone');
   if(!dz) return;
-  dz.onclick = () => document.getElementById('xl-input').click();
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.background='rgba(124,58,237,.18)'; });
-  dz.addEventListener('dragleave', () => { dz.style.background='rgba(124,58,237,.08)'; });
-  dz.addEventListener('drop', e => { e.preventDefault(); loadExcel(e.dataTransfer.files[0]); });
+
+  dz.addEventListener('dragover', function(e) {
+    e.preventDefault(); dz.style.background='rgba(124,58,237,.18)';
+  });
+  dz.addEventListener('dragleave', function() {
+    dz.style.background='rgba(124,58,237,.08)';
+  });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault(); loadExcel(e.dataTransfer.files[0]);
+  });
 });
 
 function initAfterLoad() {
-  // Re-initialize all dashboard state
   currentSKUs = [...SKUS];
-  renderTable();
+  if(typeof renderTable === 'function') renderTable();
   const firstTab = document.querySelector('.ntab');
-  if(firstTab) switchMain('table', firstTab);
+  if(firstTab && typeof switchMain === 'function') switchMain('table', firstTab);
 }
 
 SKUS = SKU_DATA.skus;
