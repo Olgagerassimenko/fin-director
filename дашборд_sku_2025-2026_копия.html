@@ -112,8 +112,8 @@ tbody td{padding:8px 12px;vertical-align:middle}
   <div id="drop-zone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:420px;height:200px;border:2px dashed rgba(124,58,237,.5);border-radius:20px;background:rgba(124,58,237,.08);transition:all .2s">
     <div style="font-size:36px">📂</div>
     <div style="font-size:13px;color:rgba(255,255,255,.4)">2025-2026 анализ себестоимости СВОДКА.xlsx</div>
-    <button onclick="document.getElementById('xl-input').click()" style="margin-top:4px;padding:12px 32px;background:#7c3aed;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px">📁 Выбрать файл</button>
     <input type="file" id="xl-input" accept=".xlsx" style="display:none" onchange="loadExcel(this.files[0])">
+    <label for="xl-input" style="margin-top:4px;padding:12px 32px;background:#7c3aed;color:#fff;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;display:inline-block">📁 Выбрать файл</label>
   </div>
   <div id="upload-status" style="font-size:13px;color:rgba(255,255,255,.5);min-height:20px;text-align:center;max-width:400px"></div>
 </div>
@@ -1540,7 +1540,7 @@ function buildTopRevList(){
 }
 
 </script>
-<script src="nav.js"></script>;
+<script src="nav.js"></script>
 const IDX_2025 = Array.from({length:12},(_,i)=>i);
 const IDX_2026 = Array.from({length:5},(_,i)=>i+12);
 const IDX_ALL  = Array.from({length:17},(_,i)=>i);
