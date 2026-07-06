@@ -47,8 +47,21 @@ for sh in wb.sheetnames:
     idx = mo_idx(sh)
     if idx < 0 or idx > 16: continue
     ws = wb[sh]
+
+    # Определяем раскладку колонок по строке заголовка (строка 4)
+    # Формат A: Категория в col1 → Выручка col7, ВП col8
+    # Формат B: Год/Месяц + Категория в col3 → Выручка col9, ВП col10
+    row4 = [ws.cell(4, c).value for c in range(1, 6)]
+    if row4[0] and 'Категория' in str(row4[0]):
+        C_CAT, C_NAME, C_REV, C_VP = 1, 2, 7, 8   # Формат A
+    else:
+        C_CAT, C_NAME, C_REV, C_VP = 3, 4, 9, 10  # Формат B
+
     for row in ws.iter_rows(min_row=5, values_only=True):
-        cat, name, qty, rev, vp = row[0], row[1], row[3], row[6], row[7]
+        cat  = row[C_CAT-1]
+        name = row[C_NAME-1]
+        rev  = row[C_REV-1]
+        vp   = row[C_VP-1]
         if not name or not isinstance(name, str): continue
         n = name.strip()
         if not n or n.lower().startswith('итого') or n.lower().startswith('всего'): continue
@@ -57,8 +70,7 @@ for sh in wb.sheetnames:
             skus[n] = {'cat': str(cat or '').strip() or 'Прочее',
                        'rev': [0]*17, 'vp': [0]*17, 'qty': 0}
         if rev and rev > 0: skus[n]['rev'][idx] += float(rev)
-        if vp: skus[n]['vp'][idx] += float(vp)
-        if qty and isinstance(qty, (int, float)): skus[n]['qty'] += float(qty)
+        if vp:              skus[n]['vp'][idx]  += float(vp)
 
 IDX_2025 = list(range(12))
 IDX_2026 = list(range(12, 17))
@@ -76,7 +88,7 @@ for name, s in skus.items():
     result.append({
         'name': name, 'cat': s['cat'],
         'total_rev': round(total_rev), 'total_vp': round(total_vp),
-        'total_qty': round(s['qty']), 'margin': margin,
+        'total_qty': 0, 'margin': margin,
         'active_months': active, 'trend': trend,
         'monthly_rev': [round(v) for v in s['rev']],
         'monthly_vp':  [round(v) for v in s['vp']],
@@ -86,52 +98,57 @@ result.sort(key=lambda x: -x['total_rev'])
 data = {'mo_labels': MO, 'skus': result}
 print(f"Обработано SKU: {len(result)}")
 
-# Читаем шаблон из родительской папки
-TEMPLATE = os.path.join(PARENT, 'дашборд_sku_2025-2026.html')
+# Вычисляем месячные итоги для AN_MO_REV / AN_MO_VP
+AN_MO_REV = [0]*17
+AN_MO_VP  = [0]*17
+for s in result:
+    for i in range(17):
+        AN_MO_REV[i] += s['monthly_rev'][i]
+        AN_MO_VP[i]  += s['monthly_vp'][i]
+AN_MO_REV = [round(v) for v in AN_MO_REV]
+AN_MO_VP  = [round(v) for v in AN_MO_VP]
+
+# Читаем шаблон (дашборд_sku_себестоимость.html из родительской папки)
+TEMPLATE = os.path.join(PARENT, 'дашборд_sku_себестоимость.html')
 if not os.path.exists(TEMPLATE):
-    print(f"ОШИБКА: не найден шаблон {TEMPLATE}")
+    # Запасной вариант — оригинальный SKU-дашборд
+    TEMPLATE = os.path.join(PARENT, 'дашборд_sku_2025-2026.html')
+if not os.path.exists(TEMPLATE):
+    print(f"ОШИБКА: не найден шаблон")
     input("Нажмите Enter...")
     sys.exit(1)
 
 src = open(TEMPLATE, encoding='utf-8').read()
+
+# Заменяем блок SKU_DATA (сохраняем JS-функции внутри того же <script>)
 data_start = src.find('<script>\nconst SKU_DATA')
 data_end   = src.find('</script>', data_start) + len('</script>')
+skus_end   = src.find('\n', src.find('SKUS = SKU_DATA.skus', data_start)) + 1
+js_functions = src[skus_end:data_end - len('</script>')]
 
-new_json  = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
-new_block = f'<script>\nconst SKU_DATA={new_json};\nSKUS = SKU_DATA.skus;\n</script>'
+new_json  = json.dumps(data, ensure_ascii=False, separators=(',',':'))
+new_block = f'<script>\nconst SKU_DATA={new_json};\nSKUS = SKU_DATA.skus;\n{js_functions}</script>'
 
 result_html = src[:data_start] + new_block + src[data_end:]
+
+# Заменяем AN_MO_REV и AN_MO_VP на актуальные значения
+result_html = re.sub(
+    r'const AN_MO_REV = \[[\d, ]+\];',
+    f'const AN_MO_REV = {json.dumps(AN_MO_REV)};',
+    result_html)
+result_html = re.sub(
+    r'const AN_MO_VP = \[[\d, ]+\];',
+    f'const AN_MO_VP = {json.dumps(AN_MO_VP)};',
+    result_html)
+
 result_html = result_html.replace(
     '<title>SKU Анализ — ТОО «Фуд завод»</title>',
     '<title>SKU Себестоимость — ТОО «Фуд завод»</title>'
 )
 
-# Переключаем на локальные файлы если они есть, иначе CDN
-def local_or_cdn(html, cdn_url, local_file):
-    local_path = os.path.join(FOLDER, local_file)
-    if os.path.exists(local_path):
-        return html.replace(cdn_url, local_file)
-    return html
-
-result_html = local_or_cdn(result_html,
-    'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
-    'chart.min.js')
-result_html = local_or_cdn(result_html,
-    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
-    'xlsx.min.js')
-result_html = local_or_cdn(result_html,
-    'https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js',
-    'chartjs-annotation.min.js')
-# Шрифты — заменяем на системный стек
-result_html = result_html.replace(
-    "href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap\" rel=\"stylesheet\"",
-    "rel=\"stylesheet\" href=\"data:text/css,\""
-)
-result_html = result_html.replace("font-family:Inter,sans-serif", "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif")
-
-OUT = os.path.join(FOLDER, 'дашборд.html')
+OUT = os.path.join(PARENT, 'дашборд_sku_себестоимость.html')
 open(OUT, 'w', encoding='utf-8').write(result_html)
-print(f"Сохранено: дашборд.html ({len(result_html)//1024} KB)")
+print(f"Сохранено: дашборд_sku_себестоимость.html ({len(result_html)//1024} KB)")
 
 # Копируем nav.js если нужно
 nav_src = os.path.join(PARENT, 'nav.js')
@@ -139,4 +156,5 @@ nav_dst = os.path.join(FOLDER, 'nav.js')
 if os.path.exists(nav_src) and not os.path.exists(nav_dst):
     shutil.copy(nav_src, nav_dst)
 
-print("Готово! Открываю дашборд...")
+print(f"\nИсточник данных: {os.path.basename(EXCEL)}")
+print("Готово!")
