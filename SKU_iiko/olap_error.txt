@@ -1,0 +1,2 @@
+Can not construct instance of resto.api.v2.report.dto.OlapReportTypeDto from String value 'GOODS_MOTION': value not one of declared Enum instance names: [STOCK, SALES, TRANSACTIONS, DELIVERIES]
+ at [Source: org.glassfish.jersey.message.internal.ReaderInterceptorExecutor$UnCloseableInputStream@6a697bb0; line: 1, column: 2] (through reference chain: resto.api.v2.report.dto.OlapReportSettingDto["reportType"])

@@ -127,7 +127,7 @@ skus_end   = src.find('\n', src.find('SKUS = SKU_DATA.skus', data_start)) + 1
 js_functions = src[skus_end:data_end - len('</script>')]
 
 new_json  = json.dumps(data, ensure_ascii=False, separators=(',',':'))
-new_block = f'<script>\nconst SKU_DATA={new_json};\nSKUS = SKU_DATA.skus;\n{js_functions}</script>'
+new_block = f'<script>\nconst SKU_DATA={new_json};\nSKUS = SKU_DATA.skus;\nconst MO = SKU_DATA.mo_labels;\n{js_functions}</script>'
 
 result_html = src[:data_start] + new_block + src[data_end:]
 
