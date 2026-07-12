@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Продажи — Live iiko</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e293b,#0f172a);border-bottom:1px solid #334155;padding:16px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.header-title{font-size:18px;font-weight:700;color:#f1f5f9;flex:1}
+.live-pill{display:inline-flex;align-items:center;gap:6px;color:#7c3aed;background:#1e1040;border:1px solid #5b21b6;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600}
+.live-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:#7c3aed;animation:pulse 1.5s ease infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Month picker */
+.month-bar{background:#1e293b;border-bottom:1px solid #334155;padding:12px 28px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.month-bar label{font-size:11px;color:#64748b;font-weight:600;white-space:nowrap}
+.mo-btn{padding:5px 14px;border:1.5px solid #334155;border-radius:20px;background:transparent;font-size:12px;font-weight:600;color:#64748b;cursor:pointer;transition:all .15s}
+.mo-btn:hover:not(.active){border-color:#7c3aed;color:#a78bfa}
+.mo-btn.active{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.reload-btn{margin-left:auto;padding:5px 14px;border:1.5px solid #334155;border-radius:20px;background:transparent;font-size:12px;color:#64748b;cursor:pointer;transition:all .15s}
+.reload-btn:hover{border-color:#7c3aed;color:#a78bfa}
+
+/* KPI row */
+.kpi-row{display:flex;gap:12px;padding:20px 28px;flex-wrap:wrap}
+.kpi{background:linear-gradient(135deg,#1e1040,#1a103a);border:1px solid #312e81;border-radius:14px;padding:16px 22px;flex:1;min-width:160px}
+.kpi-val{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.kpi-lbl{font-size:11px;color:#94a3b8;margin-top:4px;font-weight:500}
+.kpi-mag .kpi-val{color:#c4b5fd}
+.kpi-mag{background:linear-gradient(135deg,#2e1065,#1e1040);border-color:#7c3aed}
+
+/* Loading/error */
+.state{display:flex;align-items:center;justify-content:center;height:300px;font-size:15px;color:#64748b;flex-direction:column;gap:12px}
+.spinner{width:36px;height:36px;border:3px solid #334155;border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Charts grid */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 28px 16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:0 28px 16px}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+.card{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:20px}
+.card-title{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px}
+.chart-wrap{position:relative}
+
+/* Magnum section */
+.mag-header{font-size:16px;font-weight:700;color:#c4b5fd;margin:8px 28px 12px;display:flex;align-items:center;gap:8px}
+.mag-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 28px 24px}
+@media(max-width:900px){.mag-grid{grid-template-columns:1fr}}
+
+/* Top SKU table */
+.top-table{width:100%;border-collapse:collapse;font-size:12px}
+.top-table th{text-align:left;padding:6px 8px;color:#64748b;font-weight:600;border-bottom:1px solid #334155;font-size:10px;text-transform:uppercase}
+.top-table td{padding:7px 8px;border-bottom:1px solid #1e293b;color:#e2e8f0}
+.top-table tr:hover td{background:#0f172a}
+.mag-badge{background:#5b21b6;color:#e9d5ff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;white-space:nowrap}
+.bar-inline{height:6px;border-radius:3px;background:#3b82f6;margin-top:3px}
+.bar-mag{background:#7c3aed}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">📊 Продажи — Live iiko</div>
+  <div class="live-pill">LIVE</div>
+</div>
+
+<div class="month-bar">
+  <label>Месяц:</label>
+  <div id="month-btns"></div>
+  <button class="reload-btn" onclick="reload()">↺ Обновить</button>
+</div>
+
+<div id="kpi-row" class="kpi-row" style="display:none">
+  <div class="kpi"><div class="kpi-val" id="kpi-rev">—</div><div class="kpi-lbl">Выручка</div></div>
+  <div class="kpi"><div class="kpi-val" id="kpi-sku">—</div><div class="kpi-lbl">Позиций SKU</div></div>
+  <div class="kpi kpi-mag"><div class="kpi-val" id="kpi-mag">—</div><div class="kpi-lbl">Magnum Chef (доля)</div></div>
+</div>
+
+<div id="content">
+  <div class="state"><div class="spinner"></div><div>Выберите месяц</div></div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+const API = 'http://localhost:8090';
+let currentMonth = null;
+let charts = {};
+
+const MO_LABELS = {
+  '01':'Январь','02':'Февраль','03':'Март','04':'Апрель',
+  '05':'Май','06':'Июнь','07':'Июль','08':'Август',
+  '09':'Сентябрь','10':'Октябрь','11':'Ноябрь','12':'Декабрь'
+};
+
+const CAT_COLORS = {
+  'Горячее':'#3b82f6','Выпечка':'#f97316','Сэндвичи':'#eab308',
+  'П/Ф Кулинария':'#ef4444','Япония':'#a855f7','Десерты':'#ec4899',
+  'Завтраки':'#14b8a6','Салаты':'#22c55e','Прочее':'#6366f1'
+};
+function catColor(cat){ return CAT_COLORS[cat]||'#64748b'; }
+
+function fmtM(v){
+  if(v>=1e9) return (v/1e9).toFixed(1)+' млрд';
+  if(v>=1e6) return (v/1e6).toFixed(1)+' млн';
+  if(v>=1e3) return (v/1e3).toFixed(0)+' тыс';
+  return v.toFixed(0);
+}
+
+// ── Month buttons ──────────────────────────────
+async function loadMonths(){
+  try{
+    const r = await fetch(API+'/api/months');
+    const d = await r.json();
+    const btns = document.getElementById('month-btns');
+    btns.innerHTML = '';
+    const months = d.months || [];
+    // default: last month
+    const defaultMo = months[months.length-1];
+    months.forEach(mk=>{
+      const b = document.createElement('button');
+      b.className = 'mo-btn' + (mk===defaultMo?' active':'');
+      b.textContent = MO_LABELS[mk.slice(5)] + ' ' + mk.slice(0,4);
+      b.onclick = ()=>{ selectMonth(mk,b); };
+      btns.appendChild(b);
+    });
+    selectMonth(defaultMo, btns.querySelector('.active'));
+  } catch(e){
+    showError('Сервер недоступен. Запустите ЗАПУСТИТЬ_ПРОДАЖИ.bat');
+  }
+}
+
+function selectMonth(mk, btn){
+  currentMonth = mk;
+  document.querySelectorAll('.mo-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  loadData(mk);
+}
+
+function reload(){
+  if(!currentMonth) return;
+  fetch(API+'/reload?month='+currentMonth).then(()=>loadData(currentMonth));
+}
+
+// ── Data loading ───────────────────────────────
+async function loadData(mk){
+  showLoading();
+  try{
+    const r = await fetch(`${API}/api/sales?month=${mk}`);
+    const d = await r.json();
+    if(d.error){ showError(d.error); return; }
+    render(d, mk);
+  } catch(e){
+    showError('Сервер недоступен. Запустите ЗАПУСТИТЬ_ПРОДАЖИ.bat');
+  }
+}
+
+function showLoading(){
+  document.getElementById('kpi-row').style.display='none';
+  document.getElementById('content').innerHTML = `<div class="state"><div class="spinner"></div><div>Загружаю данные из iiko...</div></div>`;
+}
+
+function showError(msg){
+  document.getElementById('kpi-row').style.display='none';
+  document.getElementById('content').innerHTML = `<div class="state" style="color:#f87171">⚠ ${msg}</div>`;
+}
+
+// ── Render ─────────────────────────────────────
+function render(d, mk){
+  // KPIs
+  document.getElementById('kpi-rev').textContent = fmtM(d.total_rev);
+  document.getElementById('kpi-sku').textContent = d.sku_count.toLocaleString('ru');
+  document.getElementById('kpi-mag').textContent = fmtM(d.mag_rev) + ' (' + d.mag_pct + '%)';
+  document.getElementById('kpi-row').style.display = 'flex';
+
+  const cats = d.categories || [];
+  const top20 = d.top20 || [];
+  const magnum = d.magnum_items || [];
+  const totalRev = d.total_rev || 1;
+
+  // Destroy old charts
+  Object.values(charts).forEach(c=>c.destroy());
+  charts = {};
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid2" style="margin-top:4px">
+      <div class="card"><div class="card-title">Выручка по категориям, млн тнг</div><div class="chart-wrap"><canvas id="ch-bar" height="240"></canvas></div></div>
+      <div class="card"><div class="card-title">Доля категорий в выручке</div><div class="chart-wrap"><canvas id="ch-donut" height="240"></canvas></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">Маржа по категориям</div><div class="chart-wrap"><canvas id="ch-margin" height="240"></canvas></div></div>
+      <div class="card"><div class="card-title">ТОП-20 SKU по выручке</div><div id="top-table"></div></div>
+    </div>
+    <div class="mag-header">⚡ Magnum Chef — детализация</div>
+    <div class="mag-grid">
+      <div class="card"><div class="card-title">ТОП-10 Magnum по выручке, млн тнг</div><div class="chart-wrap"><canvas id="ch-mag" height="280"></canvas></div></div>
+      <div class="card"><div class="card-title">ТОП-10 Magnum по количеству, шт</div><div class="chart-wrap"><canvas id="ch-mag-qty" height="280"></canvas></div></div>
+    </div>
+  `;
+
+  // Bar chart — revenue by category
+  const barLabels = cats.map(c=>c.cat);
+  const barRevs   = cats.map(c=>c.rev/1e6);
+  charts.bar = new Chart(document.getElementById('ch-bar'), {
+    type:'bar',
+    data:{ labels:barLabels, datasets:[{label:'Выручка (млн)', data:barRevs,
+      backgroundColor: barLabels.map(l=>catColor(l)), borderRadius:6}]},
+    options:{
+      responsive:true, plugins:{legend:{display:false},
+        datalabels:{anchor:'end',align:'end',color:'#94a3b8',font:{size:10,weight:600},
+          formatter:v=>v.toFixed(1)+'M'}},
+      scales:{x:{ticks:{color:'#94a3b8',font:{size:11}},grid:{color:'#1e293b'}},
+              y:{ticks:{color:'#64748b'},grid:{color:'#334155'},display:false}}
+    }
+  });
+
+  // Donut
+  charts.donut = new Chart(document.getElementById('ch-donut'), {
+    type:'doughnut',
+    data:{ labels:barLabels, datasets:[{data:cats.map(c=>c.rev),
+      backgroundColor:barLabels.map(l=>catColor(l)), borderWidth:1, borderColor:'#0f172a'}]},
+    options:{
+      responsive:true, cutout:'60%',
+      plugins:{
+        legend:{position:'right',labels:{color:'#94a3b8',font:{size:11},boxWidth:12,padding:8}},
+        datalabels:{
+          color:'#fff', font:{size:10,weight:700},
+          formatter:(v,ctx)=>{
+            const pct=v/totalRev*100;
+            return pct<4?'':pct.toFixed(1)+'%';
+          },
+          textShadow:'0 1px 3px rgba(0,0,0,.8)'
+        }
+      }
+    }
+  });
+
+  // Margin horizontal bar (no VP data — show pct from cat level if possible)
+  // Since we don't have VP from API, show revenue share as proxy
+  // Actually show category revenue as horizontal bar with % label
+  const margLabels = [...cats].reverse().map(c=>c.cat);
+  const margRevs   = [...cats].reverse().map(c=>c.rev/1e6);
+  charts.margin = new Chart(document.getElementById('ch-margin'), {
+    type:'bar',
+    data:{ labels:margLabels, datasets:[{label:'Выручка (млн)', data:margRevs,
+      backgroundColor:[...cats].reverse().map(c=>catColor(c.cat)), borderRadius:4}]},
+    options:{
+      indexAxis:'y', responsive:true,
+      plugins:{legend:{display:false},
+        datalabels:{anchor:'end',align:'right',color:'#94a3b8',font:{size:10,weight:600},
+          formatter:v=>v.toFixed(1)+'M'}},
+      scales:{x:{display:false},y:{ticks:{color:'#94a3b8',font:{size:11}},grid:{color:'#1e293b'}}}
+    }
+  });
+
+  // Top-20 table
+  const maxRev = top20[0]?.rev || 1;
+  let tbl = `<table class="top-table"><thead><tr><th>#</th><th>Позиция</th><th>Выручка</th><th>Кол-во</th></tr></thead><tbody>`;
+  top20.forEach((s,i)=>{
+    const pct = s.rev/maxRev*100;
+    const badge = s.magnum ? '<span class="mag-badge">MAGNUM</span> ' : '';
+    tbl += `<tr><td style="color:#64748b;font-size:11px">${i+1}</td>
+      <td>${badge}${s.name.slice(0,40)}${s.name.length>40?'…':''}</td>
+      <td style="white-space:nowrap;font-weight:600">${fmtM(s.rev)}<div class="bar-inline ${s.magnum?'bar-mag':''}" style="width:${pct}%"></div></td>
+      <td style="color:#94a3b8">${Math.round(s.qty).toLocaleString('ru')}</td></tr>`;
+  });
+  tbl += '</tbody></table>';
+  document.getElementById('top-table').innerHTML = tbl;
+
+  // Magnum top-10 by revenue
+  const mag10 = magnum.slice(0,10);
+  const mag10Labels = mag10.map(m=>m.name.replace(/MAGNUM CHEF/i,'').replace(/\s+/g,' ').trim().slice(0,30));
+  charts.mag = new Chart(document.getElementById('ch-mag'), {
+    type:'bar',
+    data:{ labels:[...mag10Labels].reverse(), datasets:[{label:'Выручка (млн)', data:[...mag10].reverse().map(m=>m.rev/1e6),
+      backgroundColor:'rgba(124,58,237,.8)', borderRadius:4}]},
+    options:{
+      indexAxis:'y', responsive:true,
+      plugins:{legend:{display:false},
+        datalabels:{anchor:'end',align:'right',color:'#a78bfa',font:{size:10,weight:600},
+          formatter:v=>v.toFixed(2)+'M'}},
+      scales:{x:{display:false},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b'}}}
+    }
+  });
+
+  // Magnum top-10 by qty
+  const magQty = [...magnum].sort((a,b)=>b.qty-a.qty).slice(0,10);
+  const magQtyLabels = magQty.map(m=>m.name.replace(/MAGNUM CHEF/i,'').replace(/\s+/g,' ').trim().slice(0,30));
+  charts.magQty = new Chart(document.getElementById('ch-mag-qty'), {
+    type:'bar',
+    data:{ labels:[...magQtyLabels].reverse(), datasets:[{label:'Штук', data:[...magQty].reverse().map(m=>m.qty),
+      backgroundColor:'rgba(168,85,247,.7)', borderRadius:4}]},
+    options:{
+      indexAxis:'y', responsive:true,
+      plugins:{legend:{display:false},
+        datalabels:{anchor:'end',align:'right',color:'#a78bfa',font:{size:10,weight:600},
+          formatter:v=>Math.round(v).toLocaleString('ru')}},
+      scales:{x:{display:false},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b'}}}
+    }
+  });
+}
+
+// ── Init ───────────────────────────────────────
+loadMonths();
+</script>
+</body>
+</html>

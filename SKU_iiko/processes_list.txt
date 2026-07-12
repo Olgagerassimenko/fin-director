@@ -1,0 +1,17 @@
+﻿
+   Id ProcessName     MainWindowTitle                                                       
+   -- -----------     ---------------                                                       
+ 2640 BackOffice      Фуд завод - iikoOffice 2025                                           
+12884 chrome          1. ФЗ | Ежедневный план оплат - Google Таблицы - Google Chrome        
+14148 claude          Claude                                                                
+22308 EShare          EShare                                                                
+21976 EXCEL           I-Отчёт по ТТ и SKU 07.07.2026 13.49.45 ДЕНЬ - Excel                  
+ 5764 msedge          Что нового в Microsoft Edge и еще 3 страницы — Личный: Microsoft​ Edge
+29872 msedgewebview2  wv_1001                                                               
+ 9024 ms-teams        Чат | ОПиУ | Microsoft Teams                                          
+ 9132 SystemSettings  Настройки                                                             
+12340 TextInputHost   Интерфейс ввода Windows                                               
+30424 WindowsTerminal C:\WINDOWS\system32\cmd.exe                                           
+18100 Wispr Flow      Hub                                                                   
+
+
