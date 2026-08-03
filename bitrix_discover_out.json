@@ -1,0 +1,27 @@
+{
+ "profile": {
+  "error": "ERROR_METHOD_NOT_FOUND",
+  "error_description": "Method not found!"
+ },
+ "crm.type.list": {
+  "error": "ERROR_METHOD_NOT_FOUND",
+  "error_description": "Method not found!"
+ },
+ "crm.dealcategory.list": {
+  "error": "ERROR_METHOD_NOT_FOUND",
+  "error_description": "Method not found!"
+ },
+ "crm.status.list": {
+  "error": "ERROR_METHOD_NOT_FOUND",
+  "error_description": "Method not found!"
+ },
+ "smart_processes": {},
+ "crm.deal.fields": {
+  "error": "ERROR_METHOD_NOT_FOUND",
+  "error_description": "Method not found!"
+ },
+ "crm.deal.list_sample": {
+  "error": "ERROR_METHOD_NOT_FOUND",
+  "error_description": "Method not found!"
+ }
+}
