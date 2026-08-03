@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ДЗ / КЗ — Фуд завод</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="dz_kz.js" onerror="window.DZ_KZ=null"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh}
+
+/* ── HEADER ── */
+.hdr{display:flex;align-items:center;gap:10px;padding:14px 28px;border-bottom:1px solid #1e293b}
+.back{font-size:12px;color:#9db0c9;text-decoration:none;padding:5px 10px;border:1px solid #1e293b;border-radius:8px;transition:all .15s}
+.back:hover{color:#a78bfa;border-color:#7c3aed}
+.hdr-title{font-size:16px;font-weight:800;color:#f1f5f9;margin-left:6px}
+.hdr-badge{margin-left:auto;font-size:20px;font-weight:800;color:#04160e;background:#22e08a;border:1px solid #16a34a;border-radius:22px;padding:10px 22px;letter-spacing:.3px}
+
+/* ── HERO KPIs ── */
+.hero{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:20px 28px 0}
+.kpi-card{border-radius:18px;padding:22px 24px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;opacity:.15}
+.kpi-card.dz{background:linear-gradient(135deg,#064e3b,#065f46);border:1px solid #10b98155}
+.kpi-card.dz::before{background:#34d399}
+.kpi-card.kz{background:linear-gradient(135deg,#4c0519,#7f1d1d);border:1px solid #ef444455}
+.kpi-card.kz::before{background:#f87171}
+.kpi-card.net{background:linear-gradient(135deg,#1c1108,#292107);border:1px solid #f59e0b55}
+.kpi-card.net::before{background:#fbbf24}
+.kpi-icon{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.7;margin-bottom:8px}
+.kpi-card.dz .kpi-icon{color:#6ee7b7}
+.kpi-card.kz .kpi-icon{color:#fca5a5}
+.kpi-card.net .kpi-icon{color:#fcd34d}
+.kpi-num{font-size:34px;font-weight:900;line-height:1;letter-spacing:-.03em}
+.kpi-card.dz .kpi-num{color:#34d399}
+.kpi-card.kz .kpi-num{color:#f87171}
+.kpi-card.net .kpi-num{color:#fbbf24}
+.kpi-sub{font-size:11px;color:#cbd5e1;margin-top:6px}
+.kpi-trend{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;margin-top:8px;padding:3px 8px;border-radius:6px}
+.trend-up{background:#10b98120;color:#34d399}
+.trend-dn{background:#ef444420;color:#f87171}
+.trend-neu{background:#ffffff10;color:#cbd5e1}
+
+/* ── COVERAGE BAND ── */
+.coverage{margin:16px 28px 0;background:#111827;border:1px solid #1e293b;border-radius:14px;padding:14px 20px;display:flex;align-items:center;gap:16px}
+.cov-label{font-size:12px;color:#aebdd0;flex-shrink:0}
+.cov-bar-wrap{flex:1;height:10px;background:#1e293b;border-radius:5px;overflow:hidden;position:relative}
+.cov-bar-dz{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:5px;transition:width .6s ease}
+.cov-bar-kz{position:absolute;right:0;top:0;height:100%;background:linear-gradient(90deg,#ef4444,#f87171);border-radius:5px;width:2%;transition:width .6s ease}
+.cov-ratio{font-size:13px;font-weight:800;color:#fbbf24;flex-shrink:0;white-space:nowrap}
+
+/* ── CHARTS ── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 28px 0}
+.chart-wrap{background:#0f172a;border:1px solid #1e293b;border-radius:14px;padding:16px 20px}
+.sec-title{font-size:12px;font-weight:700;color:#aebdd0;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+
+/* ── TABLES ── */
+.tables{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 28px 28px}
+.tbl-card{background:#0f172a;border:1px solid #1e293b;border-radius:14px;overflow:hidden}
+.tbl-head{padding:12px 16px 8px;display:flex;align-items:center;gap:6px}
+.tbl-head-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tbl-head-label{font-size:15px;font-weight:700;color:#e8eef6;text-transform:uppercase;letter-spacing:.05em}
+.tbl-head-sum{margin-left:auto;font-size:15px;font-weight:800}
+.row{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #ffffff05;transition:background .15s}
+.row:hover{background:#ffffff04}
+.row-num{font-size:13px;color:#94a3b8;width:22px;flex-shrink:0;text-align:right}
+.row-name{flex:1;font-size:14px;color:#e8eef6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-bar{width:60px;height:3px;background:#ffffff08;border-radius:2px;flex-shrink:0;overflow:hidden}
+.row-fill{height:100%;border-radius:2px}
+.row-val{font-size:15px;font-weight:800;white-space:nowrap;min-width:74px;text-align:right}
+.col-headers{display:flex;align-items:center;gap:8px;padding:6px 16px 4px;border-top:1px solid #1e293b}
+.col-h{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em}
+.col-h.name{flex:1}
+.col-h.bar{width:60px;flex-shrink:0}
+.col-h.val{min-width:64px;text-align:right}
+
+/* ── ANALYTICS SECTION ── */
+.analytics-wrap{margin:0 28px 28px;background:#0f172a;border:1px solid #1e293b;border-radius:14px;overflow:hidden}
+.analytics-tabs{display:flex;border-bottom:1px solid #1e293b}
+.atab{padding:10px 18px;font-size:12px;font-weight:600;color:#9db0c9;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.atab.active{color:#60a5fa;border-bottom-color:#3b82f6;background:#0a1929}
+.atab:hover:not(.active){color:#cbd5e1}
+.apanel{display:none;padding:16px}
+.apanel.active{display:block}
+.a-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.a-card{background:#0a1929;border:1px solid #1e293b;border-radius:10px;padding:12px 14px}
+.a-card-lbl{font-size:10px;color:#9db0c9;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.a-card-val{font-size:18px;font-weight:800;color:#f1f5f9}
+.a-card-val.red{color:#f87171}.a-card-val.green{color:#4ade80}.a-card-val.yellow{color:#fbbf24}
+.a-table{width:100%;border-collapse:collapse;font-size:12px}
+.a-table th{padding:7px 10px;text-align:left;color:#334155;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1e293b;background:#070e1a}
+.a-table th.r{text-align:right}
+.a-table td{padding:8px 10px;border-bottom:1px solid #0f172a;color:#cbd5e1}
+.a-table td.r{text-align:right;font-variant-numeric:tabular-nums}
+.a-table tr:hover td{background:#0a1929}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700}
+.b-red{background:#450a0a;color:#f87171}.b-green{background:#052e16;color:#4ade80}.b-yellow{background:#422006;color:#fbbf24}
+
+/* ── NO DATA ── */
+#no-data{text-align:center;padding:80px 28px;color:#9db0c9}
+#no-data strong{color:#f1f5f9}
+
+@media(max-width:700px){
+  .hero{grid-template-columns:1fr}
+  .tables,.charts-grid{grid-template-columns:1fr}
+  .kpi-num{font-size:26px}
+  .hero,.charts-grid,.coverage,.tables{margin-left:16px;margin-right:16px}
+  .tables{padding-left:16px;padding-right:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <a class="back" href="index.html">← Назад</a>
+  <span class="hdr-title">💰 ДЗ / КЗ</span>
+  <div class="hdr-badge" id="upd-badge">обновлено —</div>
+</div>
+
+<div id="no-data" style="display:none">⚠ Нет данных.<br>Запустите <strong>ДЗ_КЗ.bat</strong> для загрузки.</div>
+
+<div id="content">
+  <!-- HERO -->
+  <div class="hero">
+    <div class="kpi-card dz">
+      <div class="kpi-icon">🟢 Нам должны</div>
+      <div class="kpi-num" id="dz-num">—</div>
+      <div class="kpi-sub" id="dz-date"></div>
+      <div class="kpi-trend" id="dz-trend" style="display:none"></div>
+    </div>
+    <div class="kpi-card kz">
+      <div class="kpi-icon">🔴 Мы должны</div>
+      <div class="kpi-num" id="kz-num">—</div>
+      <div class="kpi-sub" id="kz-date"></div>
+      <div class="kpi-trend" id="kz-trend" style="display:none"></div>
+    </div>
+    <div class="kpi-card net">
+      <div class="kpi-icon">⚡ Чистая позиция</div>
+      <div class="kpi-num" id="net-num">—</div>
+      <div class="kpi-sub" id="net-cov"></div>
+    </div>
+  </div>
+
+  <!-- COVERAGE BAR -->
+  <div class="coverage">
+    <span class="cov-label">Покрытие:</span>
+    <div class="cov-bar-wrap">
+      <div class="cov-bar-dz" id="cov-dz" style="width:98%"></div>
+      <div class="cov-bar-kz" id="cov-kz" style="width:2%"></div>
+    </div>
+    <span class="cov-ratio" id="cov-text">—</span>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-grid">
+    <div class="chart-wrap">
+      <div class="sec-title">📈 ДЗ — нам должны</div>
+      <canvas id="ch-dz" height="130"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <div class="sec-title">📉 КЗ — мы должны</div>
+      <canvas id="ch-kz" height="130"></canvas>
+    </div>
+  </div>
+
+  <!-- TABLES -->
+  <div class="tables">
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <div class="tbl-head-dot" style="background:#34d399"></div>
+        <div class="tbl-head-label">Топ дебиторов</div>
+        <div class="tbl-head-sum" id="dz-sum" style="color:#34d399"></div>
+      </div>
+      <div class="col-headers">
+        <span class="col-h" style="width:16px;flex-shrink:0">#</span>
+        <span class="col-h name">Контрагент</span>
+        <span class="col-h bar">Доля</span>
+        <span class="col-h val">Сумма</span>
+      </div>
+      <div id="dz-list"></div>
+    </div>
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <div class="tbl-head-dot" style="background:#f87171"></div>
+        <div class="tbl-head-label">Топ кредиторов</div>
+        <div class="tbl-head-sum" id="kz-sum" style="color:#f87171"></div>
+      </div>
+      <div class="col-headers">
+        <span class="col-h" style="width:16px;flex-shrink:0">#</span>
+        <span class="col-h name">Контрагент</span>
+        <span class="col-h bar">Доля</span>
+        <span class="col-h val">Сумма</span>
+      </div>
+      <div id="kz-list"></div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS: отгрузки/оплаты 04.07–10.07 -->
+  <div class="analytics-wrap">
+    <div class="analytics-tabs">
+      <div class="atab active" onclick="showAtab('mismatch',this)">⚠️ Нестыковки</div>
+      <div class="atab" onclick="showAtab('consign',this)">📅 Консигнация</div>
+      <div class="atab" onclick="showAtab('shares',this)">🥧 Доли</div>
+    </div>
+
+    <!-- НЕСТЫКОВКИ -->
+    <div id="atab-mismatch" class="apanel active">
+      <div class="a-cards">
+        <div class="a-card"><div class="a-card-lbl">Отгрузка <span id="a-period">—</span></div><div class="a-card-val" id="a-ship">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Оплата <span id="a-period2">—</span></div><div class="a-card-val" id="a-pay">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Разрыв (недоплата)</div><div class="a-card-val red" id="a-gap">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Клиентов недоплатили</div><div class="a-card-val yellow" id="a-under-cnt">—</div></div>
+      </div>
+      <table class="a-table">
+        <thead><tr><th>Контрагент</th><th class="r">Отгрузка, тнг</th><th class="r">Оплата, тнг</th><th class="r">Разрыв, тнг</th><th class="r">Покрытие</th><th>Статус</th></tr></thead>
+        <tbody id="a-mismatch-body"></tbody>
+      </table>
+    </div>
+
+    <!-- КОНСИГНАЦИЯ -->
+    <div id="atab-consign" class="apanel">
+      <div class="a-cards">
+        <div class="a-card"><div class="a-card-lbl">ДЗ <span id="c-date">—</span> (консигнация)</div><div class="a-card-val" id="c-dz">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">В сроке (&le;14 дней)</div><div class="a-card-val green" id="c-interm">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Просрочено (&gt;14 дней)</div><div class="a-card-val red" id="c-over">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">% просрочки</div><div class="a-card-val" id="c-overpct">—</div></div>
+      </div>
+      <p style="font-size:11.5px;color:#9db0c9;margin-bottom:10px;line-height:1.5">
+        Консигнация 14 дней. <b style="color:#e8eef6">ДЗ <span class="c-date2">—</span></b> — вся сумма, которую клиент должен (отгрузки за 2 недели минус оплаты).
+        <b style="color:#f87171">Просрочено</b> — часть ДЗ старше 14 дней (сверх отгрузок за последние 2 недели). Столбцы «Отгрузка» и «Оплата» — за последнюю неделю.
+      </p>
+      <table class="a-table">
+        <thead><tr><th>Контрагент</th><th class="r">Отгрузка нед.</th><th class="r">Оплата нед.</th><th class="r">ДЗ <span class="c-date2">—</span></th><th class="r">Просрочено</th><th>Риск</th></tr></thead>
+        <tbody id="a-consign-body"></tbody>
+      </table>
+    </div>
+
+    <!-- ДОЛИ -->
+    <div id="atab-shares" class="apanel">
+      <table class="a-table">
+        <thead><tr><th>Контрагент</th><th class="r">Отгрузка</th><th class="r">Доля %</th><th class="r">Оплата</th><th class="r">Доля %</th><th>Перекос</th></tr></thead>
+        <tbody id="a-shares-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function fmt(v,short){
+  if(!v&&v!==0||isNaN(v))return'—';
+  const abs=Math.abs(v),s=v<0?'−':v>0&&!short?'':'' ;
+  const sign=v<0?'−':'+';
+  if(abs>=1e9)return(v<0?'−':'')+(abs/1e9).toFixed(1)+' млрд';
+  if(abs>=1e6)return(v<0?'−':'')+(abs/1e6).toFixed(1)+' млн';
+  if(abs>=1e3)return(v<0?'−':'')+(abs/1e3).toFixed(0)+' тыс';
+  return(v<0?'−':'')+abs.toFixed(0);
+}
+function fmtNet(v){
+  if(!v&&v!==0||isNaN(v))return'—';
+  const abs=Math.abs(v);
+  const sign=v>=0?'+':'−';
+  if(abs>=1e9)return sign+(abs/1e9).toFixed(1)+' млрд';
+  if(abs>=1e6)return sign+(abs/1e6).toFixed(1)+' млн';
+  if(abs>=1e3)return sign+(abs/1e3).toFixed(0)+' тыс';
+  return sign+abs.toFixed(0);
+}
+
+function buildList(id, rows, color){
+  const el=document.getElementById(id); if(!el) return;
+  const max=rows.length?rows[0].debt:1;
+  el.innerHTML=rows.slice(0,30).map((r,i)=>{
+    const pct=Math.round(r.debt/max*100);
+    const nm=r.name.length>38?r.name.slice(0,36)+'…':r.name;
+    return`<div class="row">
+      <span class="row-num">${i+1}</span>
+      <span class="row-name">${nm}</span>
+      <div class="row-bar"><div class="row-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="row-val" style="color:${color}">${fmt(r.debt)}</span>
+    </div>`;
+  }).join('');
+}
+
+function trend(curr, prev){
+  if(!prev) return null;
+  const d=curr-prev, pct=Math.round(d/prev*100);
+  return {d, pct};
+}
+
+(function init(){
+  const D=window.DZ_KZ;
+  if(!D){
+    document.getElementById('no-data').style.display='';
+    document.getElementById('content').style.display='none';
+    return;
+  }
+
+  document.getElementById('upd-badge').textContent='обновлено '+D.updated;
+
+  // KPIs
+  document.getElementById('dz-num').textContent=fmt(D.dz.total);
+  document.getElementById('kz-num').textContent=fmt(D.kz.total);
+  document.getElementById('dz-date').textContent='на '+D.dz.date;
+  document.getElementById('kz-date').textContent='на '+D.kz.date;
+
+  const net=D.dz.total-D.kz.total;
+  const netEl=document.getElementById('net-num');
+  netEl.textContent=fmtNet(net);
+  netEl.style.color=net>=0?'#34d399':'#f87171';
+
+  const cov=D.kz.total>0?(D.dz.total/D.kz.total).toFixed(1):null;
+  document.getElementById('net-cov').textContent=cov?`ДЗ покрывает КЗ в ${cov}× раз`:'';
+
+  // Coverage bar
+  const total=D.dz.total+D.kz.total;
+  const dzPct=total>0?Math.max(2,Math.round(D.dz.total/total*100)):50;
+  const kzPct=100-dzPct;
+  document.getElementById('cov-dz').style.width=dzPct+'%';
+  document.getElementById('cov-kz').style.width=kzPct+'%';
+  document.getElementById('cov-text').textContent=cov?`× ${cov}`:'—';
+
+  // Trend from dynamics (prev vs current)
+  const dzDyn=D.dz.dynamics||[], kzDyn=D.kz.dynamics||[];
+  if(dzDyn.length>=2){
+    const t=trend(dzDyn[dzDyn.length-1].total, dzDyn[dzDyn.length-2].total);
+    if(t){
+      const el=document.getElementById('dz-trend');
+      el.style.display='inline-flex';
+      const up=t.d>=0;
+      el.className='kpi-trend '+(up?'trend-up':'trend-dn');
+      el.textContent=(up?'▲':'▼')+' '+Math.abs(t.pct)+'% vs прошлая неделя';
+    }
+  }
+  if(kzDyn.length>=2){
+    const t=trend(kzDyn[kzDyn.length-1].total, kzDyn[kzDyn.length-2].total);
+    if(t){
+      const el=document.getElementById('kz-trend');
+      el.style.display='inline-flex';
+      // for KZ: going up is BAD (we owe more)
+      const bad=t.d>0;
+      el.className='kpi-trend '+(bad?'trend-dn':'trend-up');
+      el.textContent=(t.d>0?'▲':'▼')+' '+Math.abs(t.pct)+'% vs прошлая неделя';
+    }
+  }
+
+  // Tables
+  buildList('dz-list',D.dz.top,'#34d399');
+  buildList('kz-list',D.kz.top,'#f87171');
+  document.getElementById('dz-sum').textContent=fmt(D.dz.total);
+  document.getElementById('kz-sum').textContent=fmt(D.kz.total);
+
+  // Charts - last 8 weeks
+  const allDates=[...new Set([...kzDyn.map(x=>x.date),...dzDyn.map(x=>x.date)])].sort((a,b)=>{
+    const p=s=>{const[d,m,y]=s.split('.');return new Date(2000+~~y,~~m-1,~~d);};
+    return p(a)-p(b);
+  }).slice(-8);
+  const dzMap=Object.fromEntries(dzDyn.map(x=>[x.date,x.total]));
+  const kzMap=Object.fromEntries(kzDyn.map(x=>[x.date,x.total]));
+  const chartOpts=(color,label)=>({
+    responsive:true,interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:false},
+      tooltip:{backgroundColor:'#1e293b',borderColor:'#334155',borderWidth:1,padding:10,
+        callbacks:{label:c=>` ${label}: ${fmt(c.parsed.y)}`}}
+    },
+    scales:{
+      x:{ticks:{color:'#c3d0e2',font:{size:11}},grid:{color:'#ffffff12'},border:{display:false}},
+      y:{ticks:{color:'#c3d0e2',font:{size:11},callback:v=>fmt(v)},
+         grid:{color:'#ffffff12'},border:{display:false}}
+    }
+  });
+
+  // ДЗ chart
+  const ctxDZ=document.getElementById('ch-dz');
+  const g1=ctxDZ.getContext('2d').createLinearGradient(0,0,0,180);
+  g1.addColorStop(0,'rgba(16,185,129,.35)');g1.addColorStop(1,'rgba(16,185,129,0)');
+  new Chart(ctxDZ,{type:'line',data:{labels:allDates,datasets:[
+    {label:'ДЗ',data:allDates.map(d=>dzMap[d]??null),
+     borderColor:'#10b981',backgroundColor:g1,borderWidth:2.5,pointRadius:5,
+     pointBackgroundColor:'#10b981',tension:.35,fill:true}
+  ]},options:chartOpts('#10b981','ДЗ')});
+
+  // КЗ chart
+  const ctxKZ=document.getElementById('ch-kz');
+  const g2=ctxKZ.getContext('2d').createLinearGradient(0,0,0,180);
+  g2.addColorStop(0,'rgba(239,68,68,.35)');g2.addColorStop(1,'rgba(239,68,68,0)');
+  new Chart(ctxKZ,{type:'line',data:{labels:allDates,datasets:[
+    {label:'КЗ',data:allDates.map(d=>kzMap[d]??null),
+     borderColor:'#ef4444',backgroundColor:g2,borderWidth:2.5,pointRadius:5,
+     pointBackgroundColor:'#ef4444',tension:.35,fill:true}
+  ]},options:chartOpts('#ef4444','КЗ')});
+})();
+
+// ── ANALYTICS DATA (живые из парсера DZ_KZ.dz.ana; иначе резерв за 04–10.07) ──
+const ANA = (window.DZ_KZ && window.DZ_KZ.dz && Array.isArray(window.DZ_KZ.dz.ana) && window.DZ_KZ.dz.ana.length) ? window.DZ_KZ.dz.ana : [
+  {name:"0-Частное лицо",          kc:4629,      kd:101864  },
+  {name:"1-БАЗИЛИК 1 (Шевченко)",  kc:1557309,   kd:1066200 },
+  {name:"2-БАЗИЛИК 2 (Желтоксан)", kc:288790,    kd:0       },
+  {name:"7-Kaspi Банк (Склад ГП)", kc:3458673,   kd:3000000 },
+  {name:"9-БАЗИЛИК 5 (Аксай)",     kc:625920,    kd:532240  },
+  {name:"85-ДФЗ (дистрибьютор)",   kc:21395829,  kd:19050000},
+  {name:"86-Crave Cafe",            kc:275082,    kd:0       },
+  {name:"90-ТОО Май Март",         kc:5259376,   kd:3823379 },
+  {name:"96-ТОО DSF",              kc:1847784,   kd:0       },
+  {name:"98-O-live",               kc:1798929,   kd:1000000 },
+  {name:"99-RP АЗС 1",            kc:7032391,   kd:8000000 },
+  {name:"100-Сrave Cafe (Сейфуллина)",kc:228325, kd:0       },
+  {name:"102-Яндекс Лавка",       kc:10502968,  kd:13712848},
+  {name:"107-AL Group",            kc:73690,     kd:0       },
+  {name:"110-Sinooil АЗС",        kc:985834,    kd:1023966 },
+  {name:"111-ГЛОВО",               kc:588047,    kd:875474  },
+  {name:"558-ROMANTIC",            kc:0,         kd:50000   },
+];
+const TKC = ANA.reduce((s,d)=>s+(+d.kc||0),0), TKD = ANA.reduce((s,d)=>s+(+d.kd||0),0);
+function fmtN(n){if(!n)return'0';return Math.round(n).toLocaleString('ru-RU');}
+
+function showAtab(name,el){
+  document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.apanel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('atab-'+name).classList.add('active');
+}
+
+(function buildAnalytics(){
+  const rows=ANA.filter(d=>d.kc>0||d.kd>0).sort((a,b)=>(b.kc-b.kd)-(a.kc-a.kd));
+  let under=0;
+
+  // подписи периода/итогов «Нестыковки» (живые из anaMeta)
+  const AM=(window.DZ_KZ&&window.DZ_KZ.dz&&window.DZ_KZ.dz.anaMeta)||{period:'04–10.07'};
+  const fmtMln=n=>{const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1)+' млн':a>=1e3?Math.round(n/1e3)+' тыс':fmtN(n);};
+  const setTx=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setTx('a-period',AM.period);setTx('a-period2',AM.period);
+  setTx('a-ship',fmtMln(TKC));setTx('a-pay',fmtMln(TKD));setTx('a-gap',fmtMln(TKC-TKD));
+
+  // НЕСТЫКОВКИ
+  const mb=document.getElementById('a-mismatch-body');
+  if(mb) rows.forEach(d=>{
+    const diff=d.kc-d.kd;
+    const cov=d.kc>0?(d.kd/d.kc*100).toFixed(0)+'%':'—';
+    let badge,status;
+    if(diff>0){badge='b-red';status='⚠️ Недоплата';under++;}
+    else if(diff<0){badge='b-green';status='✅ Аванс';}
+    else{badge='b-green';status='✅ Ровно';}
+    mb.innerHTML+=`<tr>
+      <td>${d.name}</td>
+      <td class="r">${fmtN(d.kc)}</td>
+      <td class="r">${fmtN(d.kd)}</td>
+      <td class="r" style="color:${diff>0?'#f87171':diff<0?'#4ade80':'#cbd5e1'}">${diff>=0?'+':''}${fmtN(diff)}</td>
+      <td class="r">${cov}</td>
+      <td><span class="badge ${badge}">${status}</span></td>
+    </tr>`;
+  });
+  const uc=document.getElementById('a-under-cnt');
+  if(uc) uc.textContent=under;
+
+  // КОНСИГНАЦИЯ — живая ДЗ из Google (worker → DZ_KZ.dz.consign)
+  buildConsign();
+
+  // ДОЛИ
+  const sb=document.getElementById('a-shares-body');
+  if(sb) ANA.sort((a,b)=>b.kc-a.kc).forEach(d=>{
+    const kcp=d.kc>0?(d.kc/TKC*100).toFixed(1):'—';
+    const kdp=d.kd>0?(d.kd/TKD*100).toFixed(1):'—';
+    const df=parseFloat(kdp||0)-parseFloat(kcp||0);
+    let perekos='—',pc='#9db0c9';
+    if(parseFloat(kcp)>0&&parseFloat(kdp)>0){
+      if(df>1){perekos='▲ Оплата выше';pc='#4ade80';}
+      else if(df<-1){perekos='▼ Отгрузка выше';pc='#f87171';}
+      else{perekos='≈ Баланс';pc='#aebdd0';}
+    }
+    sb.innerHTML+=`<tr>
+      <td>${d.name}</td>
+      <td class="r">${fmtN(d.kc)}</td>
+      <td class="r">${kcp!=='—'?kcp+'%':'—'}</td>
+      <td class="r">${fmtN(d.kd)}</td>
+      <td class="r">${kdp!=='—'?kdp+'%':'—'}</td>
+      <td style="font-size:11px;color:${pc}">${perekos}</td>
+    </tr>`;
+  });
+})();
+
+// ── КОНСИГНАЦИЯ: реальная ДЗ (14 дней) из Google-таблицы ──
+function buildConsign(){
+  const D=window.DZ_KZ, dz=D&&D.dz;
+  const meta=(dz&&dz.consignMeta)||{date:'',prevDate:''};
+  const CON=(dz&&dz.consign)||[];
+  const fmtM=n=>{const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1)+' млн':a>=1e3?Math.round(n/1e3)+' тыс':fmtN(n);};
+  const pD=s=>{const p=String(s).split('.');if(p.length!==3)return null;let y=p[2];if(y.length===2)y='20'+y;return new Date(+y,+p[1]-1,+p[0]);};
+  const aD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+  const lD=d=>d?String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0'):'—';
+  const end=pD(meta.date);
+  const dateShort=end?lD(end)+'.'+String(end.getFullYear()).slice(2):(meta.date||'—');
+  const dueRange=end?lD(aD(end,8))+'–'+lD(aD(end,14)):'—'; // отгрузка недели (−6..0) + 14 дней
+
+  // подписи дат
+  document.querySelectorAll('.c-date2').forEach(e=>e.textContent='на '+dateShort);
+  const setT=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setT('c-date','на '+dateShort);
+  setT('c-due',dueRange);
+
+  const cb=document.getElementById('a-consign-body');
+  if(!cb)return;
+  cb.innerHTML='';
+  if(!D||!dz){cb.innerHTML='<tr><td colspan="6" style="color:#9db0c9">Данные ДЗ ещё не загружены — обновите страницу.</td></tr>';return;}
+
+  let sDz=0,sOver=0,sInterm=0;
+  const list=CON.filter(d=>d.dz>0).sort((a,b)=>b.dz-a.dz);
+  list.forEach(d=>{
+    const win=(d.ship||0)+(d.shipPrev||0); // отгрузки за 2 недели = в пределах 14 дней
+    const over=Math.max(0,d.dz-win);        // ДЗ сверх 2 недель = старше 14 дней = просрочено
+    const interm=d.dz-over;                 // в пределах срока (≤14 дней)
+    sDz+=d.dz;sOver+=over;sInterm+=interm;
+    let risk,rc;
+    if(over>0){risk='🔴 Просрочено';rc='b-red';}
+    else{risk='🟡 В сроке';rc='b-yellow';}
+    cb.innerHTML+=`<tr>
+      <td>${d.name}</td>
+      <td class="r">${fmtN(d.ship)}</td>
+      <td class="r">${fmtN(d.pay)}</td>
+      <td class="r" style="font-weight:800;color:#e8eef6">${fmtN(d.dz)}</td>
+      <td class="r" style="color:${over>0?'#f87171':'#64748b'}">${over>0?fmtN(over):'—'}</td>
+      <td><span class="badge ${rc}">${risk}</span></td>
+    </tr>`;
+  });
+  if(!list.length)cb.innerHTML='<tr><td colspan="6" style="color:#9db0c9">Нет открытой дебиторки по консигнации.</td></tr>';
+
+  setT('c-dz',fmtM(sDz));
+  setT('c-interm',fmtM(sInterm));
+  setT('c-over',fmtM(sOver));
+  const op=document.getElementById('c-overpct');
+  if(op){const pct=sDz>0?(sOver/sDz*100):0;op.textContent=pct.toFixed(1)+'%';op.className='a-card-val '+(pct<5?'green':pct<20?'yellow':'red');}
+}
+</script>
+</body>
+</html>

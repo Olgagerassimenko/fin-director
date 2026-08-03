@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Закуп · Мастерская Сегодня</title><meta name="author" content="Ольга Герасименко">
+<script src="nav.js"></script>
+<style>
+ :root{--in:#34d399;--out:#fb7185;--ink:#f4f7fb;--ink2:#b9c5d3;--mut:#8798ab;
+   --line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.055);--surf:#0f1a27;--page:#080d16;--accent:#e8c766;--accentbg:rgba(232,199,102,.14)}
+ *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+ body{background:var(--page);color:var(--ink);-webkit-font-smoothing:antialiased}
+ .topbar{background:var(--surf);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:14px 24px;flex-wrap:wrap}
+ .topbar h1{font-size:20px;font-weight:800;letter-spacing:-.01em}
+ .topbar p{font-size:12.5px;color:var(--ink2);margin-top:1px}
+ .backbtn{background:rgba(255,255,255,.06);color:#c9d4e2;border:1px solid rgba(255,255,255,.12);font-weight:700;font-size:13px;padding:8px 14px;border-radius:999px;text-decoration:none;transition:.2s}
+ .backbtn:hover{background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;border-color:#e8c766}
+ .live{margin-left:auto;background:var(--accentbg);color:var(--accent);font-weight:700;font-size:12px;padding:6px 12px;border-radius:999px;white-space:nowrap}
+ .wrap{max-width:1240px;margin:0 auto;padding:18px 18px 56px}
+ .tabs{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+ .tab{background:var(--surf);color:#c9d4e2;border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-weight:700;font-size:12.5px;cursor:pointer;transition:.18s}
+ .tab:hover{border-color:rgba(232,199,102,.45)}
+ .tab.active{background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;border-color:#e8c766;box-shadow:0 6px 18px -8px rgba(212,175,55,.7)}
+ .ctrl{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+ .seg{display:inline-flex;background:var(--surf);border:1px solid var(--line);border-radius:999px;padding:3px}
+ .seg button{background:none;border:none;color:#c9d4e2;font-weight:700;font-size:12.5px;padding:6px 14px;border-radius:999px;cursor:pointer;transition:.15s}
+ .seg button.on{background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205}
+ .ctrl select,.ctrl input{font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#132234;color:var(--ink);font-weight:600}
+ .ctrl label{font-size:12.5px;color:var(--ink2);font-weight:600}
+ .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+ .k{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(212,175,55,.2);border-radius:14px;padding:14px 16px;transition:.2s;position:relative;overflow:hidden}
+ .k:hover{transform:translateY(-3px);border-color:rgba(232,199,102,.55);box-shadow:0 14px 30px -14px rgba(212,175,55,.5)}
+ .k .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700}
+ .k .v{font-size:22px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+ .k .u{font-size:11px;color:var(--mut);font-weight:600}
+ .card{background:linear-gradient(162deg,#0f1b29,#0b141f);border:1px solid rgba(212,175,55,.15);border-radius:16px;margin-bottom:16px;overflow:hidden;box-shadow:0 16px 42px -24px rgba(0,0,0,.75);position:relative}
+ .card::before{content:"";position:absolute;top:0;left:18px;right:18px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,199,102,.55),transparent);z-index:2}
+ .card .hd{padding:14px 18px 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+ .card h3{font-size:15px;font-weight:800}
+ .card .sub{font-size:12px;color:var(--ink2)}
+ .tblwrap{overflow-x:auto}
+ table.z{width:100%;border-collapse:collapse;font-size:12.8px;min-width:640px}
+ table.z th,table.z td{padding:9px 12px;border-bottom:1px solid var(--line2);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+ table.z thead th{font-size:10.5px;text-transform:uppercase;letter-spacing:.02em;color:var(--mut);font-weight:700;border-bottom:1px solid var(--line);background:rgba(255,255,255,.035);position:sticky;top:0;z-index:1}
+ table.z .nm{text-align:left;white-space:normal;color:#c9d4e2;min-width:200px}
+ table.z .rk{text-align:center;color:var(--mut);font-size:11.5px;font-weight:700}
+ table.z tbody tr:hover td{background:rgba(232,199,102,.05)}
+ table.z tr.tot td{font-weight:800;border-top:1px solid var(--line);background:rgba(255,255,255,.04)}
+ .pos{color:var(--in)}.neg{color:var(--out)}.z0{color:#465264}.gold{color:var(--accent)}
+ .bar{position:relative}
+ .bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:5px;opacity:.16;z-index:0}
+ .bar span{position:relative;z-index:1}
+ .pill{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px}
+ .pill.up{background:rgba(251,113,133,.16);color:#fca5b4}
+ .pill.dn{background:rgba(52,211,153,.16);color:#6ee7b7}
+ .pill.fl{background:rgba(255,255,255,.07);color:#9fb0c2}
+ .stores{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:6px 14px 16px}
+ @media(max-width:800px){.stores{grid-template-columns:1fr}.kpi{grid-template-columns:repeat(2,1fr)}}
+ .store{border:1px solid var(--line);border-radius:13px;padding:13px 15px;background:rgba(255,255,255,.02)}
+ .store .sh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+ .store .sh b{font-size:13.5px}.store .sh .v{font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+ .store .pr{display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);padding:3px 0;border-top:1px solid var(--line2)}
+ .store .pr span:last-child{font-variant-numeric:tabular-nums;color:#cdd7e3}
+ .note{background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.32);color:#fbcfa0;border-radius:12px;padding:11px 15px;margin-bottom:14px;font-size:12.5px;line-height:1.5}
+ .note b{color:#ffd9a8}
+ .trend{padding:6px 16px 18px}
+ .bars{display:flex;align-items:flex-end;gap:8px;height:150px;padding-top:10px}
+ .bars .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end}
+ .bars .b .bb{width:100%;max-width:46px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,#e8c766,#b98f2e);animation:grow .6s cubic-bezier(.2,.8,.2,1) both}
+ .bars .b.two .bb{background:linear-gradient(180deg,#34d399,#0f9d66)}
+ @keyframes grow{from{transform:scaleY(0);transform-origin:bottom}to{transform:scaleY(1)}}
+ .bars .b .cap{font-size:10.5px;color:var(--mut);font-weight:600;text-align:center}
+ .bars .b .val{font-size:10.5px;color:#cdd7e3;font-weight:700;font-variant-numeric:tabular-nums}
+ .lgnd{display:flex;gap:16px;padding:2px 16px 0;font-size:11.5px;color:var(--ink2)}
+ .lgnd i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+ .chart{padding:8px 12px 16px}
+ .chart .cvl{font-size:11px;font-weight:700;fill:#efe3c3}
+ .chart .cvl2{font-size:11px;font-weight:700;fill:#6ee7b7}
+ .chart .cax{font-size:11.5px;fill:#b9c5d3;font-weight:600}
+ .chart .grid{stroke:rgba(255,255,255,.06)}
+ .search{margin:2px 14px 10px;width:calc(100% - 28px);max-width:360px;padding:9px 13px;border:1px solid var(--line);border-radius:10px;background:#132234;color:var(--ink);font-size:13px}
+ .card,.k{animation:fadeUp .5s cubic-bezier(.2,.75,.25,1) both}
+ @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+ @media(prefers-reduced-motion:reduce){.card,.k,.bars .b .bb{animation:none}}
+ .foot{text-align:center;color:#8798ab;font-size:12px;padding:22px}.foot b{color:#c9d4e2}
+</style></head>
+<body>
+<div class="topbar"><a href="index.html" class="backbtn">← На главную</a>
+ <div><h1>🛒 Закуп</h1><p>Мастерская Сегодня · приход, оплата, цены, остатки, долги · источник: iiko</p></div>
+ <span class="live" id="live">🔄 из iiko · каждое утро</span></div>
+<div class="wrap">
+ <div class="tabs" id="tabs"></div>
+ <div id="ctrl"></div>
+ <div id="body"></div>
+ <div class="foot">Система «Пульс» · автор: <b>Ольга Герасименко</b> · © 2026 · <span id="prov"></span></div>
+</div>
+<script>
+/*__DATA__*/
+const RUB=v=>Math.round(Math.abs(v)).toLocaleString('ru-RU');
+const SUM=v=>(v<0?'−':'')+RUB(v);
+const SIGN=v=>(v<0?'−':'+')+RUB(v);
+const MLN=v=>{const a=Math.abs(v);return a>=1e6?(v<0?'−':'')+(a/1e6).toFixed(1).replace('.',',')+' млн':a>=1e3?(v<0?'−':'')+(a/1e3).toFixed(0)+' тыс':SUM(v);};
+const PR=v=>Math.round(v).toLocaleString('ru-RU');
+document.getElementById('prov').textContent='источник: iiko · обновлено '+(D.updated||'');
+(function(){var lv=document.getElementById('live');if(lv&&D.updatedFull)lv.textContent='🔄 обновлено '+D.updatedFull+' · из iiko';})();
+
+const TABS=[['po','📥 Приход и оплата'],['tv','🧾 Что закупали'],['dv','📊 Движение по складу'],['sk','🏭 Сырьё → Производство'],['ce','💲 Цены закупа'],['os','📦 Остатки на складе'],['kz','📋 Долги поставщикам'],['pm','🗓 План оплат на месяц']];
+/* combo: столбцы = приход, линия = оплата (или один ряд) */
+function comboChart(items){
+ if(!items.length)return '';
+ const n=items.length, W=Math.max(560,n*118), H=220, pad=30, bw=Math.min(52,(W-2*pad)/n*0.5);
+ const max=Math.max(1,...items.map(i=>Math.max(i.bar||0,i.line||0)))*1.18;
+ const X=i=>pad+(i+0.5)*((W-2*pad)/n);
+ const Y=v=>H-26-(v/max)*(H-56);
+ let grid='';for(let g=1;g<=3;g++){const gy=26+(H-56)*g/4;grid+=`<line class="grid" x1="${pad}" x2="${W-pad}" y1="${gy}" y2="${gy}"/>`;}
+ let bars=items.map((it,i)=>{const by=Y(it.bar||0);return `<rect x="${X(i)-bw/2}" y="${by}" width="${bw}" height="${Math.max(0,H-26-by)}" rx="6" fill="url(#gld)"/><text x="${X(i)}" y="${by-7}" text-anchor="middle" class="cvl">${MLN(it.bar||0)}</text>`;}).join('');
+ let line='',dots='';
+ if(items.some(it=>it.line!=null)){
+  line=`<polyline points="${items.map((it,i)=>X(i)+','+Y(it.line||0)).join(' ')}" fill="none" stroke="#34d399" stroke-width="2.6" stroke-linejoin="round"/>`;
+  dots=items.map((it,i)=>{const ly=Y(it.line||0);return `<circle cx="${X(i)}" cy="${ly}" r="4.6" fill="#34d399" stroke="#0b141f" stroke-width="2"/><rect x="${X(i)-30}" y="${ly+7}" width="60" height="15" rx="4" fill="#0b141f" opacity="0.75"/><text x="${X(i)}" y="${ly+18}" text-anchor="middle" class="cvl2">${MLN(it.line||0)}</text>`;}).join('');
+ }
+ let labels=items.map((it,i)=>`<text x="${X(i)}" y="${H-6}" text-anchor="middle" class="cax">${it.label}</text>`).join('');
+ return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="max-width:100%;display:block">
+  <defs><linearGradient id="gld" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e8c766"/><stop offset="1" stop-color="#b98f2e"/></linearGradient></defs>
+  ${grid}${bars}${line}${dots}${labels}</svg></div>`;
+}
+let TAB='po', MODE='month', PKEY=null;
+const MONTHS=D.months||[], WEEKS=D.weeks||[];
+function defKey(){ if(MODE==='month')return MONTHS[MONTHS.length-1]; if(MODE==='week')return WEEKS.length?WEEKS[WEEKS.length-1].k:null; return 'year'; }
+
+function renderTabs(){
+ document.getElementById('tabs').innerHTML=TABS.map(t=>`<button class="tab${t[0]===TAB?' active':''}" onclick="setTab('${t[0]}')">${t[1]}</button>`).join('');
+}
+function setTab(t){ TAB=t; MODE=(t==='os')?'month':(t==='kz')?'now':'month'; PKEY=defKey(); render(); }
+function setMode(m){ MODE=m; PKEY=defKey(); render(); }
+function setKey(k){ PKEY=k; render(); }
+
+function ctrlHTML(){
+ if(TAB==='kz'||TAB==='pm') return '';
+ let modes=[['week','Неделя'],['month','Месяц'],['year','Итого год']];
+ if(TAB==='os') modes=[['month','По месяцам'],['week','По неделям']];
+ let seg=`<div class="seg">`+modes.map(m=>`<button class="${m[0]===MODE?'on':''}" onclick="setMode('${m[0]}')">${m[1]}</button>`).join('')+`</div>`;
+ let sel='';
+ if(TAB!=='os' && MODE!=='year'){
+   const opts=(MODE==='month'?MONTHS.map(k=>[k,(D.mmeta[k]||{}).ru||k]):WEEKS.map(w=>[w.k,'неделя '+w.label]));
+   sel=`<label>Период:</label><select onchange="setKey(this.value)">`+opts.map(o=>`<option value="${o[0]}"${o[0]===PKEY?' selected':''}>${o[1]}</option>`).join('')+`</select>`;
+ }
+ return `<div class="ctrl">${seg}${sel}</div>`;
+}
+
+/* ---- данные периода ---- */
+function poData(){ if(MODE==='year')return D.prihodOplata.year; const b=(MODE==='month'?D.prihodOplata.months:D.prihodOplata.weeks); return b[PKEY]||{suppliers:[],prihod:0,oplata:0,n:0}; }
+function ceData(){ if(MODE==='year')return D.ceny.year; const b=(MODE==='month'?D.ceny.months:D.ceny.weeks); return b[PKEY]||{products:[]}; }
+function prevCe(){ // предыдущий период для отклонений цен
+ if(MODE==='month'){const i=MONTHS.indexOf(PKEY);return i>0?D.ceny.months[MONTHS[i-1]]:null;}
+ if(MODE==='week'){const i=WEEKS.findIndex(w=>w.k===PKEY);return i>0?D.ceny.weeks[WEEKS[i-1].k]:null;}
+ return null;
+}
+
+/* ---- Вкладка: Приход и оплата ---- */
+function renderPO(){
+ const d=poData(), sup=d.suppliers||[];
+ const diff=d.prihod-d.oplata;
+ const max=Math.max(1,...sup.map(s=>Math.max(s.prihod,s.oplata)));
+ let kpi=`<div class="kpi">
+  <div class="k"><div class="l">Приход товара</div><div class="v gold">${MLN(d.prihod)}</div><div class="u">по накладным</div></div>
+  <div class="k"><div class="l">Оплата поставщикам</div><div class="v pos">${MLN(d.oplata)}</div><div class="u">по накладным</div></div>
+  <div class="k"><div class="l">Приход − Оплата</div><div class="v ${diff>0?'neg':'pos'}">${SIGN(diff)}</div><div class="u">${diff>0?'долг растёт':'гасим долг'}</div></div>
+  <div class="k"><div class="l">Поставщиков</div><div class="v">${sup.length}</div><div class="u">в периоде</div></div></div>`;
+ // тренд по месяцам: столбик = приход, линия = оплата
+ const tkeys=MONTHS;
+ const titems=tkeys.map(k=>{const x=D.prihodOplata.months[k]||{};return {label:((D.mmeta[k]||{}).ru||k).split(' ')[0],bar:x.prihod||0,line:x.oplata||0};});
+ let trend=`<div class="card"><div class="hd"><h3>Приход и оплата — динамика по месяцам</h3><span class="sub">каждый месяц — один столбик</span></div>
+   <div class="lgnd"><span><i style="background:#e8c766"></i>Приход (столбик)</span><span><i style="background:#34d399"></i>Оплата (линия)</span></div>
+   ${comboChart(titems)}</div>`;
+ let rows=sup.slice(0,120).map((s,i)=>{
+   const pd=s.prihod-s.oplata;
+   return `<tr><td class="rk">${i+1}</td><td class="nm bar"><div class="fill" style="width:${Math.round(Math.max(s.prihod,s.oplata)/max*100)}%;background:#e8c766"></div><span>${s.name}</span></td>
+    <td class="gold">${PR(s.prihod)}</td><td class="pos">${PR(s.oplata)}</td>
+    <td class="${pd>0?'neg':'pos'}">${SIGN(pd)}</td></tr>`;
+ }).join('');
+ let tbl=`<div class="card"><div class="hd"><h3>Приход и оплата товара по накладным</h3><span class="sub">${sup.length} поставщиков · сортировка по обороту</span></div>
+  <div class="tblwrap"><table class="z"><thead><tr><th class="rk">#</th><th class="nm">Поставщик</th><th>Приход</th><th>Оплата</th><th>Приход − оплата</th></tr></thead>
+  <tbody>${rows}<tr class="tot"><td></td><td class="nm">ИТОГО</td><td class="gold">${PR(d.prihod)}</td><td class="pos">${PR(d.oplata)}</td><td class="${diff>0?'neg':'pos'}">${SIGN(diff)}</td></tr></tbody></table></div>${sup.length>120?'<div style="padding:0 16px 14px;color:#8798ab;font-size:12px">Показаны топ-120 из '+sup.length+'</div>':''}</div>`;
+ return kpi+trend+tbl;
+}
+
+/* ---- Вкладка: Цены ---- */
+function renderCE(){
+ const d=ceData(), pr=prevCe(), prev={};
+ if(pr&&pr.products)pr.products.forEach(p=>prev[p.name]=p.price);
+ const prods=d.products||[];
+ let up=0,dn=0; prods.forEach(p=>{const o=prev[p.name];if(o){if(p.price>o*1.01)up++;else if(p.price<o*0.99)dn++;}});
+ let kpi=`<div class="kpi">
+  <div class="k"><div class="l">Позиций в закупе</div><div class="v">${prods.length}</div><div class="u">с приходом</div></div>
+  <div class="k"><div class="l">Сумма закупа</div><div class="v gold">${MLN(prods.reduce((a,p)=>a+p.sum,0))}</div><div class="u">за период</div></div>
+  <div class="k"><div class="l">Подорожало</div><div class="v neg">${up}</div><div class="u">к пред. периоду</div></div>
+  <div class="k"><div class="l">Подешевело</div><div class="v pos">${dn}</div><div class="u">к пред. периоду</div></div></div>`;
+ let note=pr?'':'<div class="note">Для выбранного периода нет предыдущего для сравнения цен — отклонения показываются, начиная со второго периода.</div>';
+ let rows=prods.map((p,i)=>{
+   const o=prev[p.name]; let dev='<span class="pill fl">—</span>';
+   if(o&&o>0){const dp=(p.price-o)/o*100; dev=`<span class="pill ${dp>1?'up':dp<-1?'dn':'fl'}">${dp>0?'+':''}${dp.toFixed(1)}%</span>`;}
+   return `<tr data-nm="${(p.name||'').toLowerCase()}"><td class="rk">${i+1}</td><td class="nm">${p.name}</td>
+    <td>${p.qty.toLocaleString('ru-RU')}</td><td class="gold">${PR(p.price)}</td><td>${o?PR(o):'—'}</td><td>${dev}</td><td>${PR(p.sum)}</td></tr>`;
+ }).join('');
+ let tbl=`<div class="card"><div class="hd"><h3>Закупочные цены по позициям</h3><span class="sub">цена = сумма ÷ количество · отклонение к прошлому периоду</span></div>
+  <input class="search" placeholder="🔍 поиск позиции…" oninput="filterCe(this.value)">
+  <div class="tblwrap"><table class="z" id="cetbl"><thead><tr><th class="rk">#</th><th class="nm">Позиция</th><th>Кол-во</th><th>Цена, ₸</th><th>Пред. цена</th><th>Δ</th><th>Сумма, ₸</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+ return kpi+note+tbl;
+}
+function filterCe(q){q=(q||'').toLowerCase().trim();document.querySelectorAll('#cetbl tbody tr').forEach(tr=>{tr.style.display=(!q||tr.dataset.nm.indexOf(q)>=0)?'':'none';});}
+
+/* ---- Вкладка: Остатки ---- */
+function renderOS(){
+ const o=D.ostatki, trend=(MODE==='week'?o.trendW:o.trendM)||[];
+ const mx=Math.max(1,...trend.map(t=>t.total));
+ let kpi=`<div class="kpi">
+  <div class="k"><div class="l">Остатки на складах</div><div class="v gold">${MLN(o.total)}</div><div class="u">на ${D.updated}</div></div>
+  <div class="k"><div class="l">Складов</div><div class="v">${(o.stores||[]).length}</div><div class="u">с остатком</div></div>
+  <div class="k"><div class="l">Крупнейший склад</div><div class="v">${MLN((o.stores||[])[0]?(o.stores[0].sum):0)}</div><div class="u">${((o.stores||[])[0]||{}).store||''}</div></div>
+  <div class="k"><div class="l">Динамика</div><div class="v">${trend.length}</div><div class="u">${MODE==='week'?'недель':'месяцев'}</div></div></div>`;
+ let tr=`<div class="card"><div class="hd"><h3>Динамика остатков · ${MODE==='week'?'по неделям':'по месяцам'}</h3></div>
+  <div class="trend"><div class="bars">`+trend.map(t=>`<div class="b"><div class="val">${MLN(t.total)}</div><div class="bb" style="height:${Math.round(t.total/mx*120)}px"></div><div class="cap">${t.label}</div></div>`).join('')+`</div></div></div>`;
+ let cards=`<div class="card"><div class="hd"><h3>Остатки по складам</h3><span class="sub">топ-позиции внутри склада</span></div><div class="stores">`+
+  (o.stores||[]).map(s=>`<div class="store"><div class="sh"><b>${s.store}</b><span class="v">${MLN(s.sum)}</span></div>`+
+   (s.top||[]).slice(0,8).map(p=>`<div class="pr"><span>${p.name}</span><span>${PR(p.sum)} ₸</span></div>`).join('')+`</div>`).join('')+`</div></div>`;
+ return kpi+tr+cards;
+}
+
+/* ---- Вкладка: КЗ / план оплат ---- */
+function renderKZ(){
+ const k=D.kz, rows=(k.rows||[]);
+ const owe=rows.filter(r=>r.debt>0);
+ const total=owe.reduce((a,r)=>a+r.debt,0);
+ const mx=Math.max(1,...owe.map(r=>r.debt));
+ const hasFlow=rows.some(r=>(r.prihod||0)||(r.oplata||0));
+ let kpi=`<div class="kpi">
+  <div class="k"><div class="l">Должны поставщикам</div><div class="v neg">${MLN(total)}</div><div class="u">по листу КЗ</div></div>
+  <div class="k"><div class="l">Поставщиков с долгом</div><div class="v">${owe.length}</div><div class="u">из ${k.listN} в списке</div></div>
+  <div class="k"><div class="l">Крупнейший долг</div><div class="v">${MLN(owe[0]?owe[0].debt:0)}</div><div class="u">${(owe[0]||{}).name||''}</div></div>
+  <div class="k"><div class="l">Компаний в списке</div><div class="v">${k.listN}</div><div class="u">лист КЗ</div></div></div>`;
+ let note=`<div class="note">Список поставщиков и суммы долга — из файла <b>ДЗ КЗ (лист КЗ)</b> на Google Диске${k.date?', на <b>'+k.date+'</b>':''} (колонка «Задолженность перед поставщиками»). Это основа плана оплат: кому и сколько должны.</div>`;
+ let rr=owe.map((r,i)=>`<tr><td class="rk">${i+1}</td><td class="nm bar"><div class="fill" style="width:${Math.round(r.debt/mx*100)}%;background:#fb7185"></div><span>${r.name}</span></td>${hasFlow?`<td>${r.prihod?PR(r.prihod):'—'}</td><td class="pos">${r.oplata?PR(r.oplata):'—'}</td>`:''}<td class="neg">${PR(r.debt)}</td></tr>`).join('');
+ const zero=rows.filter(r=>r.debt<=0);
+ let tbl=`<div class="card"><div class="hd"><h3>План оплат · кому и сколько должны</h3><span class="sub">${owe.length} с долгом · отсортировано по сумме</span></div>
+  <input class="search" placeholder="🔍 поиск поставщика…" oninput="filterKz(this.value)">
+  <div class="tblwrap"><table class="z" id="kztbl"><thead><tr><th class="rk">#</th><th class="nm">Поставщик</th>${hasFlow?'<th>Приход</th><th>Оплата</th>':''}<th>Долг, ₸</th></tr></thead>
+  <tbody>${rr}<tr class="tot"><td></td><td class="nm">ИТОГО долг</td>${hasFlow?'<td></td><td></td>':''}<td class="neg">${PR(total)}</td></tr></tbody></table></div>
+  <div style="padding:10px 16px 14px;color:#8798ab;font-size:12px">Без долга в списке: <b style="color:#6ee7b7">${zero.length}</b></div></div>`;
+ return kpi+note+tbl;
+}
+function filterKz(q){q=(q||'').toLowerCase().trim();document.querySelectorAll('#kztbl tbody tr').forEach(tr=>{const nm=(tr.querySelector('.nm')||{}).textContent||'';tr.style.display=(!q||nm.toLowerCase().indexOf(q)>=0)?'':'none';});}
+
+/* ---- Вкладка: Что закупали (товар × поставщик) ---- */
+function tvData(){ if(!D.tovary)return{rows:[]}; if(MODE==='year')return D.tovary.year||{rows:[]}; const b=(MODE==='month'?D.tovary.months:D.tovary.weeks)||{}; return b[PKEY]||{rows:[]}; }
+function renderTV(){
+ const d=tvData(), rows=d.rows||[];
+ const totSum=rows.reduce((a,r)=>a+r.sum,0);
+ const nprod=new Set(rows.map(r=>r.product)).size, nsup=new Set(rows.map(r=>r.supplier)).size;
+ let kpi=`<div class="kpi">
+  <div class="k"><div class="l">Строк поставок</div><div class="v">${rows.length}</div><div class="u">товар × поставщик</div></div>
+  <div class="k"><div class="l">Товаров закуплено</div><div class="v gold">${nprod}</div><div class="u">позиций</div></div>
+  <div class="k"><div class="l">Поставщиков</div><div class="v">${nsup}</div><div class="u">в периоде</div></div>
+  <div class="k"><div class="l">Сумма закупа</div><div class="v gold">${MLN(totSum)}</div><div class="u">за период</div></div></div>`;
+ let rr=rows.map((r,i)=>`<tr data-s="${((r.product||'')+' '+(r.supplier||'')).toLowerCase()}"><td class="rk">${i+1}</td><td class="nm">${r.product}</td><td class="nm" style="min-width:170px;color:#e8c766">${r.supplier}</td><td>${r.qty.toLocaleString('ru-RU')}</td><td class="z0" style="text-align:left">${r.unit||''}</td><td>${PR(r.price)}</td><td>${PR(r.sum)}</td></tr>`).join('');
+ let tbl=`<div class="card"><div class="hd"><h3>Что и у кого закупали</h3><span class="sub">товар · поставщик · количество (в ед. измерения) · цена · сумма</span></div>
+  <input class="search" placeholder="🔍 поиск по товару или поставщику…" oninput="filterTv(this.value)">
+  <div class="tblwrap"><table class="z" id="tvtbl"><thead><tr><th class="rk">#</th><th class="nm">Товар</th><th class="nm">Поставщик</th><th>Кол-во</th><th style="text-align:left">Ед.</th><th>Цена, ₸</th><th>Сумма, ₸</th></tr></thead><tbody>${rr}</tbody></table></div></div>`;
+ return kpi+tbl;
+}
+function filterTv(q){q=(q||'').toLowerCase().trim();document.querySelectorAll('#tvtbl tbody tr').forEach(tr=>{tr.style.display=(!q||tr.dataset.s.indexOf(q)>=0)?'':'none';});}
+
+/* ---- Вкладка: Движение по складу ---- */
+function dvData(){ if(!D.dvizhenie)return{rows:[]}; if(MODE==='year')return D.dvizhenie.year||{rows:[]}; const b=(MODE==='month'?D.dvizhenie.months:D.dvizhenie.weeks)||{}; return b[PKEY]||{rows:[]}; }
+const QT=q=>Number(q||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
+function renderDV(){
+ const d=dvData(), rows=d.rows||[];
+ const nbuy=rows.filter(r=>r.buy>0).length, nwo=rows.filter(r=>r.writeoff>0).length;
+ let kpi=`<div class="kpi">
+  <div class="k"><div class="l">Позиций в движении</div><div class="v">${rows.length}</div><div class="u">товаров</div></div>
+  <div class="k"><div class="l">Закупалось</div><div class="v gold">${nbuy}</div><div class="u">позиций</div></div>
+  <div class="k"><div class="l">Списывалось</div><div class="v neg">${nwo}</div><div class="u">позиций</div></div>
+  <div class="k"><div class="l">Период</div><div class="v" style="font-size:15px">${MODE==='year'?'весь год':(d.label||((D.mmeta[PKEY]||{}).ru)||PKEY)}</div><div class="u">выбран</div></div></div>`;
+ let note=`<div class="note">По каждому товару: <b>остаток на начало</b> периода на складах → <b>закупили</b> (приход) → <b>списали</b> → <b>остаток на конец</b>. Количество — в единицах измерения (кг, л, шт). Разница «начало + закупили − списали − конец» уходит в производство/продажи.</div>`;
+ let rr=rows.map((r,i)=>`<tr data-s="${(r.product||'').toLowerCase()}"><td class="rk">${i+1}</td><td class="nm">${r.product}</td><td class="z0" style="text-align:left">${r.unit||''}</td>
+   <td>${QT(r.open)}</td><td class="pos">${r.buy>0?'+'+QT(r.buy):'—'}</td><td class="neg">${r.writeoff>0?'−'+QT(r.writeoff):'—'}</td><td class="gold">${QT(r.close)}</td></tr>`).join('');
+ let tbl=`<div class="card"><div class="hd"><h3>Движение по складу</h3><span class="sub">остаток → закупили → списали → остаток · в ед. измерения</span></div>
+  <input class="search" placeholder="🔍 поиск товара…" oninput="filterDv(this.value)">
+  <div class="tblwrap"><table class="z" id="dvtbl"><thead><tr><th class="rk">#</th><th class="nm">Товар</th><th style="text-align:left">Ед.</th><th>Остаток начало</th><th>Закупили</th><th>Списали</th><th>Остаток конец</th></tr></thead><tbody>${rr}</tbody></table></div></div>`;
+ return kpi+note+tbl;
+}
+function filterDv(q){q=(q||'').toLowerCase().trim();document.querySelectorAll('#dvtbl tbody tr').forEach(tr=>{tr.style.display=(!q||tr.dataset.s.indexOf(q)>=0)?'':'none';});}
+
+/* ---- Вкладка: План оплат на месяц (интерактивный распределитель) ---- */
+let PM=null;
+function pmInit(){
+ const act=(D.kz.rows||[]).filter(r=>r.debt>0).sort((a,b)=>b.debt-a.debt);
+ PM={budget:0, rows:act.map(r=>({name:r.name,debt:r.debt,alloc:0,locked:false,skip:false}))};
+}
+function pmNum(v){return Math.max(0,Math.round(+String(v).replace(/[^\d]/g,'')||0));}
+function pmAuto(){
+ const lockedSum=PM.rows.filter(r=>r.locked&&!r.skip).reduce((a,r)=>a+r.alloc,0);
+ let rem=Math.max(0,PM.budget-lockedSum);
+ PM.rows.forEach(r=>{ if(r.skip){r.alloc=0;return;} if(!r.locked){ const a=Math.min(r.debt,rem); r.alloc=a; rem-=a; }});
+ pmRender();
+}
+function pmSkip(i){ PM.rows[i].skip=!PM.rows[i].skip; PM.rows[i].alloc=0; PM.rows[i].locked=false; pmAuto(); }
+function pmSetBudget(v){ PM.budget=pmNum(v); pmAuto(); }
+function pmEdit(i,v){ let a=Math.min(pmNum(v),PM.rows[i].debt); PM.rows[i].alloc=a; PM.rows[i].locked=true; pmRender(); }
+function pmUnlock(i){ PM.rows[i].locked=false; PM.rows[i].alloc=0; pmAuto(); }
+function pmUp(i){ if(i<=0)return; [PM.rows[i-1],PM.rows[i]]=[PM.rows[i],PM.rows[i-1]]; pmAuto(); }
+function pmDown(i){ if(i>=PM.rows.length-1)return; [PM.rows[i+1],PM.rows[i]]=[PM.rows[i],PM.rows[i+1]]; pmAuto(); }
+function pmReset(){ PM.rows.forEach(r=>{r.alloc=0;r.locked=false;}); PM.budget=0; pmRender(); }
+function pmRender(){ document.getElementById('body').innerHTML=renderPM(); }
+function renderPM(){
+ if(!PM)pmInit();
+ const active=PM.rows.filter(r=>!r.skip);
+ const alloc=active.reduce((a,r)=>a+r.alloc,0);
+ const totalDebt=active.reduce((a,r)=>a+r.debt,0);
+ const rest=PM.budget-alloc;
+ const npay=active.filter(r=>r.alloc>0).length;
+ let kpi=`<div class="kpi">
+  <div class="k"><div class="l">Сумма к оплате</div><div class="v gold">${MLN(PM.budget)}</div><div class="u">ваш бюджет на месяц</div></div>
+  <div class="k"><div class="l">Распределено</div><div class="v pos">${MLN(alloc)}</div><div class="u">по ${npay} поставщикам</div></div>
+  <div class="k"><div class="l">Остаток бюджета</div><div class="v ${rest<0?'neg':''}">${SIGN(rest)}</div><div class="u">${rest<0?'перерасход':'не распределено'}</div></div>
+  <div class="k"><div class="l">Всего долг</div><div class="v neg">${MLN(totalDebt)}</div><div class="u">${PM.rows.length} активных</div></div></div>`;
+ let panel=`<div class="card"><div class="hd"><h3>🗓 Распределение оплат на месяц</h3><span class="sub">введите сумму — распределится по приоритету, дальше правьте вручную</span></div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:6px 16px 14px">
+   <label style="font-size:13px;color:var(--ink2);font-weight:600">Хочу оплатить:</label>
+   <input id="pmbud" value="${PM.budget?PR(PM.budget):''}" placeholder="напр. 30 000 000" inputmode="numeric" style="width:190px;padding:10px 14px;border:1px solid var(--accent);border-radius:10px;background:#132234;color:var(--accent);font-weight:800;font-size:15px" onchange="pmSetBudget(this.value)">
+   <button class="rgo" onclick="pmSetBudget(document.getElementById('pmbud').value)" style="font-size:13px;font-weight:700;padding:10px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;cursor:pointer">⚡ Распределить</button>
+   <button onclick="pmReset()" style="font-size:13px;font-weight:700;padding:10px 16px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.05);color:#c9d4e2;cursor:pointer">↺ Сброс</button>
+  </div>`;
+ let note=`<div class="note" style="margin:0 16px 12px">Список — активные поставщики с долгом, по приоритету (сверху вниз). Стрелками ⬆⬇ меняйте приоритет, в поле «К оплате» правьте сумму вручную (она фиксируется 🔒, остальное перераспределится). Долг — из листа КЗ.</div>`;
+ let n=0;
+ let rows=PM.rows.map((r,i)=>{ if(r.skip)return ''; n++;
+  return `<tr>
+   <td class="rk" style="white-space:nowrap"><button onclick="pmUp(${i})" style="background:none;border:none;color:#8798ab;cursor:pointer;font-size:13px">⬆</button><button onclick="pmDown(${i})" style="background:none;border:none;color:#8798ab;cursor:pointer;font-size:13px">⬇</button></td>
+   <td class="rk">${n}</td>
+   <td class="nm">${r.name}${r.locked?' <span title="зафиксировано вручную — нажмите, чтобы снять" style="cursor:pointer" onclick="pmUnlock(${i})">🔒</span>':''}</td>
+   <td class="neg">${PR(r.debt)}</td>
+   <td><input value="${r.alloc?PR(r.alloc):''}" placeholder="0" inputmode="numeric" onchange="pmEdit(${i},this.value)" style="width:120px;text-align:right;padding:7px 10px;border:1px solid ${r.alloc>0?'rgba(52,211,153,.5)':'var(--line)'};border-radius:8px;background:#132234;color:${r.alloc>0?'#6ee7b7':'#c9d4e2'};font-weight:700;font-variant-numeric:tabular-nums"></td>
+   <td class="${(r.debt-r.alloc)>0?'':'z0'}">${PR(Math.max(0,r.debt-r.alloc))}</td>
+   <td><button onclick="pmSkip(${i})" title="не платить в этом месяце" style="background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.35);color:#fca5b4;border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer">🚫 не платить</button></td></tr>`;}).join('');
+ let tbl=`<div class="tblwrap"><table class="z" style="min-width:800px"><thead><tr><th>приоритет</th><th class="rk">#</th><th class="nm">Поставщик</th><th>Долг, ₸</th><th>К оплате, ₸</th><th>Остаток долга</th><th></th></tr></thead>
+  <tbody>${rows}<tr class="tot"><td></td><td></td><td class="nm">ИТОГО (к оплате)</td><td class="neg">${PR(totalDebt)}</td><td class="pos">${PR(alloc)}</td><td>${PR(Math.max(0,totalDebt-alloc))}</td><td></td></tr></tbody></table></div></div>`;
+ // список исключённых
+ const skipped=PM.rows.map((r,i)=>({r,i})).filter(x=>x.r.skip);
+ let excl='';
+ if(skipped.length){
+  excl=`<div class="card"><div class="hd"><h3>🚫 Не платим в этом месяце</h3><span class="sub">${skipped.length} поставщиков · исключены из распределения</span></div>
+   <div class="tblwrap"><table class="z"><thead><tr><th class="rk">#</th><th class="nm">Поставщик</th><th>Долг, ₸</th><th></th></tr></thead><tbody>`+
+   skipped.map((x,j)=>`<tr><td class="rk">${j+1}</td><td class="nm" style="color:#8798ab">${x.r.name}</td><td class="z0">${PR(x.r.debt)}</td><td><button onclick="pmSkip(${x.i})" style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);color:#6ee7b7;border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer">↩ вернуть</button></td></tr>`).join('')+
+   `</tbody></table></div></div>`;
+ }
+ return kpi+panel+note+tbl+excl;
+}
+
+/* ---- Вкладка: Сырьё → Производство ---- */
+function skData(){ if(!D.sklady)return{stores:{}}; if(MODE==='year')return D.sklady.year||{stores:{}}; const b=(MODE==='month'?D.sklady.months:D.sklady.weeks)||{}; return b[PKEY]||{stores:{}}; }
+function renderSK(){
+ const S=D.sklady; if(!S)return '<div class="note">Нет данных по складам.</div>';
+ const d=skData(), per=d.stores||{};
+ let note=`<div class="note">Поток сырья: <b>Основной склад (сырьё)</b> → закуп приходит сюда → перемещается на <b>Склад Производство</b> → превращается в готовый товар. По каждому складу: остаток на начало → приход → списание → остаток на конец; разница «ушло дальше» — это перемещение в производство / выпуск продукции.</div>`;
+ let cards=(S.focus||[]).map(nm=>{
+   const p=per[nm]||{open:0,close:0,prihod:0,spisanie:0};
+   const cur=(S.current||{})[nm]||{total:0,top:[]};
+   const rashod=p.open+p.prihod-p.spisanie-p.close;
+   const isProd=/производ/i.test(nm);
+   let top=(cur.top||[]).slice(0,10).map(t=>`<div class="pr"><span>${t.product}</span><span>${Number(t.qty||0).toLocaleString('ru-RU',{maximumFractionDigits:1})} ${t.unit||''} · ${PR(t.sum)} ₸</span></div>`).join('');
+   return `<div class="store" style="border-color:${isProd?'rgba(52,211,153,.35)':'rgba(232,199,102,.35)'}">
+     <div class="sh"><b>${isProd?'🏭':'🌾'} ${nm}</b><span class="v">${MLN(cur.total)}</span></div>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 6px">
+       <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:7px 10px"><div class="z0" style="font-size:10.5px;text-transform:uppercase">Остаток начало</div><div style="font-weight:800">${MLN(p.open)}</div></div>
+       <div style="background:rgba(232,199,102,.06);border-radius:8px;padding:7px 10px"><div class="z0" style="font-size:10.5px;text-transform:uppercase">Приход</div><div style="font-weight:800" class="gold">${MLN(p.prihod)}</div></div>
+       <div style="background:rgba(251,113,133,.06);border-radius:8px;padding:7px 10px"><div class="z0" style="font-size:10.5px;text-transform:uppercase">Списание</div><div style="font-weight:800" class="neg">${MLN(p.spisanie)}</div></div>
+       <div style="background:rgba(52,211,153,.06);border-radius:8px;padding:7px 10px"><div class="z0" style="font-size:10.5px;text-transform:uppercase">Ушло дальше</div><div style="font-weight:800" class="pos">${MLN(rashod)}</div></div>
+     </div>
+     <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:7px 10px;margin-bottom:8px"><div class="z0" style="font-size:10.5px;text-transform:uppercase">Остаток конец</div><div style="font-weight:800">${MLN(p.close)}</div></div>
+     <div style="font-size:11px;color:var(--mut);font-weight:700;text-transform:uppercase;margin:4px 0 2px">Топ на складе сейчас</div>
+     ${top||'<div class="z0" style="padding:6px 0">нет данных</div>'}
+   </div>`;
+ }).join('');
+ return `<div class="card"><div class="hd"><h3>🏭 Сырьё → Производство</h3><span class="sub">движение по ключевым складам за период</span></div>${note}<div class="stores">${cards}</div></div>`;
+}
+
+function render(){
+ renderTabs();
+ document.getElementById('ctrl').innerHTML=ctrlHTML();
+ let html='';
+ if(TAB==='po')html=renderPO(); else if(TAB==='tv')html=renderTV(); else if(TAB==='dv')html=renderDV(); else if(TAB==='sk')html=renderSK(); else if(TAB==='ce')html=renderCE(); else if(TAB==='os')html=renderOS(); else if(TAB==='kz')html=renderKZ(); else html=renderPM();
+ document.getElementById('body').innerHTML=html;
+}
+PKEY=defKey(); render();
+</script>
+</body></html>

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>План Август 2026 — бюджет подразделений</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:#0f172a;font:14px/1.55 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.top{background:linear-gradient(120deg,#4338ca,#6d28d9 55%,#7c3aed);color:#fff;padding:16px 26px;
+ display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(67,56,202,.25)}
+.top h1{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+.top .sub{color:#ddd6fe;font-size:12.5px;margin-top:3px;max-width:900px}
+.badge{display:inline-block;background:#facc15;border:2px solid #fde68a;
+ color:#78350f;font-size:17px;font-weight:900;padding:6px 16px;border-radius:10px;margin-left:12px;
+ letter-spacing:.01em;vertical-align:middle;box-shadow:0 2px 10px rgba(250,204,21,.45);white-space:nowrap}
+.tmr{display:inline-block;background:rgba(15,23,42,.30);border:2px solid rgba(255,255,255,.45);
+ color:#fff;font-size:17px;font-weight:900;padding:6px 15px;border-radius:10px;margin-left:10px;
+ vertical-align:middle;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tmr.soon{background:#dc2626;border-color:#fecaca;box-shadow:0 2px 10px rgba(220,38,38,.5)}
+.tmr.over{background:#334155;border-color:#94a3b8}
+.mode{margin-left:auto;display:flex;gap:4px;background:rgba(255,255,255,.14);border-radius:10px;padding:4px}
+.mode button{background:transparent;border:none;color:#e9d5ff;font:700 12.5px inherit;padding:8px 15px;border-radius:7px;cursor:pointer}
+.mode button.on{background:#fff;color:#4338ca}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:11px 26px;background:#fff;border-bottom:1px solid #e2e8f0;
+ position:sticky;top:0;z-index:30;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+.tab{background:#f8fafc;border:1px solid #e2e8f0;color:#475569;font-size:12.5px;font-weight:600;
+ padding:7px 13px;border-radius:9px;cursor:pointer;transition:.15s;white-space:nowrap}
+.tab:hover{border-color:#a5b4fc;color:#4338ca}
+.tab.on{background:#4f46e5;border-color:#4f46e5;color:#fff}
+.tab.done::after{content:" ✓";color:#059669;font-weight:800}
+.tab.on.done::after{color:#a7f3d0}
+.wrap{padding:20px 16px 60px;max-width:1900px}
+.bar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.btn{background:#fff;border:1px solid #cbd5e1;color:#334155;font-size:13px;font-weight:600;
+ padding:9px 15px;border-radius:9px;cursor:pointer;font-family:inherit;transition:.15s;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+.btn:hover{border-color:#6366f1;color:#4338ca}
+.btn.primary{background:#4f46e5;border-color:#4f46e5;color:#fff}
+.btn.primary:hover{background:#4338ca;color:#fff}
+.btn.ok{background:#059669;border-color:#059669;color:#fff}
+.btn.ok:hover{background:#047857;color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:8px;margin-bottom:13px}
+.kpi{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.kpi b{display:block;font-size:16px;font-weight:800;color:#0f172a;line-height:1.15;white-space:nowrap}
+.kpi span{font-size:8.5px;color:#64748b;text-transform:uppercase;letter-spacing:.03em;font-weight:700;display:block;line-height:1.3}
+/* ── Недели: единый спокойный стиль ── */
+.kpi.wk{background:#fff;border:1px solid #dbeafe;border-top:2px solid #60a5fa;border-radius:10px}
+.kpi.wk b{color:#1e3a8a;font-weight:700}
+.kpi.wk span{color:#60a5fa}
+/* ── Статусы: цветные, с заливкой и полосой слева ── */
+.kpi.st{border:1px solid transparent;border-left:5px solid;border-radius:10px}
+.kpi.st b{font-weight:800}
+.kpi.st span{opacity:.85}
+.kpi.tot{background:#eef2ff;border-left-color:#4f46e5}
+.kpi.tot b{color:#4338ca;font-size:18px}.kpi.tot span{color:#4338ca}
+.kpi.app{background:#ecfdf5;border-left-color:#059669}.kpi.app b{color:#047857}.kpi.app span{color:#047857}
+.kpi.hold{background:#fffbeb;border-left-color:#d97706}.kpi.hold b{color:#b45309}.kpi.hold span{color:#b45309}
+.kpi.rej{background:#fef2f2;border-left-color:#dc2626}.kpi.rej b{color:#b91c1c}.kpi.rej span{color:#b91c1c}
+.kpi.pnd{background:#f1f5f9;border-left-color:#64748b}.kpi.pnd b{color:#334155}.kpi.pnd span{color:#475569}
+.tblwrap{overflow-x:auto;border:1px solid #e2e8f0;border-radius:13px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+table{border-collapse:collapse;width:100%;min-width:1110px;font-size:12.5px}
+th{position:sticky;top:0;background:#f8fafc;color:#475569;font-size:10.5px;font-weight:800;text-transform:uppercase;
+ letter-spacing:.04em;padding:10px 8px;border-bottom:1px solid #e2e8f0;text-align:left;white-space:nowrap;z-index:5}
+tr.grp th{top:0;font-size:10.5px;letter-spacing:.02em;text-align:center;padding:9px 8px;border-bottom:1px solid #e2e8f0}
+thead tr:nth-child(2) th{top:36px;white-space:nowrap;font-size:10px;letter-spacing:.01em;padding:9px 4px}
+th.w1{background:#eff6ff;color:#1d4ed8}th.w2{background:#ecfdf5;color:#047857}
+th.w3{background:#fffbeb;color:#b45309}th.w4{background:#faf5ff;color:#7e22ce}
+th.dec{background:#ecfdf5;color:#047857}
+td{padding:4px 4px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+tbody tr:hover td{background:#f8faff}
+tr.st1 td{background:#f0fdf6}tr.st2 td{background:#fffbeb}tr.st3 td{background:#fef2f2}
+tr.st1 td:first-child{box-shadow:inset 5px 0 0 #059669}
+tr.st2 td:first-child{box-shadow:inset 5px 0 0 #d97706}
+tr.st3 td:first-child{box-shadow:inset 5px 0 0 #dc2626}
+tr.st0 td:first-child{box-shadow:inset 5px 0 0 #94a3b8}
+table{table-layout:fixed}
+select{min-width:0}
+td,th{overflow:hidden}
+td .cmt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+input,select{width:100%;background:#fff;border:1px solid #cbd5e1;color:#0f172a;border-radius:6px;
+ padding:6px 5px;font:inherit;font-size:12px;outline:none;text-overflow:ellipsis}
+input::placeholder{color:#94a3b8}
+input:focus,select:focus{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.13)}
+input.num{text-align:right}
+input.fixed{background:#fffbeb;border-color:#f59e0b;color:#b45309;font-weight:700}
+.fix{display:inline-block;margin-left:5px;color:#b45309;background:#fef3c7;border:1px solid #fcd34d;
+ border-radius:6px;padding:0 4px;font-size:10px;font-weight:800;cursor:pointer;vertical-align:middle}
+.fix:hover{background:#fde68a}
+td.calc{text-align:right;color:#4338ca;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:10px}
+td.tot{font-size:13px}
+.rn{color:#94a3b8;font-size:10.5px;text-align:center;width:22px;padding:0 2px}
+.sub-sum{text-align:right;font-size:9.5px;color:#64748b;padding-top:2px;white-space:nowrap;letter-spacing:-.2px}
+.del{background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:14px;padding:2px 2px;border-radius:6px}
+.del:hover{color:#dc2626;background:#fee2e2}
+tfoot td{background:#eef2ff;font-weight:800;color:#312e81;border-top:2px solid #4f46e5;padding:10px 5px;font-size:12px;white-space:nowrap}
+.p1{border-color:#dc2626!important;background:#fef2f2!important;color:#b91c1c!important;font-weight:700}
+.p2{border-color:#d97706!important;background:#fffbeb!important;color:#b45309!important;font-weight:700}
+.p3{border-color:#059669!important;background:#f0fdf6!important;color:#047857!important;font-weight:700}
+.chip{display:inline-block;font-size:11px;font-weight:800;padding:4px 7px;border-radius:7px;white-space:nowrap}
+.c1{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+.c2{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.c3{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.c0{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+.dbtns{display:flex;gap:3px}
+.dbtn{flex:1;border:1px solid #cbd5e1;background:#fff;color:#64748b;font:700 9.5px inherit;white-space:nowrap;
+ padding:7px 1px;letter-spacing:-.2px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:.12s}
+.dbtn:hover{border-color:#94a3b8;color:#0f172a}
+.dbtn.a1.on{background:#059669;border-color:#059669;color:#fff}
+.dbtn.a2.on{background:#d97706;border-color:#d97706;color:#fff}
+.dbtn.a3.on{background:#dc2626;border-color:#dc2626;color:#fff}
+.flt{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fb{background:#fff;border:1px solid #cbd5e1;color:#475569;font:700 12.5px inherit;padding:8px 14px;border-radius:9px;cursor:pointer}
+.fb:hover{border-color:#6366f1;color:#4338ca}
+.fb.on{background:#eef2ff;border-color:#4f46e5;color:#4338ca}
+.fb i{font-style:normal;opacity:.65;margin-left:5px}
+.pend{display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:6px;vertical-align:middle}
+.note{background:#fff;border:1px solid #e2e8f0;border-left:4px solid #4f46e5;border-radius:10px;
+ padding:13px 16px;font-size:13px;color:#334155;margin-bottom:16px;line-height:1.65;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.note b{color:#0f172a}
+.note.dir{border-left-color:#059669}
+.steps{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.step{flex:1;min-width:210px;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:12px 14px;
+ box-shadow:0 1px 2px rgba(15,23,42,.05)}
+.step b{display:block;font-size:12.5px;color:#4338ca;margin-bottom:3px}
+.step span{font-size:12px;color:#64748b}
+.bar-mini{height:6px;background:#eef2ff;border-radius:3px;overflow:hidden;margin-top:5px}
+.bar-mini i{display:block;height:100%;background:linear-gradient(90deg,#4f46e5,#818cf8);border-radius:3px}
+.cmt{font-size:11.5px;color:#334155;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:7px;padding:5px 8px}
+@media print{.tabs,.bar,.del,.mode,.steps{display:none}body{background:#fff}}
+.sync{font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px;margin-left:12px;
+ background:rgba(255,255,255,.18);color:#fff;white-space:nowrap;align-self:center}
+.sync.ok{background:rgba(16,185,129,.28)}
+.sync.err{background:rgba(239,68,68,.35)}
+.sync.busy{background:rgba(255,255,255,.30)}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div>
+    <h1>📋 План бюджета · Август 2026 <span class="badge">⏰ срок сдачи 27.07.2026 до 10:00</span><span class="tmr" id="tmr"></span></h1>
+    <div class="sub" id="modehint"></div>
+  </div>
+  <div class="mode">
+    <button id="mb1" onclick="setMode('dept')">Подразделение</button>
+    <button id="mb2" onclick="setMode('dir')">Директор</button>
+    <div id="syncbox" class="sync">● подключение…</div>
+  </div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+<div class="wrap"><div id="view"></div></div>
+<input type="file" id="fileIn" accept=".json" multiple style="display:none">
+
+<script>
+const DEPTS=[["proizv","Производство"],["pekar","Пекарня"],["kondit","Кондитерский цех"],
+ ["tehnol","Технологический"],["tehnich","Технический"],["kadry","HR / Кадры"],["it","ИТ"],
+ ["rnd","R&D"],["okk","ОКК"],["sbyt","Сбыт"],["kom","Коммерческий"],["buh","Бухгалтерия"],
+ ["fin","Финансовый"],["otitb","Охрана труда и ТБ"]];
+const ARTICLES=["ТОВАР: ТМЦ и инвентарь","ТОВАР: Оборудование","ТОВАР: Запчасти и материалы",
+ "ТОВАР: Спецодежда и СИЗ","ТОВАР: Упаковка","ТОВАР: Канцтовары и хозтовары",
+ "УСЛУГА: Подряд и аутсорс","УСЛУГА: ТО и обслуживание оборудования","УСЛУГА: Ремонтные работы",
+ "УСЛУГА: Лаборатория и сертификация","УСЛУГА: Дезинсекция и санобработка","УСЛУГА: Транспорт и логистика",
+ "УСЛУГА: Обучение и аттестация","УСЛУГА: ПО, подписки, ИТ","УСЛУГА: Аренда","УСЛУГА: Маркетинг и реклама","Прочее"];
+function shortArt(a){return a
+  .replace('ТОВАР: ','📦 ').replace('УСЛУГА: ','🔧 ')
+  .replace('Запчасти и материалы','Запчасти').replace('Канцтовары и хозтовары','Канцтовары')
+  .replace('Спецодежда и СИЗ','Спецодежда').replace('ТМЦ и инвентарь','ТМЦ, инвентарь')
+  .replace('ТО и обслуживание оборудования','ТО оборудования').replace('Подряд и аутсорс','Подряд')
+  .replace('Лаборатория и сертификация','Лаборатория').replace('Дезинсекция и санобработка','Санобработка')
+  .replace('Транспорт и логистика','Логистика').replace('Обучение и аттестация','Обучение')
+  .replace('ПО, подписки, ИТ','ПО и подписки').replace('Маркетинг и реклама','Маркетинг')
+  .replace('Ремонтные работы','Ремонт');}
+const UNITS=["шт","кг","л","компл.","упак.","усл.","мес.","чел."];
+const PRIOR=["1. Критично","2. Важно","3. Желательно"];
+const DEC=["Одобрено","Отложено","Отклонено"];
+const WEEKS=[["Неделя 1","01–07.08","w1"],["Неделя 2","08–14.08","w2"],["Неделя 3","15–21.08","w3"],["Неделя 4","22–31.08","w4"]];
+const OBU=["IT-обслуживание, телефония, интернет","Авансы поставщикам","Административные расходы","Страховка сотрудников",
+ "Возврат ВФП","Представительские расходы","Аренда помещений","Газ","Маркетинг","Мусор","Налоги в бюджет (ЗАРПЛАТНЫЕ)",
+ "Налоги в бюджет (НДС)","Оплата труда (еженедельно)","Оплата труда","Охрана","Платежи поставщикам Прочее",
+ "Производственные расходы","Инвентарь","Униформа","Упаковка","Хоз.товары","Погашение кредита и %",
+ "Логистика и реализация","Ремонт помещений","Ремонт оборудования","Приобретение основных средств",
+ "Сырьё — платежи поставщикам","Электроэнергия и коммунальные"];
+const OBUW=["1 нед. 01–07","2 нед. 08–14","3 нед. 15–21","4 нед. 22–28","5 нед. 29–31"];
+
+const KEY="plan_avg_2026_v2";
+const API="/api/plan";
+const DIR_PIN="2608";
+let DB=load(), CUR=DEPTS[0][0], MODE=localStorage.getItem(KEY+"_mode")||"dept", FILTER='all';
+let SYNC=true, dirty=false, pushT=null, busy=false, lastServer=null;
+
+function load(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}
+  const d={dept:{},obu:{}};DEPTS.forEach(([k])=>d.dept[k]=[]);return d;}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}}
+function save(){saveLocal();queuePush();}
+
+/* ── синхронизация с общим хранилищем ───────────────────────────── */
+function setSync(cls,txt){const e=document.getElementById('syncbox');
+  if(e){e.className='sync '+cls;e.textContent=txt;}}
+function hhmm(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+
+function queuePush(){dirty=true;clearTimeout(pushT);pushT=setTimeout(push,1200);
+  setSync('busy','● сохраняю…');}
+
+async function push(){
+  if(!SYNC||busy){if(busy)pushT=setTimeout(push,800);return;}
+  busy=true;
+  const body = CUR==='obu' ? {kind:'obu',obu:DB.obu}
+    : isDir() ? {kind:'decisions',dept:DB.dept}
+    : {kind:'dept',dept:CUR,rows:DB.dept[CUR]||[]};
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+    const j=await r.json();
+    if(j.ok){dirty=false;lastServer=j.updated;setSync('ok','● сохранено '+hhmm());}
+    else setSync('err','● ошибка: '+(j.error||'не сохранено'));
+  }catch(e){setSync('err','● нет связи — сохранено локально');}
+  busy=false;
+}
+
+async function pull(silent){
+  if(!SYNC)return;
+  if(!silent)setSync('busy','● загружаю…');
+  try{
+    const r=await fetch(API+'?t='+Date.now(),{cache:'no-store'});
+    const j=await r.json();
+    if(j.error){setSync('err','● '+j.error);return;}
+    if(dirty||busy)return;                       // не затирать несохранённые правки
+    if(silent && j.updated===lastServer)return;  // ничего не изменилось
+    lastServer=j.updated;
+    DB.dept=j.dept||{};DB.obu=j.obu||{};
+    DEPTS.forEach(([k])=>{if(!DB.dept[k])DB.dept[k]=[];});
+    saveLocal();render();
+    setSync('ok','● общая версия '+hhmm());
+  }catch(e){setSync('err','● нет связи — работаю локально');}
+}
+function fmt(v){return v?Math.round(v).toLocaleString('ru'):'—';}
+/* Короткая запись для узких колонок: 2 400 000 → «2,4 млн» */
+function fmtK(v){if(!v)return '—';const a=Math.abs(v);
+  if(a>=1e6)return (v/1e6).toFixed(a>=1e7?0:1).replace('.',',')+' млн';
+  if(a>=1e5)return Math.round(v/1e3)+' тыс.';
+  return fmt(v);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function blank(){return{art:'',nom:'',par:'',unit:'',price:'',q:['','','',''],pr:'',why:'',dec:'',cmt:''};}
+function rows(k){const a=DB.dept[k]||(DB.dept[k]=[]);while(a.length<8)a.push(blank());
+  a.forEach(r=>{if(r.dec===undefined)r.dec='';if(r.cmt===undefined)r.cmt='';});return a;}
+function rowSum(r){const p=+r.price||0;return r.q.map(q=>(+q||0)*p);}
+function rowTot(r){return rowSum(r).reduce((a,b)=>a+b,0);}
+function deptTotal(k){return (DB.dept[k]||[]).reduce((s,r)=>s+rowTot(r),0);}
+function deptBy(k,d){return (DB.dept[k]||[]).filter(r=>r.dec===d).reduce((s,r)=>s+rowTot(r),0);}
+function deptWeeks(k){const w=[0,0,0,0];(DB.dept[k]||[]).forEach(r=>rowSum(r).forEach((v,i)=>w[i]+=v));return w;}
+function obuTotal(){let s=0;OBU.forEach((_,i)=>{const o=DB.obu[i]||{};['b','c'].forEach(t=>(o[t]||[]).forEach(v=>s+=+v||0));});return s;}
+function filled(k){return (DB.dept[k]||[]).some(r=>r.nom&&(+r.price||0)>0);}
+function isReal(r){return !!(r.nom||(+r.price||0));}
+function pendSum(k){return (DB.dept[k]||[]).filter(r=>isReal(r)&&!r.dec).reduce((s,r)=>s+rowTot(r),0);}
+function cnt(k,d){return (DB.dept[k]||[]).filter(r=>isReal(r)&&(d===''?!r.dec:r.dec===d)).length;}
+const isDir=()=>MODE==='dir';
+function setMode(m){
+  if(m==='dir'&&MODE!=='dir'&&sessionStorage.getItem(KEY+'_pin')!=='1'){
+    const p=prompt('Режим директора. Введите код доступа:');
+    if(p===null)return;
+    if(String(p).trim()!==DIR_PIN){alert('Неверный код.');return;}
+    sessionStorage.setItem(KEY+'_pin','1');
+  }
+  MODE=m;FILTER='all';localStorage.setItem(KEY+"_mode",m);render();}
+function setFilter(f){FILTER=f;render();}
+
+function tabs(){
+  document.getElementById('mb1').className=MODE==='dept'?'on':'';
+  document.getElementById('mb2').className=MODE==='dir'?'on':'';
+  document.getElementById('modehint').textContent = isDir()
+    ? 'Режим директора: по каждой строке нажмите Одобрить, Отложить или Отклонить. Можно менять цену и количество по неделям — изменённые поля подсветятся жёлтым, а рядом с суммой появится ✎ с исходными значениями. Всё сохраняется автоматически и сразу видно подразделениям.'
+    : 'Заполните потребность своего подразделения по неделям. Всё сохраняется автоматически — директор видит вашу заявку сразу, а её решение появится в колонке справа.';
+  document.getElementById('tabs').innerHTML=
+   DEPTS.map(([k,n])=>`<div class="tab ${CUR===k?'on':''} ${filled(k)?'done':''}" onclick="go('${k}')">${esc(n)}</div>`).join('')
+   +`<div class="tab ${CUR==='obu'?'on':''}" onclick="go('obu')">💰 ОБУ — план оплат</div>`
+   +`<div class="tab ${CUR==='svod'?'on':''}" onclick="go('svod')">📊 Свод</div>`;
+}
+function go(k){CUR=k;FILTER='all';render();window.scrollTo(0,0);}
+function render(){tabs();const v=document.getElementById('view');
+  if(CUR==='svod')v.innerHTML=svod();else if(CUR==='obu')v.innerHTML=obuView();else v.innerHTML=deptView(CUR);}
+
+function decChip(d,real){const i=DEC.indexOf(d);const ic=['✓ Одобрено','⏸ Отложено','✕ Отклонено'];
+  if(d)return `<span class="chip c${i+1}">${ic[i]}</span>`;
+  if(!real)return '<span style="color:#cbd5e1;font-size:12px">—</span>';
+  return '<span class="chip c0" title="на рассмотрении у директора">⏳ ждёт</span>';}
+
+function deptView(k){
+  const name=DEPTS.find(d=>d[0]===k)[1], rs=rows(k), w=deptWeeks(k), tot=w.reduce((a,b)=>a+b,0);
+  const app=deptBy(k,'Одобрено'), hold=deptBy(k,'Отложено'), rej=deptBy(k,'Отклонено'), pend=pendSum(k);
+  let h='';
+  if(!isDir()) h+=`<div class="steps">
+    <div class="step"><b>Шаг 1 · Что закупаем</b><span>Выберите статью (товар или услуга), напишите наименование и параметры.</span></div>
+    <div class="step"><b>Шаг 2 · Сколько стоит</b><span>Единица измерения и цена за одну единицу. Для услуги — «усл.» или «мес.».</span></div>
+    <div class="step"><b>Шаг 3 · Когда нужно</b><span>Поставьте количество в ту неделю, когда закупка реально требуется.</span></div>
+    <div class="step"><b>Шаг 4 · Зачем</b><span>Приоритет и короткое обоснование — это ускорит согласование.</span></div>
+  </div>`;
+  h+=`<div class="note ${isDir()?'dir':''}">`+ (isDir()
+    ? `Нажмите по каждой строке: <b style="color:#047857">✓ Одобрить</b> · <b style="color:#b45309">⏸ Отложить</b> · <b style="color:#b91c1c">✕ Отклонить</b>.
+       Строка сразу окрашивается и слева появляется цветная полоса: <b style="color:#047857">зелёная — одобрено</b>, жёлтая — отложено, красная — отклонено,
+       <b>серая — решения ещё нет</b>. Фильтром ниже удобно оставить только нерешённые.`
+    : `Суммы считаются автоматически: <b>цена × количество</b>. Услуги вносятся так же, как товары — например: <b>ТО холодильных агрегатов · мес. · 435 000 × 1</b>.
+       Решение директора появится в последних двух столбцах автоматически. Жёлтая подсветка цены или количества означает, что директор скорректировал заявку — наведите на значок ✎ рядом с суммой, чтобы увидеть исходные значения.`)
+   +`</div>
+  <div class="kpis">
+    ${isDir()?'':WEEKS.map((x,i)=>`<div class="kpi wk"><b id="kw${i}">${fmt(w[i])}</b><span>${x[0].replace('Неделя ','Нед. ')} · ${x[1]}</span></div>`).join('')}
+    <div class="kpi st tot"><b id="ktot">${fmt(tot)}</b><span>Заявлено всего</span></div>
+    <div class="kpi st app"><b>${fmt(app)}</b><span>✓ Одобрено · ${cnt(k,'Одобрено')} строк</span></div>
+    <div class="kpi st hold"><b>${fmt(hold)}</b><span>⏸ Отложено · ${cnt(k,'Отложено')} строк</span></div>
+    ${isDir()?`<div class="kpi st rej"><b>${fmt(rej)}</b><span>✕ Отклонено · ${cnt(k,'Отклонено')} строк</span></div>
+      <div class="kpi st pnd"><b>${fmt(pend)}</b><span><span class="pend"></span>Не решено · ${cnt(k,'')} строк</span></div>`:''}
+  </div>
+  ${isDir()?`<div class="flt">
+    <button class="fb ${FILTER==='all'?'on':''}" onclick="setFilter('all')">Все строки <i>${rs.filter(isReal).length}</i></button>
+    <button class="fb ${FILTER==='pend'?'on':''}" onclick="setFilter('pend')"><span class="pend"></span>Не решено <i>${cnt(k,'')}</i></button>
+    <button class="fb ${FILTER==='Одобрено'?'on':''}" onclick="setFilter('Одобрено')">✓ Одобрено <i>${cnt(k,'Одобрено')}</i></button>
+    <button class="fb ${FILTER==='Отложено'?'on':''}" onclick="setFilter('Отложено')">⏸ Отложено <i>${cnt(k,'Отложено')}</i></button>
+    <button class="fb ${FILTER==='Отклонено'?'on':''}" onclick="setFilter('Отклонено')">✕ Отклонено <i>${cnt(k,'Отклонено')}</i></button>
+  </div>`:''}
+  <div class="bar">
+    ${isDir()?'':'<button class="btn primary" onclick="addRow()">+ Добавить строку</button>'}
+    ${isDir()
+      ? `<button class="btn ok" onclick="publish()">✔ Опубликовать решения</button>
+         <button class="btn" onclick="pull(false)">🔄 Обновить</button>
+         <button class="btn" onclick="exportCSV('${k}')">⬇ Excel: это подразделение</button>
+         <button class="btn primary" onclick="exportAll()">⬇ Excel: все подразделения</button>`
+      : `<button class="btn ok" onclick="publish()">✔ Отправить финдиректору</button>
+         <button class="btn" onclick="pull(false)">🔄 Обновить</button>
+         <button class="btn" onclick="exportCSV('${k}')">⬇ Excel: моё подразделение</button>`}
+    <button class="btn" onclick="clearDept('${k}')">Очистить</button>
+  </div>
+  <div class="tblwrap"><table>
+    <colgroup>${(isDir()
+      ? [22,104,94,64,54,80,54,54,54,54,76,64,64,230,74]
+      : [22,112,100,74,58,78,58,58,58,58,76,70,70,96,86,24]
+      ).map(x=>`<col style="width:${x}px">`).join('')}</colgroup>
+    <thead>
+    <tr class="grp"><th></th>
+      <th colspan="3" style="background:#eef2ff;color:#4338ca">1 · ЧТО ЗАКУПАЕМ</th>
+      <th colspan="2" style="background:#eef2ff;color:#4338ca">2 · СКОЛЬКО СТОИТ</th>
+      <th colspan="4" style="background:#e0f2fe;color:#0369a1">3 · КОГДА НУЖНО</th>
+      <th style="background:#ede9fe;color:#6d28d9">ИТОГО</th>
+      <th colspan="2" style="background:#eef2ff;color:#4338ca">4 · ЗАЧЕМ</th>
+      <th colspan="2" style="background:#ecfdf5;color:#047857">РЕШЕНИЕ ДИРЕКТОРА</th>
+      ${isDir()?'':'<th></th>'}</tr>
+    <tr><th></th><th style="width:112px">Статья</th><th style="width:100px">Номенклатура</th>
+    <th style="width:74px">Парам.</th><th style="width:58px">Ед.</th><th style="width:78px">Цена, ₸</th>
+    ${WEEKS.map(x=>`<th class="${x[2]}" style="width:58px">${x[0].replace('Неделя ','Н')}<br><span style="font-weight:600;opacity:.75;font-size:9.5px">${x[1].replace('.08','')}</span></th>`).join('')}
+    <th style="text-align:right;width:76px">Сумма</th><th style="width:70px">Приор.</th>
+    <th style="width:70px">Зачем</th>
+    <th class="dec" style="width:${isDir()?'190':'96'}px">Статус</th><th class="dec">Коммент.</th>
+    ${isDir()?'':'<th style="width:24px"></th>'}</tr></thead><tbody>`;
+  let shown=0;
+  rs.forEach((r,i)=>{
+    if(isDir()&&FILTER!=='all'){
+      if(!isReal(r))return;
+      if(FILTER==='pend'&&r.dec)return;
+      if(FILTER!=='pend'&&r.dec!==FILTER)return;
+    }
+    shown++;
+    const sums=rowSum(r), rt=rowTot(r), pc=r.pr?('p'+r.pr[0]):'';
+    const st=r.dec?('st'+(DEC.indexOf(r.dec)+1)):(isReal(r)?'st0':'');
+    const ro=isDir()?'disabled':'';
+    h+=`<tr class="${st}" data-r="${i}"><td class="rn">${i+1}</td>
+     <td><select ${ro} title="${esc(r.art)}" onchange="upd(${i},'art',this.value)">${['<option value="">—</option>'].concat(ARTICLES.map(a=>`<option value="${esc(a)}" ${r.art===a?'selected':''}>${esc(shortArt(a))}</option>`)).join('')}</select></td>
+     <td><input ${ro} value="${esc(r.nom)}" title="${esc(r.nom)}" oninput="upd(${i},'nom',this.value)" placeholder="что покупаем"></td>
+     <td><input ${ro} value="${esc(r.par)}" title="${esc(r.par)}" oninput="upd(${i},'par',this.value)" placeholder="марка, объём"></td>
+     <td><select ${ro} onchange="upd(${i},'unit',this.value)">${['<option value=""></option>'].concat(UNITS.map(u=>`<option ${r.unit===u?'selected':''}>${esc(u)}</option>`)).join('')}</select></td>
+     <td><input data-p="${i}" class="num${chg(r,'price')?' fixed':''}" value="${esc(r.price)}" oninput="upd(${i},'price',this.value)" placeholder="0"></td>`;
+    for(let j=0;j<4;j++) h+=`<td><input data-q="${i}-${j}" class="num${chg(r,'q',j)?' fixed':''}" value="${esc(r.q[j])}" oninput="updQ(${i},${j},this.value)" placeholder="0">
+      <div class="sub-sum" data-ss="${i}-${j}" title="${sums[j]?fmt(sums[j])+' ₸':''}">${sums[j]?fmtK(sums[j]):''}</div></td>`;
+    h+=`<td class="calc tot" data-tot="${i}">${totCell(r)}</td>
+     <td><select ${ro} class="${pc}" title="${esc(r.pr)}" onchange="upd(${i},'pr',this.value)">${['<option value="">—</option>'].concat(PRIOR.map(p=>`<option value="${esc(p)}" ${r.pr===p?'selected':''}>${esc(p.replace('. ',' · ').toLowerCase())}</option>`)).join('')}</select></td>
+     <td><input ${ro} value="${esc(r.why)}" title="${esc(r.why)}" oninput="upd(${i},'why',this.value)" placeholder="для чего нужно"></td>`;
+    h+= isDir()
+      ? `<td><div class="dbtns">
+           <button class="dbtn a1 ${r.dec==='Одобрено'?'on':''}"  onclick="setDec(${i},'Одобрено')">✓ Одобрить</button>
+           <button class="dbtn a2 ${r.dec==='Отложено'?'on':''}"  onclick="setDec(${i},'Отложено')">⏸ Отложить</button>
+           <button class="dbtn a3 ${r.dec==='Отклонено'?'on':''}" onclick="setDec(${i},'Отклонено')">✕ Отклонить</button>
+         </div></td>
+         <td><input value="${esc(r.cmt)}" title="${esc(r.cmt)}" oninput="upd(${i},'cmt',this.value)" placeholder="комментарий"></td>`
+      : `<td>${decChip(r.dec,isReal(r))}</td><td>${r.cmt?`<div class="cmt" title="${esc(r.cmt)}">${esc(r.cmt)}</div>`:'<span style="color:#cbd5e1;font-size:12px">—</span>'}</td>
+         <td><button class="del" onclick="delRow(${i})" title="удалить строку">✕</button></td>`;
+    h+=`</tr>`;
+  });
+  if(!shown) h+=`<tr><td colspan="16" style="text-align:center;color:#64748b;padding:26px">Строк с таким статусом нет</td></tr>`;
+  h+=`</tbody><tfoot><tr><td colspan="6" style="text-align:right">ИТОГО</td>
+   ${w.map((x,i)=>`<td id="fw${i}" title="${fmt(x)} ₸" style="text-align:right">${fmtK(x)}</td>`).join('')}
+   <td id="ftot" title="${fmt(tot)} ₸" style="text-align:right;font-size:14px">${fmtK(tot)}</td>
+   <td colspan="${isDir()?4:5}"></td></tr></tfoot></table></div>`;
+  return h;
+}
+/* Пересчёт без перерисовки таблицы — курсор и прокрутка остаются на месте */
+function light(){
+  const rs=rows(CUR);
+  rs.forEach((r,i)=>{
+    const sums=rowSum(r);
+    for(let j=0;j<4;j++){const e=document.querySelector(`[data-ss="${i}-${j}"]`);
+      if(e){e.textContent=sums[j]?fmtK(sums[j]):'';e.title=sums[j]?fmt(sums[j])+' ₸':'';}}
+    const t=document.querySelector(`[data-tot="${i}"]`);
+    if(t)t.innerHTML=totCell(r);
+    const pe=document.querySelector(`[data-p="${i}"]`);
+    if(pe)pe.classList.toggle('fixed',chg(r,'price'));
+    for(let j=0;j<4;j++){const qe=document.querySelector(`[data-q="${i}-${j}"]`);
+      if(qe)qe.classList.toggle('fixed',chg(r,'q',j));}
+    const tr=document.querySelector(`tr[data-r="${i}"]`);
+    if(tr)tr.className=r.dec?('st'+(DEC.indexOf(r.dec)+1)):(isReal(r)?'st0':'');
+  });
+  const w=deptWeeks(CUR), tot=w.reduce((a,b)=>a+b,0);
+  w.forEach((v,i)=>{const a=document.getElementById('kw'+i);if(a){a.textContent=fmt(v);a.title=fmt(v)+' ₸';}
+    const b=document.getElementById('fw'+i);if(b){b.textContent=fmtK(v);b.title=fmt(v)+' ₸';}});
+  const kt=document.getElementById('ktot');if(kt){kt.textContent=fmt(tot);kt.title=fmt(tot)+' ₸';}
+  const ft=document.getElementById('ftot');if(ft){ft.textContent=fmtK(tot);ft.title=fmt(tot)+' ₸';}
+  tabs();
+}
+/* ── Корректировки директора ─────────────────────────────────
+   При первой правке цены или количества сохраняем исходные
+   значения подразделения, чтобы было видно, что изменил директор. */
+function snap(r){if(isDir()&&!r.orig)r.orig={price:r.price,q:(r.q||[]).slice()};}
+function chg(r,f,j){if(!r.orig)return false;
+  return f==='price' ? String(r.orig.price||'')!==String(r.price||'')
+                     : String((r.orig.q||[])[j]||'')!==String(r.q[j]||'');}
+function anyChg(r){if(!r.orig)return false;
+  return chg(r,'price')||[0,1,2,3].some(j=>chg(r,'q',j));}
+function origTot(r){if(!r.orig)return 0;const p=+r.orig.price||0;
+  return (r.orig.q||[]).reduce((a,q)=>a+(+q||0)*p,0);}
+function fixTitle(r){if(!anyChg(r))return '';
+  const o=r.orig, w=WEEKS.map((x,j)=>x[0]+': '+((o.q||[])[j]||0)).join(', ');
+  return `Скорректировано директором.\nБыло: цена ${o.price||0} ₸, ${w} — на сумму ${fmt(origTot(r))} ₸.\nНажмите, чтобы вернуть как было.`;}
+function totCell(r){const t=fmt(rowTot(r));
+  return anyChg(r)
+    ? `${t}<span class="fix" title="${esc(fixTitle(r))}" onclick="undoFix(${rows(CUR).indexOf(r)})">✎</span>`
+    : t;}
+function undoFix(i){const r=rows(CUR)[i];if(!r||!r.orig)return;
+  if(!confirm('Вернуть значения подразделения?\n'+fixTitle(r).split('\n')[1]))return;
+  r.price=r.orig.price;r.q=(r.orig.q||[]).slice();delete r.orig;save();render();}
+
+function upd(i,f,v){const r=rows(CUR)[i];if(f==='price')snap(r);r[f]=v;save();light();}
+function setDec(i,d){const r=rows(CUR)[i];r.dec=(r.dec===d?'':d);save();render();}
+function updQ(i,j,v){const r=rows(CUR)[i];snap(r);r.q[j]=v;save();light();}
+function addRow(){rows(CUR).push(blank());save();render();}
+function delRow(i){rows(CUR).splice(i,1);save();render();}
+function clearDept(k){if(confirm('Очистить все строки этого подразделения?')){DB.dept[k]=[];save();render();}}
+
+function obuView(){
+  let h=`<div class="note">План оплат по статьям расхода за август. Слева — <b>безналичный расчёт</b>, справа — <b>наличный</b>. Итоги считаются автоматически.</div>
+  <div class="kpis"><div class="kpi st tot"><b>${fmt(obuTotal())}</b><span>Итого план оплат · август</span></div></div>
+  <div class="bar"><button class="btn" onclick="exportOBU()">⬇ Excel: ОБУ</button>
+    ${isDir()?'<button class="btn primary" onclick="exportAll()">⬇ Excel: весь план</button>':''}</div>
+  <div class="tblwrap"><table><thead>
+   <tr class="grp"><th></th><th colspan="6" style="background:#eff6ff;color:#1d4ed8">БЕЗНАЛИЧНЫЙ РАСЧЁТ</th>
+     <th colspan="6" style="background:#fffbeb;color:#b45309">НАЛИЧНЫЙ РАСЧЁТ</th>
+     <th style="background:#ede9fe;color:#6d28d9">ВСЕГО</th></tr>
+   <tr><th style="min-width:240px">Статья расхода</th>
+   ${OBUW.map(w=>`<th class="w1">${w}</th>`).join('')}<th style="text-align:right">Итого безнал</th>
+   ${OBUW.map(w=>`<th class="w3">${w}</th>`).join('')}<th style="text-align:right">Итого нал</th>
+   <th style="text-align:right">ВСЕГО</th></tr></thead><tbody>`;
+  OBU.forEach((a,i)=>{
+    const o=DB.obu[i]||(DB.obu[i]={b:['','','','',''],c:['','','','','']});
+    const sb=(o.b||[]).reduce((s,v)=>s+(+v||0),0), sc=(o.c||[]).reduce((s,v)=>s+(+v||0),0);
+    h+=`<tr><td style="font-size:12.5px">${esc(a)}</td>`;
+    for(let j=0;j<5;j++) h+=`<td><input class="num" value="${esc(o.b[j])}" oninput="updO(${i},'b',${j},this.value)" placeholder="0"></td>`;
+    h+=`<td class="calc" data-ob="${i}">${fmt(sb)}</td>`;
+    for(let j=0;j<5;j++) h+=`<td><input class="num" value="${esc(o.c[j])}" oninput="updO(${i},'c',${j},this.value)" placeholder="0"></td>`;
+    h+=`<td class="calc" data-oc="${i}">${fmt(sc)}</td><td class="calc tot" data-ot="${i}">${fmt(sb+sc)}</td></tr>`;});
+  return h+`</tbody></table></div>`;
+}
+function updO(i,t,j,v){DB.obu[i]=DB.obu[i]||{b:['','','','',''],c:['','','','','']};
+  DB.obu[i][t][j]=v;save();
+  const o=DB.obu[i];
+  const sb=(o.b||[]).reduce((s,x)=>s+(+x||0),0), sc=(o.c||[]).reduce((s,x)=>s+(+x||0),0);
+  const set=(a,val)=>{const e=document.querySelector(`[data-${a}="${i}"]`);if(e)e.textContent=fmt(val);};
+  set('ob',sb);set('oc',sc);set('ot',sb+sc);}
+
+function svod(){
+  const req=DEPTS.reduce((s,[k])=>s+deptTotal(k),0), tot=req||1;
+  const app=DEPTS.reduce((s,[k])=>s+deptBy(k,'Одобрено'),0);
+  const hold=DEPTS.reduce((s,[k])=>s+deptBy(k,'Отложено'),0);
+  const rej=DEPTS.reduce((s,[k])=>s+deptBy(k,'Отклонено'),0);
+  const pend=DEPTS.reduce((s,[k])=>s+pendSum(k),0);
+  let h=`<div class="note">Свод собирается автоматически по мере заполнения. ${isDir()?'Импортируйте заявки подразделений — они появятся здесь.':''}</div>
+  <div class="kpis">
+   <div class="kpi st tot"><b>${fmt(req)}</b><span>Заявлено всего</span></div>
+   <div class="kpi st app"><b>${fmt(app)}</b><span>✓ Одобрено</span></div>
+   <div class="kpi st hold"><b>${fmt(hold)}</b><span>⏸ Отложено</span></div>
+   <div class="kpi st rej"><b>${fmt(rej)}</b><span>✕ Отклонено</span></div>
+   <div class="kpi st pnd"><b>${fmt(pend)}</b><span><span class="pend"></span>Не решено</span></div>
+   <div class="kpi st tot"><b>${fmt(obuTotal())}</b><span>ОБУ · план оплат</span></div>
+   <div class="kpi st pnd"><b>${DEPTS.filter(([k])=>filled(k)).length} / ${DEPTS.length}</b><span>Подразделений сдали</span></div>
+  </div>
+  <div class="bar">
+    <button class="btn" onclick="pull(false)">🔄 Обновить данные</button>
+    ${isDir()?'<button class="btn primary" onclick="exportAll()">⬇ Excel: весь план (все подразделения)</button>':''}
+    ${isDir()?'<button class="btn ok" onclick="publish()">✔ Опубликовать решения</button>':''}
+  </div>
+  <div class="tblwrap"><table style="min-width:1100px"><thead><tr><th style="min-width:220px">Подразделение</th>
+   ${WEEKS.map(x=>`<th class="${x[2]}" style="text-align:right">${x[0]}</th>`).join('')}
+   <th style="text-align:right">Заявлено</th><th class="dec" style="text-align:right">✓ Одобрено</th>
+   <th style="text-align:right">⏸ Отложено</th><th style="text-align:right">Доля</th></tr></thead><tbody>`;
+  DEPTS.forEach(([k,n])=>{const w=deptWeeks(k), t=w.reduce((a,b)=>a+b,0);
+    h+=`<tr><td><b>${esc(n)}</b>${filled(k)?' <span style="color:#059669;font-weight:800">✓</span>':' <span style="color:#94a3b8;font-size:11px">не сдано</span>'}
+      <div class="bar-mini"><i style="width:${Math.max(1,Math.round(t/tot*100))}%"></i></div></td>
+     ${w.map(x=>`<td class="calc">${fmt(x)}</td>`).join('')}
+     <td class="calc tot">${fmt(t)}</td><td class="calc" style="color:#047857">${fmt(deptBy(k,'Одобрено'))}</td>
+     <td class="calc" style="color:#b45309">${fmt(deptBy(k,'Отложено'))}</td>
+     <td class="calc">${t?(t/tot*100).toFixed(1)+'%':'—'}</td></tr>`;});
+  return h+`</tbody><tfoot><tr><td style="text-align:right">ИТОГО ПО КОМПАНИИ</td>
+   ${[0,1,2,3].map(i=>`<td style="text-align:right">${fmt(DEPTS.reduce((s,[k])=>s+deptWeeks(k)[i],0))}</td>`).join('')}
+   <td style="text-align:right;font-size:16px">${fmt(req)}</td>
+   <td style="text-align:right;color:#047857">${fmt(app)}</td>
+   <td style="text-align:right;color:#b45309">${fmt(hold)}</td><td></td></tr></tfoot></table></div>`;
+}
+
+/* ── обмен файлами ── */
+function dlBlob(name,text,type){const b=new Blob([text],{type});const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=name;a.click();}
+async function publish(){
+  clearTimeout(pushT);
+  await push();
+  if(dirty)alert('Не удалось сохранить на сервере. Проверьте интернет и нажмите ещё раз.');
+  else alert(isDir()
+    ? 'Решения опубликованы. Подразделения увидят их у себя на странице сразу.'
+    : 'Заявка отправлена. Финансовый директор видит её на своей странице сразу.');}
+function importJSON(){const f=document.getElementById('fileIn');f.value='';f.onchange=()=>{
+  [...f.files].forEach(file=>{const rd=new FileReader();
+    rd.onload=e=>{try{const d=JSON.parse(e.target.result);
+      if(d.type==='request'&&d.dept){DB.dept[d.dept]=d.rows||[];}
+      else if(d.type==='decisions'&&d.dept){
+        Object.keys(d.dept).forEach(k=>{const inc=d.dept[k]||[];
+          if(!DB.dept[k]||!DB.dept[k].length){DB.dept[k]=inc;return;}
+          DB.dept[k].forEach((r,i)=>{if(inc[i]){r.dec=inc[i].dec||'';r.cmt=inc[i].cmt||'';}});});}
+      else {alert('Неизвестный файл: '+(file.name||''));return;}
+      save();render();}catch(err){alert('Не удалось прочитать файл: '+file.name);}};
+    rd.readAsText(file);});};
+  f.click();}
+
+/* ── выгрузка в Excel ── */
+function dl(name,rowsArr){const csv=rowsArr.map(r=>r.map(c=>{const s=String(c==null?'':c);
+   return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(';')).join('\r\n');
+  dlBlob(name,'﻿'+csv,'text/csv;charset=utf-8');}
+const MONTH='Август 2026';
+const XLSX_CDN='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+function loadXLSX(){return new Promise((res,rej)=>{
+  if(window.ExcelJS)return res();
+  const el=document.createElement('script');el.src=XLSX_CDN;
+  el.onload=()=>res();el.onerror=()=>rej(new Error('нет доступа к модулю Excel'));
+  document.head.appendChild(el);});}
+
+const CLR={ind:'FF4338CA',indL:'FFEEF2FF',blue:'FFE0F2FE',blueT:'FF0369A1',
+ vio:'FFEDE9FE',vioT:'FF6D28D9',grn:'FFECFDF5',grnT:'FF047857',
+ ok:'FFD1FAE5',hold:'FFFEF3C7',rej:'FFFEE2E2',pend:'FFF8FAFC',
+ line:'FFE2E8F0',grey:'FF64748B'};
+const THIN={style:'thin',color:{argb:CLR.line}};
+const BOX={top:THIN,left:THIN,bottom:THIN,right:THIN};
+const NUM='#,##0';
+function safeName(n){return String(n).replace(/[\\\/?*\[\]:]/g,'-').slice(0,31);}
+function band(ws,row,a,b,text,fill,color){
+  if(b>a)ws.mergeCells(row,a,row,b);
+  const c=ws.getCell(row,a);
+  c.value=text;c.font={name:'Arial',bold:true,size:10,color:{argb:color}};
+  c.alignment={horizontal:'center',vertical:'middle'};
+  c.fill={type:'pattern',pattern:'solid',fgColor:{argb:fill}};c.border=BOX;
+  for(let i=a;i<=b;i++)ws.getCell(row,i).border=BOX;}
+function titleRows(ws,cols,title){
+  ws.mergeCells(1,1,1,cols);const t=ws.getCell(1,1);
+  t.value=title;
+  t.font={name:'Arial',bold:true,size:14,color:{argb:'FFFFFFFF'}};
+  t.alignment={horizontal:'left',vertical:'middle',indent:1};
+  t.fill={type:'pattern',pattern:'solid',fgColor:{argb:CLR.ind}};
+  ws.getRow(1).height=30;
+  ws.mergeCells(2,1,2,cols);const d=ws.getCell(2,1);
+  d.value='Планируемый период: '+MONTH+'.  Выгружено '+new Date().toLocaleString('ru-RU');
+  d.font={name:'Arial',size:9,italic:true,color:{argb:CLR.grey}};
+  d.alignment={horizontal:'left',indent:1};
+  ws.getRow(3).height=5;}
+
+const DHEAD=['№','Статья затрат','Товар / услуга','Номенклатура','Параметры','Ед. изм.',
+ 'Цена за ед., ₸','Нед. 1\n01–07.08','Нед. 2\n08–14.08','Нед. 3\n15–21.08','Нед. 4\n22–31.08',
+ 'Всего кол-во','Сумма, ₸','Приоритет','Обоснование','Решение директора','Комментарий директора'];
+const DW=[5,26,13,30,20,9,14,11,11,11,11,12,16,14,34,18,30];
+
+function deptSheet(wb,name,rows,withDept){
+  const ws=wb.addWorksheet(safeName(name),{views:[{state:'frozen',ySplit:5}]});
+  const head=withDept?['Подразделение'].concat(DHEAD):DHEAD.slice();
+  const wid =withDept?[22].concat(DW):DW.slice();
+  const C=head.length, o=withDept?1:0;
+  wid.forEach((w,i)=>ws.getColumn(i+1).width=w);
+  titleRows(ws,C,'ПЛАН БЮДЖЕТА · '+MONTH.toUpperCase()+(withDept?'':' · '+name));
+  const r=4;
+  if(withDept)band(ws,r,1,1,'',CLR.indL,CLR.ind);
+  band(ws,r,o+1,o+5,'1 · ЧТО ЗАКУПАЕМ',CLR.indL,CLR.ind);
+  band(ws,r,o+6,o+7,'2 · СКОЛЬКО СТОИТ',CLR.indL,CLR.ind);
+  band(ws,r,o+8,o+12,'3 · КОГДА НУЖНО',CLR.blue,CLR.blueT);
+  band(ws,r,o+13,o+13,'ИТОГО',CLR.vio,CLR.vioT);
+  band(ws,r,o+14,o+15,'4 · ЗАЧЕМ',CLR.indL,CLR.ind);
+  band(ws,r,o+16,o+17,'РЕШЕНИЕ ДИРЕКТОРА',CLR.grn,CLR.grnT);
+  const hr=ws.getRow(5);
+  head.forEach((h,i)=>{const c=hr.getCell(i+1);c.value=h;
+    c.font={name:'Arial',bold:true,size:9,color:{argb:'FF334155'}};
+    c.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF8FAFC'}};c.border=BOX;});
+  hr.height=34;
+  let n=0, first=6;
+  rows.forEach(x=>{
+    const r0=x.row, dn=x.dept;
+    if(!r0.nom&&!(+r0.price||0))return;
+    n++;const R=ws.getRow(first+n-1);
+    const type=r0.art.indexOf('УСЛУГА')===0?'Услуга':r0.art.indexOf('ТОВАР')===0?'Товар':'';
+    const art=r0.art.replace('ТОВАР: ','').replace('УСЛУГА: ','');
+    const v=[n,art,type,r0.nom,r0.par,r0.unit,+r0.price||0,
+      +r0.q[0]||0,+r0.q[1]||0,+r0.q[2]||0,+r0.q[3]||0,null,null,
+      r0.pr,r0.why,r0.dec||'на рассмотрении',r0.cmt];
+    const vals=withDept?[dn].concat(v):v;
+    vals.forEach((val,i)=>{const c=R.getCell(i+1);if(val!==null)c.value=val;
+      c.font={name:'Arial',size:10};c.border=BOX;
+      c.alignment={vertical:'middle',wrapText:i===(o+14)||i===(o+16)};});
+    const L=(i)=>ws.getColumn(i).letter, RW=first+n-1;
+    R.getCell(o+12).value={formula:`SUM(${L(o+8)}${RW}:${L(o+11)}${RW})`};
+    R.getCell(o+13).value={formula:`${L(o+7)}${RW}*${L(o+12)}${RW}`};
+    [o+7,o+8,o+9,o+10,o+11,o+12,o+13].forEach(i=>{
+      const c=R.getCell(i);c.numFmt=NUM;c.alignment={horizontal:'right',vertical:'middle'};});
+    R.getCell(o+13).font={name:'Arial',size:10,bold:true,color:{argb:CLR.ind}};
+    const d=r0.dec, fill=d==='Одобрено'?CLR.ok:d==='Отложено'?CLR.hold:d==='Отклонено'?CLR.rej:CLR.pend;
+    [o+16,o+17].forEach(i=>R.getCell(i).fill={type:'pattern',pattern:'solid',fgColor:{argb:fill}});
+    R.getCell(o+16).font={name:'Arial',size:10,bold:true};
+    R.getCell(o+16).alignment={horizontal:'center',vertical:'middle'};
+    R.height=r0.why&&r0.why.length>40?30:19;
+  });
+  if(!n){const R=ws.getRow(6);R.getCell(o+4).value='нет заполненных строк';
+    R.getCell(o+4).font={name:'Arial',size:10,italic:true,color:{argb:CLR.grey}};}
+  const TR=first+Math.max(n,1);
+  const t=ws.getRow(TR);
+  t.getCell(1).value='ИТОГО за '+MONTH;
+  ws.mergeCells(TR,1,TR,o+6);
+  for(let i=1;i<=C;i++){const c=t.getCell(i);
+    c.font={name:'Arial',bold:true,size:10,color:{argb:'FF312E81'}};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:CLR.indL}};
+    c.border={top:{style:'medium',color:{argb:CLR.ind}},left:THIN,bottom:THIN,right:THIN};}
+  t.getCell(1).alignment={horizontal:'right',vertical:'middle',indent:1};
+  if(n){const L=(i)=>ws.getColumn(i).letter;
+    [o+8,o+9,o+10,o+11,o+12,o+13].forEach(i=>{
+      const c=t.getCell(i);
+      c.value={formula:`SUM(${L(i)}${first}:${L(i)}${first+n-1})`};
+      c.numFmt=NUM;c.alignment={horizontal:'right',vertical:'middle'};});
+    ws.autoFilter={from:{row:5,column:1},to:{row:first+n-1,column:C}};}
+  t.height=22;
+  return ws;}
+
+function svodSheet(wb){
+  const ws=wb.addWorksheet('Свод',{views:[{state:'frozen',ySplit:5}]});
+  const head=['Подразделение','Нед. 1','Нед. 2','Нед. 3','Нед. 4','Заявлено, ₸',
+   '✓ Одобрено, ₸','⏸ Отложено, ₸','✕ Отклонено, ₸','Не решено, ₸','Строк','Сдано'];
+  [30,13,13,13,13,17,16,16,16,16,8,10].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  titleRows(ws,head.length,'СВОД ПО ПОДРАЗДЕЛЕНИЯМ · '+MONTH.toUpperCase());
+  band(ws,4,1,head.length,'Заявки подразделений и решения директора',CLR.indL,CLR.ind);
+  const hr=ws.getRow(5);
+  head.forEach((h,i)=>{const c=hr.getCell(i+1);c.value=h;
+    c.font={name:'Arial',bold:true,size:9,color:{argb:'FF334155'}};
+    c.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF8FAFC'}};c.border=BOX;});
+  hr.height=30;
+  let r=6;
+  DEPTS.forEach(([k,nm])=>{const w=deptWeeks(k),R=ws.getRow(r);
+    const vals=[nm,w[0],w[1],w[2],w[3],deptTotal(k),deptBy(k,'Одобрено'),deptBy(k,'Отложено'),
+      deptBy(k,'Отклонено'),pendSum(k),(DB.dept[k]||[]).filter(isReal).length,filled(k)?'да':'—'];
+    vals.forEach((v,i)=>{const c=R.getCell(i+1);c.value=v;c.font={name:'Arial',size:10};c.border=BOX;
+      if(i>0&&i<10){c.numFmt=NUM;c.alignment={horizontal:'right'};}
+      else c.alignment={horizontal:i===0?'left':'center'};});
+    R.getCell(7).font={name:'Arial',size:10,color:{argb:CLR.grnT}};
+    r++;});
+  const L=i=>ws.getColumn(i).letter, t=ws.getRow(r);
+  t.getCell(1).value='ИТОГО по заводу';
+  for(let i=1;i<=head.length;i++){const c=t.getCell(i);
+    c.font={name:'Arial',bold:true,size:10,color:{argb:'FF312E81'}};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:CLR.indL}};
+    c.border={top:{style:'medium',color:{argb:CLR.ind}},left:THIN,bottom:THIN,right:THIN};}
+  for(let i=2;i<=11;i++){const c=t.getCell(i);
+    c.value={formula:`SUM(${L(i)}6:${L(i)}${r-1})`};c.numFmt=NUM;c.alignment={horizontal:'right'};}
+  t.height=22;
+  ws.autoFilter={from:{row:5,column:1},to:{row:r-1,column:head.length}};
+  return ws;}
+
+function obuSheet(wb){
+  const ws=wb.addWorksheet('ОБУ — план оплат',{views:[{state:'frozen',ySplit:5,xSplit:1}]});
+  const head=['Статья расхода'].concat(OBUW.map(w=>'Безнал\n'+w),['Итого безнал'],
+    OBUW.map(w=>'Наличные\n'+w),['Итого наличные','ВСЕГО']);
+  ws.getColumn(1).width=40;for(let i=2;i<=head.length;i++)ws.getColumn(i).width=13;
+  titleRows(ws,head.length,'ОБУ · ПЛАН ОПЛАТ · '+MONTH.toUpperCase());
+  band(ws,4,1,1,'',CLR.indL,CLR.ind);
+  band(ws,4,2,7,'БЕЗНАЛИЧНЫЙ РАСЧЁТ',CLR.blue,CLR.blueT);
+  band(ws,4,8,13,'НАЛИЧНЫЙ РАСЧЁТ','FFFFFBEB','FFB45309');
+  band(ws,4,14,14,'ВСЕГО',CLR.vio,CLR.vioT);
+  const hr=ws.getRow(5);
+  head.forEach((h,i)=>{const c=hr.getCell(i+1);c.value=h;
+    c.font={name:'Arial',bold:true,size:9,color:{argb:'FF334155'}};
+    c.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF8FAFC'}};c.border=BOX;});
+  hr.height=32;
+  const L=i=>ws.getColumn(i).letter;
+  let r=6;
+  OBU.forEach((a,i)=>{const o=DB.obu[i]||{b:[],c:[]},R=ws.getRow(r);
+    R.getCell(1).value=a;R.getCell(1).font={name:'Arial',size:10};R.getCell(1).border=BOX;
+    R.getCell(1).alignment={vertical:'middle',wrapText:true};
+    for(let j=0;j<5;j++){const c=R.getCell(2+j);c.value=+(o.b||[])[j]||0;}
+    for(let j=0;j<5;j++){const c=R.getCell(9+j);c.value=+(o.c||[])[j]||0;}
+    R.getCell(7).value={formula:`SUM(${L(2)}${r}:${L(6)}${r})`};
+    R.getCell(14).value={formula:`SUM(${L(9)}${r}:${L(13)}${r})`};
+    R.getCell(8).value={formula:`${L(7)}${r}+${L(14)}${r}`};
+    for(let i2=2;i2<=head.length;i2++){const c=R.getCell(i2);
+      c.numFmt=NUM;c.font={name:'Arial',size:10};c.border=BOX;
+      c.alignment={horizontal:'right',vertical:'middle'};}
+    R.getCell(8).font={name:'Arial',size:10,bold:true,color:{argb:CLR.ind}};
+    r++;});
+  const t=ws.getRow(r);t.getCell(1).value='ИТОГО за '+MONTH;
+  for(let i=1;i<=head.length;i++){const c=t.getCell(i);
+    c.font={name:'Arial',bold:true,size:10,color:{argb:'FF312E81'}};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:CLR.indL}};
+    c.border={top:{style:'medium',color:{argb:CLR.ind}},left:THIN,bottom:THIN,right:THIN};}
+  for(let i=2;i<=head.length;i++){const c=t.getCell(i);
+    c.value={formula:`SUM(${L(i)}6:${L(i)}${r-1})`};c.numFmt=NUM;c.alignment={horizontal:'right'};}
+  t.height=22;
+  return ws;}
+
+async function saveWB(wb,fname){
+  const buf=await wb.xlsx.writeBuffer();
+  dlBlob(fname,buf,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');}
+
+async function xlsxGo(fn,fname){
+  try{await loadXLSX();}catch(e){alert('Не удалось загрузить модуль Excel. Проверьте интернет.');return;}
+  const wb=new ExcelJS.Workbook();
+  wb.creator='План бюджета '+MONTH;wb.created=new Date();
+  fn(wb);await saveWB(wb,fname);}
+
+function exportCSV(k){const n=DEPTS.find(d=>d[0]===k)[1];
+  xlsxGo(wb=>deptSheet(wb,n,(DB.dept[k]||[]).map(r=>({row:r,dept:n})),false),
+    `План бюджета ${MONTH} — ${n}.xlsx`);}
+
+function exportAll(){
+  xlsxGo(wb=>{svodSheet(wb);
+    const all=[];DEPTS.forEach(([k,n])=>(DB.dept[k]||[]).forEach(r=>all.push({row:r,dept:n})));
+    deptSheet(wb,'Все заявки',all,true);
+    DEPTS.forEach(([k,n])=>deptSheet(wb,n,(DB.dept[k]||[]).map(r=>({row:r,dept:n})),false));
+    obuSheet(wb);},
+    `План бюджета ${MONTH} — все подразделения.xlsx`);}
+
+function exportOBU(){xlsxGo(wb=>obuSheet(wb),`План бюджета ${MONTH} — ОБУ.xlsx`);}
+
+/* Обратный отсчёт до срока сдачи */
+const DEADLINE=new Date(2026,6,27,10,0,0);
+function plural(n,a,b,c){const n10=n%10,n100=n%100;
+  return n10===1&&n100!==11?a:(n10>=2&&n10<=4&&(n100<10||n100>=20))?b:c;}
+function tick(){
+  const e=document.getElementById('tmr');if(!e)return;
+  let d=DEADLINE-new Date();
+  if(d<=0){e.className='tmr over';e.textContent='⛔ срок сдачи прошёл';return;}
+  const dd=Math.floor(d/86400000); d-=dd*86400000;
+  const hh=Math.floor(d/3600000);  d-=hh*3600000;
+  const mm=Math.floor(d/60000);    d-=mm*60000;
+  const ss=Math.floor(d/1000);
+  e.className='tmr'+(dd<1?' soon':'');
+  e.textContent='⏳ осталось '+(dd?dd+' '+plural(dd,'день','дня','дней')+' ':'')
+    +String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+}
+tick();setInterval(tick,1000);
+
+render();
+pull(false);
+setInterval(()=>{                       // подтягиваем чужие правки
+  const a=document.activeElement;
+  if(a&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))return;
+  if(dirty||busy)return;
+  pull(true);
+},20000);
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+</script>
+</body>
+</html>

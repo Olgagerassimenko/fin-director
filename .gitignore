@@ -1,2 +1,25 @@
-# Local Netlify folder
 .netlify
+.wrangler
+node_modules
+*_LOG.txt
+*_log.txt
+*_run.txt
+*_console.txt
+*_out.txt
+olap_error.txt
+processes_list.txt
+products_raw.txt
+env_check.txt
+depcmd
+Viewer
+sched.txt
+~$*
+.~lock.*
+*.bak
+*.bak2
+архив выгрузок/
+zakup.json
+iiko_june_api*.json
+tail_p*.json
+core_temp*.json
+anchor_*.json

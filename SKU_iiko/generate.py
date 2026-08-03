@@ -7,10 +7,18 @@ iiko SKU Dashboard — автоматический генератор.
 """
 
 import requests, hashlib, json, re, os, sys, warnings, glob
-from datetime import datetime
+from datetime import datetime, date
 from collections import defaultdict
 
 warnings.filterwarnings("ignore")  # игнорируем SSL предупреждения
+
+def _pause(msg="Нажмите Enter для закрытия..."):
+    # В автоматическом прогоне (без терминала) не блокируемся
+    try:
+        if sys.stdin and sys.stdin.isatty():
+            input(msg)
+    except Exception:
+        pass
 
 # ══════════════════════════════════════════
 #   НАСТРОЙКИ  (при необходимости поменяйте)
@@ -100,53 +108,38 @@ def iiko_olap_fields(session, token):
             print(f"  fields endpoint error: {e}")
     return None
 
-def iiko_olap(session, token, date_from, date_to):
-    """
-    OLAP-отчёт продаж: по блюду, категории и дате.
-    Поля согласно официальной документации iiko REST API v2.
-    """
-    headers = {
-        "Cookie":       f"key={token}",
-        "Content-Type": "application/json"
-    }
+def _month_ranges(dfrom, dto):
+    """Список (yyyy-mm, дата_начала, дата_след.месяца) от dfrom до dto (строки yyyy-mm-dd)."""
+    y, m = int(dfrom[:4]), int(dfrom[5:7])
+    out = []
+    while date(y, m, 1).isoformat() <= dto:
+        ny, nm = (y + 1, 1) if m == 12 else (y, m + 1)
+        out.append((f"{y}-{m:02d}", date(y, m, 1), date(ny, nm, 1)))
+        y, m = ny, nm
+    return out
+
+def olap_txn(session, token, group_fields, agg_fields, txn_type, d1, d2):
+    """OLAP TRANSACTIONS за [d1, d2) по типу транзакции txn_type. Возвращает список dict."""
+    headers = {"Cookie": f"key={token}", "Content-Type": "application/json"}
     body = {
-        "reportType": "SALES",
+        "reportType": "TRANSACTIONS",
         "buildSummary": "false",
-        "groupByRowFields": [
-            "OpenDate",        # дата (для группировки по месяцу в Python)
-            "DishCategory",    # категория блюда
-            "DishName",        # название блюда
-            "Department.Id",   # подразделение (склад/цех)
-        ],
+        "groupByRowFields": group_fields,
         "groupByColFields": [],
-        "aggregateFields": [
-            "DishDiscountSumInt",   # выручка со скидкой
-            "DishAmountInt",        # количество
-        ],
+        "aggregateFields": agg_fields,
         "filters": {
-            "OpenDate.Typed": {
-                "filterType": "DateRange",
-                "periodType": "CUSTOM",
-                "from":  date_from,
-                "to":    date_to,
-                "includeLow":  "true",
-                "includeHigh": "true"
-            },
-            "DeletedWithWriteoff": {
-                "filterType": "ExcludeValues",
-                "values": ["DELETED_WITHOUT_WRITEOFF"]
-            }
-        }
+            "DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                                   "from": d1.isoformat(), "to": d2.isoformat(),
+                                   "includeLow": True, "includeHigh": False},
+            "TransactionType": {"filterType": "IncludeValues", "values": [txn_type]},
+        },
     }
-    r = session.post(
-        f"{IIKO_URL}/resto/api/v2/reports/olap",
-        json=body, headers=headers,
-        verify=False, timeout=300
-    )
+    r = session.post(f"{IIKO_URL}/resto/api/v2/reports/olap",
+                     json=body, headers=headers, verify=False, timeout=300)
     if not r.ok:
-        print(f"  OLAP ошибка {r.status_code}: {r.text[:400]}")
+        print(f"  OLAP ошибка {r.status_code}: {r.text[:300]}")
     r.raise_for_status()
-    return r.json()
+    return r.json().get("data", [])
 
 def parse_olap_response(resp, dept_names=None):
     """
@@ -252,11 +245,45 @@ def fetch_iiko():
     sess = requests.Session()
     token = iiko_auth(sess)
     print(f"  Авторизация OK")
-    print(f"  Загрузка данных {DATE_FROM} — {DATE_TO}...")
-    # Получаем имена подразделений для замены UUID
-    dept_names = iiko_departments(sess, token)
-    raw = iiko_olap(sess, token, DATE_FROM, DATE_TO)
-    records = parse_olap_response(raw, dept_names)
+    print(f"  Загрузка отгрузок (OUTGOING_INVOICE_REVENUE) {DATE_FROM} — {DATE_TO}...")
+    records = []
+    for mk, d1, d2 in _month_ranges(DATE_FROM, DATE_TO):
+        rev  = olap_txn(sess, token, ["Product.Category", "Product.Name"],
+                        ["Sum.Incoming", "Amount"], "OUTGOING_INVOICE_REVENUE", d1, d2)
+        revR = olap_txn(sess, token, ["Product.Name"],
+                        ["Sum.Incoming", "Amount"], "INCOMING_RETURNED_INVOICE_REVENUE", d1, d2)  # возвраты выручки
+        cost = olap_txn(sess, token, ["Product.Name"],
+                        ["Sum.Incoming"], "OUTGOING_INVOICE", d1, d2)
+        costR = olap_txn(sess, token, ["Product.Name"],
+                         ["Sum.Incoming"], "INCOMING_RETURNED_INVOICE", d1, d2)  # возвраты себестоимости
+        rrmap = {}
+        for x in revR:
+            nm = str(x.get("Product.Name") or "").strip()
+            if nm:
+                a = rrmap.setdefault(nm, [0.0, 0.0]); a[0] += x.get("Sum.Incoming") or 0; a[1] += x.get("Amount") or 0
+        cmap = {}
+        for c in cost:
+            nm = str(c.get("Product.Name") or "").strip()
+            if nm: cmap[nm] = cmap.get(nm, 0) + (c.get("Sum.Incoming") or 0)
+        for c in costR:
+            nm = str(c.get("Product.Name") or "").strip()
+            if nm: cmap[nm] = cmap.get(nm, 0) - (c.get("Sum.Incoming") or 0)
+        n_mo = 0
+        for row in rev:
+            nm = str(row.get("Product.Name") or "").strip()
+            if not nm or nm.lower().startswith("итого"):
+                continue
+            cat = str(row.get("Product.Category") or "Прочее").strip() or "Прочее"
+            rr = rrmap.get(nm, [0.0, 0.0])
+            rv = float(row.get("Sum.Incoming") or 0) - rr[0]   # выручка минус возвраты
+            qty = float(row.get("Amount") or 0) - rr[1]
+            if abs(rv) < 0.5 and abs(qty) < 0.5:
+                continue
+            cst = cmap.get(nm, 0)
+            records.append({"month_key": mk, "cat": cat, "name": nm,
+                            "склад": "Фуд завод", "rev": rv, "qty": qty, "vp": rv - cst})
+            n_mo += 1
+        print(f"    {mk}: позиций {n_mo}")
     if not records:
         raise ValueError("OLAP вернул пустой результат. Проверьте права доступа и наличие данных.")
     print(f"  Получено строк: {len(records)}")
@@ -290,7 +317,7 @@ def fetch_excel():
     if not files:
         print(f"\n  Папка данные/ пуста: {DATA_DIR}")
         print("  Добавьте Excel-файлы из iiko или проверьте подключение к API.")
-        input("Enter..."); sys.exit(1)
+        _pause("Enter..."); sys.exit(1)
 
     records = []
     for fpath in files:
@@ -370,7 +397,7 @@ except Exception as e:
     source = "Excel файлы (папка данные/)"
 
 if not records:
-    print("ОШИБКА: нет данных."); input("Enter..."); sys.exit(1)
+    print("ОШИБКА: нет данных."); _pause("Enter..."); sys.exit(1)
 
 # ──────────────────────────────────────────
 #   Агрегация по SKU / месяц / склад
@@ -463,6 +490,14 @@ print(f"  Месяцев:     {N_MO}  ({MO_LABELS[0]} — {MO_LABELS[-1]})")
 print(f"  Склады:      {', '.join(склады_all[:5])}")
 print(f"  Источник:    {source}")
 
+# sku_live.js — свежие живые данные для sku360.html (он их подхватит вместо зашитого снимка)
+open(os.path.join(PARENT_DIR, 'sku_live.js'), 'w', encoding='utf-8').write('window.SKU_DATA_LIVE=' + new_json + ';')
+print("  → sku_live.js (для sku360)")
+print("  Помесячно (выручка / маржа):")
+for _i, _lb in enumerate(MO_LABELS):
+    _r = AN_MO_REV[_i]; _v = AN_MO_VP[_i]
+    print(f"    {_lb}: {_r/1e6:8.1f} млн   маржа {(_v/_r*100 if _r else 0):5.1f}%")
+
 # ──────────────────────────────────────────
 #   HTML-генерация
 # ──────────────────────────────────────────
@@ -470,7 +505,7 @@ TEMPLATE = os.path.join(PARENT_DIR, 'дашборд_sku_себестоимост
 if not os.path.exists(TEMPLATE):
     TEMPLATE = os.path.join(PARENT_DIR, 'дашборд_sku_2025-2026.html')
 if not os.path.exists(TEMPLATE):
-    print("ОШИБКА: шаблон не найден."); input("Enter..."); sys.exit(1)
+    print("ОШИБКА: шаблон не найден."); _pause("Enter..."); sys.exit(1)
 
 src = open(TEMPLATE, encoding='utf-8').read()
 
@@ -525,4 +560,4 @@ open(OUT, 'w', encoding='utf-8').write(html)
 print(f"\n  → дашборд_sku_iiko.html ({os.path.getsize(OUT)//1024} KB)")
 print(f"  Обновлено: {updated_str}")
 print("\nГотово!")
-input("Нажмите Enter для закрытия...")
+_pause("Нажмите Enter для закрытия...")

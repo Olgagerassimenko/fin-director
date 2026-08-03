@@ -1,0 +1,33 @@
+.git
+.wrangler
+.netlify
+node_modules
+worker.js
+*.bak
+# служебные и рабочие файлы — не публикуются как веб-страницы
+~$*
+.~lock.*
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.py
+*.bat
+*.log
+*.txt
+*.md
+*.toml
+_шаблон_*.html
+ддс_прогон*
+run_dds*
+core_temp*
+kv_out*
+sched*
+iiko_june_api*.json
+ддс_данные*.json
+ддс_прямой*.json
+дз_кз_месяцы*.json
+anchor_*.json
+архив выгрузок
+SKU_iiko
+SALES

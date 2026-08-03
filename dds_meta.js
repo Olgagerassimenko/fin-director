@@ -1,0 +1,1 @@
+window.DDS_META={"updated": "01.08.2026"};

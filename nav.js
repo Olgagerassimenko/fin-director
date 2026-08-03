@@ -4,7 +4,7 @@
     {href:'дашборд_гугл_live.html',icon:'⚡',label:'ДДС Live'},
     {href:'опиу_2025_2026.html',icon:'📈',label:'ОПиУ'},
     {href:'дашборд_дддс_динамик.html',icon:'📊',label:'ДДС Excel'},
-    {href:'дашборд_ДДС.html',icon:'💰',label:'ДДС'},
+    {href:'дашборд_ддс_прямой.html',icon:'💧',label:'ДДС'},
     {href:'дашборд_продажи.html',icon:'🛒',label:'Продажи'},
     {href:'дашборд_себестоимость_2025-2026.html',icon:'💹',label:'Себест.'},
     {href:'дашборд_sku_2025-2026.html',icon:'🔍',label:'SKU онлайн'},
@@ -22,7 +22,10 @@
     +'#pnav .nl{opacity:0;transition:opacity .15s .05s;font-size:11px;pointer-events:none}'
     +'#pnav:hover .nl{opacity:1}'
     +'body{padding-left:56px!important}'
-    +'.topbar,.topbar-new{position:sticky!important;top:0!important;z-index:10000!important;margin-left:-56px!important;width:calc(100% + 56px)!important;box-sizing:border-box!important;padding-left:72px!important}';
+    +'.topbar,.topbar-new{position:sticky!important;top:0!important;z-index:10000!important;margin-left:-56px!important;width:calc(100% + 56px)!important;box-sizing:border-box!important;padding-left:72px!important}'
+    +'@media(max-width:640px){#pnav{width:46px!important}#pnav:hover{width:46px!important}#pnav a{padding:11px 0!important;justify-content:center!important}#pnav .nl{display:none!important}#pnav .ni{width:100%!important}body{padding-left:46px!important}.topbar,.topbar-new{margin-left:-46px!important;width:calc(100% + 46px)!important;padding-left:56px!important}}'
+    +'@media(max-width:640px){html,body{overflow-x:hidden!important}.pnav-tw{overflow-x:auto!important;-webkit-overflow-scrolling:touch;max-width:100%}.pnav-tw>table{min-width:max-content}}'
+    +'@media(max-width:640px){svg{max-width:100%!important;min-width:0!important;height:auto}canvas{max-width:100%!important}}';
   document.head.appendChild(s);
   var h='';
   for(var i=0;i<pages.length;i++){var p=pages[i];var a=(p.href===cur)?' active':'';h+='<a href="'+p.href+'"class="'+a+'"><span class="ni">'+p.icon+'</span><span class="nl">'+p.label+'</span></a>';}
@@ -40,4 +43,21 @@
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',positionNav);}
   else{positionNav();}
+
+  // ── Мобильная адаптация: все таблицы делаем горизонтально прокручиваемыми ──
+  function _isScroll(el){try{var o=getComputedStyle(el).overflowX;return o==='auto'||o==='scroll';}catch(e){return false;}}
+  function wrapTables(){
+    if(window.innerWidth>640)return;
+    var ts=document.querySelectorAll('table');
+    for(var i=0;i<ts.length;i++){var t=ts[i];
+      if(t.closest&&t.closest('.pnav-tw'))continue;
+      var p=t.parentElement; if(p&&(_isScroll(p)||p.className&&/wrap|scroll|tbl/i.test(p.className)))continue;
+      var w=document.createElement('div');w.className='pnav-tw';
+      t.parentNode.insertBefore(w,t);w.appendChild(t);
+    }
+  }
+  function scheduleWrap(){wrapTables();setTimeout(wrapTables,400);setTimeout(wrapTables,1200);setTimeout(wrapTables,2600);}
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',scheduleWrap);}else{scheduleWrap();}
+  window.addEventListener('load',scheduleWrap);
+  try{var _mo=new MutationObserver(function(){if(window.innerWidth<=640){clearTimeout(window.__pnwt);window.__pnwt=setTimeout(wrapTables,300);}});_mo.observe(document.body,{childList:true,subtree:true});}catch(e){}
 })();

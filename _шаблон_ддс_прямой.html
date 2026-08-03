@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ДДС — движение денежных средств · Мастерская Сегодня</title><meta name="author" content="Ольга Герасименко">
+<script src="nav.js"></script>
+<style>
+ :root{--in:#34d399;--out:#fb7185;--ink:#f4f7fb;--ink2:#b9c5d3;--mut:#8798ab;
+   --line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.055);--surf:#0f1a27;--page:#080d16;--accent:#e8c766;--accentbg:rgba(232,199,102,.14)}
+ *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+ body{background:var(--page);color:var(--ink);-webkit-font-smoothing:antialiased}
+ .topbar{background:var(--surf);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:14px 24px;flex-wrap:wrap}
+ .topbar h1{font-size:20px;font-weight:800;letter-spacing:-.01em}
+ .topbar p{font-size:12.5px;color:var(--ink2);margin-top:1px}
+ .backbtn{background:rgba(255,255,255,.06);color:#c9d4e2;border:1px solid rgba(255,255,255,.12);font-weight:700;font-size:13px;padding:8px 14px;border-radius:999px;text-decoration:none;transition:.2s}
+ .backbtn:hover{background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;border-color:#e8c766}
+ .live{margin-left:auto;background:var(--accentbg);color:var(--accent);font-weight:700;font-size:12px;padding:6px 12px;border-radius:999px;white-space:nowrap}
+ .wrap{max-width:1240px;margin:0 auto;padding:18px 18px 56px}
+ .tabs{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+ .tab{background:var(--surf);color:#c9d4e2;border:1px solid var(--line);border-radius:999px;padding:7px 15px;font-weight:700;font-size:12.5px;cursor:pointer;transition:.18s}
+ .tab:hover{border-color:rgba(232,199,102,.45)}.tab.active{background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;border-color:#e8c766;box-shadow:0 6px 18px -8px rgba(212,175,55,.7)}
+ .tab .dot{color:#f59e0b;margin-left:4px}
+ .daypick{display:none;margin-bottom:14px;align-items:center;gap:10px;flex-wrap:wrap}
+ .daypick.show{display:flex}
+ .daypick label{font-size:12.5px;color:var(--ink2);font-weight:600}
+ .daypick select,.daypick input[type=date]{font-size:13.5px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#132234;color:var(--ink);font-weight:600}
+ .daypick select{min-width:190px}
+ .rgo{font-size:13px;font-weight:700;padding:8px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;cursor:pointer}
+ .rgo:hover{filter:brightness(1.08)}
+ .anlz{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:4px 14px 14px}
+ .anlz .blk{border:1px solid rgba(52,211,153,.22);border-left:3px solid #34d399;background:rgba(52,211,153,.07);border-radius:10px;padding:13px 15px;font-size:13px;line-height:1.55;color:#d7ebe4;box-shadow:0 6px 18px -12px rgba(0,0,0,.6)}
+ .anlz .blk.vd{border-color:rgba(167,139,250,.32);border-left-color:#a78bfa;background:rgba(139,92,246,.1);color:#e4dcff}
+ .anlz .blk.rate{border-color:rgba(232,199,102,.32);border-left-color:#e8c766;background:rgba(232,199,102,.08);color:#efe3c3}
+ .anlz .blk b{color:#7ff0c0}.anlz .blk.vd b{color:#cbb8ff}.anlz .blk.rate b{color:#f2dd9e}
+ .anlz .blk .mut{color:#9fb8b0;font-size:12px}.anlz .blk.rate .mut{color:#cbb688}
+ @media(max-width:720px){.anlz{grid-template-columns:1fr}}
+ .openb{background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.4);color:#fbbf77;border-radius:12px;padding:9px 14px;margin-bottom:14px;font-size:12.5px;font-weight:600}
+ .kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+ .k{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(212,175,55,.2);border-radius:14px;padding:13px 15px;transition:.2s}
+ .k:hover{transform:translateY(-3px);border-color:rgba(232,199,102,.55);box-shadow:0 14px 30px -14px rgba(212,175,55,.5)}
+ .k .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700}
+ .k .v{font-size:20px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+ .k .u{font-size:11px;color:var(--mut);font-weight:600;margin-left:2px}
+ .card{background:linear-gradient(162deg,#0f1b29,#0b141f);border:1px solid rgba(212,175,55,.15);border-radius:16px;margin-bottom:16px;overflow:hidden;box-shadow:0 16px 42px -24px rgba(0,0,0,.75)}
+ .card .hd{padding:14px 18px 12px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+ .card h3{font-size:15px;font-weight:800}
+ .card .sub{font-size:12px;color:var(--ink2)}
+ /* Кто нам оплатил */
+ .pay{padding:2px 14px 12px}
+ .payrow{display:grid;grid-template-columns:26px 1fr 130px 52px;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid var(--line2);font-size:13.5px}
+ .payrow .rk{color:var(--mut);font-size:12px;font-weight:700;text-align:center}
+ .payrow .nm{color:#c9d4e2;position:relative}
+ .payrow .nm .bg{position:absolute;left:-6px;right:0;top:-4px;bottom:-4px;background:linear-gradient(90deg,rgba(52,211,153,.18),rgba(52,211,153,.03));border-radius:6px;z-index:0}
+ .payrow .nm span{position:relative;z-index:1}
+ .payrow .am{text-align:right;font-weight:800;color:var(--in);font-variant-numeric:tabular-nums;white-space:nowrap}
+ .payrow .pc{text-align:right;color:#9ca3af;font-size:11.5px}
+ .payrow.tot{font-weight:800;border-top:1px solid var(--line);border-bottom:none;background:rgba(255,255,255,.04)}
+ .payrow.tot .am{color:var(--ink)}
+ .morebtn{display:inline-block;margin:8px 8px 4px;font-size:12.5px;color:#f2dd9e;font-weight:700;cursor:pointer;background:rgba(232,199,102,.1);border:1px solid rgba(232,199,102,.3);border-radius:999px;padding:6px 14px}
+ /* Схема расхода */
+ .wfx{padding:8px 16px 16px;display:flex;flex-direction:column;gap:7px}
+ .wfrow{display:grid;grid-template-columns:26px minmax(120px,210px) 1fr 46px;gap:12px;align-items:center;font-size:13px}
+ .wfrk{color:#8798ab;font-size:12px;font-weight:700;text-align:center}
+ .wfnm{color:#d7dee8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .wfbar{position:relative;height:26px;background:rgba(255,255,255,.04);border-radius:7px;overflow:hidden}
+ .wffill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#fb7185,#e0526e);border-radius:7px;box-shadow:0 0 14px -4px rgba(251,113,133,.55);transform-origin:left;animation:wfgrow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
+ @keyframes wfgrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+ .wfam{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-weight:800;font-variant-numeric:tabular-nums;color:#fff;font-size:12px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+ .wfpc{text-align:right;color:#8798ab;font-size:12px;font-weight:700}
+ .wfrow.rest .wfnm{color:#8798ab;font-style:italic}
+ @media(prefers-reduced-motion:reduce){.wffill{animation:none}}
+ @media(max-width:640px){.wfrow{grid-template-columns:20px minmax(84px,130px) 1fr 36px;gap:8px}.wfam{font-size:11px}}
+ /* Таблица по счетам */
+ .tblwrap{overflow-x:auto}
+ table.dds{width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px}
+ table.dds th,table.dds td{padding:8px 10px;border-bottom:1px solid var(--line2);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+ table.dds thead th{font-size:10.5px;text-transform:uppercase;letter-spacing:.02em;color:var(--mut);font-weight:700;border-bottom:1px solid var(--line);background:rgba(255,255,255,.035);position:sticky;top:0}
+ table.dds .stub{text-align:left;white-space:normal;color:#c9d4e2;position:sticky;left:0;background:var(--surf);z-index:2;min-width:210px;max-width:230px}
+ table.dds thead .stub{background:rgba(255,255,255,.035);z-index:3}
+ table.dds .tot{font-weight:800;border-left:1px solid var(--line)}
+ tr.grp td{background:rgba(255,255,255,.055);font-weight:800;color:var(--ink);border-top:1px solid var(--line)}
+ tr.grp .stub{background:rgba(255,255,255,.055)}
+ tr.grp.fold{cursor:pointer;user-select:none}tr.grp.fold:hover .stub{filter:brightness(.96)}.fold .arw{display:inline-block;width:13px;color:var(--mut)}
+ tr.bal td{font-weight:800;background:rgba(232,199,102,.09)}tr.bal .stub{background:rgba(232,199,102,.09)}
+ tr.other td{color:var(--ink2);font-style:italic;background:rgba(255,255,255,.035)}tr.other .stub{background:rgba(255,255,255,.035)}
+ .pos{color:var(--in)}.neg{color:var(--out)}.z{color:#465264}
+ .foot{text-align:center;color:#8798ab;font-size:12px;padding:22px}.foot b{color:#c9d4e2}
+ .card{position:relative}
+ .card::before{content:"";position:absolute;top:0;left:18px;right:18px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,199,102,.55),transparent);z-index:2}
+ .card,.k{animation:fadeUp .55s cubic-bezier(.2,.75,.25,1) both}
+ @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+ @media(prefers-reduced-motion:reduce){.card,.k{animation:none}}
+ @media(max-width:720px){.kpi{grid-template-columns:repeat(2,1fr)}.payrow{grid-template-columns:22px 1fr 96px 44px}}
+</style></head>
+<body>
+<div class="topbar"><a href="index.html" class="backbtn">← На главную</a>
+ <div><h1>💧 ДДС — движение денежных средств</h1><p id="sub">Мастерская Сегодня · прямой метод · по счетам · источник: iiko</p></div>
+ <span class="live" id="live">🔄 из iiko · каждое утро</span></div>
+<div class="wrap">
+ <div class="tabs" id="tabs"></div>
+ <div class="daypick" id="daypick"><label for="daysel">День:</label><select id="daysel"></select></div>
+ <div class="daypick" id="rangepick"><label for="rfrom">Период с</label><input type="date" id="rfrom"><label for="rto">по</label><input type="date" id="rto"><button id="rgo" class="rgo">Показать</button></div>
+ <div id="openbadge"></div>
+ <div style="margin-bottom:12px"><button id="xls" class="rgo" style="background:#107c41">📥 Выгрузить в Excel</button></div>
+ <div id="body"></div>
+ <div class="foot">Система «Пульс» · автор: <b>Ольга Герасименко</b> · © 2026 · <span id="prov"></span></div>
+</div>
+<script>
+/*__DATA__*/
+const ACCS=D.accounts||[], SH=D.short||{};
+const HIDE_ACC=[];  // счета скрытые из таблицы (пусто = показывать все; Итого = сумма по всем)
+const ACCV=ACCS.filter(a=>!HIDE_ACC.some(h=>(a||'').toLowerCase().includes(h)));
+const RUB=v=>Math.round(Math.abs(v)).toLocaleString('ru-RU');
+const SUM=v=>(v<0?'−':'')+RUB(v);
+const SIGN=v=>(v<0?'−':'+')+RUB(v);
+const MLN=v=>{const a=Math.abs(v);return a>=1e6?(v<0?'−':'')+(a/1e6).toFixed(1).replace('.',',')+' млн':(a>=1?SUM(v):'0');};
+// ячейка счёта: полное число, ноль/мелочь — точка
+const CELL=v=>{v=Math.round(v||0); if(Math.abs(v)<1)return '<span class="z">·</span>'; return '<span class="'+(v<0?'neg':'pos')+'">'+SIGN(v)+'</span>';};
+const isInt=c=>/внутрен|внутригрупп/i.test(c||'');
+function grp(a){ if(isInt(a.cat))return 'int'; const t=(a.type||'').toUpperCase();
+ if(t.indexOf('FIN')===0)return 'fin'; if(t.indexOf('INVEST')===0)return 'inv'; return 'op'; }
+const GROUPS=[['op','Операционная деятельность'],['inv','Инвестиционная деятельность'],
+              ['fin','Финансовая деятельность'],['int','Внутренние переводы между своими счетами']];
+document.getElementById('prov').textContent=D.prov||('источник: iiko · обновлено '+(D.updated||''));
+(function(){var lv=document.getElementById('live');if(lv&&D.updated)lv.textContent='🔄 обновлено '+(D.updatedFull||D.updated)+' · из iiko';})();
+const MK=Object.keys(D.months).sort();
+const accNet=(a,acc)=>{const b=(a.byAcc||{})[acc];return b?(b.in-b.out):0;};
+
+/* ---------- Кто нам оплатил ---------- */
+let payAll=false, LAST=null;
+function payHTML(rev){
+ rev=(rev||[]).filter(r=>r.net>0); if(!rev.length)return '';
+ const tot=rev.reduce((s,r)=>s+r.net,0), mx=rev[0].net||1;
+ const shown=payAll?rev:rev.slice(0,20);
+ let rows=shown.map((r,i)=>{const w=Math.round(r.net/mx*100),pc=Math.round(r.net/tot*100);
+   return `<div class="payrow"><div class="rk">${i+1}</div>
+     <div class="nm"><span class="bg" style="width:${w}%"></span><span>${r.name}</span></div>
+     <div class="am">${SUM(r.net)} ₸</div><div class="pc">${pc}%</div></div>`;}).join('');
+ rows+=`<div class="payrow tot"><div class="rk"></div><div class="nm"><span>Итого выручка</span></div>
+   <div class="am">${SUM(tot)} ₸</div><div class="pc">100%</div></div>`;
+ const more=rev.length>20?`<div class="morebtn" onclick="payAll=!payAll;rerender()">${payAll?'Свернуть':('Показать всех — '+rev.length)}</div>`:'';
+ return `<div class="card"><div class="hd"><h3>💰 Кто нам оплатил</h3><div class="sub">Поступления выручки по контрагентам · от большего к меньшему</div></div>
+   <div class="pay">${rows}${more}</div></div>`;
+}
+
+/* ---------- Таблица ДДС по счетам ---------- */
+function ddsTable(obj,opts){
+ opts=opts||{};
+ const arts=obj.articles||[];
+ const head=`<tr><th class="stub">Статья ДДС</th>`+ACCV.map(a=>`<th title="${a}">${SH[a]||a}</th>`).join('')+`<th class="tot">Итого</th></tr>`;
+ let rows='';
+ // Остаток на начало
+ if(obj.startByAcc){ rows+=`<tr class="bal"><td class="stub">💼 Остаток на начало</td>`+
+   ACCV.map(a=>`<td>${MLN(obj.startByAcc[a]||0)}</td>`).join('')+`<td class="tot">${MLN(obj.start||0)}</td></tr>`; }
+ // Группы статей
+ const buckets={op:[],inv:[],fin:[],int:[]}; arts.forEach(a=>buckets[grp(a)].push(a));
+ GROUPS.forEach(([key,title])=>{
+   const list=buckets[key]; if(!list.length)return;
+   list.sort((x,y)=>Math.abs(y.net)-Math.abs(x.net));
+   const gtot={}; ACCS.forEach(a=>gtot[a]=list.reduce((s,x)=>s+accNet(x,a),0));
+   const gNet=list.reduce((s,x)=>s+x.net,0);
+   const folded=true;
+   rows+=`<tr class="grp fold" data-fold="${key}"><td class="stub"><span class="arw">${folded?'▸':'▾'}</span> ${title}</td>`+
+     ACCV.map(a=>`<td>${CELL(gtot[a])}</td>`).join('')+`<td class="tot">${CELL(gNet)}</td></tr>`;
+   list.forEach(a=>{
+     rows+=`<tr class="fold-${key}" ${folded?'style="display:none"':''}><td class="stub">${a.cat}</td>`+
+       ACCV.map(ac=>`<td>${CELL(accNet(a,ac))}</td>`).join('')+`<td class="tot">${CELL(a.net)}</td></tr>`;
+   });
+ });
+ // Прочее / без статьи (сверка до остатка), по счетам
+ if(obj.startByAcc&&obj.endByAcc){
+   const flowAcc={}; ACCS.forEach(a=>flowAcc[a]=arts.reduce((s,x)=>s+accNet(x,a),0));
+   const otherAcc={}; let otherTot=0;
+   ACCS.forEach(a=>{const o=(obj.endByAcc[a]||0)-(obj.startByAcc[a]||0)-flowAcc[a];otherAcc[a]=o;otherTot+=o;});
+   if(Math.abs(otherTot)>1||ACCS.some(a=>Math.abs(otherAcc[a])>1)){
+     rows+=`<tr class="other"><td class="stub">Прочее / без статьи ДДС</td>`+
+       ACCV.map(a=>`<td>${CELL(otherAcc[a])}</td>`).join('')+`<td class="tot">${CELL(otherTot)}</td></tr>`;
+   }
+ }
+ // Остаток на конец
+ if(obj.endByAcc){ rows+=`<tr class="bal"><td class="stub">🏁 Остаток на конец</td>`+
+   ACCV.map(a=>`<td>${MLN(obj.endByAcc[a]||0)}</td>`).join('')+`<td class="tot">${MLN(obj.end||0)}</td></tr>`; }
+ return `<div class="card"><div class="hd"><h3>Движение по счетам · ${opts.label||''}</h3>
+   <div class="sub">Как в iiko: строки — статьи ДДС, колонки — счета компании. Внутренние переводы свёрнуты.</div></div>
+   <div class="tblwrap"><table class="dds"><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
+}
+
+/* ---------- период ---------- */
+let CUR={type:'month',key:null};
+function kpi(obj){
+ const arts=obj.articles||[];
+ const sIn=arts.filter(a=>!isInt(a.cat)).reduce((s,a)=>s+a.in,0);
+ const sOut=arts.filter(a=>!isInt(a.cat)).reduce((s,a)=>s+a.out,0);
+ const hasBal=!!obj.startByAcc;
+ const start=obj.start||0,end=obj.end||0;
+ const net=hasBal?(end-start):arts.reduce((s,a)=>s+a.net,0);
+ const c=[];
+ if(hasBal)c.push(`<div class="k"><div class="l">Остаток на начало</div><div class="v">${MLN(start)}<span class="u">₸</span></div></div>`);
+ c.push(`<div class="k"><div class="l">Приход</div><div class="v pos">+${MLN(sIn)}<span class="u">₸</span></div></div>`);
+ c.push(`<div class="k"><div class="l">Расход</div><div class="v neg">−${MLN(sOut)}<span class="u">₸</span></div></div>`);
+ if(hasBal)c.push(`<div class="k"><div class="l">Остаток на конец</div><div class="v">${MLN(end)}<span class="u">₸</span></div></div>`);
+ const rawRe=/сырь|упаковк|хоз\.?\s*товар/i;
+ const rawPay=arts.filter(a=>rawRe.test(a.cat)).reduce((s,a)=>s+a.out,0);
+ const revA=arts.find(a=>/выручк/i.test(a.cat));
+ const rev=((obj.revByContr||[]).filter(r=>r.net>0).reduce((s,r)=>s+r.net,0))||(revA?revA.in:0);
+ if(rawPay>0&&rev>0)c.push(`<div class="k" title="Сырьё Платежи поставщикам + Упаковка + Хоз. товары к выручке"><div class="l">🌾 Сырьё</div><div class="v">${(rawPay/rev*100).toFixed(1).replace('.',',')}<span class="u">%</span></div></div>`);
+ return `<div class="kpi" style="grid-template-columns:repeat(${c.length},1fr)">${c.join('')}</div>`;
+}
+function analytics(obj){
+ const arts=obj.articles||[];
+ const rev=(obj.revByContr||[]).filter(r=>r.net>0).sort((a,b)=>b.net-a.net);
+ const totRev=rev.reduce((s,r)=>s+r.net,0);
+ const exp=arts.filter(a=>!isInt(a.cat)&&a.out>0).map(a=>({cat:a.cat,out:a.out})).sort((x,y)=>y.out-x.out);
+ const sIn=arts.filter(a=>!isInt(a.cat)).reduce((s,a)=>s+a.in,0);
+ const sOut=arts.filter(a=>!isInt(a.cat)).reduce((s,a)=>s+a.out,0);
+ const net=obj.startByAcc?((obj.end||0)-(obj.start||0)):arts.reduce((s,a)=>s+a.net,0);
+ const pct=(v,b)=>b?Math.round(v/b*100):0;
+ const find=re=>exp.find(e=>re.test(e.cat));
+ const syr=find(/сырь/i),zp=find(/оплата труда|зарплат/i),nal=find(/налог/i),ar=find(/аренда/i);
+ let b=[];
+ if(rev[0])b.push(`<div class="blk"><b>Больше всех оплатил:</b> ${rev[0].name} — <b>${SUM(rev[0].net)} ₸</b> (${pct(rev[0].net,totRev)}% выручки).`+(rev[1]?` Далее ${rev[1].name} (${pct(rev[1].net,totRev)}%).`:'')+` Всего заплатили ${rev.length} контрагентов.</div>`);
+ if(exp.length)b.push(`<div class="blk"><b>Куда ушло больше всего:</b><br>`+exp.slice(0,3).map((e,i)=>`${i+1}. ${e.cat} — <b>${SUM(e.out)} ₸</b> (${pct(e.out,sOut)}%)`).join('<br>')+`</div>`);
+ let ob=[];if(syr)ob.push(`сырьё ${pct(syr.out,sOut)}%`);if(zp)ob.push(`зарплата ${pct(zp.out,sOut)}%`);if(nal)ob.push(`налоги ${pct(nal.out,sOut)}%`);if(ar)ob.push(`аренда ${pct(ar.out,sOut)}%`);
+ if(ob.length)b.push(`<div class="blk"><b>Основные обязательные траты:</b> ${ob.join(', ')} от всех выплат.</div>`);
+ const rawRe=/сырь|упаковк|хоз\.?\s*товар/i;
+ const rawPay=arts.filter(a=>rawRe.test(a.cat)).reduce((s,a)=>s+a.out,0);
+ const revA=arts.find(a=>/выручк/i.test(a.cat)); const revenue=totRev||(revA?revA.in:0);
+ if(rawPay>0&&revenue>0)b.push(`<div class="blk"><b>🌾 Оплата за сырьё</b> (сырьё + упаковка + хоз. товары): <b>${SUM(rawPay)} ₸</b> — <b>${(rawPay/revenue*100).toFixed(1).replace('.',',')}%</b> от выручки (${MLN(revenue)}).</div>`);
+ if(CUR.type==='month'&&(D.mmeta[CUR.key]||{}).closed===false&&rawPay>0&&D.cogs){const idx=MK.indexOf(CUR.key);const prevKeys=MK.slice(Math.max(0,idx-3),idx).filter(k=>D.cogs[k]!=null);const dNow=+((D.through||'').split('.')[0])||0;if(prevKeys.length&&dNow>0){const parts=prevKeys.map(k=>{const dM=new Date(+k.slice(0,4),+k.slice(5,7),0).getDate();const p=Math.round(rawPay/(D.cogs[k]*dNow/dM)*100);return{nm:((D.mmeta[k]||{}).ru||k).replace(' 2026','').slice(0,3),p:p,cogs:D.cogs[k]};});const avg=Math.round(parts.reduce((s,x)=>s+x.p,0)/parts.length);const line=parts.map(x=>`к ${x.nm} <b>${x.p}%</b>`).join(' · ');b.push(`<div class="blk rate"><b>🌾 Оплата за сырьё к себестоимости ОПиУ</b> (за ${dNow} дн., в пересчёте на дни):<br>${line} · <b>в среднем ${avg}%</b><br><span class="mut">Продуктовая себестоимость: ${parts.map(x=>x.nm+' '+MLN(x.cogs)).join(', ')}. ${avg>105?'⚠ выше нормы':(avg<95?'✓ в пределах нормы':'≈ в норме')}.</span></div>`);}}
+ const cov=sOut?Math.round(sIn/sOut*100):0;
+ b.push(`<div class="blk vd">💡 По операциям: поступления <b>${MLN(sIn)}</b>, выплаты <b>${MLN(sOut)}</b> (покрытие <b>${cov}%</b>). Итог по всем счетам: денег ${net<0?'стало меньше на':'прибавилось на'} <b>${MLN(Math.abs(net))} ₸</b>${(sIn-sOut>0&&net<0)?' — операции в плюсе, разницу забрали переводы и прочие движения':(sIn-sOut<0&&net>0)?' — операции в минусе, счета выросли за счёт переводов':''}.</div>`);
+ return `<div class="card"><div class="hd"><h3>📊 Аналитика ДДС</h3><div class="sub">Ключевые выводы за период</div></div><div class="anlz">${b.join('')}</div></div>`;
+}
+// агрегируем произвольный период из дневной детализации
+function rangeData(from,to){
+ const arts={},revMap={};
+ Object.keys(D.byDay||{}).forEach(dt=>{ if(dt<from||dt>to)return;
+   (D.byDay[dt]||[]).forEach(e=>{const key=e.t+'|'+e.c;let a=arts[key];if(!a)a=arts[key]={type:e.t,cat:e.c,in:0,out:0,net:0,byAcc:{}};
+     Object.keys(e.a).forEach(ix=>{const v=e.a[ix],acc=ACCS[+ix];a.net+=v;if(v>0)a.in+=v;else a.out+=-v;
+       const bb=a.byAcc[acc]||(a.byAcc[acc]={in:0,out:0});if(v>0)bb.in+=v;else bb.out+=-v;});});
+ });
+ Object.keys(D.byDayRev||{}).forEach(dt=>{ if(dt<from||dt>to)return;
+   (D.byDayRev[dt]||[]).forEach(r=>{revMap[r.n]=(revMap[r.n]||0)+r.v;});});
+ const rev=Object.keys(revMap).map(n=>({name:n,net:revMap[n]})).sort((a,b)=>b.net-a.net);
+ return {articles:Object.values(arts),revByContr:rev};
+}
+// ---------- Схема: куда ушли деньги (расход) ----------
+function expScheme(obj){
+ const arts=obj.articles||[];
+ const exp=arts.filter(a=>!isInt(a.cat)&&a.out>0).map(a=>({cat:a.cat,out:Math.round(a.out)})).sort((x,y)=>y.out-x.out);
+ if(!exp.length) return '';
+ const total=exp.reduce((s,e)=>s+e.out,0), mx=exp[0].out||1, show=exp.slice(0,12);
+ const rows=show.map((e,i)=>{
+   const w=Math.max(3,Math.round(e.out/mx*100)), pc=Math.round(e.out/total*100);
+   return '<div class="wfrow" style="--d:'+(i*0.05).toFixed(2)+'s"><div class="wfrk">'+(i+1)+'</div><div class="wfnm" title="'+e.cat+'">'+e.cat+'</div><div class="wfbar"><div class="wffill" style="width:'+w+'%"></div><span class="wfam">'+SUM(e.out)+' ₸</span></div><div class="wfpc">'+pc+'%</div></div>';
+ }).join('');
+ const rest=exp.length>12?('<div class="wfrow rest"><div class="wfrk"></div><div class="wfnm">и ещё '+(exp.length-12)+' статей</div><div class="wfbar"></div><div class="wfpc">'+Math.round(exp.slice(12).reduce((s,e)=>s+e.out,0)/total*100)+'%</div></div>'):'';
+ return '<div class="card"><div class="hd"><h3>💸 Куда ушли деньги — расход</h3><div class="sub">Кому и на что платили за период · всего <b style="color:#fb7185">'+SUM(total)+' ₸</b></div></div><div class="wfx">'+rows+rest+'</div></div>';
+}
+// ---------- Схема потока денег (waterfall) — не используется ----------
+function waterfall(obj){
+ if(!obj.startByAcc) return '';
+ const arts=obj.articles||[];
+ const bk={op:0,inv:0,fin:0,int:0};
+ arts.forEach(a=>{const g=grp(a); bk[g]=(bk[g]||0)+a.net;});
+ const start=Math.round(obj.start||0), end=Math.round(obj.end||0);
+ const other=end-start-bk.op-bk.inv-bk.fin-bk.int;
+ const steps=[{l:'Остаток начало',v:start,anchor:1}];
+ [['Операционная',bk.op],['Инвестиционная',bk.inv],['Финансовая',bk.fin],['Внутренние',bk.int],['Прочее',other]].forEach(p=>{if(Math.abs(p[1])>1)steps.push({l:p[0],v:Math.round(p[1])});});
+ steps.push({l:'Остаток конец',v:end,anchor:1});
+ let run=0; steps.forEach(st=>{ if(st.anchor){st.lo=0;st.hi=st.v;run=st.v;} else {st.lo=run;st.hi=run+st.v;run=st.hi;} });
+ const vals=steps.flatMap(st=>[st.lo,st.hi]); const mx=Math.max(...vals,0), mn=Math.min(...vals,0);
+ const W=980,H=300,padT=36,padB=72,padL=14,padR=14, n=steps.length, gap=16, bw=(W-padL-padR-gap*(n-1))/n;
+ const Y=v=>padT+(H-padT-padB)*(mx-v)/((mx-mn)||1), X=i=>padL+i*(bw+gap);
+ let s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:660px"><defs><linearGradient id="wfg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6e6ad"/><stop offset="1" stop-color="#d4af37"/></linearGradient></defs>';
+ const zy=Y(0); s+='<line x1="'+padL+'" y1="'+zy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+zy.toFixed(1)+'" stroke="rgba(255,255,255,.14)"/>';
+ steps.forEach((st,i)=>{ const x=X(i), top=Y(Math.max(st.lo,st.hi)), bot=Y(Math.min(st.lo,st.hi)), h=Math.max(3,bot-top);
+   const fill=st.anchor?'url(#wfg)':(st.v>=0?'#34d399':'#fb7185');
+   s+='<rect x="'+x.toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="6" fill="'+fill+'"'+(st.anchor?'':' fill-opacity=".92"')+'/>';
+   const vlab=(st.anchor?'':(st.v>=0?'+':'−'))+MLN(Math.abs(st.v));
+   s+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(top-9).toFixed(1)+'" text-anchor="middle" font-size="12.5" font-weight="800" fill="'+(st.anchor?'#f2dd9e':(st.v>=0?'#34d399':'#fb7185'))+'">'+vlab+'</text>';
+   s+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-46).toFixed(1)+'" text-anchor="middle" font-size="11" font-weight="600" fill="#c9d4e2">'+st.l+'</text>';
+   if(i<steps.length-1){ const y=Y(st.hi); s+='<line x1="'+(x+bw).toFixed(1)+'" y1="'+y.toFixed(1)+'" x2="'+X(i+1).toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="rgba(255,255,255,.3)" stroke-dasharray="3 3"/>'; } });
+ s+='</svg>';
+ return '<div class="card"><div class="hd"><h3>💠 Схема движения денег</h3><div class="sub">От остатка на начало через операционную, инвестиционную и финансовую деятельность — к остатку на конец.</div></div><div style="padding:6px 14px 18px;overflow-x:auto">'+s+'</div></div>';
+}
+function renderRange(from,to){
+ const obj=rangeData(from,to);
+ const f=d=>d.split('-').reverse().join('.');
+ const bb=D.balByDay||{};
+ if(bb[from])obj.startByAcc=bb[from];
+ const dn=new Date(to+'T00:00:00');dn.setDate(dn.getDate()+1);const nk=dn.toISOString().slice(0,10);
+ if(bb[nk])obj.endByAcc=bb[nk];
+ if(obj.startByAcc)obj.start=ACCS.reduce((s,a)=>s+(obj.startByAcc[a]||0),0);
+ if(obj.endByAcc)obj.end=ACCS.reduce((s,a)=>s+(obj.endByAcc[a]||0),0);
+ const label='период '+f(from)+' — '+f(to);
+ LAST={obj:obj,label:label};
+ let h=kpi(obj);
+ h+=expScheme(obj);
+ h+=payHTML(obj.revByContr);
+ h+=analytics(obj);
+ h+=ddsTable(obj,{label:label});
+ document.getElementById('body').innerHTML=h;
+ document.getElementById('sub').textContent='Мастерская Сегодня · '+label+' · прямой метод · источник: iiko';
+ document.getElementById('openbadge').innerHTML='';
+ bindFold();
+}
+function renderPeriod(obj,label,ru,closed){
+ LAST={obj:obj,label:label};
+ let h=kpi(obj);
+ h+=expScheme(obj);
+ h+=payHTML(obj.revByContr);
+ h+=analytics(obj);
+ h+=ddsTable(obj,{label:label});
+ document.getElementById('body').innerHTML=h;
+ document.getElementById('sub').textContent='Мастерская Сегодня · '+(ru||label)+' · прямой метод · по счетам · источник: iiko';
+ document.getElementById('openbadge').innerHTML=(closed===false)?`<div class="openb">⚠️ период не закрыт — данные предварительные, обновятся после 18-го числа</div>`:'';
+ bindFold();
+}
+function renderDay(k){
+ const dd=D.days[k]; if(!dd)return;
+ const dt=k.split('-').reverse().join('.');
+ LAST={obj:{articles:dd.articles},label:'день '+dt};
+ let h=kpi({articles:dd.articles,net:dd.net});
+ h+=analytics({articles:dd.articles});
+ h+=ddsTable({articles:dd.articles},{label:dt});
+ document.getElementById('body').innerHTML=h;
+ document.getElementById('sub').textContent='Мастерская Сегодня · день '+dt+' · прямой метод · по счетам · источник: iiko';
+ document.getElementById('openbadge').innerHTML='';
+ bindFold();
+}
+function bindFold(){
+ document.querySelectorAll('tr.fold[data-fold]').forEach(el=>{
+   el.onclick=()=>{const key=el.dataset.fold,arw=el.querySelector('.arw');let open=false;
+     document.querySelectorAll('.fold-'+key).forEach(r=>{const vis=r.style.display==='none';r.style.display=vis?'':'none';open=vis;});
+     if(arw)arw.textContent=open?'▾':'▸';};
+ });
+}
+function xnum(v){v=Math.round(v||0);return v?String(v):'';}
+function exportXls(){
+ if(!LAST){return;} const obj=LAST.obj,label=LAST.label||'';
+ const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ let t='<table border="1"><tr><th>Статья ДДС</th>'+ACCS.map(a=>'<th>'+esc(SH[a]||a)+'</th>').join('')+'<th>Итого</th></tr>';
+ if(obj.startByAcc)t+='<tr><td>Остаток на начало</td>'+ACCS.map(a=>'<td>'+xnum(obj.startByAcc[a])+'</td>').join('')+'<td>'+xnum(obj.start)+'</td></tr>';
+ const bk={op:[],inv:[],fin:[],int:[]};(obj.articles||[]).forEach(a=>bk[grp(a)].push(a));
+ GROUPS.forEach(([key,title])=>{const list=bk[key];if(!list.length)return;list.sort((x,y)=>Math.abs(y.net)-Math.abs(x.net));
+   const gt={};ACCS.forEach(a=>gt[a]=list.reduce((s,x)=>s+accNet(x,a),0));const gn=list.reduce((s,x)=>s+x.net,0);
+   t+='<tr><td><b>'+esc(title)+'</b></td>'+ACCS.map(a=>'<td>'+xnum(gt[a])+'</td>').join('')+'<td>'+xnum(gn)+'</td></tr>';
+   list.forEach(a=>{t+='<tr><td>'+esc(a.cat)+'</td>'+ACCS.map(ac=>'<td>'+xnum(accNet(a,ac))+'</td>').join('')+'<td>'+xnum(a.net)+'</td></tr>';});});
+ if(obj.startByAcc&&obj.endByAcc){const fl={};ACCS.forEach(a=>fl[a]=(obj.articles||[]).reduce((s,x)=>s+accNet(x,a),0));
+   const oth={};let ot=0;ACCS.forEach(a=>{const o=(obj.endByAcc[a]||0)-(obj.startByAcc[a]||0)-fl[a];oth[a]=o;ot+=o;});
+   if(Math.abs(ot)>1)t+='<tr><td>Прочее / без статьи</td>'+ACCS.map(a=>'<td>'+xnum(oth[a])+'</td>').join('')+'<td>'+xnum(ot)+'</td></tr>';
+   t+='<tr><td>Остаток на конец</td>'+ACCS.map(a=>'<td>'+xnum(obj.endByAcc[a])+'</td>').join('')+'<td>'+xnum(obj.end)+'</td></tr>';}
+ t+='</table>';
+ let p='';const rev=(obj.revByContr||[]).filter(r=>r.net>0);
+ if(rev.length)p='<br><table border="1"><tr><th>Кто нам оплатил</th><th>Сумма, тг</th></tr>'+rev.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+xnum(r.net)+'</td></tr>').join('')+'<tr><td>Итого</td><td>'+xnum(rev.reduce((s,r)=>s+r.net,0))+'</td></tr></table>';
+ const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><h3>ДДС · '+esc(label)+'</h3>'+t+p+'</body></html>';
+ const blob=new Blob(['﻿'+html],{type:'application/vnd.ms-excel'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
+ a.download='ДДС_'+label.replace(/[^0-9A-Za-zА-Яа-яЁё]+/g,'_')+'.xls';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+document.getElementById('xls').onclick=exportXls;
+function rerender(){ if(CUR.type==='day'){renderDay(CUR.key);} else if(CUR.type==='range'){renderRange(rfrom.value,rto.value);} else if(CUR.type==='year'){goYear();} else {const m=D.months[CUR.key],meta=(D.mmeta||{})[CUR.key]||{};renderPeriod(m,meta.ru||CUR.key,meta.ru,meta.closed);} }
+
+/* ---------- вкладки ---------- */
+const tabs=document.getElementById('tabs'),dp=document.getElementById('daypick'),dsel=document.getElementById('daysel');
+const rp=document.getElementById('rangepick'),rfrom=document.getElementById('rfrom'),rto=document.getElementById('rto');
+function setActive(k){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.k===k));}
+function addTab(k,label,mark){const t=document.createElement('div');t.className='tab';t.dataset.k=k;
+ t.innerHTML=label+(mark?'<span class="dot">•</span>':'');t.onclick=()=>go(k);tabs.appendChild(t);}
+function goYear(){const y=D.year;const toRu=(D.mmeta[y.to]||{}).ru||'';renderPeriod(y,'2026 год (январь — '+(toRu.split(' ')[0]||'')+')','2026 год',true);}
+function go(k){
+ payAll=false; setActive(k);
+ dp.classList.remove('show'); rp.classList.remove('show');
+ if(k==='DAYS'){CUR={type:'day',key:dsel.value};dp.classList.add('show');renderDay(dsel.value);return;}
+ if(k==='RANGE'){CUR={type:'range'};rp.classList.add('show');renderRange(rfrom.value,rto.value);return;}
+ if(k==='YEAR'){CUR={type:'year',key:'YEAR'};goYear();}
+ else{CUR={type:'month',key:k};const m=D.months[k],meta=(D.mmeta||{})[k]||{};renderPeriod(m,meta.ru||k,meta.ru,meta.closed);}
+}
+if(D.year&&D.year.articles&&D.year.articles.length) addTab('YEAR','2026 · год');
+MK.forEach(k=>{const meta=(D.mmeta||{})[k]||{};addTab(k,(meta.ru||k).replace(' 2026','').replace(/^./,c=>c.toUpperCase()),meta.closed===false);});
+const DK=Object.keys(D.days||{}).sort();
+if(DK.length){ addTab('DAYS','По дням');
+ DK.slice().reverse().forEach(k=>{const o=document.createElement('option');o.value=k;
+   o.textContent=k.split('-').reverse().join('.')+'  ('+SIGN(D.days[k].net)+' ₸)';dsel.appendChild(o);});
+ dsel.onchange=()=>{CUR={type:'day',key:dsel.value};payAll=false;renderDay(dsel.value);};
+}
+if(D.byDay&&Object.keys(D.byDay).length){
+ addTab('RANGE','Период');
+ const keys=Object.keys(D.byDay).sort();
+ const mn=D.dayMin||keys[0], mx=D.dayMax||keys[keys.length-1];
+ rfrom.min=mn;rfrom.max=mx;rto.min=mn;rto.max=mx;rto.value=mx;
+ const d=new Date(mx+'T00:00:00');d.setDate(d.getDate()-6);let iso=d.toISOString().slice(0,10);
+ rfrom.value=(iso<mn?mn:iso);
+ document.getElementById('rgo').onclick=()=>{let a=rfrom.value,b=rto.value;if(!a||!b)return;if(a>b){rfrom.value=b;rto.value=a;a=rfrom.value;b=rto.value;}payAll=false;CUR={type:'range'};renderRange(a,b);};
+}
+go(MK.length?MK[MK.length-1]:'YEAR');
+</script></body></html>
