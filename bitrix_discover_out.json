@@ -1,43 +1,27 @@
 {
  "profile": {
-  "result": {
-   "ID": "9781",
-   "ADMIN": false,
-   "NAME": "Ольга",
-   "LAST_NAME": "Герасименко",
-   "PERSONAL_GENDER": "",
-   "TIME_ZONE": "Asia/Qyzylorda"
-  },
-  "time": {
-   "start": 1785751426,
-   "finish": 1785751426.246524,
-   "duration": 0.24652409553527832,
-   "processing": 0,
-   "date_start": "2026-08-03T13:03:46+03:00",
-   "date_finish": "2026-08-03T13:03:46+03:00",
-   "operating_reset_at": 1785752026,
-   "operating": 0
-  }
+  "error": "INVALID_CREDENTIALS",
+  "error_description": "Invalid request credentials"
  },
  "crm.type.list": {
-  "error": "insufficient_scope",
-  "error_description": "The request requires higher privileges than provided by the webhook token"
+  "error": "INVALID_CREDENTIALS",
+  "error_description": "Invalid request credentials"
  },
  "crm.dealcategory.list": {
-  "error": "insufficient_scope",
-  "error_description": "The request requires higher privileges than provided by the webhook token"
+  "error": "INVALID_CREDENTIALS",
+  "error_description": "Invalid request credentials"
  },
  "crm.status.list": {
-  "error": "insufficient_scope",
-  "error_description": "The request requires higher privileges than provided by the webhook token"
+  "error": "INVALID_CREDENTIALS",
+  "error_description": "Invalid request credentials"
  },
  "smart_processes": {},
  "crm.deal.fields": {
-  "error": "insufficient_scope",
-  "error_description": "The request requires higher privileges than provided by the webhook token"
+  "error": "INVALID_CREDENTIALS",
+  "error_description": "Invalid request credentials"
  },
  "crm.deal.list_sample": {
-  "error": "insufficient_scope",
-  "error_description": "The request requires higher privileges than provided by the webhook token"
+  "error": "INVALID_CREDENTIALS",
+  "error_description": "Invalid request credentials"
  }
 }

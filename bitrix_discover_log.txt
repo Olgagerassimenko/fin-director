@@ -1,4 +1,4 @@
-вебхук OK. Пользователь: Ольга Герасименко | admin: False
+!! профиль не получен: {"error": "INVALID_CREDENTIALS", "error_description": "Invalid request credentials"}
 
 Смарт-процессов найдено: 0
 
