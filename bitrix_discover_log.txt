@@ -1,4 +1,4 @@
-!! профиль не получен: {"error": "ERROR_METHOD_NOT_FOUND", "error_description": "Method not found!"}
+вебхук OK. Пользователь: Ольга Герасименко | admin: False
 
 Смарт-процессов найдено: 0
 

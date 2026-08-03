@@ -1,27 +1,43 @@
 {
  "profile": {
-  "error": "ERROR_METHOD_NOT_FOUND",
-  "error_description": "Method not found!"
+  "result": {
+   "ID": "9781",
+   "ADMIN": false,
+   "NAME": "Ольга",
+   "LAST_NAME": "Герасименко",
+   "PERSONAL_GENDER": "",
+   "TIME_ZONE": "Asia/Qyzylorda"
+  },
+  "time": {
+   "start": 1785751426,
+   "finish": 1785751426.246524,
+   "duration": 0.24652409553527832,
+   "processing": 0,
+   "date_start": "2026-08-03T13:03:46+03:00",
+   "date_finish": "2026-08-03T13:03:46+03:00",
+   "operating_reset_at": 1785752026,
+   "operating": 0
+  }
  },
  "crm.type.list": {
-  "error": "ERROR_METHOD_NOT_FOUND",
-  "error_description": "Method not found!"
+  "error": "insufficient_scope",
+  "error_description": "The request requires higher privileges than provided by the webhook token"
  },
  "crm.dealcategory.list": {
-  "error": "ERROR_METHOD_NOT_FOUND",
-  "error_description": "Method not found!"
+  "error": "insufficient_scope",
+  "error_description": "The request requires higher privileges than provided by the webhook token"
  },
  "crm.status.list": {
-  "error": "ERROR_METHOD_NOT_FOUND",
-  "error_description": "Method not found!"
+  "error": "insufficient_scope",
+  "error_description": "The request requires higher privileges than provided by the webhook token"
  },
  "smart_processes": {},
  "crm.deal.fields": {
-  "error": "ERROR_METHOD_NOT_FOUND",
-  "error_description": "Method not found!"
+  "error": "insufficient_scope",
+  "error_description": "The request requires higher privileges than provided by the webhook token"
  },
  "crm.deal.list_sample": {
-  "error": "ERROR_METHOD_NOT_FOUND",
-  "error_description": "Method not found!"
+  "error": "insufficient_scope",
+  "error_description": "The request requires higher privileges than provided by the webhook token"
  }
 }
