@@ -1,0 +1,87 @@
+name: Пульс — ежедневное обновление из iiko
+
+on:
+  schedule:
+    # 03:00 UTC = 08:00 Asia/Qyzylorda (UTC+5). Время GitHub может плавать на 3–10 мин.
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}   # ручной запуск кнопкой «Run workflow»
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pulse-daily
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Получить репозиторий
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Зависимости
+        run: pip install -r requirements.txt
+
+      # ── Данные из iiko + пересборка дашбордов ──
+      # continue-on-error: если один шаг споткнётся (обрыв iiko), берём прошлые данные и идём дальше
+      - name: "1. Продажи из iiko"
+        continue-on-error: true
+        run: python iiko_export.py
+
+      - name: "2. Пересборка дашборда продаж"
+        continue-on-error: true
+        run: python rebuild_sales.py
+
+      - name: "3. Контрагенты — что купили"
+        continue-on-error: true
+        run: python gen_contractor_items.py
+
+      - name: "4. ДДС — остатки из iiko"
+        continue-on-error: true
+        run: python dds_data.py
+
+      - name: "5. ДЗ/КЗ из Google"
+        continue-on-error: true
+        run: python dz_kz_months.py
+
+      - name: "6. Сборка дашборда ДДС"
+        continue-on-error: true
+        run: python gen_dds.py
+
+      - name: "7. ДДС прямой метод"
+        continue-on-error: true
+        run: python dds_pryamoy.py
+
+      - name: "8. Сборка ДДС прямого"
+        continue-on-error: true
+        run: python gen_ddsp.py
+
+      - name: "9. SKU-аналитика 360"
+        continue-on-error: true
+        run: python SKU_iiko/generate.py
+
+      - name: "10. Закуп из iiko"
+        continue-on-error: true
+        run: python zakup_data.py
+
+      - name: "11. Сборка дашборда закупа"
+        continue-on-error: true
+        run: python gen_zakup.py
+
+      # ── Публикация сайта на Cloudflare ──
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Публикация (Cloudflare Workers)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@3 deploy
