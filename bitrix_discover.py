@@ -9,7 +9,10 @@ import os, json, warnings
 warnings.filterwarnings("ignore")
 import requests
 
-WEBHOOK = os.environ["BITRIX_WEBHOOK"].strip().rstrip("/") + "/"
+import re as _re
+_raw = os.environ["BITRIX_WEBHOOK"].strip()
+_m = _re.match(r'^(https?://[^/]+/rest/\d+/[A-Za-z0-9]+/)', _raw)
+WEBHOOK = _m.group(1) if _m else (_raw.rstrip("/") + "/")
 LOG = open("bitrix_discover_log.txt", "w", encoding="utf-8")
 def log(*a):
     t = " ".join(str(x) for x in a); print(t); LOG.write(t + "\n"); LOG.flush()
