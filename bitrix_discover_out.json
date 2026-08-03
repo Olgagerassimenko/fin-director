@@ -1,27 +1,21 @@
 {
  "profile": {
-  "error": "INVALID_CREDENTIALS",
-  "error_description": "Invalid request credentials"
+  "__error__": "MissingSchema: Invalid URL 'segodnya.bitrix24.kz/devops/edit/in-hook/211/profile': No scheme supplied. Perhaps you meant https://segodnya.bitrix24.kz/devops/edit/in-hook/211/profile?"
  },
  "crm.type.list": {
-  "error": "INVALID_CREDENTIALS",
-  "error_description": "Invalid request credentials"
+  "__error__": "MissingSchema: Invalid URL 'segodnya.bitrix24.kz/devops/edit/in-hook/211/crm.type.list': No scheme supplied. Perhaps you meant https://segodnya.bitrix24.kz/devops/edit/in-hook/211/crm.type.list?"
  },
  "crm.dealcategory.list": {
-  "error": "INVALID_CREDENTIALS",
-  "error_description": "Invalid request credentials"
+  "__error__": "MissingSchema: Invalid URL 'segodnya.bitrix24.kz/devops/edit/in-hook/211/crm.dealcategory.list': No scheme supplied. Perhaps you meant https://segodnya.bitrix24.kz/devops/edit/in-hook/211/crm.dealcategory.list?"
  },
  "crm.status.list": {
-  "error": "INVALID_CREDENTIALS",
-  "error_description": "Invalid request credentials"
+  "__error__": "MissingSchema: Invalid URL 'segodnya.bitrix24.kz/devops/edit/in-hook/211/crm.status.list': No scheme supplied. Perhaps you meant https://segodnya.bitrix24.kz/devops/edit/in-hook/211/crm.status.list?"
  },
  "smart_processes": {},
  "crm.deal.fields": {
-  "error": "INVALID_CREDENTIALS",
-  "error_description": "Invalid request credentials"
+  "__error__": "MissingSchema: Invalid URL 'segodnya.bitrix24.kz/devops/edit/in-hook/211/crm.deal.fields': No scheme supplied. Perhaps you meant https://segodnya.bitrix24.kz/devops/edit/in-hook/211/crm.deal.fields?"
  },
  "crm.deal.list_sample": {
-  "error": "INVALID_CREDENTIALS",
-  "error_description": "Invalid request credentials"
+  "__error__": "MissingSchema: Invalid URL 'segodnya.bitrix24.kz/devops/edit/in-hook/211/crm.deal.list': No scheme supplied. Perhaps you meant https://segodnya.bitrix24.kz/devops/edit/in-hook/211/crm.deal.list?"
  }
 }

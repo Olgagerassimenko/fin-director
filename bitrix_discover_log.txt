@@ -1,4 +1,4 @@
-!! профиль не получен: {"error": "INVALID_CREDENTIALS", "error_description": "Invalid request credentials"}
+!! профиль не получен: {"__error__": "MissingSchema: Invalid URL 'segodnya.bitrix24.kz/devops/edit/in-hook/211/profile': No scheme supplied. Perhaps you meant https://segodnya.bitrix24.kz/devops/edit/in-hook/211/profile?"}
 
 Смарт-процессов найдено: 0
 
