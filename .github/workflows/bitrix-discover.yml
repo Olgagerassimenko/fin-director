@@ -1,0 +1,33 @@
+name: Bitrix — разведка (временный)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install requests
+      - name: Разведка Битрикс24
+        continue-on-error: true
+        env:
+          BITRIX_WEBHOOK: ${{ secrets.BITRIX_WEBHOOK }}
+        run: python bitrix_discover.py
+      - name: Вернуть результат в репозиторий
+        if: always()
+        run: |
+          git config user.name "pulse-ci"
+          git config user.email "ci@local"
+          git add -f bitrix_discover_out.json bitrix_discover_log.txt 2>/dev/null || true
+          git commit -m "Bitrix discover [skip ci]" || echo "нечего коммитить"
+          git push origin HEAD:main || echo "push не удался"
