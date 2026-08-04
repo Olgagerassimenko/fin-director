@@ -110,7 +110,7 @@ const MK=Object.keys(DDS.months).sort();
 const MSHORT={1:'янв',2:'фев',3:'мар',4:'апр',5:'май',6:'июн',7:'июл',8:'авг',9:'сен',10:'окт',11:'ноя',12:'дек'};
 const mlab=k=>MSHORT[+k.slice(5,7)]||k;
 document.getElementById('prov').textContent=DDS.profNote||'данные из iiko';
-(function(){var lv=document.getElementById('live');if(lv)lv.textContent='🔄 данные из iiko · обновлено '+(DDS.updatedFull||DDS.updated||'')+' · данные по '+(DDS.through||'')+' включительно';})();
+(function(){var lv=document.getElementById('live');if(lv&&DDS.updatedFull)lv.textContent='🔄 обновлено '+DDS.updatedFull+' · из iiko';})();
 const prev=mk=>{const i=MK.indexOf(mk);return i>0?DDS.months[MK[i-1]]:null;};
 
 function donut(parts){ // parts:[{k,label,v}]

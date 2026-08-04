@@ -111,7 +111,6 @@ tbody td{padding:8px 12px;vertical-align:middle}
 .trr-mg{font-size:12px;font-weight:600;width:42px;text-align:right;flex-shrink:0}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
-<style id="upd-badge-css">.upd-badge{margin-left:auto;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(16,185,129,.12);border:1px solid rgba(52,211,153,.45);border-radius:11px;padding:8px 14px}.upd-src{color:#059669;font-weight:800;font-size:13px;white-space:nowrap}.upd-when{color:#6b7280;font-size:12.5px;font-weight:600;white-space:nowrap}</style>
 </head>
 <body>
 <div class="topbar">
@@ -120,7 +119,7 @@ tbody td{padding:8px 12px;vertical-align:middle}
     <h1>SKU-аналитика 360°</h1>
     <p>Мастерская Сегодня · готовая продукция 2025–2026</p>
   </div>
-  <div id="upd-badge" class="upd-badge"><span class="upd-src">🔄 данные из iiko</span><span class="upd-when" id="upd-when">—</span></div>
+  <div class="live-pill">⚡ Живые данные</div>
 </div>
 <div class="nav-bar">
   <div class="ntab active" onclick="switchMain('table',this)">Таблица</div>
@@ -317,7 +316,7 @@ const SKUS = (window.SKU_DATA_LIVE&&window.SKU_DATA_LIVE.skus)||SKU_DATA.skus;
 const RANGE26 = (function(){ const a=MO.filter(l=>/'26$/.test(l)).map(l=>l.split("'")[0]); return a.length? a[0]+'–'+a[a.length-1] : '—'; })();
 try{ if(window.SKU_LIVE_META){
   var _m=window.SKU_LIVE_META;
-  var _lp=document.getElementById('upd-when'); if(_lp) _lp.textContent='обновлено '+(_m.pulled||'')+' · данные по '+(_m.through||'')+' включительно';
+  var _lp=document.querySelector('.live-pill'); if(_lp) _lp.textContent='⚡ из iiko · обновлено '+(_m.pulled||'')+' · 8:00';
   var _sub=document.querySelector('.topbar-text p');
   if(_sub) _sub.textContent='Мастерская Сегодня · готовая продукция · склады ГП · обновлено '+(_m.pulled||'')+' · данные по '+(_m.through||'');
   // ——— баннер самопроверки: расхождения с прошлым снимком / сходимость с iiko ———
