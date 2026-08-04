@@ -491,7 +491,10 @@ print(f"  Склады:      {', '.join(склады_all[:5])}")
 print(f"  Источник:    {source}")
 
 # sku_live.js — свежие живые данные для sku360.html (он их подхватит вместо зашитого снимка)
-open(os.path.join(PARENT_DIR, 'sku_live.js'), 'w', encoding='utf-8').write('window.SKU_DATA_LIVE=' + new_json + ';')
+_through = date.fromordinal(date.today().toordinal() - 1).strftime("%d.%m.%Y")
+_sku_meta = json.dumps({"pulled": data['updated'], "through": _through}, ensure_ascii=False)
+open(os.path.join(PARENT_DIR, 'sku_live.js'), 'w', encoding='utf-8').write(
+    'window.SKU_DATA_LIVE=' + new_json + ';\nwindow.SKU_LIVE_META=' + _sku_meta + ';')
 print("  → sku_live.js (для sku360)")
 print("  Помесячно (выручка / маржа):")
 for _i, _lb in enumerate(MO_LABELS):
