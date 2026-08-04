@@ -39,7 +39,27 @@ def main():
     log(f"Битрикс-робот · {today:%d.%m.%Y}")
     if not WH:
         log("[!] Секрет BITRIX_WEBHOOK не задан — робот не может подключиться."); return
-    log(f"портал: {WH.split('/rest/')[0] if '/rest/' in WH else '—'}\n")
+    log(f"портал: {WH.split('/rest/')[0] if '/rest/' in WH else '—'}")
+
+    # 0) диагностика структуры URL вебхука (без раскрытия токена)
+    seg = WH.split("/rest/")
+    log("URL содержит '/rest/':", len(seg) == 2)
+    if len(seg) == 2:
+        tail = [x for x in seg[1].strip("/").split("/") if x]
+        log(f"  сегментов после /rest/: {len(tail)} | userId: {tail[0] if tail else '—'} | "
+            f"длина токена: {len(tail[1]) if len(tail) > 1 else 0}")
+        if len(tail) > 2:
+            log(f"  [!] лишние сегменты в URL: {tail[2:]} — вебхук должен заканчиваться на userId/token/")
+    # сырой ответ на profile (GET и POST, с .json и без) — чтобы увидеть реальную причину
+    import urllib.request as _u
+    for variant in (WH + "/profile.json", WH + "/profile"):
+        try:
+            with _u.urlopen(variant, timeout=30) as r:
+                body = r.read().decode("utf-8", "replace")[:200]
+            log(f"  GET {variant.split('/rest/')[0]}/rest/.../profile{'.json' if '.json' in variant else ''} → {body}")
+        except Exception as e:
+            log(f"  GET .../profile → {type(e).__name__}: {str(e)[:120]}")
+    log("")
 
     # 1) авторизация / права
     prof, err = call("profile")
