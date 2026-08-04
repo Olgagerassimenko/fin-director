@@ -1,5 +1,10 @@
 Битрикс-робот · 04.08.2026
 портал: https://segodnya.bitrix24.kz
+URL содержит '/rest/': True
+  сегментов после /rest/: 3 | userId: 9781 | длина токена: 16
+  [!] лишние сегменты в URL: ['crm.deal.list.json'] — вебхук должен заканчиваться на userId/token/
+  GET .../profile → HTTPError: HTTP Error 404: Not Found
+  GET .../profile → HTTPError: HTTP Error 404: Not Found
 
 profile: ошибка — Method not found!
 scope (права вебхука): ошибка — Method not found! 
