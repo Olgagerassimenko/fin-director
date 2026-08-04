@@ -61,7 +61,7 @@ tr.empty td{color:#7d72b0}
 <div class="wrap">
   <div class="tabs" id="tabs"></div>
   <div id="view"></div>
-  <div class="foot">Система «Пульс» · автор: <b>Ольга Герасименко</b> · © 2026 · Май и июнь — факт из iiko · Июль — план оплат (загружено) · Август — план по образцу июля</div>
+  <div class="foot">Система «Пульс» · автор: <b>Ольга Герасименко</b> · © 2026 · Июль — загруженные данные (план оплат), Август — план по образцу июля</div>
 </div>
 <script>
 var PLAN=__DATA__;
@@ -111,7 +111,7 @@ function render(){
   if(cur==='year'){
     document.getElementById('sub').textContent='Весь 2026 · помесячно · недели с датами';
     var yi=0,ye=0;PLAN.order.forEach(function(k){var tt=monthTotals(PLAN.months[k]);yi+=tt.inc;ye+=tt.exp;});
-    v+='<div class="kpis">'+kpi('inc','Доход за год',mln(yi),'факт (май–июнь) + план')+kpi('exp','Расход за год',mln(ye),'факт (май–июнь) + план')+kpi('bal','Баланс',mln(yi-ye),'нетто')+kpi('cov','Покрытие',(ye?(yi/ye*100).toFixed(1).replace('.',','):'—')+'%','доход/расход')+'</div>';
+    v+='<div class="kpis">'+kpi('inc','Доход за год',mln(yi),'план, где задан')+kpi('exp','Расход за год',mln(ye),'план, где задан')+kpi('bal','Баланс',mln(yi-ye),'нетто')+kpi('cov','Покрытие',(ye?(yi/ye*100).toFixed(1).replace('.',','):'—')+'%','доход/расход')+'</div>';
     v+='<div class="chartbox"><h2>Доход / расход по месяцам</h2>'+svgYear()+leg()+'</div>';
     v+='<div class="card"><h2>Все месяцы</h2><table><thead><tr><th class="l">Месяц</th><th>Статус</th><th>Доход</th><th>Расход</th><th>Баланс</th><th>Покрытие</th></tr></thead><tbody>';
     PLAN.order.forEach(function(k){var m=PLAN.months[k];var tt=monthTotals(m);var has=(m.weeks||[]).length>0;
