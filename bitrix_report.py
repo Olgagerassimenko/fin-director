@@ -13,6 +13,13 @@ bitrix_report.py — робот по оплатам из Битрикс24 (то�
 import os, json, urllib.request, urllib.error, datetime, re, sys
 
 WH = (os.environ.get("BITRIX_WEBHOOK") or "").strip().rstrip("/")
+# Нормализация: рабочий вебхук — .../rest/{userId}/{token}/ . Если в секрет случайно
+# дописали метод (напр. .../crm.deal.list.json) — отрезаем всё после токена.
+if "/rest/" in WH:
+    _base, _rest = WH.split("/rest/", 1)
+    _parts = [x for x in _rest.split("/") if x]
+    if len(_parts) >= 2:
+        WH = _base + "/rest/" + _parts[0] + "/" + _parts[1]
 LOG = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "bitrix_log.txt"), "w", encoding="utf-8")
 def log(*a):
     t = " ".join(str(x) for x in a); print(t); LOG.write(t + "\n"); LOG.flush()
