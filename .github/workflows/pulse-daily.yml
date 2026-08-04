@@ -38,6 +38,9 @@ jobs:
       - name: "2. Пересборка дашборда продаж"
         continue-on-error: true
         run: python rebuild_sales.py
+      - name: "2b. ОПиУ из iiko (для сверки на дашборде продаж)"
+        continue-on-error: true
+        run: python opiu_iiko.py
       - name: "3. Контрагенты — что купили"
         continue-on-error: true
         run: python gen_contractor_items.py
@@ -81,7 +84,7 @@ jobs:
         run: |
           git config user.name "pulse-ci"
           git config user.email "ci@local"
-          git add -f продажи_2026.html дашборд_ддс.html дашборд_ддс_прямой.html закуп.html дашборд_sku_iiko.html *_meta.js sku_live.js contractor_items.js 2>/dev/null || true
+          git add -f продажи_2026.html дашборд_ддс.html дашборд_ддс_прямой.html закуп.html дашборд_sku_iiko.html *_meta.js sku_live.js contractor_items.js opiu_rev.js 2>/dev/null || true
           git commit -m "Свежие данные дашбордов [skip ci]" || echo "нет изменений"
           git pull --rebase --autostash origin main || true
           git push origin HEAD:main || echo "push не удался"

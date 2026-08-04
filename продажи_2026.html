@@ -296,43 +296,71 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 <div class="section" style="padding-top:6px">
   <details class="opiu-check" style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:0;overflow:hidden">
     <summary style="cursor:pointer;list-style:none;padding:14px 18px;font-size:14px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:8px;user-select:none">
-      <span style="color:#c9a94e">🔍 Сверка выручки с ОПиУ</span>
+      <span style="color:#c9a94e">&#128269; Сверка выручки с ОПиУ</span>
       <span style="font-weight:500;font-size:12px;color:#94a3b8">— нажмите, чтобы раскрыть</span>
-      <span style="margin-left:auto;color:#64748b;font-size:12px" class="opiu-hint">▼</span>
+      <span style="margin-left:auto;color:#64748b;font-size:12px" class="opiu-hint">&#9660;</span>
     </summary>
     <div style="padding:4px 18px 18px">
       <p style="font-size:12.5px;color:#94a3b8;line-height:1.6;margin:6px 0 14px">
-        Слева — выручка из iiko (расходные накладные за вычетом возвратов, как на графике выше), справа — выручка из отчёта ОПиУ. Расхождение по закрытым месяцам меньше 1% — данные сходятся. Июнь–август в ОПиУ ещё не закрыты.
+        <b style="color:#cbd5e1">iiko &#8596; iiko, напрямую.</b> Слева — продажи из отчёта «I Отчёт ПРОДАЖИ» (выручка расходных накладных за вычетом возвратов). Справа — выручка из ОПиУ, взятая прямо из iiko: обороты по доходным счетам подразделения «Фуд завод». «Торговая» — это те же расходные накладные (должны сходиться), «Итого» = торговая + прочая выручка.
       </p>
-      <table class="opiu-tbl" style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr>
-          <th class="l" style="text-align:left;color:#94a3b8;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:8px;border-bottom:1px solid #334155">Месяц</th>
-          <th style="text-align:right;color:#94a3b8;font-weight:600;font-size:11px;padding:8px;border-bottom:1px solid #334155">Продажи (iiko), млн ₸</th>
-          <th style="text-align:right;color:#94a3b8;font-weight:600;font-size:11px;padding:8px;border-bottom:1px solid #334155">ОПиУ, млн ₸</th>
-          <th style="text-align:right;color:#94a3b8;font-weight:600;font-size:11px;padding:8px;border-bottom:1px solid #334155">Δ, млн</th>
-          <th style="text-align:right;color:#94a3b8;font-weight:600;font-size:11px;padding:8px;border-bottom:1px solid #334155">Δ, %</th>
-        </tr></thead>
-        <tbody><tr><td class="l">Январь</td><td>235,9</td><td>237,3</td><td class="pos">−1,4</td><td class="pos">−0.6%</td></tr><tr><td class="l">Февраль</td><td>225,6</td><td>226,0</td><td class="pos">−0,4</td><td class="pos">−0.2%</td></tr><tr><td class="l">Март</td><td>256,5</td><td>258,0</td><td class="pos">−1,5</td><td class="pos">−0.6%</td></tr><tr><td class="l">Апрель</td><td>261,0</td><td>262,1</td><td class="pos">−1,1</td><td class="pos">−0.4%</td></tr><tr><td class="l">Май</td><td>259,8</td><td>260,8</td><td class="pos">−1,0</td><td class="pos">−0.4%</td></tr><tr><td class="l">Июнь</td><td>266,8</td><td class="mut" colspan="3" style="text-align:center">— не закрыт в ОПиУ —</td></tr><tr><td class="l">Июль</td><td>278,3</td><td class="mut" colspan="3" style="text-align:center">— не закрыт в ОПиУ —</td></tr><tr><td class="l">Август (1–3)</td><td>25,9</td><td class="mut" colspan="3" style="text-align:center">— частичный месяц —</td></tr>
-        <tr style="border-top:2px solid #334155;font-weight:700">
-          <td class="l" style="text-align:left;padding:9px 8px;color:#f1f5f9">Итого янв–май</td>
-          <td style="text-align:right;padding:9px 8px;color:#f1f5f9">1 238,9</td>
-          <td style="text-align:right;padding:9px 8px;color:#f1f5f9">1 244,2</td>
-          <td class="pos" style="text-align:right;padding:9px 8px">−5,3</td>
-          <td class="pos" style="text-align:right;padding:9px 8px">-0.4%</td>
-        </tr>
-        </tbody>
-      </table>
+      <div id="opiu-check-table" style="font-size:13px;color:#94a3b8">Загрузка данных ОПиУ из iiko…</div>
+      <p id="opiu-check-foot" style="font-size:11px;color:#64748b;margin:12px 0 0;line-height:1.5"></p>
     </div>
   </details>
 </div>
 <style>
-.opiu-tbl td{padding:8px;border-bottom:1px solid #26334a}
-.opiu-tbl td:not(.l){text-align:right;font-variant-numeric:tabular-nums;color:#e2e8f0}
+.opiu-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.opiu-tbl th{text-align:right;color:#94a3b8;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:8px;border-bottom:1px solid #334155}
+.opiu-tbl th.l{text-align:left}
+.opiu-tbl td{padding:8px;border-bottom:1px solid #26334a;text-align:right;font-variant-numeric:tabular-nums;color:#e2e8f0}
 .opiu-tbl td.l{text-align:left;color:#f1f5f9;font-weight:600}
-.opiu-tbl td.pos{color:#34d399} .opiu-tbl td.warn{color:#fbbf24} .opiu-tbl td.mut{color:#64748b}
+.opiu-tbl td.pos{color:#34d399} .opiu-tbl td.warn{color:#fbbf24} .opiu-tbl td.mut{color:#64748b} .opiu-tbl td.mut2{color:#93a4bd}
+.opiu-tbl tr.tot td{border-top:2px solid #334155;font-weight:700;color:#f1f5f9}
 details.opiu-check[open] .opiu-hint{transform:rotate(180deg);display:inline-block}
 details.opiu-check summary::-webkit-details-marker{display:none}
 </style>
+<script>
+(function(){
+  var MN={"01":"Январь","02":"Февраль","03":"Март","04":"Апрель","05":"Май","06":"Июнь","07":"Июль","08":"Август","09":"Сентябрь","10":"Октябрь","11":"Ноябрь","12":"Декабрь"};
+  function f(v){return (v<0?"−":"")+Math.abs(Math.round(v/1e6)*1).toLocaleString("ru-RU");}
+  function mln(v){return (v<0?"−":"")+(Math.abs(v)/1e6).toFixed(1).replace(".",",");}
+  function render(){
+    var el=document.getElementById("opiu-check-table"); if(!el) return;
+    var O=window.OPIU_REV||{}, DS=window.DS||{};
+    var keys=Object.keys(O).filter(function(k){return /^\d{4}-\d{2}$/.test(k);}).sort();
+    if(!keys.length){ el.textContent="Данные ОПиУ подтянутся из iiko при следующем обновлении."; return; }
+    var last=keys[keys.length-1];
+    var sP=0,sT=0,sI=0,html='<table class="opiu-tbl"><thead><tr><th class="l">Месяц</th><th>Продажи, млн ₸</th><th>ОПиУ: Торговая, млн</th><th>Δ, млн</th><th>Δ, %</th><th>ОПиУ: Итого, млн</th></tr></thead><tbody>';
+    keys.forEach(function(k){
+      var mm=k.slice(5), nm=MN[mm]||k;
+      var t=O[k].trade, it=O[k].itogo;
+      var p=(DS[k]&&typeof DS[k].total_rev==="number")?DS[k].total_rev:null;
+      var partial=false, d=null, dp=null;
+      if(p!==null){ d=p-t; dp=t?d/t*100:0; if(k===last && Math.abs(dp)>15) partial=true; }
+      if(p===null || partial){
+        html+='<tr><td class="l">'+nm+(partial?" (частичный)":"")+'</td><td>'+(p!==null?mln(p):"—")+'</td><td>'+mln(t)+'</td><td class="mut" colspan="2" style="text-align:center">'+(p===null?"нет в дашборде":"периоды не совпадают")+'</td><td class="mut2">'+mln(it)+'</td></tr>';
+      } else {
+        sP+=p; sT+=t; sI+=it;
+        var cls=Math.abs(dp)<1?"pos":"warn";
+        html+='<tr><td class="l">'+nm+'</td><td>'+mln(p)+'</td><td>'+mln(t)+'</td><td class="'+cls+'">'+(d>=0?"+":"−")+mln(Math.abs(d))+'</td><td class="'+cls+'">'+(dp>=0?"+":"−")+Math.abs(dp).toFixed(1)+'%</td><td class="mut2">'+mln(it)+'</td></tr>';
+      }
+    });
+    if(sT){ var dT=sP-sT, dTp=dT/sT*100;
+      html+='<tr class="tot"><td class="l">Итого (сошедшиеся месяцы)</td><td>'+mln(sP)+'</td><td>'+mln(sT)+'</td><td class="pos">'+(dT>=0?"+":"−")+mln(Math.abs(dT))+'</td><td class="pos">'+(dTp>=0?"+":"−")+Math.abs(dTp).toFixed(1)+'%</td><td class="mut2">'+mln(sI)+'</td></tr>';
+    }
+    html+='</tbody></table>';
+    el.innerHTML=html;
+    var ft=document.getElementById("opiu-check-foot");
+    if(ft) ft.textContent="Продажи и ОПиУ тянутся из iiko автоматически каждое утро. ОПиУ — обороты по доходным счетам «Фуд завод»"+(O._pulled?" · обновлено "+O._pulled:"")+".";
+  }
+  function boot(){ render(); if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",render);} }
+  var sc=document.createElement("script"); sc.src="/opiu_rev.js?v="+(window.SALES_META&&window.SALES_META.pulled?encodeURIComponent(window.SALES_META.pulled):"1");
+  sc.onload=boot;
+  sc.onerror=function(){ var el=document.getElementById("opiu-check-table"); if(el) el.textContent="Данные ОПиУ подтянутся из iiko при следующем обновлении."; };
+  document.head.appendChild(sc);
+})();
+</script>
 <div id="kpi-row" class="kpi-row">
   <div class="kpi"><div class="kpi-val" id="k-rev">—</div><div class="kpi-lbl">Выручка</div></div>
   <div class="kpi"><div class="kpi-val" id="k-cats">—</div><div class="kpi-lbl">Категорий</div></div>
