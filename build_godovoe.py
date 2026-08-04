@@ -30,10 +30,13 @@ def month_obj(label, wlabels, inc, exp, status):
     weeks=[{"d":wlabels[i],"inc":inc[i],"exp":exp[i]} for i in range(len(wlabels))]
     return {"label":label,"status":status,"weeks":weeks}
 
+# май/июнь — факт из iiko (недельно), посчитано отдельно
+mj=json.load(open("/tmp/mayjun.json",encoding="utf-8"))
+
 MONTHS=[
  ("2026-01","Январь",None),("2026-02","Февраль",None),("2026-03","Март",None),
- ("2026-04","Апрель",None),("2026-05","Май",None),("2026-06","Июнь",None),
- ("2026-07","Июль","факт/план"),("2026-08","Август","план"),
+ ("2026-04","Апрель",None),("2026-05","Май","факт"),("2026-06","Июнь","факт"),
+ ("2026-07","Июль","план"),("2026-08","Август","план"),
  ("2026-09","Сентябрь",None),("2026-10","Октябрь",None),
  ("2026-11","Ноябрь",None),("2026-12","Декабрь",None),
 ]
@@ -41,6 +44,7 @@ YEAR={}
 for key,label,st in MONTHS:
     if key=="2026-07": YEAR[key]=month_obj(label,jul_w,jul_inc,jul_exp,st)
     elif key=="2026-08": YEAR[key]=month_obj(label,aug_w,aug_inc,aug_exp,st)
+    elif key in mj: YEAR[key]=month_obj(label,mj[key]["labels"],mj[key]["inc"],mj[key]["exp"],st)
     else: YEAR[key]={"label":label,"status":None,"weeks":[]}
 
 DATA={"year":2026,"updated":"04.08.2026","months":YEAR,"order":[m[0] for m in MONTHS]}
