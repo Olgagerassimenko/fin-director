@@ -185,6 +185,16 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
           <span class="card-badge" id="ddsp-upd" style="background:#f0fdf4;color:#166534;">🕒 обновлено…</span>
         </div>
       </a>
+      <a class="card" href="дашборд_ддс_июль.html">
+        <div class="card-accent" style="background:linear-gradient(90deg,#38bdf8,#0ea5e9)"></div>
+        <div class="card-icon">🎯</div>
+        <div class="card-title">ДДС · План-факт · Июль</div>
+        <div class="card-desc">Сравнение плана оплат с фактом iiko за июль: поступления и выплаты по статьям, отклонения, исполнение плана.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🎯 план vs факт</span>
+          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📅 июль 2026</span>
+        </div>
+      </a>
       <a class="card" href="опиу_2025_2026.html">
         <div class="card-accent" style="background:linear-gradient(90deg,#10b981,#059669)"></div>
         <div class="card-icon">📈</div>
@@ -234,7 +244,10 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
         <div class="card-icon">🛒</div>
         <div class="card-title">Продажи 2026</div>
         <div class="card-desc">Динамика продаж 2026: топ SKU, каналы сбыта, помесячно. Интерактивный дашборд.</div>
-        <span class="card-badge" style="background:#ecfdf5;color:#047857;">🔄 из iiko · обновление в 8:00</span>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 из iiko · каждое утро</span>
+          <span class="card-badge" id="sales-upd" style="background:#f0fdf4;color:#166534;">🕒 обновлено…</span>
+        </div>
       </a>
       <a class="card" href="закуп.html">
         <div class="card-accent" style="background:linear-gradient(90deg,#e8c766,#d4af37)"></div>
@@ -304,6 +317,9 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
         ' (маржа ' + mrg + '%). Топ SKU, категории, контрагенты, разбор изменений по месяцам.';
       var sp = document.getElementById('sales-src');
       if(sp && M.pulled) sp.title = 'обновлено ' + M.pulled + ' · данные по ' + M.through;
+      var su = document.getElementById('sales-upd');
+      if(su && M.pulled){ su.textContent = '🕒 обновлено ' + M.pulled.split(' ')[0];
+        su.title = 'данные из iiko по ' + (M.through || M.pulled.split(' ')[0]); }
     }catch(e){}
   };
   document.head.appendChild(sc);
