@@ -121,7 +121,7 @@ function grp(a){ if(isInt(a.cat))return 'int'; const t=(a.type||'').toUpperCase(
 const GROUPS=[['op','Операционная деятельность'],['inv','Инвестиционная деятельность'],
               ['fin','Финансовая деятельность'],['int','Внутренние переводы между своими счетами']];
 document.getElementById('prov').textContent=D.prov||('источник: iiko · обновлено '+(D.updated||''));
-(function(){var lv=document.getElementById('live');if(lv&&D.updated)lv.textContent='🔄 обновлено '+(D.updatedFull||D.updated)+' · из iiko';})();
+(function(){var lv=document.getElementById('live');if(lv)lv.textContent='🔄 данные из iiko · обновлено '+(D.updatedFull||D.updated||'')+' · данные по '+(D.through||'')+' включительно';})();
 const MK=Object.keys(D.months).sort();
 const accNet=(a,acc)=>{const b=(a.byAcc||{})[acc];return b?(b.in-b.out):0;};
 

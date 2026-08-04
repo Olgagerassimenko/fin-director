@@ -100,7 +100,7 @@ const SIGN=v=>(v<0?'−':'+')+RUB(v);
 const MLN=v=>{const a=Math.abs(v);return a>=1e6?(v<0?'−':'')+(a/1e6).toFixed(1).replace('.',',')+' млн':a>=1e3?(v<0?'−':'')+(a/1e3).toFixed(0)+' тыс':SUM(v);};
 const PR=v=>Math.round(v).toLocaleString('ru-RU');
 document.getElementById('prov').textContent='источник: iiko · обновлено '+(D.updated||'');
-(function(){var lv=document.getElementById('live');if(lv&&D.updatedFull)lv.textContent='🔄 обновлено '+D.updatedFull+' · из iiko';})();
+(function(){var lv=document.getElementById('live');if(lv)lv.textContent='🔄 данные из iiko · обновлено '+(D.updatedFull||D.updated||'')+' · данные по '+(D.through||'')+' включительно';})();
 
 const TABS=[['po','📥 Приход и оплата'],['tv','🧾 Что закупали'],['dv','📊 Движение по складу'],['sk','🏭 Сырьё → Производство'],['ce','💲 Цены закупа'],['os','📦 Остатки на складе'],['kz','📋 Долги поставщикам'],['pm','🗓 План оплат на месяц']];
 /* combo: столбцы = приход, линия = оплата (или один ряд) */
