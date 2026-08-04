@@ -5,6 +5,9 @@ on:
     # 03:00 UTC = 08:00 Asia/Qyzylorda (UTC+5). Время GitHub может плавать на несколько минут.
     - cron: "0 3 * * *"
   workflow_dispatch: {}
+  push:
+    branches: [main]
+    # Полный прогон при каждом коммите. Шаг сохранения ставит [skip ci], поэтому автопуш не зациклится.
 
 permissions:
   contents: write      # чтобы сохранять свежие дашборды обратно в репозиторий
