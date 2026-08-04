@@ -1,0 +1,14 @@
+Битрикс-робот · 04.08.2026
+портал: https://segodnya.bitrix24.kz
+
+profile: ошибка — Method not found!
+scope (права вебхука): ошибка — Method not found! 
+
+Смарт-процессы: нет / нет доступа — Method not found!
+lists.get(lists): Method not found!
+lists.get(bitrix_processes): Method not found!
+tasks.task.list: Method not found!
+crm.deal.list: Method not found!
+bizproc.workflow.template.list: Method not found!
+
+Готово. Файлы: bitrix_log.txt, bitrix_отчёт_оплаты.html
