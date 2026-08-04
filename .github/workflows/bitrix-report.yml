@@ -1,0 +1,40 @@
+name: Битрикс — отчёт по оплатам
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "bitrix_report.py"
+      - ".github/workflows/bitrix-report.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bitrix-report
+  cancel-in-progress: true
+
+jobs:
+  bitrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Робот по оплатам (разведка + отчёт)
+        continue-on-error: true
+        env:
+          BITRIX_WEBHOOK: ${{ secrets.BITRIX_WEBHOOK }}
+        run: python bitrix_report.py
+      - name: Сохранить результат обратно
+        if: always()
+        run: |
+          git config user.name "pulse-ci"
+          git config user.email "ci@local"
+          git add -f bitrix_log.txt "bitrix_отчёт_оплаты.html" 2>/dev/null || true
+          git commit -m "Битрикс: результат робота по оплатам [skip ci]" || echo "нет изменений"
+          git pull --rebase --autostash origin main || true
+          git push origin HEAD:main || echo "push не удался"
