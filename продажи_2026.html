@@ -292,6 +292,47 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
   <div class="section-title">📅 Динамика выручки по месяцам <span style="font-weight:500;font-size:.62em;color:#c9a94e;letter-spacing:.02em">(за вычетом возвратов)</span></div>
   <div class="card"><canvas id="ch-year" height="340"></canvas></div>
 </div>
+
+<div class="section" style="padding-top:6px">
+  <details class="opiu-check" style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:0;overflow:hidden">
+    <summary style="cursor:pointer;list-style:none;padding:14px 18px;font-size:14px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:8px;user-select:none">
+      <span style="color:#c9a94e">🔍 Сверка выручки с ОПиУ</span>
+      <span style="font-weight:500;font-size:12px;color:#94a3b8">— нажмите, чтобы раскрыть</span>
+      <span style="margin-left:auto;color:#64748b;font-size:12px" class="opiu-hint">▼</span>
+    </summary>
+    <div style="padding:4px 18px 18px">
+      <p style="font-size:12.5px;color:#94a3b8;line-height:1.6;margin:6px 0 14px">
+        Слева — выручка из iiko (расходные накладные за вычетом возвратов, как на графике выше), справа — выручка из отчёта ОПиУ. Расхождение по закрытым месяцам меньше 1% — данные сходятся. Июнь–август в ОПиУ ещё не закрыты.
+      </p>
+      <table class="opiu-tbl" style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr>
+          <th class="l" style="text-align:left;color:#94a3b8;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:8px;border-bottom:1px solid #334155">Месяц</th>
+          <th style="text-align:right;color:#94a3b8;font-weight:600;font-size:11px;padding:8px;border-bottom:1px solid #334155">Продажи (iiko), млн ₸</th>
+          <th style="text-align:right;color:#94a3b8;font-weight:600;font-size:11px;padding:8px;border-bottom:1px solid #334155">ОПиУ, млн ₸</th>
+          <th style="text-align:right;color:#94a3b8;font-weight:600;font-size:11px;padding:8px;border-bottom:1px solid #334155">Δ, млн</th>
+          <th style="text-align:right;color:#94a3b8;font-weight:600;font-size:11px;padding:8px;border-bottom:1px solid #334155">Δ, %</th>
+        </tr></thead>
+        <tbody><tr><td class="l">Январь</td><td>235,9</td><td>237,3</td><td class="pos">−1,4</td><td class="pos">−0.6%</td></tr><tr><td class="l">Февраль</td><td>225,6</td><td>226,0</td><td class="pos">−0,4</td><td class="pos">−0.2%</td></tr><tr><td class="l">Март</td><td>256,5</td><td>258,0</td><td class="pos">−1,5</td><td class="pos">−0.6%</td></tr><tr><td class="l">Апрель</td><td>261,0</td><td>262,1</td><td class="pos">−1,1</td><td class="pos">−0.4%</td></tr><tr><td class="l">Май</td><td>259,8</td><td>260,8</td><td class="pos">−1,0</td><td class="pos">−0.4%</td></tr><tr><td class="l">Июнь</td><td>266,8</td><td class="mut" colspan="3" style="text-align:center">— не закрыт в ОПиУ —</td></tr><tr><td class="l">Июль</td><td>278,3</td><td class="mut" colspan="3" style="text-align:center">— не закрыт в ОПиУ —</td></tr><tr><td class="l">Август (1–3)</td><td>25,9</td><td class="mut" colspan="3" style="text-align:center">— частичный месяц —</td></tr>
+        <tr style="border-top:2px solid #334155;font-weight:700">
+          <td class="l" style="text-align:left;padding:9px 8px;color:#f1f5f9">Итого янв–май</td>
+          <td style="text-align:right;padding:9px 8px;color:#f1f5f9">1 238,9</td>
+          <td style="text-align:right;padding:9px 8px;color:#f1f5f9">1 244,2</td>
+          <td class="pos" style="text-align:right;padding:9px 8px">−5,3</td>
+          <td class="pos" style="text-align:right;padding:9px 8px">-0.4%</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</div>
+<style>
+.opiu-tbl td{padding:8px;border-bottom:1px solid #26334a}
+.opiu-tbl td:not(.l){text-align:right;font-variant-numeric:tabular-nums;color:#e2e8f0}
+.opiu-tbl td.l{text-align:left;color:#f1f5f9;font-weight:600}
+.opiu-tbl td.pos{color:#34d399} .opiu-tbl td.warn{color:#fbbf24} .opiu-tbl td.mut{color:#64748b}
+details.opiu-check[open] .opiu-hint{transform:rotate(180deg);display:inline-block}
+details.opiu-check summary::-webkit-details-marker{display:none}
+</style>
 <div id="kpi-row" class="kpi-row">
   <div class="kpi"><div class="kpi-val" id="k-rev">—</div><div class="kpi-lbl">Выручка</div></div>
   <div class="kpi"><div class="kpi-val" id="k-cats">—</div><div class="kpi-lbl">Категорий</div></div>
