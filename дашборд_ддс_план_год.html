@@ -1,0 +1,141 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ДДС — Годовое планирование 2026</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#1b1140;color:#e9e6f5}
+.hdr{background:#fff;color:#1b1140;padding:18px 26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.logo{font-weight:900;color:#e11d48;border:2px solid #e11d48;border-radius:40px;padding:6px 16px;font-size:15px;transform:rotate(-3deg)}
+.hdr h1{margin:0;font-size:22px}
+.hdr .sub{margin:2px 0 0;font-size:12.5px;color:#6b7280}
+.hdr .right{margin-left:auto;text-align:right}
+.upd{font-size:12px;color:#6b7280}
+.live{display:inline-flex;align-items:center;gap:6px;background:#f5f3ff;color:#6d28d9;border:1px solid #c4b5fd;border-radius:20px;padding:5px 13px;font-size:12px;font-weight:700;margin-top:5px}
+.live::before{content:'';width:7px;height:7px;border-radius:50%;background:#7c3aed}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 18px 60px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab{background:#2a1c5c;border:1px solid #3b2a72;color:#c9c0ee;border-radius:11px;padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.tab.active{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.tab.empty{opacity:.45}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpi{background:#fff;border-radius:16px;padding:16px 18px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.kpi.inc::before{background:#eab308}.kpi.exp::before{background:#f43f5e}
+.kpi.bal::before{background:#10b981}.kpi.cov::before{background:#7c3aed}
+.kpi .t{font-size:11px;color:#6b7280;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.kpi .v{font-size:26px;font-weight:900;color:#111827}
+.kpi.inc .v{color:#a16207}.kpi.exp .v{color:#be123c}.kpi.bal .v{color:#047857}.kpi.cov .v{color:#6d28d9}
+.kpi .s{font-size:11.5px;color:#9ca3af;margin-top:3px}
+.card{background:#241750;border:1px solid #34246e;border-radius:18px;padding:20px;margin-bottom:22px}
+.card h2{margin:0 0 16px;font-size:16px;color:#efeaff}
+.weekgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.wk{background:#2c1e63;border:1px solid #3d2c7e;border-radius:14px;padding:14px}
+.wk .wd{font-size:12px;color:#b9aeea;font-weight:700;margin-bottom:2px}
+.wk .wn{font-size:11px;color:#8a7fc0;margin-bottom:10px}
+.wk .row{display:flex;justify-content:space-between;font-size:12.5px;margin:4px 0}
+.wk .row b{font-weight:800}
+.inc{color:#fbbf24}.exp{color:#fb7185}.bal{color:#34d399}.cov{color:#c4b5fd}
+.chartbox{background:#241750;border:1px solid #34246e;border-radius:18px;padding:20px;margin-bottom:22px}
+.legend{display:flex;gap:18px;justify-content:center;font-size:12.5px;color:#c9c0ee;margin-top:12px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:middle}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{color:#a99fd6;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:8px;text-align:right;border-bottom:1px solid #3d2c7e}
+th.l,td.l{text-align:left}
+td{padding:9px 8px;border-bottom:1px solid #2e2064;text-align:right;font-variant-numeric:tabular-nums}
+tr.empty td{color:#7d72b0}
+.badge-st{font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:700}
+.st-fakt{background:#064e3b;color:#6ee7b7}.st-plan{background:#3b2a72;color:#c4b5fd}
+.foot{text-align:center;color:#8a7fc0;font-size:11.5px;margin-top:24px;line-height:1.7}
+@media(max-width:768px){.kpis{grid-template-columns:repeat(2,1fr)}.hdr h1{font-size:18px}}
+</style></head>
+<body>
+<div class="hdr">
+  <div class="logo">сегодня</div>
+  <div><h1>ДДС — Годовое планирование 2026</h1><div class="sub" id="sub">Помесячно · недели с датами · доход, расход, баланс, покрытие</div></div>
+  <div class="right"><div class="upd">Обновлено: <span id="upd"></span></div><div class="live" id="live">план</div></div>
+</div>
+<div class="wrap">
+  <div class="tabs" id="tabs"></div>
+  <div id="view"></div>
+  <div class="foot">Система «Пульс» · автор: <b>Ольга Герасименко</b> · © 2026 · Июль — загруженные данные (план оплат), Август — план по образцу июля</div>
+</div>
+<script>
+var PLAN={"year": 2026, "updated": "04.08.2026", "months": {"2026-01": {"label": "Январь", "status": null, "weeks": []}, "2026-02": {"label": "Февраль", "status": null, "weeks": []}, "2026-03": {"label": "Март", "status": null, "weeks": []}, "2026-04": {"label": "Апрель", "status": null, "weeks": []}, "2026-05": {"label": "Май", "status": null, "weeks": []}, "2026-06": {"label": "Июнь", "status": null, "weeks": []}, "2026-07": {"label": "Июль", "status": "факт/план", "weeks": [{"d": "29.06–03.07", "inc": 53250000, "exp": 46649942}, {"d": "06.07–10.07", "inc": 53750000, "exp": 70437800}, {"d": "13.07–17.07", "inc": 71715000, "exp": 59807564}, {"d": "20.07–24.07", "inc": 49520000, "exp": 48801360}, {"d": "27.07–31.07", "inc": 52520000, "exp": 56803929}]}, "2026-08": {"label": "Август", "status": "план", "weeks": [{"d": "03.08–07.08", "inc": 53250000, "exp": 44149942}, {"d": "10.08–14.08", "inc": 55650000, "exp": 70437800}, {"d": "17.08–21.08", "inc": 72665000, "exp": 59807564}, {"d": "24.08–28.08", "inc": 50040000, "exp": 48801360}, {"d": "31.08–04.09", "inc": 53040000, "exp": 56803929}]}, "2026-09": {"label": "Сентябрь", "status": null, "weeks": []}, "2026-10": {"label": "Октябрь", "status": null, "weeks": []}, "2026-11": {"label": "Ноябрь", "status": null, "weeks": []}, "2026-12": {"label": "Декабрь", "status": null, "weeks": []}}, "order": ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12"]};
+document.getElementById('upd').textContent=PLAN.updated;
+var mln=function(v){var a=Math.abs(v);return (v<0?'−':'')+(a>=1e9?(a/1e9).toFixed(2).replace('.',',')+' млрд':Math.round(a/1e6)+' М');};
+var fmt=function(v){return (v<0?'−':'')+Math.abs(Math.round(v)).toLocaleString('ru-RU');};
+var cur='2026-08';
+function monthTotals(m){var i=0,e=0;(m.weeks||[]).forEach(function(w){i+=w.inc;e+=w.exp;});return{inc:i,exp:e,bal:i-e,cov:e?i/e*100:0};}
+function svgBars(weeks){
+  if(!weeks.length) return '<div style="color:#8a7fc0;padding:20px;text-align:center">Нет данных за месяц</div>';
+  var max=0;weeks.forEach(function(w){max=Math.max(max,w.inc,w.exp);});
+  var W=Math.max(560,weeks.length*110),H=220,pad=30,bw=26,gap=14;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:'+W+'px">';
+  var groupW=(W-pad*2)/weeks.length;
+  weeks.forEach(function(w,i){
+    var x=pad+i*groupW+groupW/2;
+    var ih=(w.inc/max)*(H-70),eh=(w.exp/max)*(H-70);
+    s+='<rect x="'+(x-bw-gap/2)+'" y="'+(H-40-ih)+'" width="'+bw+'" height="'+ih+'" rx="4" fill="#eab308"/>';
+    s+='<rect x="'+(x+gap/2)+'" y="'+(H-40-eh)+'" width="'+bw+'" height="'+eh+'" rx="4" fill="#f43f5e"/>';
+    s+='<text x="'+x+'" y="'+(H-22)+'" text-anchor="middle" fill="#b9aeea" font-size="11" font-weight="700">'+w.d+'</text>';
+    s+='<text x="'+x+'" y="'+(H-8)+'" text-anchor="middle" fill="#8a7fc0" font-size="10">'+mln(w.inc)+' / '+mln(w.exp)+'</text>';
+  });
+  s+='</svg>';return s;
+}
+function svgYear(){
+  var max=0,ms=PLAN.order.map(function(k){var t=monthTotals(PLAN.months[k]);max=Math.max(max,t.inc,t.exp);return {k:k,m:PLAN.months[k],t:t};});
+  var W=1040,H=240,pad=34;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%">';
+  var gw=(W-pad*2)/12;
+  ms.forEach(function(o,i){
+    var x=pad+i*gw+gw/2;var ih=max?(o.t.inc/max)*(H-70):0,eh=max?(o.t.exp/max)*(H-70):0;
+    s+='<rect x="'+(x-13)+'" y="'+(H-42-ih)+'" width="11" height="'+ih+'" rx="3" fill="#eab308"/>';
+    s+='<rect x="'+(x+2)+'" y="'+(H-42-eh)+'" width="11" height="'+eh+'" rx="3" fill="#f43f5e"/>';
+    s+='<text x="'+x+'" y="'+(H-26)+'" text-anchor="middle" fill="#b9aeea" font-size="10" font-weight="700">'+o.m.label.slice(0,3)+'</text>';
+    if(o.t.inc)s+='<text x="'+x+'" y="'+(H-12)+'" text-anchor="middle" fill="#8a7fc0" font-size="9">'+mln(o.t.inc)+'</text>';
+  });
+  s+='</svg>';return s;
+}
+function render(){
+  var t='';PLAN.order.forEach(function(k){
+    var m=PLAN.months[k];var has=(m.weeks||[]).length>0;
+    t+='<div class="tab'+(cur===k?' active':'')+(has?'':' empty')+'" onclick="sel(\''+k+'\')">'+m.label+'</div>';
+  });
+  t='<div class="tab'+(cur==='year'?' active':'')+'" onclick="sel(\'year\')">📅 Год</div>'+t;
+  document.getElementById('tabs').innerHTML=t;
+  var v='';
+  if(cur==='year'){
+    document.getElementById('sub').textContent='Весь 2026 · помесячно · недели с датами';
+    var yi=0,ye=0;PLAN.order.forEach(function(k){var tt=monthTotals(PLAN.months[k]);yi+=tt.inc;ye+=tt.exp;});
+    v+='<div class="kpis">'+kpi('inc','Доход за год',mln(yi),'план, где задан')+kpi('exp','Расход за год',mln(ye),'план, где задан')+kpi('bal','Баланс',mln(yi-ye),'нетто')+kpi('cov','Покрытие',(ye?(yi/ye*100).toFixed(1).replace('.',','):'—')+'%','доход/расход')+'</div>';
+    v+='<div class="chartbox"><h2>Доход / расход по месяцам</h2>'+svgYear()+leg()+'</div>';
+    v+='<div class="card"><h2>Все месяцы</h2><table><thead><tr><th class="l">Месяц</th><th>Статус</th><th>Доход</th><th>Расход</th><th>Баланс</th><th>Покрытие</th></tr></thead><tbody>';
+    PLAN.order.forEach(function(k){var m=PLAN.months[k];var tt=monthTotals(m);var has=(m.weeks||[]).length>0;
+      v+='<tr class="'+(has?'':'empty')+'"><td class="l">'+m.label+'</td><td>'+(m.status?'<span class="badge-st '+(m.status==="план"?"st-plan":"st-fakt")+'">'+m.status+'</span>':'—')+'</td>'+
+      '<td class="inc">'+(has?fmt(tt.inc):'—')+'</td><td class="exp">'+(has?fmt(tt.exp):'—')+'</td><td class="bal">'+(has?fmt(tt.bal):'—')+'</td><td class="cov">'+(has?tt.cov.toFixed(0)+'%':'—')+'</td></tr>';
+    });
+    v+='</tbody></table></div>';
+  } else {
+    var m=PLAN.months[cur];var tt=monthTotals(m);
+    document.getElementById('sub').textContent=m.label+' 2026 · недели с датами'+(m.status?' · '+m.status:'');
+    v+='<div class="kpis">'+kpi('inc','Итого доход',mln(tt.inc),'за месяц')+kpi('exp','Итого расход',mln(tt.exp),'за месяц')+kpi('bal','Баланс',mln(tt.bal),'нетто')+kpi('cov','Покрытие',(tt.cov?tt.cov.toFixed(1).replace('.',','):'—')+'%','доход/расход')+'</div>';
+    if((m.weeks||[]).length){
+      v+='<div class="chartbox"><h2>Доход vs расход по неделям</h2>'+svgBars(m.weeks)+leg()+'</div>';
+      v+='<div class="card"><h2>Недели ('+m.label+')</h2><div class="weekgrid">';
+      m.weeks.forEach(function(w,i){var bal=w.inc-w.exp,cov=w.exp?w.inc/w.exp*100:0;
+        v+='<div class="wk"><div class="wd">'+w.d+'</div><div class="wn">Неделя '+(i+1)+'</div>'+
+        '<div class="row"><span class="inc">Доход</span><b class="inc">'+fmt(w.inc)+'</b></div>'+
+        '<div class="row"><span class="exp">Расход</span><b class="exp">'+fmt(w.exp)+'</b></div>'+
+        '<div class="row"><span class="bal">Баланс</span><b class="bal">'+fmt(bal)+'</b></div>'+
+        '<div class="row"><span class="cov">Покрытие</span><b class="cov">'+cov.toFixed(0)+'%</b></div></div>';
+      });
+      v+='</div></div>';
+    } else { v+='<div class="card">Плановые данные за '+m.label+' пока не заданы. Добавим — появятся здесь.</div>'; }
+  }
+  document.getElementById('view').innerHTML=v;
+}
+function kpi(c,t,v,s){return '<div class="kpi '+c+'"><div class="t">'+t+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>';}
+function leg(){return '<div class="legend"><span><span class="dot" style="background:#eab308"></span>доход</span><span><span class="dot" style="background:#f43f5e"></span>расход</span></div>';}
+function sel(k){cur=k;render();window.scrollTo(0,0);}
+render();
+</script></body></html>
