@@ -366,6 +366,23 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
   document.head.appendChild(sc);
 })();
 </script>
+<script>
+/* Плашка «Продажи 2026» — дата обновления из iiko (как на SKU и ДДС) */
+(function(){
+  var sc = document.createElement('script');
+  sc.src = '/sales_meta.js?v=2';
+  sc.onload = function(){
+    try{
+      var M = window.SALES_META || {};
+      var e = document.getElementById('sales-upd');
+      var dt = M.pulled ? String(M.pulled).split(' ')[0] : (M.through || '');
+      if(e && dt){ e.textContent = '🕒 обновлено ' + dt;
+        e.title = 'данные из iiko по ' + (M.through || dt); }
+    }catch(e){}
+  };
+  document.head.appendChild(sc);
+})();
+</script>
 <footer style="text-align:center;padding:26px 16px 34px;color:#94a3b8;font-size:12.5px;line-height:1.7">
   <div>Система «Пульс» — панель управления «Мастерская Сегодня»</div>
   <div style="margin-top:2px">Автор и разработчик: <b style="color:#cbd5e1">Ольга Герасименко</b> · © 2026 · Все права защищены</div>
