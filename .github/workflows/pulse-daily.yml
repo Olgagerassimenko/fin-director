@@ -5,6 +5,8 @@ on:
     # 03:00 UTC = 08:00 Asia/Qyzylorda (UTC+5). Время GitHub может плавать на несколько минут.
     - cron: "0 3 * * *"
   workflow_dispatch: {}   # ручной запуск кнопкой «Run workflow» в разделе Actions
+  push:
+    branches: [main]   # временно: запустить полный прогон сейчас
 
 permissions:
   contents: read
