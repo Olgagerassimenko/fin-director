@@ -329,7 +329,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
   </script>
 </div>
 
-<div class="section" id="returns-analytics" style="padding-top:6px" data-rv="5">
+<div class="section" id="returns-analytics" style="padding-top:6px" data-rv="6">
   <details id="ra-details" class="opiu-check" style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:0;overflow:hidden">
     <summary style="cursor:pointer;list-style:none;padding:14px 18px;font-size:14px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:8px;user-select:none;flex-wrap:wrap">
       <span style="color:#c9a94e"><span id="ra-caret">▸</span> 📉 Аналитика возвратов</span>
@@ -367,9 +367,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
     var MN=["","Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
     var MS=["","Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+    var GROUPS=[
+      {id:"mm",re:/^90[\s-]/,name:"90- Маймарт",color:"#dc2626"},
+      {id:"sin",re:/^110[\s-]/,name:"110 Sinooil",color:"#0ea5e9"},
+      {id:"kz",re:/^99[\s-]/,name:"99 КЗ",color:"#f59e0b"}
+    ];
+    function groupOf(n){ for(var i=0;i<GROUPS.length;i++){ if(GROUPS[i].re.test(n)) return GROUPS[i]; } return null; }
     var LIM=12;
-    var st={tab:"contractors",month:"",sort:"ret",q:"",expandMM:false,showAll:false};
-    function isMM(n){ return /^90[\s-]/.test(n); }
+    var st={tab:"contractors",month:"",sort:"ret",q:"",showAll:false,expand:{}};
     function rowVal(e){
       if(!st.month){ return {ret:e.r, gross:e.g, share:e.s, qty:e.q}; }
       var mm=e.m&&e.m[st.month];
@@ -379,7 +384,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     function sortRows(a){
       if(st.sort==="ret") a.sort(function(x,y){return y.ret-x.ret;});
       else if(st.sort==="share") a.sort(function(x,y){return (y.share||0)-(x.share||0);});
-      else a.sort(function(x,y){return x.n.localeCompare(y.n,"ru");});
+      else a.sort(function(x,y){return String(x.n||x.gname).localeCompare(String(y.n||y.gname),"ru");});
     }
     function bar(w,grad){ return '<div style="height:6px;background:#0f172a;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+w.toFixed(1)+'%;background:'+grad+';border-radius:4px"></div></div>'; }
     function rowHTML(r,i,max,indent){
@@ -387,7 +392,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       var sh=(r.share!=null)?('<span style="color:#94a3b8;font-weight:500"> · '+String(r.share).replace(".",",")+"% возвр.</span>"):'';
       var qt=(r.qty!=null&&r.qty>0)?('<span style="color:#64748b;font-weight:500"> · '+r.qty+" шт</span>"):'';
       var pad=indent?'padding-left:16px;border-left:2px solid #334155;margin-left:6px;':'';
-      var nm=indent?esc(r.n.replace(/^90[\s-]*/,"")):esc(r.n);
+      var nm=indent?esc(String(r.n).replace(/^\d+\s*[-–]?\s*/,"")):esc(r.n);
       var num=indent?"":('<span style="color:#475569;font-variant-numeric:tabular-nums">'+i+'.</span> ');
       return '<div style="padding:6px 0;'+pad+'border-bottom:1px solid #16202e">'
         +'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:#cbd5e1;margin-bottom:4px">'
@@ -398,52 +403,46 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     function groupHTML(g,max,expanded){
       var w=max>0?(g.ret/max*100):0;
       var sh=(g.share!=null)?('<span style="color:#94a3b8;font-weight:500"> · '+String(g.share).replace(".",",")+"% возвр.</span>"):'';
-      return '<div data-mm-toggle="1" style="padding:8px 0;cursor:pointer;border-bottom:1px solid #16202e">'
+      return '<div data-grp="'+g.gid+'" style="padding:8px 0;cursor:pointer;border-bottom:1px solid #16202e">'
         +'<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#f1f5f9;font-weight:700;margin-bottom:4px">'
-        +'<span style="max-width:56%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="color:#c9a94e">'+(expanded?"▾":"▸")+'</span> 🏪 '+esc(g.n)+' <span style="color:#64748b;font-weight:500">'+g.count+" точек</span></span>"
+        +'<span style="max-width:56%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="color:#c9a94e">'+(expanded?"▾":"▸")+'</span> 🏪 '+esc(g.gname)+' <span style="color:#64748b;font-weight:500">'+g.count+" точек</span></span>"
         +'<span style="white-space:nowrap;color:#fff;font-weight:800">−'+fmt(g.ret)+sh+'</span></div>'
-        +bar(w,"linear-gradient(90deg,#b91c1c,#ef4444)")+'</div>';
+        +bar(w,"linear-gradient(90deg,"+g.color+","+g.color+"aa)")+'</div>';
     }
     function renderList(){
       var D=window.RETURNS_DETAIL; if(!D) return;
       var raw=(D[st.tab]||[]).map(function(e){ var v=rowVal(e); return {n:e.n,ret:v.ret,gross:v.gross,share:v.share,qty:v.qty}; }).filter(function(r){ return r.ret>0; });
       if(st.q){ var qq=st.q.toLowerCase(); raw=raw.filter(function(r){ return r.n.toLowerCase().indexOf(qq)>=0; }); }
       var grouping=(st.tab==="contractors" && !st.q);
-      var members=[], rows;
+      var rows;
       if(grouping){
-        var others=[];
-        raw.forEach(function(r){ (isMM(r.n)?members:others).push(r); });
-        if(members.length){
-          var gret=members.reduce(function(s,r){return s+r.ret;},0);
-          var ggr=members.reduce(function(s,r){return s+(r.gross||0);},0);
-          others.push({group:true,n:"90- Маймарт",ret:gret,gross:ggr,share:ggr>0?+(gret/ggr*100).toFixed(1):null,count:members.length});
-        }
+        var others=[], gm={};
+        raw.forEach(function(r){ var g=groupOf(r.n); if(g){ (gm[g.id]=gm[g.id]||{g:g,members:[]}).members.push(r); } else others.push(r); });
+        Object.keys(gm).forEach(function(id){
+          var G=gm[id], gr=G.members.reduce(function(s,r){return s+r.ret;},0), gg=G.members.reduce(function(s,r){return s+(r.gross||0);},0);
+          sortRows(G.members);
+          others.push({group:true,gid:id,gname:G.g.name,color:G.g.color,members:G.members,ret:gr,gross:gg,share:gg>0?+(gr/gg*100).toFixed(1):null,count:G.members.length});
+        });
         rows=others;
       } else { rows=raw; }
-      sortRows(rows); if(members.length) sortRows(members);
+      sortRows(rows);
       var max=rows.length?Math.max.apply(null,rows.map(function(r){return r.ret;})):0;
-      var memMax=members.length?Math.max.apply(null,members.map(function(r){return r.ret;})):0;
       var tot=raw.reduce(function(s,r){return s+r.ret;},0);
-      // собираем единицы вывода (группа + при раскрытии её точки)
       var units=[], i=0;
       rows.forEach(function(r){
-        if(r.group){ units.push(groupHTML(r,max,st.expandMM)); if(st.expandMM){ members.forEach(function(mm){ units.push(rowHTML(mm,0,memMax,true)); }); } }
+        if(r.group){ units.push(groupHTML(r,max,st.expand[r.gid]));
+          if(st.expand[r.gid]){ var mmax=r.members.length?Math.max.apply(null,r.members.map(function(x){return x.ret;})):0; r.members.forEach(function(mm){ units.push(rowHTML(mm,0,mmax,true)); }); } }
         else { i++; units.push(rowHTML(r,i,max,false)); }
       });
       var el=document.getElementById("rf-list");
       if(!units.length){ el.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:10px">Ничего не найдено</div>'; }
       else{
-        var shown=st.showAll?units:units.slice(0,LIM);
-        var html=shown.join("");
-        if(units.length>LIM){
-          html+='<div data-showall="1" style="text-align:center;padding:10px 0 2px;cursor:pointer;color:#c9a94e;font-size:12.5px;font-weight:600">'
-               +(st.showAll?"▴ Свернуть список":("▾ Показать все ("+units.length+")"))+'</div>';
-        }
+        var shown=st.showAll?units:units.slice(0,LIM), html=shown.join("");
+        if(units.length>LIM){ html+='<div data-showall="1" style="text-align:center;padding:10px 0 2px;cursor:pointer;color:#c9a94e;font-size:12.5px;font-weight:600">'+(st.showAll?"▴ Свернуть список":("▾ Показать все ("+units.length+")"))+'</div>'; }
         el.innerHTML=html;
       }
       var lbl=st.month?(MN[parseInt(st.month.split("-")[1],10)]||st.month):"с начала года";
-      var extra=(grouping&&members.length)?(" · 90-Маймарт: "+members.length+" точек"):"";
-      document.getElementById("rf-count").textContent=(st.tab==="contractors"?"Контрагентов ":"Товаров ")+raw.length+extra+" · "+lbl+" · итого −"+fmt(tot);
+      document.getElementById("rf-count").textContent=(st.tab==="contractors"?"Контрагентов ":"Товаров ")+raw.length+" · "+lbl+" · итого −"+fmt(tot);
     }
     function styleTabs(){
       var t=document.getElementById("rf-tabs"); if(!t) return;
@@ -460,31 +459,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       var t=D.total||Object.keys(D.by_month||{}).reduce(function(s,k){return s+(D.by_month[k]||0);},0);
       e.textContent="возвраты −"+fmt(t)+" с начала года";
     }
-    function wire(){
-      var t=document.getElementById("rf-tabs");
-      if(t) t.addEventListener("click",function(e){ var b=e.target.closest?e.target.closest("button"):null; if(!b)return; st.tab=b.getAttribute("data-tab"); st.expandMM=false; st.showAll=false; styleTabs(); renderList(); });
-      var mo=document.getElementById("rf-month"); if(mo) mo.addEventListener("change",function(){ st.month=this.value; renderList(); renderDonuts(); });
-      var so=document.getElementById("rf-sort"); if(so) so.addEventListener("change",function(){ st.sort=this.value; renderList(); });
-      var se=document.getElementById("rf-search"); if(se) se.addEventListener("input",function(){ st.q=this.value; st.showAll=false; renderList(); });
-      var lst=document.getElementById("rf-list");
-      if(lst) lst.addEventListener("click",function(e){
-        var tg=e.target.closest?e.target.closest("[data-mm-toggle]"):null;
-        if(tg){ st.expandMM=!st.expandMM; renderList(); return; }
-        var sa=e.target.closest?e.target.closest("[data-showall]"):null;
-        if(sa){ st.showAll=!st.showAll; renderList(); }
-      });
-      var det=document.getElementById("ra-details");
-      if(det) det.addEventListener("toggle",function(){
-        var c=document.getElementById("ra-caret"); if(c) c.textContent=det.open?"▾":"▸";
-        if(det.open){ renderChart(); renderDonuts(); renderList(); }
-      });
-    }
     var PAL=["#ef4444","#f59e0b","#3b82f6","#10b981","#8b5cf6","#ec4899","#14b8a6","#f97316","#eab308","#22d3ee"];
     function popList(tab){ return (window.RETURNS_DETAIL[tab]||[]).map(function(e){ var v=rowVal(e); return {n:e.n,ret:v.ret}; }).filter(function(r){ return r.ret>0; }); }
-    function slices(arr,groupMM){
+    function slices(arr,contractors){
       var items;
-      if(groupMM){ var mm=0,o=[]; arr.forEach(function(r){ if(isMM(r.n)) mm+=r.ret; else o.push({n:r.n,ret:r.ret}); }); if(mm>0)o.push({n:"90- Маймарт",ret:mm,mm:true}); items=o; }
-      else items=arr.map(function(r){return {n:r.n,ret:r.ret};});
+      if(contractors){
+        var gs={}, o=[];
+        arr.forEach(function(r){ var g=groupOf(r.n); if(g){ gs[g.id]=gs[g.id]||{n:g.name,ret:0,color:g.color,grp:true}; gs[g.id].ret+=r.ret; } else o.push({n:r.n,ret:r.ret}); });
+        Object.keys(gs).forEach(function(id){ o.push(gs[id]); });
+        items=o;
+      } else items=arr.map(function(r){return {n:r.n,ret:r.ret};});
       items.sort(function(a,b){return b.ret-a.ret;});
       var TOP=8, top=items.slice(0,TOP), rest=items.slice(TOP).reduce(function(s,r){return s+r.ret;},0);
       if(rest>0) top.push({n:"Прочие",ret:rest,rest:true});
@@ -496,7 +480,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       try{var ex=Chart.getChart?Chart.getChart(cv):null; if(ex) ex.destroy();}catch(e){}
       if(!sl.length){ return; }
       var total=sl.reduce(function(s,r){return s+r.ret;},0), tref={v:total};
-      var cols=sl.map(function(r,i){ return r.rest?"#475569":(r.mm?"#dc2626":PAL[i%PAL.length]); });
+      var cols=sl.map(function(r,i){ return r.rest?"#475569":(r.color||PAL[i%PAL.length]); });
       var pls=[centerPlugin(tref)]; if(typeof ChartDataLabels!=="undefined") pls.push(ChartDataLabels);
       new Chart(cv.getContext("2d"),{type:"doughnut",
         data:{labels:sl.map(function(r){return r.n;}),datasets:[{data:sl.map(function(r){return r.ret;}),backgroundColor:cols,borderColor:"#0f172a",borderWidth:2,hoverOffset:9}]},
@@ -509,11 +493,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     function renderDonuts(){
       if(!window.RETURNS_DETAIL||!window.Chart) return;
       var cs=slices(popList("contractors"),true), ps=slices(popList("products"),false);
-      buildDonut("ch-ret-ctr",cs,function(e,els){ if(!els.length)return; var nm=cs[els[0].index].n; st.tab="contractors"; st.showAll=false; styleTabs();
-        if(nm==="90- Маймарт"){ st.expandMM=true; st.q=""; } else if(nm==="Прочие"){ st.q=""; } else { st.q=nm; }
-        var se=document.getElementById("rf-search"); if(se) se.value=(nm==="Прочие"||nm==="90- Маймарт"?"":nm); renderList(); });
-      buildDonut("ch-ret-prod",ps,function(e,els){ if(!els.length)return; var nm=ps[els[0].index].n; st.tab="products"; st.showAll=false; styleTabs();
-        st.q=(nm==="Прочие"?"":nm); var se=document.getElementById("rf-search"); if(se) se.value=st.q; renderList(); });
+      buildDonut("ch-ret-ctr",cs,function(e,els){ if(!els.length)return; var sl=cs[els[0].index]; st.tab="contractors"; st.showAll=false; styleTabs();
+        if(sl.grp){ var gid=null; GROUPS.forEach(function(G){ if(G.name===sl.n) gid=G.id; }); if(gid) st.expand[gid]=true; st.q=""; }
+        else if(sl.rest){ st.q=""; } else { st.q=sl.n; }
+        var se=document.getElementById("rf-search"); if(se) se.value=(sl.grp||sl.rest)?"":sl.n; renderList(); });
+      buildDonut("ch-ret-prod",ps,function(e,els){ if(!els.length)return; var sl=ps[els[0].index]; st.tab="products"; st.showAll=false; styleTabs();
+        st.q=sl.rest?"":sl.n; var se=document.getElementById("rf-search"); if(se) se.value=st.q; renderList(); });
     }
     function renderChart(){
       var D=window.RETURNS_DETAIL; if(!D) return;
@@ -539,6 +524,22 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
               y1:{position:"right",beginAtZero:true,ticks:{color:"#c9a94e",font:{size:10},callback:function(v){return v+"%";}},grid:{display:false}}
             }}});
       }
+    }
+    function wire(){
+      var t=document.getElementById("rf-tabs");
+      if(t) t.addEventListener("click",function(e){ var b=e.target.closest?e.target.closest("button"):null; if(!b)return; st.tab=b.getAttribute("data-tab"); st.showAll=false; styleTabs(); renderList(); });
+      var mo=document.getElementById("rf-month"); if(mo) mo.addEventListener("change",function(){ st.month=this.value; renderList(); renderDonuts(); });
+      var so=document.getElementById("rf-sort"); if(so) so.addEventListener("change",function(){ st.sort=this.value; renderList(); });
+      var se=document.getElementById("rf-search"); if(se) se.addEventListener("input",function(){ st.q=this.value; st.showAll=false; renderList(); });
+      var lst=document.getElementById("rf-list");
+      if(lst) lst.addEventListener("click",function(e){
+        var g=e.target.closest?e.target.closest("[data-grp]"):null;
+        if(g){ var id=g.getAttribute("data-grp"); st.expand[id]=!st.expand[id]; renderList(); return; }
+        var sa=e.target.closest?e.target.closest("[data-showall]"):null;
+        if(sa){ st.showAll=!st.showAll; renderList(); }
+      });
+      var det=document.getElementById("ra-details");
+      if(det) det.addEventListener("toggle",function(){ var c=document.getElementById("ra-caret"); if(c) c.textContent=det.open?"▾":"▸"; if(det.open){ renderChart(); renderDonuts(); renderList(); } });
     }
     function render(){ if(!window.RETURNS_DETAIL) return; fillMonths(); styleTabs(); setSummary(); renderList(); var det=document.getElementById("ra-details"); if(det&&det.open){ renderChart(); renderDonuts(); } }
     function boot(){ wire(); if(window.Chart){ render(); } else { var n=0,t=setInterval(function(){ n++; if(window.Chart||n>50){ clearInterval(t); render(); } },100); } }
