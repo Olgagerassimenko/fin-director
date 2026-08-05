@@ -127,6 +127,9 @@ def main():
     log("-" * 60)
     grand = 0.0
     returns_by_m = {}          # сумма возвратов покупателей по месяцам (для дашборда)
+    from collections import defaultdict
+    c_gross = defaultdict(float); c_ret = defaultdict(float)                  # по контрагентам: продажи и возвраты
+    p_gross = defaultdict(float); p_ret = defaultdict(float); p_qty = defaultdict(float)  # по товарам
     for m in range(1, 13):
         d1 = date(YEAR, m, 1)
         if d1 > last_full:
@@ -140,11 +143,14 @@ def main():
         for x in sales:
             k = (str(x.get("Counteragent.Name") or ""), str(x.get("Product.Name") or ""))
             a = agg.setdefault(k, [0.0, 0.0]); a[0] += x.get("Amount") or 0; a[1] += x.get("Sum.Incoming") or 0
+            c_gross[k[0]] += x.get("Sum.Incoming") or 0; p_gross[k[1]] += x.get("Sum.Incoming") or 0
         ret_sum = 0.0
         for x in rets:
             k = (str(x.get("Counteragent.Name") or ""), str(x.get("Product.Name") or ""))
             a = agg.setdefault(k, [0.0, 0.0]); a[0] -= x.get("Amount") or 0; a[1] -= x.get("Sum.Incoming") or 0
             ret_sum += x.get("Sum.Incoming") or 0
+            c_ret[k[0]] += x.get("Sum.Incoming") or 0
+            p_ret[k[1]] += x.get("Sum.Incoming") or 0; p_qty[k[1]] += abs(x.get("Amount") or 0)
         rows = [{"Counteragent.Name": k[0], "Product.Name": k[1], "Amount": v[0], "Sum.Incoming": v[1]}
                 for k, v in agg.items() if abs(v[1]) > 0.5 or abs(v[0]) > 0.5]
         if not rows:
@@ -169,6 +175,30 @@ def main():
             "returns": returns_by_m}
     with open(os.path.join(HERE, "sales_meta.js"), "w", encoding="utf-8") as f:
         f.write("window.SALES_META=" + json.dumps(meta, ensure_ascii=False) + ";\n")
+
+    # детализация возвратов (для раздела «Аналитика возвратов»): топ контрагентов и товаров
+    def topn(ret_d, gross_d, n=15, qty_d=None):
+        rows = []
+        for name, r in ret_d.items():
+            if r <= 0.5:
+                continue
+            g = gross_d.get(name, 0.0)
+            row = {"name": (name or "—"), "ret": round(r), "gross": round(g),
+                   "share": round(r / g * 100, 1) if g > 0 else None}
+            if qty_d is not None:
+                row["qty"] = round(qty_d.get(name, 0.0))
+            rows.append(row)
+        rows.sort(key=lambda z: z["ret"], reverse=True)
+        return rows[:n]
+    detail = {"by_month": returns_by_m,
+              "contractors": topn(c_ret, c_gross, 15),
+              "products": topn(p_ret, p_gross, 15, p_qty),
+              "total": round(sum(returns_by_m.values())),
+              "_pulled": meta["pulled"], "_through": meta["through"]}
+    with open(os.path.join(HERE, "returns_meta.js"), "w", encoding="utf-8") as f:
+        f.write("window.RETURNS_DETAIL=" + json.dumps(detail, ensure_ascii=False) + ";\n")
+    log(f"returns_meta.js: контрагентов {len(detail['contractors'])}, товаров {len(detail['products'])}")
+
     log(f"\nотметка обновления: {meta['pulled']}, данные по {meta['through']}")
     log("\nГотово. Дальше: rebuild_sales.py и gen_contractor_items.py")
     LOG.close()
