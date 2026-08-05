@@ -203,7 +203,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 .upd-badge.stale .upd-src{color:#fbbf24}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
-</head>
+<script>try{fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true})}catch(e){}</script></head>
 <body>
 <div class="header">
   <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;background:rgba(124,58,237,.18);border:1px solid rgba(139,92,246,.45);color:#c4b5fd;text-decoration:none;font-weight:700;font-size:13.5px;white-space:nowrap">← На главную</a>
@@ -332,7 +332,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 <div class="section" id="returns-analytics" style="padding-top:6px" data-rv="8">
   <details id="ra-details" class="opiu-check" style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:0;overflow:hidden">
     <summary style="cursor:pointer;list-style:none;padding:14px 18px;font-size:14px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:8px;user-select:none;flex-wrap:wrap">
-      <span style="color:#c9a94e"><span class="dc-caret">▸</span> 📉 Аналитика возвратов</span>
+      <span style="color:#c9a94e"><span id="ra-caret">▸</span> 📉 Аналитика возвратов</span>
       <span id="ra-sum" style="font-weight:600;font-size:12px;color:#e2896b"></span>
       <span style="font-weight:500;font-size:12px;color:#94a3b8;margin-left:auto">нажмите, чтобы раскрыть</span>
     </summary>
