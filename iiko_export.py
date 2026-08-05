@@ -128,8 +128,10 @@ def main():
     grand = 0.0
     returns_by_m = {}          # сумма возвратов покупателей по месяцам (для дашборда)
     from collections import defaultdict
-    c_gross = defaultdict(float); c_ret = defaultdict(float)                  # по контрагентам: продажи и возвраты
-    p_gross = defaultdict(float); p_ret = defaultdict(float); p_qty = defaultdict(float)  # по товарам
+    c_tot = defaultdict(lambda: [0.0, 0.0]); p_tot = defaultdict(lambda: [0.0, 0.0])   # [возврат, продажи] всего
+    c_mon = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0]))                        # [name][mo]=[возврат, продажи]
+    p_mon = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0]))
+    p_qty = defaultdict(float)
     for m in range(1, 13):
         d1 = date(YEAR, m, 1)
         if d1 > last_full:
@@ -143,14 +145,18 @@ def main():
         for x in sales:
             k = (str(x.get("Counteragent.Name") or ""), str(x.get("Product.Name") or ""))
             a = agg.setdefault(k, [0.0, 0.0]); a[0] += x.get("Amount") or 0; a[1] += x.get("Sum.Incoming") or 0
-            c_gross[k[0]] += x.get("Sum.Incoming") or 0; p_gross[k[1]] += x.get("Sum.Incoming") or 0
+            _inc = x.get("Sum.Incoming") or 0
+            c_tot[k[0]][1] += _inc; p_tot[k[1]][1] += _inc
+            c_mon[k[0]][f"{YEAR}-{m:02d}"][1] += _inc; p_mon[k[1]][f"{YEAR}-{m:02d}"][1] += _inc
         ret_sum = 0.0
         for x in rets:
             k = (str(x.get("Counteragent.Name") or ""), str(x.get("Product.Name") or ""))
             a = agg.setdefault(k, [0.0, 0.0]); a[0] -= x.get("Amount") or 0; a[1] -= x.get("Sum.Incoming") or 0
             ret_sum += x.get("Sum.Incoming") or 0
-            c_ret[k[0]] += x.get("Sum.Incoming") or 0
-            p_ret[k[1]] += x.get("Sum.Incoming") or 0; p_qty[k[1]] += abs(x.get("Amount") or 0)
+            _inc = x.get("Sum.Incoming") or 0
+            c_tot[k[0]][0] += _inc; p_tot[k[1]][0] += _inc
+            c_mon[k[0]][f"{YEAR}-{m:02d}"][0] += _inc; p_mon[k[1]][f"{YEAR}-{m:02d}"][0] += _inc
+            p_qty[k[1]] += abs(x.get("Amount") or 0)
         rows = [{"Counteragent.Name": k[0], "Product.Name": k[1], "Amount": v[0], "Sum.Incoming": v[1]}
                 for k, v in agg.items() if abs(v[1]) > 0.5 or abs(v[0]) > 0.5]
         if not rows:
@@ -176,23 +182,27 @@ def main():
     with open(os.path.join(HERE, "sales_meta.js"), "w", encoding="utf-8") as f:
         f.write("window.SALES_META=" + json.dumps(meta, ensure_ascii=False) + ";\n")
 
-    # детализация возвратов (для раздела «Аналитика возвратов»): топ контрагентов и товаров
-    def topn(ret_d, gross_d, n=15, qty_d=None):
+    # детализация возвратов (для раздела «Аналитика возвратов»): полный список + помесячно
+    def build_entities(tot_d, mon_d, qty_d=None):
         rows = []
-        for name, r in ret_d.items():
-            if r <= 0.5:
+        for name, (ret, gross) in tot_d.items():
+            if ret <= 0.5:
                 continue
-            g = gross_d.get(name, 0.0)
-            row = {"name": (name or "—"), "ret": round(r), "gross": round(g),
-                   "share": round(r / g * 100, 1) if g > 0 else None}
+            mm = {}
+            for mo, (r, g) in mon_d.get(name, {}).items():
+                if r > 0.5:
+                    mm[mo] = [round(r), round(g)]
+            row = {"n": (name or "—"), "r": round(ret), "g": round(gross),
+                   "s": round(ret / gross * 100, 1) if gross > 0 else None, "m": mm}
             if qty_d is not None:
-                row["qty"] = round(qty_d.get(name, 0.0))
+                row["q"] = round(qty_d.get(name, 0.0))
             rows.append(row)
-        rows.sort(key=lambda z: z["ret"], reverse=True)
-        return rows[:n]
+        rows.sort(key=lambda z: z["r"], reverse=True)
+        return rows
     detail = {"by_month": returns_by_m,
-              "contractors": topn(c_ret, c_gross, 15),
-              "products": topn(p_ret, p_gross, 15, p_qty),
+              "months": sorted(k for k, v in returns_by_m.items() if v),
+              "contractors": build_entities(c_tot, c_mon),
+              "products": build_entities(p_tot, p_mon, p_qty),
               "total": round(sum(returns_by_m.values())),
               "_pulled": meta["pulled"], "_through": meta["through"]}
     with open(os.path.join(HERE, "returns_meta.js"), "w", encoding="utf-8") as f:
