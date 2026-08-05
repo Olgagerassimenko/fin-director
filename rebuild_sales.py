@@ -247,6 +247,26 @@ def inject_returns_analytics(html):
     return html[:anchor_i] + RETURNS_ANALYTICS_SECTION + html[anchor_i:]
 
 
+def inject_opiu_columns(html):
+    """Столбцы «I продажи» и «Возвраты» в таблице сверки ОПиУ (идемпотентно)."""
+    if 'I продажи, млн' in html:
+        return html
+    reps = [
+        ('<th>Продажи, млн ₸</th>', '<th>I продажи, млн</th><th>Возвраты, млн</th><th>Продажи, млн ₸</th>'),
+        ('var O=window.OPIU_REV||{}, DS=window.DS||{};', 'var O=window.OPIU_REV||{}, DS=window.DS||{}; var R=(window.SALES_META&&window.SALES_META.returns)||{};'),
+        ('var sP=0,sT=0,sI=0,html=', 'var sP=0,sT=0,sI=0,sG=0,sR=0,html='),
+        ('var p=(DS[k]&&typeof DS[k].total_rev==="number")?DS[k].total_rev:null;', 'var p=(DS[k]&&typeof DS[k].total_rev==="number")?DS[k].total_rev:null; var ret=R[k]||0; var gross=(p!==null)?p+ret:null;'),
+        ('\'</td><td>\'+(p!==null?mln(p):"—")+\'</td>', '\'</td><td>\'+(gross!==null?mln(gross):"—")+\'</td><td class="mut">\'+(ret?("−"+mln(ret)):"—")+\'</td><td>\'+(p!==null?mln(p):"—")+\'</td>'),
+        ('sP+=p; sT+=t; sI+=it;', 'sP+=p; sT+=t; sI+=it; sG+=gross; sR+=ret;'),
+        ("'+nm+'</td><td>'+mln(p)+'</td>", '\'+nm+\'</td><td>\'+mln(gross)+\'</td><td class="mut">−\'+mln(ret)+\'</td><td>\'+mln(p)+\'</td>'),
+        ("Итого (сошедшиеся месяцы)</td><td>'+mln(sP)+'</td>", 'Итого (сошедшиеся месяцы)</td><td>\'+mln(sG)+\'</td><td class="mut">−\'+mln(sR)+\'</td><td>\'+mln(sP)+\'</td>'),
+    ]
+    for _o, _n in reps:
+        if _o in html:
+            html = html.replace(_o, _n, 1)
+    return html
+
+
 def main():
     log("=" * 60)
     log("  Пересборка продаж из выгрузок «I Отчет ПРОДАЖИ»")
@@ -334,7 +354,7 @@ def main():
     bak = HTML_FILE + ".bak2"
     if not os.path.exists(bak):
         open(bak, 'w', encoding='utf-8').write(html)
-    open(HTML_FILE, 'w', encoding='utf-8').write(inject_returns_analytics(inject_returns_block(inject_ds(html, ds))))
+    open(HTML_FILE, 'w', encoding='utf-8').write(inject_opiu_columns(inject_returns_analytics(inject_returns_block(inject_ds(html, ds)))))
     log(f"  Записано: {HTML_FILE}")
     log("  Готово.")
 

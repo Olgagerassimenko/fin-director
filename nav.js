@@ -44,6 +44,16 @@
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',positionNav);}
   else{positionNav();}
 
+  // ── Подпись / автор внизу страницы (на всех дашбордах) ──
+  function addSig(){
+    if(document.getElementById('psig'))return;
+    var f=document.createElement('footer');f.id='psig';
+    f.style.cssText='text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22px 16px 34px;border-top:1px solid #1e293b;margin-top:22px;font-family:Inter,-apple-system,sans-serif';
+    f.innerHTML='Система «Пульс» · Фуд завод (Мастерская Сегодня)<br><b style="color:#94a3b8">Ольга Герасименко</b> · финансовый директор · данные из iiko, обновляются ежедневно';
+    document.body.appendChild(f);
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',addSig);}else{addSig();}
+
   // ── Мобильная адаптация: все таблицы делаем горизонтально прокручиваемыми ──
   function _isScroll(el){try{var o=getComputedStyle(el).overflowX;return o==='auto'||o==='scroll';}catch(e){return false;}}
   function wrapTables(){
