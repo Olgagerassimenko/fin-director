@@ -126,6 +126,7 @@ def main():
     log(f"{'месяц':7} {'период':24} {'строк':>7} {'выручка, ₸':>18}")
     log("-" * 60)
     grand = 0.0
+    returns_by_m = {}          # сумма возвратов покупателей по месяцам (для дашборда)
     for m in range(1, 13):
         d1 = date(YEAR, m, 1)
         if d1 > last_full:
@@ -150,6 +151,7 @@ def main():
             log(f"{m:02d}      нет данных")
             continue
         total = sum((x.get("Sum.Incoming") or 0) for x in rows)
+        returns_by_m[f"{YEAR}-{m:02d}"] = round(ret_sum)   # нетто-выручка = total; gross = total + ret_sum
         if ret_sum: log(f"{m:02d}      возвраты вычтены: -{ret_sum:>15,.0f}")
         grand += total
         name = f"I Отчет ПРОДАЖИ {m:02d}.{YEAR}.xlsx"
@@ -163,7 +165,8 @@ def main():
     meta = {"pulled": datetime.now().strftime("%d.%m.%Y %H:%M"),
             "through": last_full.strftime("%d.%m.%Y"),
             "source": "iiko",
-            "report": "выручка расходных накладных за вычетом возвратов"}
+            "report": "выручка расходных накладных за вычетом возвратов",
+            "returns": returns_by_m}
     with open(os.path.join(HERE, "sales_meta.js"), "w", encoding="utf-8") as f:
         f.write("window.SALES_META=" + json.dumps(meta, ensure_ascii=False) + ";\n")
     log(f"\nотметка обновления: {meta['pulled']}, данные по {meta['through']}")

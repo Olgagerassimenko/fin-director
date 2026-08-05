@@ -216,6 +216,21 @@ def inject_ds(html, ds):
     return html[:i] + 'const DS = ' + json.dumps(ds, ensure_ascii=False) + seg[end:]
 
 
+
+RETURNS_ANCHOR = '<div class="card"><canvas id="ch-year" height="340"></canvas></div>'
+RETURNS_BLOCK = '\n  <div class="card" id="returns-card" style="margin-top:12px;display:none">\n    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">\n      <div style="font-size:14px;font-weight:700;color:#f1f5f9">&#8617;&#65038; Возвраты покупателей <span style="font-weight:500;font-size:12px;color:#94a3b8">— уже вычтены из выручки на графике выше</span></div>\n      <div id="returns-total" style="font-size:13px;color:#c9a94e;font-weight:700"></div>\n    </div>\n    <div id="returns-chips" style="display:flex;flex-wrap:wrap;gap:8px"></div>\n  </div>\n  <script>\n  (function(){\n    function fmt(v){ v=Math.round(Math.abs(v));\n      if(v>=1e6) return (v/1e6).toFixed(1).replace(".",",")+" млн";\n      if(v>=1e3) return Math.round(v/1e3)+" тыс"; return String(v); }\n    function render(){\n      var card=document.getElementById("returns-card"); if(!card) return;\n      var R=(window.SALES_META&&window.SALES_META.returns)||null;\n      var keys=R?Object.keys(R).sort():[];\n      if(!keys.length){ card.style.display="none"; return; }\n      var MN=["","Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];\n      var tot=0, gtot=0, chips="";\n      keys.forEach(function(k){\n        var val=R[k]||0, mo=parseInt(k.split("-")[1],10);\n        var net=(window.DS&&window.DS[k]&&window.DS[k].total_rev)||0, gross=net+val;\n        tot+=val; gtot+=gross;\n        var pctTxt=gross>0?" · "+(val/gross*100).toFixed(1).replace(".",",")+"%":"";\n        chips+=\'<span style="background:#0f172a;border:1px solid #334155;border-radius:9px;padding:6px 10px;font-size:12px;color:#cbd5e1">\'\n             +\'<b style="color:#e2e8f0">\'+(MN[mo]||k)+\'</b> &minus;\'+fmt(val)\n             +\'<span style="color:#94a3b8">\'+pctTxt+\'</span></span>\';\n      });\n      document.getElementById("returns-chips").innerHTML=chips;\n      var gpct=gtot>0?" ("+(tot/gtot*100).toFixed(1).replace(".",",")+"% от выручки)":"";\n      document.getElementById("returns-total").textContent="Итого возвраты: −"+fmt(tot)+gpct;\n      card.style.display="block";\n    }\n    if(document.readyState==="loading"){ document.addEventListener("DOMContentLoaded",render); } else { render(); }\n  })();\n  </script>'
+
+def inject_returns_block(html):
+    """Вставляет блок «Возвраты покупателей» под графиком выручки (идемпотентно)."""
+    if 'id="returns-card"' in html:
+        return html
+    i = html.find(RETURNS_ANCHOR)
+    if i < 0:
+        return html
+    j = i + len(RETURNS_ANCHOR)
+    return html[:j] + RETURNS_BLOCK + html[j:]
+
+
 def main():
     log("=" * 60)
     log("  Пересборка продаж из выгрузок «I Отчет ПРОДАЖИ»")
@@ -303,7 +318,7 @@ def main():
     bak = HTML_FILE + ".bak2"
     if not os.path.exists(bak):
         open(bak, 'w', encoding='utf-8').write(html)
-    open(HTML_FILE, 'w', encoding='utf-8').write(inject_ds(html, ds))
+    open(HTML_FILE, 'w', encoding='utf-8').write(inject_returns_block(inject_ds(html, ds)))
     log(f"  Записано: {HTML_FILE}")
     log("  Готово.")
 
