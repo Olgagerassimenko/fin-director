@@ -271,7 +271,7 @@ def inject_footer(html):
     """Футер с автором внизу страницы (идемпотентно)."""
     if 'psig-sales' in html:
         return html
-    foot = '<footer id="psig-sales" style="text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:24px 16px 36px;border-top:1px solid #1e293b;margin-top:26px;font-family:Inter,-apple-system,sans-serif">Система «Пульс» · Фуд завод (Мастерская Сегодня)<br><b style="color:#94a3b8">Ольга Герасименко</b> · финансовый директор · данные из iiko, обновляются ежедневно</footer>'
+    foot = '<footer id="psig-sales" style="text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:24px 16px 36px;border-top:1px solid #1e293b;margin-top:26px;font-family:Inter,-apple-system,sans-serif">Система «Пульс» · Фуд завод (Мастерская Сегодня)<br><b style="color:#94a3b8">Ольга Герасименко</b> · финансовый директор · данные из iiko, обновляются ежедневно<br><a href="/metrics.html" style="color:#a78bfa;text-decoration:none;font-weight:600">🔒 Аналитика посещений</a></footer>'
     if '</body>' in html:
         return html.replace('</body>', foot + '\n</body>', 1)
     if '</html>' in html:
