@@ -9,6 +9,8 @@
 import sys,os,re,json,hashlib,warnings,datetime
 warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
 import requests
+import concurrent.futures as _cf
+_POOL=8   # параллельные запросы к iiko (логика та же, ускоряется только время прогона)
 HERE=os.path.dirname(os.path.abspath(__file__))
 src=open(os.path.join(HERE,"iiko_export.py"),encoding="utf-8").read()
 URL=re.search(r'URL\s*=\s*"([^"]+)"',src).group(1);LOGIN=re.search(r'LOGIN\s*=\s*"([^"]+)"',src).group(1);PASS=re.search(r'PASS\s*=\s*"([^"]+)"',src).group(1)
@@ -171,16 +173,21 @@ def cogs_month(mi):
 
 cogs_auto={}
 log("  Продуктовая себестоимость (счёт ОПиУ) по месяцам — СВЕРКА:")
-for mi in range(1,lastm+1):
-    v,matched=cogs_month(mi)
+_mis=list(range(1,lastm+1))
+with _cf.ThreadPoolExecutor(max_workers=_POOL) as _ex:
+    _cres=list(_ex.map(cogs_month,_mis))
+for mi,(v,matched) in zip(_mis,_cres):
     cogs_auto[f"{YEAR}-{mi:02d}"]=v
     log(f"    {YEAR}-{mi:02d}: {v:>15,.0f}   [{'; '.join(f'{n}={x:,.0f}' for n,x in matched) if matched else 'нет совпадений по имени счёта'}]")
 
 months={}
-for mi in range(1,lastm+1):
+def _month_fetch(mi):
     d1=bom(mi); d2=eom(mi)
-    arts=articles(d1,d2); st=bal(d1); en=bal(d2)
-    rev=revenue_by_contr(d1,d2)
+    return (mi,d1,d2,articles(d1,d2),cash_by_acc(d1),cash_by_acc(d2),revenue_by_contr(d1,d2))
+with _cf.ThreadPoolExecutor(max_workers=_POOL) as _ex:
+    _mres=list(_ex.map(_month_fetch,range(1,lastm+1)))
+for mi,d1,d2,arts,st,en,rev in _mres:
+    _balcache[d1.isoformat()]=st; _balcache[d2.isoformat()]=en   # переиспользуем для года и дневных остатков
     sIn=sum(a["in"] for a in arts if not re.search(r"внутрен|внутригрупп",a["cat"],re.I))
     sOut=sum(a["out"] for a in arts if not re.search(r"внутрен|внутригрупп",a["cat"],re.I))
     stTot=sum(st.values()); enTot=sum(en.values())
@@ -190,12 +197,12 @@ for mi in range(1,lastm+1):
 
 # последние дни (по счетам, без разбивки выручки)
 days={}
-for k in range(14,0,-1):
-    d=last_full-datetime.timedelta(days=k-1)
-    arts=articles(d,d+datetime.timedelta(days=1))
-    if arts:
-        flow=sum(a["net"] for a in arts)
-        days[d.isoformat()]={"net":round(flow),"articles":arts}
+_dds=[last_full-datetime.timedelta(days=k-1) for k in range(14,0,-1)]
+def _day_fetch(d): return (d,articles(d,d+datetime.timedelta(days=1)))
+with _cf.ThreadPoolExecutor(max_workers=_POOL) as _ex:
+    for d,arts in _ex.map(_day_fetch,_dds):
+        if arts:
+            days[d.isoformat()]={"net":round(sum(a["net"] for a in arts)),"articles":arts}
 
 # год: агрегируем закрытые месяцы (закрыт если сегодня >= 18 след.месяца)
 def closed(mi):
@@ -213,16 +220,27 @@ if ymonths:
 
 log("  дневная детализация для произвольного периода...")
 allD1=datetime.date(YEAR,1,1); allD2=last_full+datetime.timedelta(days=1)
-byDay=daily_all(allD1,allD2); byDayRev=daily_rev(allD1,allD2)
+with _cf.ThreadPoolExecutor(max_workers=2) as _ex:
+    _fa=_ex.submit(daily_all,allD1,allD2); _fr=_ex.submit(daily_rev,allD1,allD2)
+    byDay=_fa.result(); byDayRev=_fr.result()
 log("  дней с движением: %d"%len(byDay))
 # дневные остатки по счетам — ТОЧНЫЕ снимки баланса (balance на каждый день с движением)
 balByDay={}; cur=datetime.date(YEAR,1,1); endcur=last_full+datetime.timedelta(days=1)
-snap=bal(cur)  # точный остаток на начало Jan1
-_calls=0
+# заранее параллельно тянем нужные снимки баланса: Jan1 + (день+1) для каждого дня с движением
+_need=[cur]; _c=cur
+while _c<=endcur:
+    if _c.isoformat() in byDay: _need.append(_c+datetime.timedelta(days=1))
+    _c+=datetime.timedelta(days=1)
+_todo=[d for d in _need if d.isoformat() not in _balcache]
+with _cf.ThreadPoolExecutor(max_workers=_POOL) as _ex:
+    for d,res in zip(_todo,_ex.map(cash_by_acc,_todo)):
+        _balcache[d.isoformat()]=res
+_calls=len(_todo)
+snap=bal(cur)  # точный остаток на начало Jan1 (из кэша)
 while cur<=endcur:
     k=cur.isoformat(); balByDay[k]=snap
     if k in byDay:  # был день движения -> берём точный остаток на начало следующего дня
-        snap=bal(cur+datetime.timedelta(days=1)); _calls+=1
+        snap=bal(cur+datetime.timedelta(days=1))
     cur+=datetime.timedelta(days=1)
 _chk=sum(balByDay.get(f"{YEAR}-02-01",{}).values())
 log("  дневные остатки: снимков баланса %d; сверка на 01.02: %d (эталон 34 391 753, Δ %d)"%(_calls,_chk,_chk-34391753))
