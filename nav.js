@@ -1,4 +1,6 @@
 (function(){
+  // счётчик просмотров для вкладки «Метрики»
+  try{ fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true}); }catch(e){}
   var pages=[
     {href:'index.html',icon:'🏠',label:'ПУЛЬС'},
     {href:'дашборд_гугл_live.html',icon:'⚡',label:'ДДС Live'},

@@ -289,6 +289,18 @@ def inject_bar_style(html):
     return html
 
 
+def inject_beacon(html):
+    """Счётчик просмотров для вкладки Метрики (идемпотентно)."""
+    if '/track?p=' in html:
+        return html
+    tag = '<script>try{fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true})}catch(e){}</script>'
+    if '</head>' in html:
+        return html.replace('</head>', tag + '</head>', 1)
+    if '</html>' in html:
+        return html.replace('</html>', tag + '\n</html>', 1)
+    return html + tag
+
+
 def main():
     log("=" * 60)
     log("  Пересборка продаж из выгрузок «I Отчет ПРОДАЖИ»")
@@ -376,7 +388,7 @@ def main():
     bak = HTML_FILE + ".bak2"
     if not os.path.exists(bak):
         open(bak, 'w', encoding='utf-8').write(html)
-    open(HTML_FILE, 'w', encoding='utf-8').write(inject_bar_style(inject_footer(inject_opiu_columns(inject_returns_analytics(inject_returns_block(inject_ds(html, ds)))))))
+    open(HTML_FILE, 'w', encoding='utf-8').write(inject_beacon(inject_bar_style(inject_footer(inject_opiu_columns(inject_returns_analytics(inject_returns_block(inject_ds(html, ds))))))))
     log(f"  Записано: {HTML_FILE}")
     log("  Готово.")
 
