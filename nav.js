@@ -2,15 +2,11 @@
   // счётчик просмотров для вкладки «Метрики»
   try{ fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true}); }catch(e){}
   var pages=[
-    {href:'index.html',icon:'🏠',label:'ПУЛЬС'},
-    {href:'дашборд_гугл_live.html',icon:'⚡',label:'ДДС Live'},
-    {href:'опиу_2025_2026.html',icon:'📈',label:'ОПиУ'},
-    {href:'дашборд_дддс_динамик.html',icon:'📊',label:'ДДС Excel'},
-    {href:'дашборд_ддс_прямой.html',icon:'💧',label:'ДДС'},
-    {href:'дашборд_продажи.html',icon:'🛒',label:'Продажи'},
-    {href:'дашборд_себестоимость_2025-2026.html',icon:'💹',label:'Себест.'},
-    {href:'дашборд_sku_2025-2026.html',icon:'🔍',label:'SKU онлайн'},
-    {href:'дашборд_sku_себестоимость.html',icon:'💲',label:'SKU Себест.'},
+    {href:'index.html',icon:'🏠',label:'Главная'},
+    {href:'дашборд_ддс_прямой.html',icon:'💧',label:'ДДС · деньги'},
+    {href:'дз_кз.html',icon:'🧾',label:'ДЗ / КЗ'},
+    {href:'продажи_2026.html',icon:'🛒',label:'Продажи'},
+    {href:'дашборд_sku_iiko.html',icon:'🔍',label:'SKU 360'},
     {href:'metrics.html',icon:'🔒',label:'Метрики'}
   ];
   var cur=location.pathname.split('/').pop()||'index.html';
