@@ -329,52 +329,96 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
   </script>
 </div>
 
-<div class="section" id="returns-analytics" style="padding-top:6px">
+<div class="section" id="returns-analytics" style="padding-top:6px" data-rv="2">
   <div class="section-title">📉 Аналитика возвратов <span style="font-weight:500;font-size:.62em;color:#c9a94e;letter-spacing:.02em">(возвраты покупателей, с начала года)</span></div>
   <div class="card" style="height:320px"><canvas id="ch-returns"></canvas></div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px">
-    <div class="card">
-      <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:10px">🏢 Топ контрагентов по возвратам</div>
-      <div id="ret-contractors"></div>
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px">
+      <div id="rf-tabs" style="display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:2px">
+        <button type="button" data-tab="contractors" style="border:0;background:transparent;color:#cbd5e1;font-size:12px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer">🏢 Контрагенты</button>
+        <button type="button" data-tab="products" style="border:0;background:transparent;color:#cbd5e1;font-size:12px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer">📦 Товары</button>
+      </div>
+      <select id="rf-month" style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer"></select>
+      <select id="rf-sort" style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer">
+        <option value="ret">сортировка: по сумме</option>
+        <option value="share">сортировка: по доле %</option>
+        <option value="name">сортировка: по названию</option>
+      </select>
+      <input id="rf-search" type="text" placeholder="Поиск по названию…" style="flex:1;min-width:150px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:12px">
+      <span id="rf-count" style="color:#94a3b8;font-size:12px;white-space:nowrap"></span>
     </div>
-    <div class="card">
-      <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:10px">📦 Топ товаров по возвратам</div>
-      <div id="ret-products"></div>
-    </div>
+    <div id="rf-list" style="max-height:470px;overflow:auto;padding-right:4px"></div>
   </div>
   <script>
   (function(){
-    function fmt(v){ v=Math.round(Math.abs(v));
-      if(v>=1e6) return (v/1e6).toFixed(1).replace(".",",")+" млн";
-      if(v>=1e3) return Math.round(v/1e3)+" тыс"; return String(v); }
+    function fmt(v){ v=Math.round(Math.abs(v)); if(v>=1e6) return (v/1e6).toFixed(1).replace(".",",")+" млн"; if(v>=1e3) return Math.round(v/1e3)+" тыс"; return String(v); }
     function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
-    function bars(el, rows){
-      if(!el) return;
-      if(!rows||!rows.length){ el.innerHTML='<div style="color:#94a3b8;font-size:12px">нет данных</div>'; return; }
-      var max=Math.max.apply(null, rows.map(function(r){return r.ret;}));
-      el.innerHTML=rows.map(function(r){
-        var w=max>0?(r.ret/max*100):0;
-        var sh=(r.share!=null)?(' · '+String(r.share).replace(".",",")+"% возвр."):'';
-        return '<div style="margin:7px 0">'
-          +'<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#cbd5e1;margin-bottom:3px">'
-          +'<span style="max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.name)+'</span>'
-          +'<span style="color:#e2e8f0;font-weight:600;white-space:nowrap">−'+fmt(r.ret)+'<span style="color:#94a3b8;font-weight:500">'+sh+'</span></span></div>'
-          +'<div style="height:6px;background:#0f172a;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+w.toFixed(1)+'%;background:#ef4444;border-radius:4px"></div></div>'
-          +'</div>';
-      }).join("");
+    var MN=["","Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+    var MS=["","Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+    var st={tab:"contractors",month:"",sort:"ret",q:""};
+    function rowVal(e){
+      if(!st.month){ return {ret:e.r, gross:e.g, share:e.s, qty:e.q}; }
+      var mm=e.m&&e.m[st.month];
+      if(!mm){ return {ret:0, gross:0, share:null, qty:null}; }
+      return {ret:mm[0], gross:mm[1], share:mm[1]>0?+(mm[0]/mm[1]*100).toFixed(1):null, qty:null};
     }
-    function render(){
+    function renderList(){
       var D=window.RETURNS_DETAIL; if(!D) return;
-      var MN=["","Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+      var arr=(D[st.tab]||[]).map(function(e){ var v=rowVal(e); return {n:e.n,ret:v.ret,gross:v.gross,share:v.share,qty:v.qty}; }).filter(function(r){ return r.ret>0; });
+      if(st.q){ var qq=st.q.toLowerCase(); arr=arr.filter(function(r){ return r.n.toLowerCase().indexOf(qq)>=0; }); }
+      if(st.sort==="ret") arr.sort(function(a,b){return b.ret-a.ret;});
+      else if(st.sort==="share") arr.sort(function(a,b){return (b.share||0)-(a.share||0);});
+      else arr.sort(function(a,b){return a.n.localeCompare(b.n,"ru");});
+      var max=arr.length?Math.max.apply(null,arr.map(function(r){return r.ret;})):0;
+      var tot=arr.reduce(function(s,r){return s+r.ret;},0);
+      var el=document.getElementById("rf-list");
+      if(!arr.length){ el.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:10px">Ничего не найдено</div>'; }
+      else{
+        el.innerHTML=arr.map(function(r,i){
+          var w=max>0?(r.ret/max*100):0;
+          var sh=(r.share!=null)?('<span style="color:#94a3b8;font-weight:500"> · '+String(r.share).replace(".",",")+"% возвр.</span>"):'';
+          var qt=(r.qty!=null&&r.qty>0)?('<span style="color:#64748b;font-weight:500"> · '+r.qty+" шт</span>"):'';
+          return '<div style="padding:7px 0;border-bottom:1px solid #1e293b">'
+            +'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:#cbd5e1;margin-bottom:4px">'
+            +'<span style="max-width:56%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="color:#475569;font-variant-numeric:tabular-nums">'+(i+1)+'.</span> '+esc(r.n)+'</span>'
+            +'<span style="white-space:nowrap;color:#e2e8f0;font-weight:700">−'+fmt(r.ret)+sh+qt+'</span></div>'
+            +'<div style="height:6px;background:#0f172a;border-radius:4px;overflow:hidden"><div style="height:100%;width:'+w.toFixed(1)+'%;background:linear-gradient(90deg,#ef4444,#f87171);border-radius:4px"></div></div>'
+            +'</div>';
+        }).join("");
+      }
+      var lbl=st.month?(MN[parseInt(st.month.split("-")[1],10)]||st.month):"с начала года";
+      document.getElementById("rf-count").textContent="Показано "+arr.length+" · "+lbl+" · итого −"+fmt(tot);
+    }
+    function styleTabs(){
+      var t=document.getElementById("rf-tabs"); if(!t) return;
+      [].forEach.call(t.querySelectorAll("button"),function(b){
+        var on=b.getAttribute("data-tab")===st.tab;
+        b.style.background=on?"#ef4444":"transparent"; b.style.color=on?"#fff":"#cbd5e1";
+      });
+    }
+    function fillMonths(){
+      var D=window.RETURNS_DETAIL, sel=document.getElementById("rf-month"); if(!sel||!D) return;
+      var opts='<option value="">Все месяцы</option>';
+      (D.months||[]).forEach(function(k){ opts+='<option value="'+k+'">'+(MN[parseInt(k.split("-")[1],10)]||k)+'</option>'; });
+      sel.innerHTML=opts;
+    }
+    function wire(){
+      var t=document.getElementById("rf-tabs");
+      if(t) t.addEventListener("click",function(e){ var b=e.target.closest?e.target.closest("button"):null; if(!b)return; st.tab=b.getAttribute("data-tab"); styleTabs(); renderList(); });
+      var mo=document.getElementById("rf-month"); if(mo) mo.addEventListener("change",function(){ st.month=this.value; renderList(); });
+      var so=document.getElementById("rf-sort"); if(so) so.addEventListener("change",function(){ st.sort=this.value; renderList(); });
+      var se=document.getElementById("rf-search"); if(se) se.addEventListener("input",function(){ st.q=this.value; renderList(); });
+    }
+    function renderChart(){
+      var D=window.RETURNS_DETAIL; if(!D) return;
       var keys=Object.keys(D.by_month||{}).sort();
-      var labels=keys.map(function(k){return MN[parseInt(k.split("-")[1],10)]||k;});
+      var labels=keys.map(function(k){return MS[parseInt(k.split("-")[1],10)]||k;});
       var vals=keys.map(function(k){return +(((D.by_month[k]||0))/1e6).toFixed(2);});
       var pcts=keys.map(function(k){var net=(window.DS&&window.DS[k]&&window.DS[k].total_rev)||0;var g=net+(D.by_month[k]||0);return g>0?+(((D.by_month[k]||0)/g*100)).toFixed(2):0;});
       var cv=document.getElementById("ch-returns");
       if(cv && window.Chart){
         try{var ex=Chart.getChart?Chart.getChart(cv):null; if(ex) ex.destroy();}catch(e){}
-        new Chart(cv.getContext("2d"),{
-          type:"bar",
+        new Chart(cv.getContext("2d"),{type:"bar",
           data:{labels:labels,datasets:[
             {label:"Возвраты, ₸",data:vals,backgroundColor:"#ef4444",borderRadius:6,yAxisID:"y",order:2},
             {label:"% от выручки",data:pcts,type:"line",borderColor:"#c9a94e",backgroundColor:"#c9a94e",borderWidth:2,tension:.3,pointRadius:3,yAxisID:"y1",order:1}
@@ -387,13 +431,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
               x:{ticks:{color:"#94a3b8",font:{size:12,weight:"600"}},grid:{display:false}},
               y:{position:"left",beginAtZero:true,ticks:{color:"#64748b",font:{size:10},callback:function(v){return v+" М";}},grid:{color:"rgba(51,65,85,.4)"}},
               y1:{position:"right",beginAtZero:true,ticks:{color:"#c9a94e",font:{size:10},callback:function(v){return v+"%";}},grid:{display:false}}
-            }}
-        });
+            }}});
       }
-      bars(document.getElementById("ret-contractors"), D.contractors);
-      bars(document.getElementById("ret-products"), D.products);
     }
-    function boot(){ if(window.Chart){ render(); } else { var n=0,t=setInterval(function(){ n++; if(window.Chart||n>50){ clearInterval(t); render(); } },100); } }
+    function render(){ if(!window.RETURNS_DETAIL) return; fillMonths(); styleTabs(); renderChart(); renderList(); }
+    function boot(){ wire(); if(window.Chart){ render(); } else { var n=0,t=setInterval(function(){ n++; if(window.Chart||n>50){ clearInterval(t); render(); } },100); } }
     var s=document.createElement("script");
     s.src="/returns_meta.js?v="+(window.SALES_META&&window.SALES_META.pulled?encodeURIComponent(window.SALES_META.pulled):"1");
     s.onload=function(){ if(document.readyState==="loading"){ document.addEventListener("DOMContentLoaded", boot); } else { boot(); } };
