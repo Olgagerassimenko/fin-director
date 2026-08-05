@@ -1,0 +1,162 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Метрики Пульса — что смотрят</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#0b1220;--card:#111a2e;--line:#243049;--mut:#8091a8;--txt:#e5edf7;--gold:#c9a94e;--acc:#7c3aed}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:22px 16px 60px}
+  h1{font-size:20px;margin:0 0 2px}
+  .sub{color:var(--mut);font-size:12.5px;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .grid{display:grid;gap:12px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:14px}
+  .kpi .v{font-size:26px;font-weight:800}
+  .kpi .l{color:var(--mut);font-size:12px;margin-top:2px}
+  .two{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+  .ct{font-size:13px;font-weight:700;margin-bottom:10px;color:#f1f5f9}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;text-align:right;padding:8px;border-bottom:1px solid var(--line)}
+  th.l,td.l{text-align:left}
+  td{padding:8px;border-bottom:1px solid #1b2636;text-align:right;font-variant-numeric:tabular-nums}
+  td.l{color:#f1f5f9;font-weight:600}
+  /* gate */
+  #gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .gcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px;max-width:360px;width:100%;text-align:center}
+  .gcard h2{font-size:18px;margin:0 0 6px}
+  .gcard p{color:var(--mut);font-size:12.5px;margin:0 0 16px}
+  #pw{width:100%;background:#0f172a;border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:11px 12px;font-size:15px;text-align:center;letter-spacing:1px}
+  #go{margin-top:12px;width:100%;background:var(--acc);color:#fff;border:0;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer}
+  #gerr{color:#f87171;font-size:12.5px;margin-top:10px;min-height:16px}
+  canvas{max-width:100%}
+</style></head>
+<body>
+<div id="gate">
+  <div class="gcard">
+    <div style="font-size:30px">🔒</div>
+    <h2>Метрики Пульса</h2>
+    <p>Статистика посещений — что и сколько смотрят. Введите пароль.</p>
+    <input id="pw" type="password" autocomplete="off" placeholder="пароль" autofocus>
+    <button id="go">Войти</button>
+    <div id="gerr"></div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <h1>🔒 Метрики Пульса — что смотрят</h1>
+  <div class="sub" id="upd"></div>
+
+  <div class="grid kpis" id="kpis"></div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="ct">📊 Просмотры по дашбордам</div>
+    <div style="height:340px"><canvas id="chPages"></canvas></div>
+  </div>
+
+  <div class="grid two" style="margin-bottom:12px">
+    <div class="card"><div class="ct">📈 Просмотры по дням</div><div style="height:260px"><canvas id="chDays"></canvas></div></div>
+    <div class="card"><div class="ct">🕒 По часам суток (Алматы)</div><div style="height:260px"><canvas id="chHours"></canvas></div></div>
+  </div>
+
+  <div class="grid two" style="margin-bottom:12px">
+    <div class="card"><div class="ct">📱 Устройства</div><div style="height:240px"><canvas id="chDev"></canvas></div></div>
+    <div class="card"><div class="ct">🌍 География (по странам)</div><div style="height:240px"><canvas id="chGeo"></canvas></div></div>
+  </div>
+
+  <div class="card">
+    <div class="ct">📋 Детали по дашбордам</div>
+    <table><thead><tr><th class="l">Дашборд</th><th>Просмотры</th><th>Сегодня</th><th>Устройства</th><th class="l">Последний заход</th></tr></thead>
+    <tbody id="tbl"></tbody></table>
+  </div>
+</div>
+
+<script src="/nav.js" onerror=""></script>
+<script>
+(function(){
+  var LABELS={"":"Пульс (главная)","index":"Пульс (главная)","продажи_2026":"Продажи 2026",
+    "дашборд_продажи":"Продажи","дашборд_ддс_прямой":"ДДС прямой","дашборд_гугл_live":"ДДС Live",
+    "опиу_2025_2026":"ОПиУ","дашборд_дддс_динамик":"ДДС Excel","дашборд_ддс":"ДДС",
+    "дашборд_себестоимость_2025-2026":"Себестоимость","дашборд_sku_2025-2026":"SKU онлайн",
+    "дашборд_sku_себестоимость":"SKU Себест.","дашборд_sku_iiko":"SKU iiko 360","закуп":"Закуп",
+    "metrics":"Метрики (эта страница)"};
+  function norm(p){ try{p=decodeURIComponent(p);}catch(e){} p=p.replace(/^\/+/,"").replace(/\/+$/,""); p=p.replace(/\.html$/i,""); return p; }
+  function label(p){ var n=norm(p); return LABELS[n]||n||"(корень)"; }
+  function fmt(v){ v=Math.round(v||0); return v.toLocaleString("ru-RU"); }
+  function todayAlm(){ var d=new Date(Date.now()+5*3600*1000); return d.toISOString().slice(0,10); }
+  var CH={};
+  function mk(id,cfg){ if(CH[id])CH[id].destroy(); var el=document.getElementById(id); if(el&&window.Chart) CH[id]=new Chart(el.getContext("2d"),cfg); }
+  var AX={ticks:{color:"#8091a8",font:{size:11}},grid:{color:"rgba(51,65,85,.35)"}};
+  var AXx={ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}};
+
+  function render(data){
+    document.getElementById("gate").style.display="none";
+    document.getElementById("app").style.display="block";
+    var pages=data.pages||{};
+    var keys=Object.keys(pages);
+    // агрегаты
+    var perPage=keys.map(function(k){return {k:k,name:label(k),t:pages[k].t||0,last:pages[k].last||"",dev:pages[k].dev||{m:0,d:0},d:pages[k].d||{},h:pages[k].h||[]};});
+    perPage.sort(function(a,b){return b.t-a.t;});
+    var total=perPage.reduce(function(s,p){return s+p.t;},0);
+    var today=todayAlm();
+    var todayTot=perPage.reduce(function(s,p){return s+(p.d[today]||0);},0);
+    // по дням (сумма)
+    var byDay={}; perPage.forEach(function(p){ for(var d in p.d) byDay[d]=(byDay[d]||0)+p.d[d]; });
+    var days=Object.keys(byDay).sort();
+    // по часам
+    var byHour=new Array(24).fill(0); perPage.forEach(function(p){ (p.h||[]).forEach(function(v,i){byHour[i]+=v||0;}); });
+    // устройства
+    var dev={m:0,d:0}; perPage.forEach(function(p){ dev.m+=p.dev.m||0; dev.d+=p.dev.d||0; });
+    // страны
+    var byC={}; keys.forEach(function(k){ var c=pages[k].c||{}; for(var cc in c) byC[cc]=(byC[cc]||0)+c[cc]; });
+    var geo=Object.keys(byC).map(function(c){return {c:c,n:byC[c]};}).sort(function(a,b){return b.n-a.n;}).slice(0,8);
+
+    // KPI
+    var top=perPage[0];
+    document.getElementById("upd").textContent="Обновлено: "+(data.updated?new Date(data.updated).toLocaleString("ru-RU"):"—")+" · всего страниц: "+keys.length;
+    var kh=[
+      ["Всего просмотров",fmt(total)],
+      ["Сегодня",fmt(todayTot)],
+      ["Дней с активностью",fmt(days.length)],
+      ["Топ-дашборд",top?top.name:"—"]
+    ];
+    document.getElementById("kpis").innerHTML=kh.map(function(x){return '<div class="card kpi"><div class="v">'+x[1]+'</div><div class="l">'+x[0]+'</div></div>';}).join("");
+
+    // chart: по дашбордам (горизонтальный бар)
+    mk("chPages",{type:"bar",data:{labels:perPage.map(function(p){return p.name;}),datasets:[{data:perPage.map(function(p){return p.t;}),backgroundColor:"#7c3aed",borderRadius:6}]},
+      options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:AX,y:AXx}}});
+    // по дням
+    mk("chDays",{type:"line",data:{labels:days.map(function(d){return d.slice(5);}),datasets:[{data:days.map(function(d){return byDay[d];}),borderColor:"#38bdf8",backgroundColor:"rgba(56,189,248,.15)",fill:true,tension:.3,pointRadius:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:AXx,y:AX}}});
+    // по часам
+    mk("chHours",{type:"bar",data:{labels:byHour.map(function(_,i){return i+"ч";}),datasets:[{data:byHour,backgroundColor:"#c9a94e",borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:AXx,y:AX}}});
+    // устройства
+    mk("chDev",{type:"doughnut",data:{labels:["Мобильные","Компьютеры"],datasets:[{data:[dev.m,dev.d],backgroundColor:["#34d399","#60a5fa"],borderColor:"#0f172a",borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:"62%",plugins:{legend:{position:"bottom",labels:{color:"#cbd5e1"}}}}});
+    // страны
+    mk("chGeo",{type:"bar",data:{labels:geo.map(function(g){return g.c;}),datasets:[{data:geo.map(function(g){return g.n;}),backgroundColor:"#f59e0b",borderRadius:4}]},
+      options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:AX,y:AXx}}});
+
+    // таблица
+    document.getElementById("tbl").innerHTML=perPage.map(function(p){
+      var last=p.last?new Date(p.last).toLocaleString("ru-RU"):"—";
+      var dv=(p.dev.m||0)+"📱 / "+(p.dev.d||0)+"💻";
+      return '<tr><td class="l">'+p.name+'</td><td>'+fmt(p.t)+'</td><td>'+fmt(p.d[today]||0)+'</td><td>'+dv+'</td><td class="l" style="color:#94a3b8;font-weight:400">'+last+'</td></tr>';
+    }).join("");
+  }
+
+  function login(pw,silent){
+    fetch("/mstats?key="+encodeURIComponent(pw)).then(function(r){
+      if(r.status!==200){ if(!silent){document.getElementById("gerr").textContent="Неверный пароль";} sessionStorage.removeItem("mpw"); return null; }
+      return r.json();
+    }).then(function(data){ if(data){ sessionStorage.setItem("mpw",pw); render(data); } })
+    .catch(function(){ if(!silent) document.getElementById("gerr").textContent="Ошибка соединения"; });
+  }
+  document.getElementById("go").addEventListener("click",function(){ login(document.getElementById("pw").value,false); });
+  document.getElementById("pw").addEventListener("keydown",function(e){ if(e.key==="Enter") login(this.value,false); });
+  var saved=sessionStorage.getItem("mpw"); if(saved) login(saved,true);
+})();
+</script>
+</body></html>

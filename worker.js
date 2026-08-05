@@ -12,6 +12,12 @@ const DZ_GID = "597090672";
 const CACHE_KEY = "https://internal.cache/dz_kz.js?v=2";
 const CACHE_TTL = 3600; // секунд
 
+// ── Метрики посещений («что смотрят») ──
+const M_KEY = "metrics:v1";
+// SHA-256 пароля вкладки «Метрики» (сам пароль в репозиторий не попадает)
+const METRICS_HASH = "2391eadda6fbf6a5907d84883fdd4e84da1614f7de7db7dd74e4eb7e7ed1d67b";
+const METRICS_BEACON = '<script>try{fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true})}catch(e){}</script>';
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -76,7 +82,17 @@ export default {
       return new Response(JSON.stringify(out), { headers: {
         "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
     }
-    return env.ASSETS.fetch(request);
+    if (url.pathname === "/track") return handleTrack(url, request, env, ctx);
+    if (url.pathname === "/mstats") return handleStats(url, env);
+    // отдаём статику, а в HTML тихо вставляем счётчик просмотров
+    const _res = await env.ASSETS.fetch(request);
+    const _ct = _res.headers.get("content-type") || "";
+    if (_ct.includes("text/html")) {
+      return new HTMLRewriter()
+        .on("head", { element(e) { e.append(METRICS_BEACON, { html: true }); } })
+        .transform(_res);
+    }
+    return _res;
   },
 
   async scheduled(event, env, ctx) {
@@ -1021,4 +1037,47 @@ function nowStr() {
   const d = new Date(Date.now() + 5 * 3600 * 1000); // Алматы UTC+5
   const p = (n) => String(n).padStart(2, "0");
   return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}.${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+
+// ── Метрики посещений: запись просмотра и выдача статистики ──
+async function handleTrack(url, request, env, ctx) {
+  const p = (url.searchParams.get("p") || "/").slice(0, 160);
+  const ua = request.headers.get("user-agent") || "";
+  if (/bot|crawl|spider|slurp|preview|monitor|headless|curl|wget|python-requests|facebookexternalhit|whatsapp|telegrambot/i.test(ua)) {
+    return new Response("", { status: 204 });
+  }
+  ctx.waitUntil(recordView(p, request, env).catch(() => {}));
+  return new Response("", { status: 204, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
+}
+async function recordView(p, request, env) {
+  const now = new Date();
+  const alm = new Date(now.getTime() + 5 * 3600 * 1000); // Алматы UTC+5
+  const day = alm.toISOString().slice(0, 10);
+  const hour = alm.getUTCHours();
+  const country = (request.cf && request.cf.country) || "??";
+  const ua = request.headers.get("user-agent") || "";
+  const isMob = /Mobile|Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(ua);
+  const raw = await env.PLAN.get(M_KEY);
+  const m = raw ? JSON.parse(raw) : { pages: {}, updated: "" };
+  const pg = m.pages[p] || (m.pages[p] = { t: 0, d: {}, h: new Array(24).fill(0), c: {}, dev: { m: 0, d: 0 }, last: "" });
+  if (!pg.h || pg.h.length !== 24) pg.h = new Array(24).fill(0);
+  pg.t = (pg.t || 0) + 1;
+  pg.d[day] = (pg.d[day] || 0) + 1;
+  pg.h[hour] = (pg.h[hour] || 0) + 1;
+  pg.c[country] = (pg.c[country] || 0) + 1;
+  if (isMob) pg.dev.m = (pg.dev.m || 0) + 1; else pg.dev.d = (pg.dev.d || 0) + 1;
+  pg.last = now.toISOString();
+  m.updated = now.toISOString();
+  await env.PLAN.put(M_KEY, JSON.stringify(m));
+}
+async function sha256hex(s) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function handleStats(url, env) {
+  const key = url.searchParams.get("key") || "";
+  const h = await sha256hex(key);
+  if (h !== METRICS_HASH) return jsonResp({ error: "Неверный пароль" }, 401);
+  const raw = await env.PLAN.get(M_KEY);
+  return jsonResp(raw ? JSON.parse(raw) : { pages: {}, updated: "" });
 }

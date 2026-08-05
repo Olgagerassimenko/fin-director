@@ -279,6 +279,16 @@ def inject_footer(html):
     return html + foot
 
 
+def inject_bar_style(html):
+    """Единый стиль двух сворачивающихся блоков (идемпотентно)."""
+    if 'dc-caret' in html:
+        return html
+    html = html.replace('details.opiu-check summary::-webkit-details-marker{display:none}', 'details.opiu-check summary::-webkit-details-marker{display:none}\n.dc-caret{display:inline-block;transition:transform .2s;color:#c9a94e}\ndetails[open] .dc-caret{transform:rotate(90deg)}', 1)
+    html = html.replace('    <summary style="cursor:pointer;list-style:none;padding:14px 18px;font-size:14px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:8px;user-select:none">\n      <span style="color:#c9a94e">&#128269; Сверка выручки с ОПиУ</span>\n      <span style="font-weight:500;font-size:12px;color:#94a3b8">— нажмите, чтобы раскрыть</span>\n      <span style="margin-left:auto;color:#64748b;font-size:12px" class="opiu-hint">&#9660;</span>\n    </summary>', '    <summary style="cursor:pointer;list-style:none;padding:14px 18px;font-size:14px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:8px;user-select:none">\n      <span style="color:#c9a94e"><span class="dc-caret">▸</span> &#128269; Сверка выручки с ОПиУ</span>\n      <span style="font-weight:500;font-size:12px;color:#94a3b8;margin-left:auto">нажмите, чтобы раскрыть</span>\n    </summary>', 1)
+    html = html.replace('id="ra-caret"', 'class="dc-caret"', 1)
+    return html
+
+
 def main():
     log("=" * 60)
     log("  Пересборка продаж из выгрузок «I Отчет ПРОДАЖИ»")
@@ -366,7 +376,7 @@ def main():
     bak = HTML_FILE + ".bak2"
     if not os.path.exists(bak):
         open(bak, 'w', encoding='utf-8').write(html)
-    open(HTML_FILE, 'w', encoding='utf-8').write(inject_footer(inject_opiu_columns(inject_returns_analytics(inject_returns_block(inject_ds(html, ds))))))
+    open(HTML_FILE, 'w', encoding='utf-8').write(inject_bar_style(inject_footer(inject_opiu_columns(inject_returns_analytics(inject_returns_block(inject_ds(html, ds)))))))
     log(f"  Записано: {HTML_FILE}")
     log("  Готово.")
 
