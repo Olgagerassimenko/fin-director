@@ -18,13 +18,17 @@
  .tab{background:var(--surf);color:#c9d4e2;border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-weight:700;font-size:12.5px;cursor:pointer;transition:.18s}
  .tab:hover{border-color:rgba(232,199,102,.45)}
  .tab.active{background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;border-color:#e8c766;box-shadow:0 6px 18px -8px rgba(212,175,55,.7)}
- .ctrl{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
- .seg{display:inline-flex;background:var(--surf);border:1px solid var(--line);border-radius:999px;padding:3px}
- .seg button{background:none;border:none;color:#c9d4e2;font-weight:700;font-size:12.5px;padding:6px 14px;border-radius:999px;cursor:pointer;transition:.15s}
- .seg button.on{background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205}
- .ctrl select,.ctrl input{font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#132234;color:var(--ink);font-weight:600}
- .ctrl label{font-size:12.5px;color:var(--ink2);font-weight:600}
- .ctrltop{position:sticky;top:0;z-index:30;background:rgba(9,16,26,.94);backdrop-filter:blur(7px);padding:11px 12px;margin:0 -12px 12px;border-radius:0 0 14px 14px;border:1px solid rgba(212,175,55,.16);border-top:none;box-shadow:0 6px 18px rgba(0,0,0,.28)}
+ .ctrl{display:flex;gap:14px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+ .seg{display:inline-flex;gap:2px;background:linear-gradient(180deg,#0e1a28,#0b1521);border:1px solid rgba(212,175,55,.22);border-radius:999px;padding:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.45)}
+ .seg button{background:none;border:none;color:#b7c3d2;font-weight:700;font-size:13px;letter-spacing:.2px;padding:8px 17px;border-radius:999px;cursor:pointer;transition:.18s}
+ .seg button:hover{color:#f4f7fb}
+ .seg button.on{background:linear-gradient(135deg,#f2d47c,#d4af37);color:#1a1205;box-shadow:0 3px 12px -2px rgba(212,175,55,.55)}
+ .ctrl select,.ctrl input{appearance:none;-webkit-appearance:none;font-size:13.5px;font-weight:700;padding:9px 36px 9px 15px;border:1px solid rgba(212,175,55,.34);border-radius:12px;color:#f4f7fb;cursor:pointer;font-variant-numeric:tabular-nums;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23e8c766' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 13px center,linear-gradient(180deg,#17293d,#101d2c);box-shadow:0 2px 9px rgba(0,0,0,.28);transition:.16s}
+ .ctrl select:hover{border-color:rgba(212,175,55,.6)}
+ .ctrl select:focus{outline:none;border-color:#e8c766;box-shadow:0 0 0 3px rgba(212,175,55,.16)}
+ .ctrl label{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:#c9a94a;font-weight:800}
+ .ctrltop{position:sticky;top:0;z-index:30;background:linear-gradient(180deg,rgba(11,20,31,.98),rgba(11,20,31,.9));backdrop-filter:blur(9px);padding:12px 15px;margin:0 -15px 15px;border-radius:0 0 16px 16px;border:1px solid rgba(212,175,55,.2);border-top:none;box-shadow:0 8px 24px rgba(0,0,0,.34)}
+ .ctrltop .ctrl{margin-bottom:0}
  .ctrltop:empty{display:none}
  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
  .k{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(212,175,55,.2);border-radius:14px;padding:14px 16px;transition:.2s;position:relative;overflow:hidden}
@@ -91,7 +95,6 @@
 <div class="wrap">
  <div id="ctrl" class="ctrltop"></div>
  <div class="tabs" id="tabs"></div>
- <div id="zhead"></div>
  <div id="body"></div>
  <div class="foot">Система «Пульс» · автор: <b>Ольга Герасименко</b> · © 2026 · <span id="prov"></span></div>
 </div>
@@ -133,11 +136,17 @@ const HASDAYS=!!(D.tovary&&D.tovary.days&&DAYS.length);
 function dlab(k){return (D.dmeta&&D.dmeta[k]&&D.dmeta[k].ru)?D.dmeta[k].ru:k;}
 function defKey(){ if(MODE==='month')return MONTHS[MONTHS.length-1]; if(MODE==='week')return WEEKS.length?WEEKS[WEEKS.length-1].k:null; if(MODE==='day')return DAYS.length?DAYS[DAYS.length-1]:null; if(MODE==='period')return null; return 'year'; }
 function initAnRange(){ if(DAYS.length){ ATO=DAYS[DAYS.length-1]; AFROM=DAYS[Math.max(0,DAYS.length-7)]; } }
+/* ---- единый период: срезы дней и агрегаторы для любого диапазона ---- */
+function periodDaySlices(kind){var K=D[kind]||{},days=K.days||{};var i1=DAYS.indexOf(AFROM),i2=DAYS.indexOf(ATO);if(i1<0)i1=0;if(i2<0)i2=DAYS.length-1;if(i1>i2){var t=i1;i1=i2;i2=t;}var out=[];for(var i=i1;i<=i2;i++){var s=days[DAYS[i]];if(s)out.push(s);}return out;}
+function aggPoObj(list){var m={},P=0,O=0;list.forEach(function(o){((o&&o.suppliers)||[]).forEach(function(x){if(!m[x.name])m[x.name]={name:x.name,prihod:0,oplata:0};m[x.name].prihod+=x.prihod||0;m[x.name].oplata+=x.oplata||0;});});var sup=Object.keys(m).map(function(n){var e=m[n];e.itogo=e.prihod+e.oplata;P+=e.prihod;O+=e.oplata;return e;});sup.sort(function(a,b){return b.itogo-a.itogo;});return {suppliers:sup,prihod:Math.round(P),oplata:Math.round(O),n:sup.length};}
+function aggCeObj(list){var m={};list.forEach(function(o){((o&&o.products)||[]).forEach(function(p){if(!m[p.name])m[p.name]={name:p.name,qty:0,sum:0};m[p.name].qty+=p.qty||0;m[p.name].sum+=p.sum||0;});});var products=Object.keys(m).map(function(n){var r=m[n];return {name:n,qty:Math.round(r.qty*100)/100,sum:Math.round(r.sum),price:r.qty?Math.round(r.sum/r.qty):0};});products.sort(function(a,b){return b.sum-a.sum;});return {products:products};}
+function aggTvObj(list){var m={};list.forEach(function(o){((o&&o.rows)||[]).forEach(function(r){var k=r.product+'|'+(r.supplier||'');if(!m[k])m[k]={product:r.product,supplier:r.supplier||'',unit:r.unit||'',qty:0,sum:0};m[k].qty+=r.qty||0;m[k].sum+=r.sum||0;});});var rows=Object.keys(m).map(function(k){var r=m[k];r.price=r.qty?Math.round(r.sum/r.qty):0;r.qty=Math.round(r.qty*100)/100;r.sum=Math.round(r.sum);return r;});rows.sort(function(a,b){return b.sum-a.sum;});return {rows:rows};}
+function movePeriodNote(title){return '<div class="card"><div class="hd"><h3>'+title+'</h3><span class="sub">только неделя · месяц · год</span></div><div style="padding:18px;color:#93a2b5;font-size:13px;line-height:1.65">Движение и склады считаются по <b style="color:#dbe4ee">неделе, месяцу и году</b> — нужен складской срез остатков на начало и конец периода. Для режимов «День» и «Период» смотрите <b style="color:#dbe4ee">«Приход и оплата», «Что закупали», «Цены закупа»</b>. Выберите неделю, месяц или год, чтобы увидеть движение.</div></div>';}
 
 function renderTabs(){
  document.getElementById('tabs').innerHTML=TABS.map(t=>`<button class="tab${t[0]===TAB?' active':''}" onclick="setTab('${t[0]}')">${t[1]}</button>`).join('');
 }
-function setTab(t){ TAB=t; MODE=(t==='os')?'month':(t==='kz')?'now':(t==='an')?'year':'month'; PKEY=defKey(); render(); }
+function setTab(t){ TAB=t; if(MODE!=='day'&&MODE!=='week'&&MODE!=='month'&&MODE!=='year'&&MODE!=='period'){MODE='month';PKEY=defKey();} render(); }
 function setMode(m){ MODE=m; PKEY=defKey(); if(m==='period')initAnRange(); render(); }
 function setKey(k){ PKEY=k; render(); }
 function setAnFrom(v){ AFROM=v; render(); }
@@ -145,19 +154,18 @@ function setAnTo(v){ ATO=v; render(); }
 
 function ctrlHTML(){
  if(TAB==='kz'||TAB==='pm') return '';
- let modes=[['week','Неделя'],['month','Месяц'],['year','Итого год']];
- if(TAB==='os') modes=[['month','По месяцам'],['week','По неделям']];
- if(TAB==='an') modes=HASDAYS?[['day','День'],['week','Неделя'],['month','Месяц'],['year','Год'],['period','Период']]:[['week','Неделя'],['month','Месяц'],['year','Год']];
+ // единый переключатель периода для всех вкладок
+ let modes=HASDAYS?[['day','День'],['week','Неделя'],['month','Месяц'],['year','Год'],['period','Период']]:[['week','Неделя'],['month','Месяц'],['year','Год']];
  let seg=`<div class="seg">`+modes.map(m=>`<button class="${m[0]===MODE?'on':''}" onclick="setMode('${m[0]}')">${m[1]}</button>`).join('')+`</div>`;
  let sel='';
- if(TAB==='an' && MODE==='day' && HASDAYS){
+ if(MODE==='day' && HASDAYS){
    const opts=DAYS.slice().reverse().map(k=>[k,dlab(k)]);
    sel=`<label>День:</label><select onchange="setKey(this.value)">`+opts.map(o=>`<option value="${o[0]}"${o[0]===PKEY?' selected':''}>${o[1]}</option>`).join('')+`</select>`;
- } else if(TAB==='an' && MODE==='period' && HASDAYS){
+ } else if(MODE==='period' && HASDAYS){
    const of=`<select onchange="setAnFrom(this.value)">`+DAYS.map(k=>`<option value="${k}"${k===AFROM?' selected':''}>${dlab(k)}</option>`).join('')+`</select>`;
    const ot=`<select onchange="setAnTo(this.value)">`+DAYS.map(k=>`<option value="${k}"${k===ATO?' selected':''}>${dlab(k)}</option>`).join('')+`</select>`;
    sel=`<label>С:</label>${of}<label>по:</label>${ot}`;
- } else if(TAB!=='os' && MODE!=='year' && MODE!=='day' && MODE!=='period'){
+ } else if(MODE==='month' || MODE==='week'){
    const opts=(MODE==='month'?MONTHS.map(k=>[k,(D.mmeta[k]||{}).ru||k]):WEEKS.map(w=>[w.k,'неделя '+w.label]));
    sel=`<label>Период:</label><select onchange="setKey(this.value)">`+opts.map(o=>`<option value="${o[0]}"${o[0]===PKEY?' selected':''}>${o[1]}</option>`).join('')+`</select>`;
  }
@@ -165,11 +173,12 @@ function ctrlHTML(){
 }
 
 /* ---- данные периода ---- */
-function poData(){ if(MODE==='year')return D.prihodOplata.year; const b=(MODE==='month'?D.prihodOplata.months:D.prihodOplata.weeks); return b[PKEY]||{suppliers:[],prihod:0,oplata:0,n:0}; }
-function ceData(){ if(MODE==='year')return D.ceny.year; const b=(MODE==='month'?D.ceny.months:D.ceny.weeks); return b[PKEY]||{products:[]}; }
+function poData(){ if(MODE==='year')return D.prihodOplata.year; if(MODE==='period')return aggPoObj(periodDaySlices('prihodOplata')); const b=(MODE==='month'?D.prihodOplata.months:MODE==='week'?D.prihodOplata.weeks:D.prihodOplata.days)||{}; return b[PKEY]||{suppliers:[],prihod:0,oplata:0,n:0}; }
+function ceData(){ if(MODE==='year')return D.ceny.year; if(MODE==='period')return aggCeObj(periodDaySlices('ceny')); const b=(MODE==='month'?D.ceny.months:MODE==='week'?D.ceny.weeks:D.ceny.days)||{}; return b[PKEY]||{products:[]}; }
 function prevCe(){ // предыдущий период для отклонений цен
  if(MODE==='month'){const i=MONTHS.indexOf(PKEY);return i>0?D.ceny.months[MONTHS[i-1]]:null;}
  if(MODE==='week'){const i=WEEKS.findIndex(w=>w.k===PKEY);return i>0?D.ceny.weeks[WEEKS[i-1].k]:null;}
+ if(MODE==='day'){const i=DAYS.indexOf(PKEY);return i>0?(D.ceny.days||{})[DAYS[i-1]]:null;}
  return null;
 }
 
@@ -269,7 +278,7 @@ function renderKZ(){
 function filterKz(q){q=(q||'').toLowerCase().trim();document.querySelectorAll('#kztbl tbody tr').forEach(tr=>{const nm=(tr.querySelector('.nm')||{}).textContent||'';tr.style.display=(!q||nm.toLowerCase().indexOf(q)>=0)?'':'none';});}
 
 /* ---- Вкладка: Что закупали (товар × поставщик) ---- */
-function tvData(){ if(!D.tovary)return{rows:[]}; if(MODE==='year')return D.tovary.year||{rows:[]}; const b=(MODE==='month'?D.tovary.months:D.tovary.weeks)||{}; return b[PKEY]||{rows:[]}; }
+function tvData(){ if(!D.tovary)return{rows:[]}; if(MODE==='year')return D.tovary.year||{rows:[]}; if(MODE==='period')return aggTvObj(periodDaySlices('tovary')); const b=(MODE==='month'?D.tovary.months:MODE==='week'?D.tovary.weeks:D.tovary.days)||{}; return b[PKEY]||{rows:[]}; }
 function renderTV(){
  const d=tvData(), rows=d.rows||[];
  const totSum=rows.reduce((a,r)=>a+r.sum,0);
@@ -291,6 +300,7 @@ function filterTv(q){q=(q||'').toLowerCase().trim();document.querySelectorAll('#
 function dvData(){ if(!D.dvizhenie)return{rows:[]}; if(MODE==='year')return D.dvizhenie.year||{rows:[]}; const b=(MODE==='month'?D.dvizhenie.months:D.dvizhenie.weeks)||{}; return b[PKEY]||{rows:[]}; }
 const QT=q=>Number(q||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
 function renderDV(){
+ if(MODE==='day'||MODE==='period') return movePeriodNote('📊 Движение по складу');
  const d=dvData(), rows=d.rows||[];
  const nbuy=rows.filter(r=>r.buy>0).length, nwo=rows.filter(r=>r.writeoff>0).length;
  let kpi=`<div class="kpi">
@@ -377,6 +387,7 @@ function renderPM(){
 function skData(){ if(!D.sklady)return{stores:{}}; if(MODE==='year')return D.sklady.year||{stores:{}}; const b=(MODE==='month'?D.sklady.months:D.sklady.weeks)||{}; return b[PKEY]||{stores:{}}; }
 function renderSK(){
  const S=D.sklady; if(!S)return '<div class="note">Нет данных по складам.</div>';
+ if(MODE==='day'||MODE==='period') return movePeriodNote('🏭 Сырьё → Производство');
  const d=skData(), per=d.stores||{};
  let note=`<div class="note">Поток сырья: <b>Основной склад (сырьё)</b> → закуп приходит сюда → перемещается на <b>Склад Производство</b> → превращается в готовый товар. По каждому складу: остаток на начало → приход → списание → остаток на конец; разница «ушло дальше» — это перемещение в производство / выпуск продукции.</div>`;
  let cards=(S.focus||[]).map(nm=>{
@@ -406,7 +417,6 @@ function render(){
  renderTabs();
  document.getElementById('ctrl').innerHTML=ctrlHTML();
  let html='';
- if(TAB!=='an'){var zh0=document.getElementById('zhead');if(zh0)zh0.innerHTML='';}
  if(TAB==='an')html=(typeof renderAN==='function'?renderAN():''); else if(TAB==='po')html=renderPO(); else if(TAB==='tv')html=renderTV(); else if(TAB==='dv')html=renderDV(); else if(TAB==='sk')html=renderSK(); else if(TAB==='ce')html=renderCE(); else if(TAB==='os')html=renderOS(); else if(TAB==='kz')html=renderKZ(); else html=renderPM();
  document.getElementById('body').innerHTML=html;
 }
@@ -518,8 +528,7 @@ PKEY=defKey(); render();
  }
 
  /* ═══ KPI + выводы (шапка) ═══ */
- function fillHead(M){
-   var head=document.getElementById('zhead'); if(!head)return;
+ function buildHead(M){
    var RL=M.RL, po=M.po||{prihod:0,oplata:0,n:0,suppliers:[]};
    var sup=(po.suppliers||[]).slice().sort(function(a,b){return (b.itogo||b.prihod||0)-(a.itogo||a.prihod||0)});
    var supTot=sup.reduce(function(s,x){return s+(x.itogo||x.prihod||0);},0)||1;
@@ -552,25 +561,18 @@ PKEY=defKey(); render();
    if(freq.length) R.push('Закупается <b>2× в неделю и чаще</b>: '+freq.map(function(r){return clean(r.name);}).join(', ')+' — кандидаты на укрупнение поставок и скидку за объём.');
    var reco='<div class="card" style="margin-bottom:14px"><div class="hd"><h3>💡 Выводы и рекомендации</h3><span class="sub">автоматически из данных iiko · '+perTxt+'</span></div>'+
      '<ol style="margin:6px 0 4px 20px;padding:0;line-height:1.75;font-size:13.3px;color:#dfe7f1">'+R.map(function(x){return '<li style="margin:5px 0">'+x+'</li>';}).join('')+'</ol></div>';
-   head.innerHTML=kpi+reco;
+   return kpi+reco;
  }
 
  /* ═══ Вкладка «Аналитика сырья» ═══ */
  window.renderAN=function(){
-   var S=scopeData(), M=compute(S); fillHead(M);
+   var S=scopeData(), M=compute(S);
    var RL=M.RL, per=M.label||'период';
-   var H='';
+   var H=buildHead(M);
    function card(title,sub,inner){return '<div class="card"><div class="hd"><h3>'+title+'</h3>'+(sub?'<span class="sub">'+sub+'</span>':'')+'</div>'+inner+'</div>';}
-   if(!RL.length){ return card('🔬 Аналитика сырья','период: '+per,'<div style="padding:26px;text-align:center;color:#93a2b5;font-size:14px">Нет закупок сырья в выбранном периоде ('+per+'). Выберите другой период выше.</div>'); }
+   if(!RL.length){ return H+card('🔬 Аналитика сырья','период: '+per,'<div style="padding:26px;text-align:center;color:#93a2b5;font-size:14px">Нет закупок сырья в выбранном периоде ('+per+'). Выберите другой период выше.</div>'); }
 
-   var byBuy=RL.slice().sort(function(a,b){return b.buySum-a.buySum;}).slice(0,15).map(function(r){return {v:r.buySum,nm:clean(r.name),lab:GN(r.buySum),right:Math.round(r.buySum/M.rawTotalBuy*100)+'%',rc:'#93a2b5',c:'#1baf7a'};});
-   H+=card('🥩 Что закупаем — топ сырья · '+per,'по сумме закупки · доля от всего сырья', '<div class="tblwrap">'+hbars(byBuy)+'</div>');
-
-   var sup=(M.po.suppliers||[]).slice().sort(function(a,b){return (b.itogo||b.prihod||0)-(a.itogo||a.prihod||0)});
-   var supTot=sup.reduce(function(s,x){return s+(x.itogo||x.prihod||0);},0)||1;
-   var bySup=sup.slice(0,12).map(function(x){var v=(x.itogo||x.prihod||0);return {v:v,nm:x.name.length>28?x.name.slice(0,27)+'…':x.name,lab:GN(v),right:Math.round(v/supTot*100)+'%',rc:'#93a2b5',c:'#a78bfa'};});
-   if(bySup.length) H+=card('🚚 От кого закупаем — топ поставщиков','оборот · '+per+' · доля','<div class="tblwrap">'+hbars(bySup,{pL:250})+'</div>');
-
+   // «Что закупаем — топ сырья» → вкладка «Что закупали»; «От кого» → «Приход и оплата» (убраны, чтобы не дублировать)
    var byFreq=RL.filter(function(r){return r.deliv>0;}).sort(function(a,b){return b.dpw-a.dpw;});
    var freqLabel=(M.mode==='day'||M.mode==='period')?'точек с закупкой':'недель с закупкой';
    var rows3=byFreq.slice(0,40).map(function(r,i){var c=cadence(r.dpw);return '<tr><td class="rk">'+(i+1)+'</td><td class="nm">'+clean(r.name)+'</td><td>'+r.deliv+'</td><td>'+r.weeks+'</td><td>'+r.dpw.toFixed(1).replace('.',',')+'</td><td style="text-align:left"><span style="color:'+c.c+';font-weight:700">'+c.t+'</span></td></tr>';}).join('');
@@ -603,16 +605,7 @@ PKEY=defKey(); render();
      H+=card('🔄 Оборачиваемость и движение','','<div style="padding:16px;color:#93a2b5;font-size:12.5px;line-height:1.6">Оборачиваемость и списания пересчитываются по складу за <b style="color:#dbe4ee">неделю, месяц и год</b>. Для режимов «День» и «Период» показываем закупки, поставщиков, частоту и цены — переключите период на неделю/месяц/год, чтобы увидеть движение и запасы.</div>');
    }
 
-   if(M.hasPrice){
-     var pcs=RL.map(function(r){var pc=M.priceChange(r.name);return pc?{n:r.name,pc:pc,buy:r.buySum}:null;}).filter(Boolean).filter(function(x){return Math.abs(x.pc.pct)>=2&&x.buy>2e6;});
-     if(pcs.length){
-       var up=pcs.slice().sort(function(a,b){return b.pc.pct-a.pc.pct;}).slice(0,10);
-       var down=pcs.slice().sort(function(a,b){return a.pc.pct-b.pc.pct;}).slice(0,10);
-       function priceTbl(list){return '<table class="z" style="min-width:0"><thead><tr><th class="rk">#</th><th class="nm">Сырьё</th><th>Было</th><th>Стало</th><th>Δ</th></tr></thead><tbody>'+list.map(function(x,i){var col=x.pc.pct>0?'#fb7185':'#34d399';return '<tr><td class="rk">'+(i+1)+'</td><td class="nm">'+clean(x.n)+'</td><td>'+PR(x.pc.from)+'</td><td>'+PR(x.pc.to)+'</td><td style="color:'+col+';font-weight:800">'+(x.pc.pct>0?'+':'')+Math.round(x.pc.pct)+'%</td></tr>';}).join('')+'</tbody></table>';}
-       H+=card('💲 Цены на сырьё — движение · '+per,'изменение средней закупочной цены внутри периода',
-         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="turncols"><div><div style="font-size:12.5px;font-weight:700;color:#ffb3be;margin-bottom:6px">📈 Подорожало</div><div class="tblwrap">'+priceTbl(up)+'</div></div><div><div style="font-size:12.5px;font-weight:700;color:#7fe3bf;margin-bottom:6px">📉 Подешевело</div><div class="tblwrap">'+priceTbl(down)+'</div></div></div>');
-     }
-   }
+   // «Цены на сырьё — движение» → вкладка «Цены закупа» (убрано, чтобы не дублировать; подорожание остаётся строкой в выводах)
    return H;
  };
 })();
