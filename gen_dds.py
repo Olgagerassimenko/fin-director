@@ -43,3 +43,10 @@ html=open(os.path.join(HERE,"_шаблон_ддс.html"),encoding="utf-8").read(
 html=html.replace("/*__DATA__*/","window.DDS="+json.dumps(D,ensure_ascii=False)+";")
 open(os.path.join(HERE,"дашборд_ддс.html"),"w",encoding="utf-8").write(html)
 print("дашборд_ддс.html собран, месяцев:",len(D["months"]),"| ДЗ/КЗ из Google:",bool(DZKZ))
+
+# — Склады (скрытая страница): пересобираем на тех же свежих данных.
+try:
+    import subprocess, sys
+    subprocess.run([sys.executable, os.path.join(HERE, "gen_sklady.py")], check=False)
+except Exception as _e:
+    print("gen_sklady пропущен:", _e)
