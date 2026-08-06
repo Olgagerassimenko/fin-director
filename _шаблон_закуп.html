@@ -222,7 +222,8 @@ function renderOS(){
   <div class="trend"><div class="bars">`+trend.map(t=>`<div class="b"><div class="val">${MLN(t.total)}</div><div class="bb" style="height:${Math.round(t.total/mx*120)}px"></div><div class="cap">${t.label}</div></div>`).join('')+`</div></div></div>`;
  let cards=`<div class="card"><div class="hd"><h3>Остатки по складам</h3><span class="sub">топ-позиции внутри склада</span></div><div class="stores">`+
   (o.stores||[]).map(s=>`<div class="store"><div class="sh"><b>${s.store}</b><span class="v">${MLN(s.sum)}</span></div>`+
-   (s.top||[]).slice(0,8).map(p=>`<div class="pr"><span>${p.name}</span><span>${PR(p.sum)} ₸</span></div>`).join('')+`</div>`).join('')+`</div></div>`;
+   `<div style="display:grid;grid-template-columns:1fr 110px;gap:10px;font-size:9.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700;padding:6px 0 4px;border-bottom:1px solid var(--line)"><span>Позиция</span><span style="text-align:right">Сумма ₸</span></div>`+
+   (s.top||[]).slice(0,8).map(p=>`<div style="display:grid;grid-template-columns:1fr 110px;gap:10px;padding:4px 0;border-top:1px solid var(--line2);font-size:12px"><span style="color:var(--ink2)">${p.name}</span><span style="text-align:right;font-variant-numeric:tabular-nums;color:#f4f7fb;font-weight:700">${PR(p.sum)} ₸</span></div>`).join('')+`</div>`).join('')+`</div></div>`;
  return kpi+tr+cards;
 }
 
@@ -366,7 +367,7 @@ function renderSK(){
    const cur=(S.current||{})[nm]||{total:0,top:[]};
    const rashod=p.open+p.prihod-p.spisanie-p.close;
    const isProd=/производ/i.test(nm);
-   let top=(cur.top||[]).slice(0,10).map(t=>`<div class="pr"><span>${t.product}</span><span>${Number(t.qty||0).toLocaleString('ru-RU',{maximumFractionDigits:1})} ${t.unit||''} · ${PR(t.sum)} ₸</span></div>`).join('');
+   let top=(cur.top||[]).slice(0,10).map(t=>`<div style="display:grid;grid-template-columns:1fr auto 104px;gap:10px;align-items:center;padding:4px 0;border-top:1px solid var(--line2);font-size:12px"><span style="color:var(--ink2)">${t.product}</span><span style="text-align:right;font-variant-numeric:tabular-nums;color:#cdd7e3">${Number(t.qty||0).toLocaleString('ru-RU',{maximumFractionDigits:1})} ${t.unit||''}</span><span style="text-align:right;font-variant-numeric:tabular-nums;color:#f4f7fb;font-weight:700">${PR(t.sum)} ₸</span></div>`).join('');
    return `<div class="store" style="border-color:${isProd?'rgba(52,211,153,.35)':'rgba(232,199,102,.35)'}">
      <div class="sh"><b>${isProd?'🏭':'🌾'} ${nm}</b><span class="v">${MLN(cur.total)}</span></div>
      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 6px">
@@ -376,7 +377,8 @@ function renderSK(){
        <div style="background:rgba(52,211,153,.06);border-radius:8px;padding:7px 10px"><div class="z0" style="font-size:10.5px;text-transform:uppercase">Ушло дальше</div><div style="font-weight:800" class="pos">${MLN(rashod)}</div></div>
      </div>
      <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:7px 10px;margin-bottom:8px"><div class="z0" style="font-size:10.5px;text-transform:uppercase">Остаток конец</div><div style="font-weight:800">${MLN(p.close)}</div></div>
-     <div style="font-size:11px;color:var(--mut);font-weight:700;text-transform:uppercase;margin:4px 0 2px">Топ на складе сейчас</div>
+     <div style="font-size:11px;color:var(--mut);font-weight:700;text-transform:uppercase;margin:8px 0 3px">Топ на складе сейчас</div>
+     <div style="display:grid;grid-template-columns:1fr auto 104px;gap:10px;font-size:9.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700;padding:0 0 4px;border-bottom:1px solid var(--line)"><span>Позиция</span><span style="text-align:right">Кол-во</span><span style="text-align:right">Сумма ₸</span></div>
      ${top||'<div class="z0" style="padding:6px 0">нет данных</div>'}
    </div>`;
  }).join('');
