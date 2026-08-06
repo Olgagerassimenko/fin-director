@@ -82,8 +82,29 @@
  <div class="card">
    <h3>📦 Склады по типам — динамика остатков</h3>
    <div class="sub">Остаток на складах на конец месяца, разбито на 3 типа. Реальный товар для продажи — только первый блок (сырьё и продукция); остальное — инвентарь и несъедобное.</div>
+   <div id="st_tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 14px"></div>
    <div id="st_types"></div>
    <div class="insight" id="st_ins"></div>
+   <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+     <a href="склады.html" class="backbtn" style="display:inline-block">📦 Подробная аналитика по складам →</a>
+     <span style="font-size:12px;color:#93a2b5">рейтинг складов, аномалии-минусы, мини-тренды по каждому складу</span>
+   </div>
+   <details class="wa-more" style="margin-top:14px">
+     <summary style="font-weight:700;color:#e8c766">📊 Показать больше аналитики по складам</summary>
+     <div style="margin-top:16px">
+       <div style="font-weight:800;font-size:14px;color:#f4f7fb;margin-bottom:2px">💸 Заморозка денег в запасах</div>
+       <div class="sub" style="margin-bottom:8px">Сколько денег лежит «мёртвым грузом» — инвентарь и несъедобное — и растёт ли эта доля по месяцам.</div>
+       <div id="wa_frozen"></div>
+       <div class="insight" id="wa_frozen_ins" style="margin-top:10px"></div>
+       <div style="font-weight:800;font-size:14px;color:#f4f7fb;margin:24px 0 2px">🎯 Концентрация остатков</div>
+       <div class="sub" style="margin-bottom:8px">Какие склады держат основную часть денег (на конец последнего месяца).</div>
+       <div id="wa_conc"></div>
+       <div class="insight" id="wa_conc_ins" style="margin-top:10px"></div>
+       <div style="font-weight:800;font-size:14px;color:#f4f7fb;margin:24px 0 2px">🔀 Движение за год</div>
+       <div class="sub" style="margin-bottom:8px">Где остаток за год вырос (деньги вложены), а где растаял (высвобождены).</div>
+       <div id="wa_move"></div>
+     </div>
+   </details>
  </div>
 
  <div class="card" style="display:none">
@@ -409,4 +430,117 @@ function execSummary(mk){
  });});
 }
 render('YEAR');
+</script>
+<script>
+/* Компактная сводка по складам + ссылка на полную аналитику */
+(function(){
+ if(!window.DDS||!DDS.invStores) return;
+ var IS=DDS.invStores, MS=Object.keys(IS).sort(); if(!MS.length) return;
+ var LM=MS[MS.length-1];
+ function stype(n){var s=n.toLowerCase();if(s.indexOf('инвентар')>=0)return'inv';if(s.indexOf('несъедоб')>=0||s.indexOf('расходн')>=0)return'other';return'goods';}
+ var HIDE=['складсайт','складгпфз'];
+ function hid(n){return HIDE.indexOf(n.toLowerCase().replace(/\s+/g,''))>=0;}
+ var names={}; MS.forEach(function(k){Object.keys(IS[k]).forEach(function(n){names[n]=1;});});
+ var shown=Object.keys(names).filter(function(n){return !hid(n);});
+ function tt(t){return shown.filter(function(n){return stype(n)===t;}).reduce(function(s,n){return s+Math.max(0,IS[LM][n]||0);},0);}
+ var g=tt('goods'), iv=tt('inv'), o=tt('other'), all=(g+iv+o)||1;
+ var neg=shown.filter(function(n){return (IS[LM][n]||0)<0;}).length;
+ function M(v){return (v/1e6).toFixed(1).replace('.',',')+' млн';}
+ var tiles=[
+  {l:'🌾 Реальный товар',v:M(g)+' ₸',s:Math.round(g/all*100)+'% остатков',c:'#1baf7a'},
+  {l:'🧰 Инвентарь',v:M(iv)+' ₸',s:'не для продажи',c:'#2a78d6'},
+  {l:'🧴 Несъедобное',v:M(o)+' ₸',s:'не для продажи',c:'#bf863a'},
+  {l:(neg?'⚠️ ':'✅ ')+'Складов в минусе',v:neg,s:neg?'есть пересорт':'всё чисто',c:neg?'#fb7185':'#34d399'}
+ ];
+ var el=document.getElementById('st_tiles'); if(!el) return;
+ el.innerHTML=tiles.map(function(t){return '<div class="tile"><div class="l" style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:'+t.c+';display:inline-block"></span>'+t.l+'</div><div class="v">'+t.v+'</div><div class="s">'+t.s+'</div></div>';}).join('');
+})();
+</script>
+<script>
+/* Раскрываемая аналитика по складам в «Про деньги» */
+(function(){
+ if(!window.DDS||!DDS.invStores) return;
+ var IS=DDS.invStores, MS=Object.keys(IS).sort(); if(MS.length<2) return;
+ var LM=MS[MS.length-1], FM=MS[0];
+ var RUM={ '01':'янв','02':'фев','03':'мар','04':'апр','05':'май','06':'июн','07':'июл','08':'авг','09':'сен','10':'окт','11':'ноя','12':'дек'};
+ function mlab(k){return RUM[k.slice(5)]||k;}
+ function stype(n){var s=n.toLowerCase();if(s.indexOf('инвентар')>=0)return'inv';if(s.indexOf('несъедоб')>=0||s.indexOf('расходн')>=0)return'other';return'goods';}
+ var HIDE=['складсайт','складгпфз'];
+ function hid(n){return HIDE.indexOf(n.toLowerCase().replace(/\s+/g,''))>=0;}
+ var namesObj={}; MS.forEach(function(k){Object.keys(IS[k]).forEach(function(n){namesObj[n]=1;});});
+ var shown=Object.keys(namesObj).filter(function(n){return !hid(n);});
+ function val(k,n){return (IS[k]&&IS[k][n]!=null)?IS[k][n]:0;}
+ function tt(k,t){return shown.filter(function(n){return stype(n)===t;}).reduce(function(s,n){return s+Math.max(0,val(k,n));},0);}
+ function nn(n){return n.replace(' ФЗ','').replace('Основной склад','Осн. склад').replace('Склад Расходный материалов','Расходные материалы').replace('Склад Пекарня+Кондитерка','Пекарня+Кондитерка').replace(/\s+/g,' ').trim();}
+ function M(v){var s=v<0?'\u2212':'';v=Math.abs(v);return s+(v/1e6).toFixed(1).replace('.',',')+' млн';}
+ function sM(v){return (v>0?'+':v<0?'\u2212':'')+M(Math.abs(v)).replace('\u2212','');}
+ var C={goods:'#1baf7a',inv:'#2a78d6',other:'#bf863a',crit:'#fb7185',good:'#34d399'};
+
+ /* 1. Заморозка денег — линия доли неликвида + подписи абсолюта */
+ (function(){
+  var el=document.getElementById('wa_frozen'); if(!el) return;
+  var W=920,H=180,pT=16,pB=28,pL=48,pR=54;
+  var frozen=MS.map(function(k){return tt(k,'inv')+tt(k,'other');});
+  var share=MS.map(function(k){var all=tt(k,'goods')+tt(k,'inv')+tt(k,'other')||1;return (tt(k,'inv')+tt(k,'other'))/all*100;});
+  var mn=Math.min.apply(null,share),mx=Math.max.apply(null,share);
+  var lo=Math.max(0,mn-4),hi=Math.min(100,mx+4);
+  function X(i){return pL+(W-pL-pR)*i/(MS.length-1||1);}
+  function Y(v){return pT+(H-pT-pB)*(hi-v)/((hi-lo)||1);}
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:520px">';
+  [lo,(lo+hi)/2,hi].forEach(function(v){var y=Y(v);s+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="rgba(255,255,255,.08)"/><text x="'+(pL-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="10.5" fill="#93a2b5">'+Math.round(v)+'%</text>';});
+  var d='M'+MS.map(function(k,i){return X(i).toFixed(1)+' '+Y(share[i]).toFixed(1);}).join(' L');
+  s+='<path d="'+d+'" fill="none" stroke="'+C.crit+'" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
+  MS.forEach(function(k,i){s+='<circle cx="'+X(i)+'" cy="'+Y(share[i])+'" r="3.4" fill="'+C.crit+'"/>';
+    s+='<text x="'+X(i)+'" y="'+(Y(share[i])-9)+'" text-anchor="middle" font-size="10.5" font-weight="700" fill="#ffb3be">'+Math.round(share[i])+'%</text>';
+    s+='<text x="'+X(i)+'" y="'+(H-10)+'" text-anchor="middle" font-size="10.5" fill="#c9d4e2">'+mlab(k)+'</text>';});
+  s+='</svg>';
+  el.innerHTML=s;
+  var f0=frozen[0],f1=frozen[frozen.length-1],s0=Math.round(share[0]),s1=Math.round(share[share.length-1]);
+  var ins=document.getElementById('wa_frozen_ins');
+  if(ins) ins.innerHTML='\uD83D\uDCA1 Сейчас в неликвиде (инвентарь + несъедобное) заморожено <b>'+M(f1)+' \u20B8</b> — это <b>'+s1+'%</b> всех остатков. С января доля '+(s1<=s0?'снизилась':'выросла')+' с <b>'+s0+'%</b> до <b>'+s1+'%</b> ('+sM(f1-f0)+' \u20B8). '+(f1<f0?'Деньги высвобождаются — это хорошо.':'Стоит следить: деньги всё сильнее оседают в неликвиде.');
+ })();
+
+ /* 2. Концентрация — доля складов (последний месяц) */
+ (function(){
+  var el=document.getElementById('wa_conc'); if(!el) return;
+  var rows=shown.map(function(n){return {n:n,v:Math.max(0,val(LM,n))};}).filter(function(r){return r.v>0;}).sort(function(a,b){return b.v-a.v;});
+  var total=rows.reduce(function(s,r){return s+r.v;},0)||1;
+  var W=920,rowH=30,pL=196,pR=150,H=rows.length*rowH+8;
+  var barW=W-pL-pR, mx=rows.length?rows[0].v:1;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:560px">';
+  rows.forEach(function(r,i){var y=i*rowH+10,h=16;var w=Math.max(2,barW*r.v/mx);var pc=Math.round(r.v/total*100);
+    var col= i<3?'#1baf7a':'#3f6d99';
+    s+='<rect x="'+pL+'" y="'+y+'" width="'+w.toFixed(1)+'" height="'+h+'" rx="4" fill="'+col+'"/>';
+    s+='<text x="'+(pL-12)+'" y="'+(y+13)+'" text-anchor="end" font-size="11.5" fill="#dbe4ee">'+nn(r.n)+'</text>';
+    s+='<text x="'+(pL+w+8)+'" y="'+(y+13)+'" font-size="11.5" font-weight="800" fill="#f4f7fb">'+M(r.v)+'</text>';
+    s+='<text x="'+(W-6)+'" y="'+(y+13)+'" text-anchor="end" font-size="11" font-weight="700" fill="#93a2b5">'+pc+'%</text>';});
+  s+='</svg>';
+  el.innerHTML=s;
+  var top3=rows.slice(0,3),t3=top3.reduce(function(s,r){return s+r.v;},0);
+  var ins=document.getElementById('wa_conc_ins');
+  if(ins&&rows.length) ins.innerHTML='\uD83D\uDCA1 Три крупнейших склада — <b>'+top3.map(function(r){return nn(r.n);}).join(', ')+'</b> — держат <b>'+Math.round(t3/total*100)+'%</b> всех денег на складах ('+M(t3)+' \u20B8 из '+M(total)+').';
+ })();
+
+ /* 3. Движение за год — Δ по складам */
+ (function(){
+  var el=document.getElementById('wa_move'); if(!el) return;
+  var rows=shown.concat(Object.keys(namesObj).filter(function(n){return hid(n);}))
+    .map(function(n){return {n:n,d:val(LM,n)-val(FM,n)};})
+    .filter(function(r){return Math.abs(r.d)>=100000;}).sort(function(a,b){return b.d-a.d;});
+  if(!rows.length){el.innerHTML='<div style="color:#93a2b5;font-size:12.5px">За год существенных изменений нет.</div>';return;}
+  var W=920,rowH=28,pL=196,pR=96,H=rows.length*rowH+8;
+  var maxAbs=Math.max.apply(null,rows.map(function(r){return Math.abs(r.d);}))||1;
+  var maxPos=Math.max(0,Math.max.apply(null,rows.map(function(r){return r.d;})));
+  var maxNeg=Math.max(0,-Math.min.apply(null,rows.map(function(r){return r.d;})));
+  var barW=W-pL-pR, sc=barW/((maxPos+maxNeg)||1), zx=pL+sc*maxNeg;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:560px">';
+  s+='<line x1="'+zx.toFixed(1)+'" y1="4" x2="'+zx.toFixed(1)+'" y2="'+(H-4)+'" stroke="rgba(255,255,255,.18)"/>';
+  rows.forEach(function(r,i){var y=i*rowH+9,h=15;var w=Math.max(2,sc*Math.abs(r.d));var x=r.d>=0?zx:zx-w;var col=r.d>=0?'#34d399':'#fb7185';
+    s+='<rect x="'+x.toFixed(1)+'" y="'+y+'" width="'+w.toFixed(1)+'" height="'+h+'" rx="4" fill="'+col+'"/>';
+    s+='<text x="'+(pL-12)+'" y="'+(y+12)+'" text-anchor="end" font-size="11" fill="#dbe4ee">'+nn(r.n)+'</text>';
+    s+='<text x="'+(W-6)+'" y="'+(y+12)+'" text-anchor="end" font-size="11" font-weight="800" fill="'+(r.d>=0?'#34d399':'#fb7185')+'">'+sM(r.d)+'</text>';});
+  s+='</svg>';
+  el.innerHTML=s;
+ })();
+})();
 </script></body></html>
