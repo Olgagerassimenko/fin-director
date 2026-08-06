@@ -189,6 +189,30 @@ log("    год...")
 sp_year = spisanie(year_from, year_to)
 log(f"    год: списано позиций {len(sp_year)}")
 
+# ---------- День и Период: последние 14 дней (лёгкие срезы: приход/оплата, цены, что закупали) ----------
+# Движение/остатки по дням не считаем (тяжёлые balance-снимки) — оборачиваемость остаётся по неделе/месяцу/году.
+RUW = {0: "пн", 1: "вт", 2: "ср", 3: "чт", 4: "пт", 5: "сб", 6: "вс"}
+NDAYS = 14
+po_days = {}; ce_days = {}; tv_days = {}; day_keys = []; dmeta = {}
+try:
+    log("день) последние", NDAYS, "дней: приход/оплата · цены · что закупали...")
+    for kk in range(NDAYS - 1, -1, -1):
+        d1 = last_full - datetime.timedelta(days=kk)
+        d2 = d1 + datetime.timedelta(days=1)
+        key = d1.isoformat()
+        day_keys.append(key)
+        dmeta[key] = {"ru": d1.strftime("%d.%m") + " · " + RUW[d1.weekday()]}
+        po_rows = prihod_oplata(d1, d2)
+        po_days[key] = {"suppliers": po_rows,
+                        "prihod": sum(r["prihod"] for r in po_rows),
+                        "oplata": sum(r["oplata"] for r in po_rows), "n": len(po_rows)}
+        ce_days[key] = {"products": ceny(d1, d2)}
+        tv_days[key] = {"rows": tovary(d1, d2)}
+    log("    дней собрано:", len(day_keys))
+except Exception as e:
+    log("день) ошибка — режимы День/Период пропущены:", e)
+    po_days = {}; ce_days = {}; tv_days = {}; day_keys = []; dmeta = {}
+
 # ---------- 3. Остатки по складам ----------
 # имена складов (XML)
 store_name = {}
@@ -417,9 +441,10 @@ data = {
     "through": last_full.strftime("%d.%m.%Y"),
     "months": [k for k, _, _ in months], "mmeta": mmeta,
     "weeks": [{"k": k, "label": lbl} for k, lbl, _, _ in weeks],
-    "prihodOplata": {"months": po_months, "weeks": po_weeks, "year": po_year_obj},
-    "ceny": {"months": ce_months, "weeks": ce_weeks, "year": ce_year},
-    "tovary": {"months": tv_months, "weeks": tv_weeks, "year": tv_year},
+    "days": day_keys, "dmeta": dmeta,
+    "prihodOplata": {"months": po_months, "weeks": po_weeks, "year": po_year_obj, "days": po_days},
+    "ceny": {"months": ce_months, "weeks": ce_weeks, "year": ce_year, "days": ce_days},
+    "tovary": {"months": tv_months, "weeks": tv_weeks, "year": tv_year, "days": tv_days},
     "dvizhenie": {"months": dv_months, "weeks": dv_weeks, "year": dv_year},
     "sklady": {"focus": FOCUS, "current": sk_current, "months": sk_months, "weeks": sk_weeks, "year": sk_year},
     "ostatki": {"total": round(ost_total), "stores": ost_stores, "trendM": ost_trend_m, "trendW": ost_trend_w},
