@@ -87,6 +87,7 @@
  <div><h1>🛒 Закуп</h1><p>Мастерская Сегодня · приход, оплата, цены, остатки, долги · источник: iiko</p></div>
  <span class="live" id="live">🔄 из iiko · каждое утро</span></div>
 <div class="wrap">
+ <div id="zhead"></div>
  <div class="tabs" id="tabs"></div>
  <div id="ctrl"></div>
  <div id="body"></div>
@@ -102,7 +103,7 @@ const PR=v=>Math.round(v).toLocaleString('ru-RU');
 document.getElementById('prov').textContent='источник: iiko · обновлено '+(D.updated||'');
 (function(){var lv=document.getElementById('live');if(lv&&D.updatedFull)lv.textContent='🔄 обновлено '+D.updatedFull+' · из iiko';})();
 
-const TABS=[['po','📥 Приход и оплата'],['tv','🧾 Что закупали'],['dv','📊 Движение по складу'],['sk','🏭 Сырьё → Производство'],['ce','💲 Цены закупа'],['os','📦 Остатки на складе'],['kz','📋 Долги поставщикам'],['pm','🗓 План оплат на месяц']];
+const TABS=[['an','🔬 Аналитика сырья'],['po','📥 Приход и оплата'],['tv','🧾 Что закупали'],['dv','📊 Движение по складу'],['sk','🏭 Сырьё → Производство'],['ce','💲 Цены закупа'],['os','📦 Остатки на складе'],['kz','📋 Долги поставщикам'],['pm','🗓 План оплат на месяц']];
 /* combo: столбцы = приход, линия = оплата (или один ряд) */
 function comboChart(items){
  if(!items.length)return '';
@@ -134,7 +135,7 @@ function setMode(m){ MODE=m; PKEY=defKey(); render(); }
 function setKey(k){ PKEY=k; render(); }
 
 function ctrlHTML(){
- if(TAB==='kz'||TAB==='pm') return '';
+ if(TAB==='kz'||TAB==='pm'||TAB==='an') return '';
  let modes=[['week','Неделя'],['month','Месяц'],['year','Итого год']];
  if(TAB==='os') modes=[['month','По месяцам'],['week','По неделям']];
  let seg=`<div class="seg">`+modes.map(m=>`<button class="${m[0]===MODE?'on':''}" onclick="setMode('${m[0]}')">${m[1]}</button>`).join('')+`</div>`;
@@ -386,9 +387,175 @@ function render(){
  renderTabs();
  document.getElementById('ctrl').innerHTML=ctrlHTML();
  let html='';
- if(TAB==='po')html=renderPO(); else if(TAB==='tv')html=renderTV(); else if(TAB==='dv')html=renderDV(); else if(TAB==='sk')html=renderSK(); else if(TAB==='ce')html=renderCE(); else if(TAB==='os')html=renderOS(); else if(TAB==='kz')html=renderKZ(); else html=renderPM();
+ if(TAB==='an')html=renderAN(); else if(TAB==='po')html=renderPO(); else if(TAB==='tv')html=renderTV(); else if(TAB==='dv')html=renderDV(); else if(TAB==='sk')html=renderSK(); else if(TAB==='ce')html=renderCE(); else if(TAB==='os')html=renderOS(); else if(TAB==='kz')html=renderKZ(); else html=renderPM();
  document.getElementById('body').innerHTML=html;
 }
 PKEY=defKey(); render();
 </script>
+<script>
+/* ═══ Аналитика сырья и истории закупа (данные из iiko, объект D) ═══ */
+(function(){
+ if(typeof D==='undefined'||!D){return;}
+ var RAWRE=/^С\*/;               // сырьё
+ var PACKRE=/^У\*/;              // упаковка/несъедобное
+ function isRaw(n){return RAWRE.test(n||'');}
+ function clean(n){return (n||'').replace(/^[СУ]\*\s*/,'').trim();}
+
+ var tv=(D.tovary&&D.tovary.year&&D.tovary.year.rows)||[];
+ var dv=(D.dvizhenie&&D.dvizhenie.year&&D.dvizhenie.year.rows)||[];
+ var ce=(D.ceny&&D.ceny.year&&D.ceny.year.products)||[];
+ var priceMap={}; ce.forEach(function(p){priceMap[p.name]=p.price;});
+
+ // закупки по товару (сумма/кол-во + по поставщикам)
+ var buy={};
+ tv.forEach(function(r){var k=r.product; if(!buy[k])buy[k]={sum:0,qty:0,unit:r.unit,sup:{}}; buy[k].sum+=r.sum||0; buy[k].qty+=r.qty||0; buy[k].sup[r.supplier]=(buy[k].sup[r.supplier]||0)+(r.sum||0);});
+ // движение по товару
+ var mov={}; dv.forEach(function(r){mov[r.product]={open:r.open||0,buy:r.buy||0,writeoff:r.writeoff||0,close:r.close||0,unit:r.unit};});
+ // частота: считаем строки-поставки по неделям
+ var wk=(D.tovary&&D.tovary.weeks)||{}; var wkKeys=Object.keys(wk).sort(); var NW=wkKeys.length||1;
+ var deliv={}, weeksWith={};
+ wkKeys.forEach(function(k){var rows=(wk[k].rows)||[]; var seen={}; rows.forEach(function(r){deliv[r.product]=(deliv[r.product]||0)+1; seen[r.product]=1;}); Object.keys(seen).forEach(function(pp){weeksWith[pp]=(weeksWith[pp]||0)+1;});});
+
+ // период года (дней) — для дней запаса
+ var yd=210;
+ try{var t=(D.through||'').split('.'); if(t.length===3){var thr=new Date(+t[2],+t[1]-1,+t[0]); var y0=new Date(+t[2],0,1); yd=Math.max(30,Math.round((thr-y0)/86400000));}}catch(e){}
+
+ // ── список сырья с метриками ──
+ var names={}; Object.keys(buy).forEach(function(n){names[n]=1;}); Object.keys(mov).forEach(function(n){names[n]=1;});
+ var RL=Object.keys(names).filter(isRaw).map(function(n){
+   var b=buy[n]||{sum:0,qty:0,unit:'',sup:{}}, m=mov[n]||{open:0,buy:0,writeoff:0,close:0,unit:''};
+   var price=priceMap[n]||(b.qty?b.sum/b.qty:0);
+   var usedQ=m.writeoff||0, usedV=usedQ*price;
+   var dpw=(deliv[n]||0)/NW;                 // поставок в неделю (по данным ~13 недель)
+   var days=usedQ>0?(m.close*yd/usedQ):null;  // дней запаса
+   return {name:n, unit:b.unit||m.unit||'', buySum:b.sum, buyQty:b.qty, price:price,
+           usedQ:usedQ, usedV:usedV, close:m.close, open:m.open, buyQ2:m.buy,
+           weeks:weeksWith[n]||0, deliv:deliv[n]||0, dpw:dpw, days:days,
+           topSup:Object.keys(b.sup).sort(function(a,c){return b.sup[c]-b.sup[a];})[0]||'—'};
+ });
+ var rawTotalBuy=RL.reduce(function(s,r){return s+r.buySum;},0)||1;
+ var allBuy=Object.keys(buy).reduce(function(s,n){return s+buy[n].sum;},0)||1;
+ var packBuy=Object.keys(buy).filter(function(n){return PACKRE.test(n);}).reduce(function(s,n){return s+buy[n].sum;},0);
+
+ // цены: изменение цены за год (первый доступный месяц → последний)
+ var cm=(D.ceny&&D.ceny.months)||{}; var cmk=Object.keys(cm).sort();
+ var priceHist={};
+ cmk.forEach(function(k){(cm[k].products||[]).forEach(function(pp){ if(!priceHist[pp.name])priceHist[pp.name]={}; priceHist[pp.name][k]=pp.price;});});
+ function priceChange(n){var hs=priceHist[n]; if(!hs)return null; var ks=Object.keys(hs).sort(); if(ks.length<2)return null; var p0=hs[ks[0]],p1=hs[ks[ks.length-1]]; if(!p0)return null; return {from:p0,to:p1,pct:(p1-p0)/p0*100,m0:ks[0],m1:ks[ks.length-1]};}
+
+ function cadence(dpw){ if(dpw>=1.6)return {t:'2× в неделю и чаще',c:'#e879f9'}; if(dpw>=0.85)return {t:'раз в неделю',c:'#1baf7a'}; if(dpw>=0.4)return {t:'раз в 2 недели',c:'#2a78d6'}; if(dpw>0)return {t:'реже / разово',c:'#bf863a'}; return {t:'нет закупок',c:'#5b6b7d'};}
+
+ // ── горизонтальные бары ──
+ function hbars(rows, opt){
+   opt=opt||{}; var mx=Math.max.apply(null,rows.map(function(r){return Math.abs(r.v);}).concat([1]));
+   var W=940,rowH=opt.rowH||30,pL=opt.pL||230,pR=opt.pR||118,H=rows.length*rowH+8, bw=W-pL-pR;
+   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:600px">';
+   rows.forEach(function(r,i){var y=i*rowH+9,h=Math.min(18,rowH-10);var w=Math.max(2,bw*Math.abs(r.v)/mx);var col=r.c||'#1baf7a';
+     s+='<rect x="'+pL+'" y="'+y+'" width="'+w.toFixed(1)+'" height="'+h+'" rx="4" fill="'+col+'"/>';
+     s+='<text x="'+(pL-12)+'" y="'+(y+h-4)+'" text-anchor="end" font-size="12" fill="#dbe4ee">'+r.nm+'</text>';
+     s+='<text x="'+(pL+w+8)+'" y="'+(y+h-4)+'" font-size="12" font-weight="800" fill="#f4f7fb">'+r.lab+'</text>';
+     if(r.right!=null) s+='<text x="'+(W-6)+'" y="'+(y+h-4)+'" text-anchor="end" font-size="11" font-weight="700" fill="'+(r.rc||'#93a2b5')+'">'+r.right+'</text>';});
+   return s+'</svg>';
+ }
+ var GN=function(v){return (v/1e6).toFixed(1).replace('.',',')+' млн';};
+
+ // ═══ KPI + выводы (шапка) ═══
+ function fillHead(){
+   var head=document.getElementById('zhead'); if(!head)return;
+   var po=(D.prihodOplata&&D.prihodOplata.year)||{prihod:0,oplata:0,n:0,suppliers:[]};
+   var sup=(po.suppliers||[]).slice().sort(function(a,b){return (b.itogo||b.prihod||0)-(a.itogo||a.prihod||0)});
+   var supTot=sup.reduce(function(s,x){return s+(x.itogo||x.prihod||0);},0)||1;
+   var top3=sup.slice(0,3).reduce(function(s,x){return s+(x.itogo||x.prihod||0);},0);
+   var reg=RL.filter(function(r){return r.weeks>=Math.round(NW*0.8);}).length;
+   var K=[
+     {l:'📥 Закуплено за год',v:GN(po.prihod)+' ₸',s:po.n+' накладных',c:'#e8c766'},
+     {l:'💸 Оплачено',v:GN(po.oplata)+' ₸',s:Math.round(po.oplata/(po.prihod||1)*100)+'% от закупа',c:'#1baf7a'},
+     {l:'📋 Долг поставщикам',v:GN((D.kz&&D.kz.total)||0)+' ₸',s:((D.kz&&D.kz.listN)||0)+' поставщиков',c:'#fb7185'},
+     {l:'🥩 Сырьё в закупе',v:GN(rawTotalBuy)+' ₸',s:Math.round(rawTotalBuy/allBuy*100)+'% всех закупок',c:'#eb6834'},
+     {l:'🏷 Позиций сырья',v:RL.length,s:reg+' берём еженедельно',c:'#2a78d6'},
+     {l:'🚚 Поставщиков',v:sup.length,s:'топ-3 = '+Math.round(top3/supTot*100)+'% закупа',c:'#a78bfa'}
+   ];
+   var kpi='<div class="khero" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px">'+
+     K.map(function(t){return '<div style="background:linear-gradient(162deg,#0f1b29,#0b141f);border:1px solid rgba(212,175,55,.15);border-radius:16px;padding:14px 16px">'+
+       '<div style="font-size:11px;color:#93a2b5;display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:3px;background:'+t.c+';display:inline-block"></span>'+t.l+'</div>'+
+       '<div style="font-size:21px;font-weight:800;margin-top:5px;color:#f4f7fb;font-variant-numeric:tabular-nums">'+t.v+'</div>'+
+       '<div style="font-size:11.5px;color:#b9c5d3;margin-top:3px">'+t.s+'</div></div>';}).join('')+'</div>';
+
+   // ── выводы/рекомендации ──
+   var R=[];
+   R.push('Топ-3 поставщика — <b>'+sup.slice(0,3).map(function(x){return x.name;}).join(', ')+'</b> — это <b>'+Math.round(top3/supTot*100)+'%</b> всех закупок.'+(top3/supTot>0.5?' <b style="color:#ffb3be">Высокая концентрация</b> — стоит иметь запасных поставщиков по ключевым позициям.':' Концентрация в норме.'));
+   var payGap=po.prihod-po.oplata;
+   R.push('Оплачено <b>'+Math.round(po.oplata/(po.prihod||1)*100)+'%</b> от закупленного'+(payGap>0?' — кредиторка за год выросла на <b>'+GN(payGap)+' ₸</b> (деньги пока у нас).':' — платим быстрее, чем закупаем.'));
+   R.push('Сырьё — <b>'+Math.round(rawTotalBuy/allBuy*100)+'%</b> закупок ('+GN(rawTotalBuy)+' ₸), упаковка и несъедобное — <b>'+GN(packBuy)+' ₸</b>.');
+   // дефицит: used > bought
+   var drain=RL.filter(function(r){return r.usedQ>r.buyQ2*1.1 && r.buyQ2>0;}).sort(function(a,b){return b.usedV-a.usedV;}).slice(0,3);
+   if(drain.length) R.push('<b style="color:#ffb3be">Запас вымывается</b>: <b>'+drain.map(function(r){return clean(r.name);}).join(', ')+'</b> — списываем больше, чем закупаем. Проверить остатки, чтобы не встать.');
+   // цены: топ подорожания среди сырья
+   var risers=RL.filter(function(r){return r.buySum>2e6;}).map(function(r){var pc=priceChange(r.name);return pc?{n:r.name,pct:pc.pct}:null;}).filter(Boolean).filter(function(x){return x.pct>3;}).sort(function(a,b){return b.pct-a.pct;}).slice(0,3);
+   if(risers.length) R.push('Сильнее всего подорожало сырьё: '+risers.map(function(x){return '<b>'+clean(x.n)+'</b> (+'+Math.round(x.pct)+'%)';}).join(', ')+'. Законтрактовать цену или искать альтернативу.');
+   // частота: кандидаты на укрупнение
+   var freq=RL.filter(function(r){return r.dpw>=1.6;}).sort(function(a,b){return b.buySum-a.buySum;}).slice(0,3);
+   if(freq.length) R.push('Закупается <b>2× в неделю и чаще</b>: '+freq.map(function(r){return clean(r.name);}).join(', ')+' — кандидаты на укрупнение поставок и скидку за объём.');
+
+   var reco='<div class="card" style="margin-bottom:14px"><div class="hd"><h3>💡 Выводы и рекомендации</h3><span class="sub">автоматически из данных iiko за год</span></div>'+
+     '<ol style="margin:6px 0 4px 20px;padding:0;line-height:1.75;font-size:13.3px;color:#dfe7f1">'+R.map(function(x){return '<li style="margin:5px 0">'+x+'</li>';}).join('')+'</ol></div>';
+   head.innerHTML=kpi+reco;
+ }
+
+ // ═══ Вкладка «Аналитика сырья» ═══
+ window.renderAN=function(){
+   var H='';
+   function card(title,sub,inner){return '<div class="card"><div class="hd"><h3>'+title+'</h3>'+(sub?'<span class="sub">'+sub+'</span>':'')+'</div>'+inner+'</div>';}
+
+   // 1. Что закупаем — топ-15 сырья по сумме
+   var byBuy=RL.slice().sort(function(a,b){return b.buySum-a.buySum;}).slice(0,15).map(function(r){return {v:r.buySum,nm:clean(r.name),lab:GN(r.buySum),right:Math.round(r.buySum/rawTotalBuy*100)+'%',rc:'#93a2b5',c:'#1baf7a'};});
+   H+=card('🥩 Что закупаем — топ сырья за год','по сумме закупки · доля от всего сырья', '<div class="tblwrap">'+hbars(byBuy)+'</div>');
+
+   // 2. От кого — топ-12 поставщиков по обороту
+   var po=(D.prihodOplata&&D.prihodOplata.year)||{suppliers:[]}; var sup=(po.suppliers||[]).slice().sort(function(a,b){return (b.itogo||b.prihod||0)-(a.itogo||a.prihod||0)});
+   var supTot=sup.reduce(function(s,x){return s+(x.itogo||x.prihod||0);},0)||1;
+   var bySup=sup.slice(0,12).map(function(x){var v=(x.itogo||x.prihod||0);return {v:v,nm:x.name.length>28?x.name.slice(0,27)+'…':x.name,lab:GN(v),right:Math.round(v/supTot*100)+'%',rc:'#93a2b5',c:'#a78bfa'};});
+   H+=card('🚚 От кого закупаем — топ поставщиков','оборот за год · доля','<div class="tblwrap">'+hbars(bySup,{pL:250})+'</div>');
+
+   // 3. Как часто — таблица частоты
+   var byFreq=RL.filter(function(r){return r.deliv>0;}).sort(function(a,b){return b.dpw-a.dpw;});
+   var rows3=byFreq.slice(0,40).map(function(r,i){var c=cadence(r.dpw);return '<tr><td class="rk">'+(i+1)+'</td><td class="nm">'+clean(r.name)+'</td><td>'+r.deliv+'</td><td>'+r.weeks+' / '+NW+'</td><td>'+r.dpw.toFixed(1).replace('.',',')+'</td><td style="text-align:left"><span style="color:'+c.c+';font-weight:700">'+c.t+'</span></td></tr>';}).join('');
+   H+=card('🗓 Как часто закупаем сырьё','за последние '+NW+' недель · сколько поставок и как часто',
+     '<div class="tblwrap"><table class="z"><thead><tr><th class="rk">#</th><th class="nm">Сырьё</th><th>Поставок</th><th>Недель с закупкой</th><th>~раз/нед</th><th style="text-align:left">Режим</th></tr></thead><tbody>'+rows3+'</tbody></table></div>');
+
+   // 4. Закупаем vs используем (по сумме) — топ-12 по использованию
+   var byUse=RL.filter(function(r){return r.usedV>0||r.buySum>0;}).sort(function(a,b){return b.usedV-a.usedV;}).slice(0,12);
+   var mx4=Math.max.apply(null,byUse.map(function(r){return Math.max(r.buySum,r.usedV);}).concat([1]));
+   var rows4=byUse.map(function(r){
+     var wb=Math.round(180*r.buySum/mx4), wu=Math.round(180*r.usedV/mx4);
+     var drain=r.usedQ>r.buyQ2*1.1&&r.buyQ2>0;
+     return '<div style="display:grid;grid-template-columns:190px 1fr;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">'+
+       '<div style="font-size:12.5px;color:#dbe4ee">'+clean(r.name)+(drain?' <span style="color:#fb7185;font-size:10px">↓запас</span>':'')+'</div>'+
+       '<div><div style="display:flex;align-items:center;gap:8px"><div style="height:11px;width:'+wb+'px;min-width:2px;background:#1baf7a;border-radius:3px"></div><span style="font-size:11px;color:#7fe3bf;font-weight:700">закуп '+GN(r.buySum)+'</span></div>'+
+       '<div style="display:flex;align-items:center;gap:8px;margin-top:3px"><div style="height:11px;width:'+wu+'px;min-width:2px;background:#eb6834;border-radius:3px"></div><span style="font-size:11px;color:#f0a97e;font-weight:700">исп. '+GN(r.usedV)+'</span></div></div></div>';
+   }).join('');
+   H+=card('⚖️ Закупаем ↔ используем','сумма закупки (зелёный) против стоимости списаний/использования (оранжевый)', rows4);
+
+   // 5. Оборачиваемость — дней запаса (по возрастанию = быстрее оборот)
+   var byTurn=RL.filter(function(r){return r.days!=null&&r.usedQ>0&&r.close>0&&r.days>0&&r.days<3650;}).sort(function(a,b){return a.days-b.days;});
+   var fast=byTurn.slice(0,10), slow=byTurn.slice(-10).reverse();
+   function turnTbl(list){return '<table class="z" style="min-width:0"><thead><tr><th class="rk">#</th><th class="nm">Сырьё</th><th>Остаток</th><th>Дней</th></tr></thead><tbody>'+list.map(function(r,i){var col=r.days<7?'#34d399':r.days<30?'#e8c766':'#fb7185';return '<tr><td class="rk">'+(i+1)+'</td><td class="nm">'+clean(r.name)+'</td><td>'+PR(r.close)+' '+r.unit+'</td><td style="color:'+col+';font-weight:800">'+Math.round(r.days)+' дн</td></tr>';}).join('')+'</tbody></table>';}
+   H+=card('🔄 Оборачиваемость сырья','дней запаса = остаток ÷ среднесуточное использование · меньше дней = быстрее оборот',
+     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="turncols"><div><div style="font-size:12.5px;font-weight:700;color:#7fe3bf;margin-bottom:6px">⚡ Быстрый оборот (мало запаса)</div><div class="tblwrap">'+turnTbl(fast)+'</div></div><div><div style="font-size:12.5px;font-weight:700;color:#ffb3be;margin-bottom:6px">🐌 Медленный оборот (лежит долго)</div><div class="tblwrap">'+turnTbl(slow)+'</div></div></div>');
+
+   // 6. Цены — что подорожало/подешевело
+   var pcs=RL.map(function(r){var pc=priceChange(r.name);return pc?{n:r.name,pc:pc,buy:r.buySum}:null;}).filter(Boolean).filter(function(x){return Math.abs(x.pc.pct)>=2&&x.buy>2e6;});
+   var up=pcs.slice().sort(function(a,b){return b.pc.pct-a.pc.pct;}).slice(0,10);
+   var down=pcs.slice().sort(function(a,b){return a.pc.pct-b.pc.pct;}).slice(0,10);
+   function priceTbl(list){return '<table class="z" style="min-width:0"><thead><tr><th class="rk">#</th><th class="nm">Сырьё</th><th>Было</th><th>Стало</th><th>Δ</th></tr></thead><tbody>'+list.map(function(x,i){var col=x.pc.pct>0?'#fb7185':'#34d399';return '<tr><td class="rk">'+(i+1)+'</td><td class="nm">'+clean(x.n)+'</td><td>'+PR(x.pc.from)+'</td><td>'+PR(x.pc.to)+'</td><td style="color:'+col+';font-weight:800">'+(x.pc.pct>0?'+':'')+Math.round(x.pc.pct)+'%</td></tr>';}).join('')+'</tbody></table>';}
+   H+=card('💲 Цены на сырьё — движение за год','изменение средней закупочной цены с начала года',
+     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="turncols"><div><div style="font-size:12.5px;font-weight:700;color:#ffb3be;margin-bottom:6px">📈 Подорожало</div><div class="tblwrap">'+priceTbl(up)+'</div></div><div><div style="font-size:12.5px;font-weight:700;color:#7fe3bf;margin-bottom:6px">📉 Подешевело</div><div class="tblwrap">'+priceTbl(down)+'</div></div></div>');
+
+   return H;
+ };
+
+ fillHead();
+})();
+</script>
+
 </body></html>

@@ -85,24 +85,30 @@
    <div id="st_tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 14px"></div>
    <div id="st_types"></div>
    <div class="insight" id="st_ins"></div>
-   <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-     <a href="склады.html" class="backbtn" style="display:inline-block">📦 Подробная аналитика по складам →</a>
-     <span style="font-size:12px;color:#93a2b5">рейтинг складов, аномалии-минусы, мини-тренды по каждому складу</span>
-   </div>
-   <details class="wa-more" style="margin-top:14px">
-     <summary style="font-weight:700;color:#e8c766">📊 Показать больше аналитики по складам</summary>
+   <details class="wa-more" style="margin-top:16px">
+     <summary style="font-weight:700;color:#e8c766">📊 Отчёт по складам — раскрыть / свернуть</summary>
      <div style="margin-top:16px">
-       <div style="font-weight:800;font-size:14px;color:#f4f7fb;margin-bottom:2px">💸 Заморозка денег в запасах</div>
-       <div class="sub" style="margin-bottom:8px">Сколько денег лежит «мёртвым грузом» — инвентарь и несъедобное — и растёт ли эта доля по месяцам.</div>
+       <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;border-bottom:1px solid rgba(232,199,102,.25);padding-bottom:10px;margin-bottom:6px">
+         <span style="font-weight:800;font-size:15px;color:#f2dd9e">📊 Отчёт по складам</span>
+         <span id="wa_asof" style="font-size:12px;color:#93a2b5"></span>
+       </div>
+       <div class="insight" id="wa_lead" style="margin-top:10px"></div>
+       <div style="display:flex;align-items:center;gap:9px;margin:26px 0 3px"><span style="width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">1</span><span style="font-weight:800;font-size:14.5px;color:#f4f7fb">💸 Заморозка денег в запасах</span></div>
+       <div class="sub" style="margin:2px 0 8px">Сколько денег лежит «мёртвым грузом» — инвентарь и несъедобное — и растёт ли эта доля по месяцам.</div>
        <div id="wa_frozen"></div>
        <div class="insight" id="wa_frozen_ins" style="margin-top:10px"></div>
-       <div style="font-weight:800;font-size:14px;color:#f4f7fb;margin:24px 0 2px">🎯 Концентрация остатков</div>
-       <div class="sub" style="margin-bottom:8px">Какие склады держат основную часть денег (на конец последнего месяца).</div>
+       <div style="display:flex;align-items:center;gap:9px;margin:26px 0 3px"><span style="width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">2</span><span style="font-weight:800;font-size:14.5px;color:#f4f7fb">🎯 Концентрация остатков</span></div>
+       <div class="sub" style="margin:2px 0 8px">Какие склады держат основную часть денег (на конец последнего месяца).</div>
        <div id="wa_conc"></div>
        <div class="insight" id="wa_conc_ins" style="margin-top:10px"></div>
-       <div style="font-weight:800;font-size:14px;color:#f4f7fb;margin:24px 0 2px">🔀 Движение за год</div>
-       <div class="sub" style="margin-bottom:8px">Где остаток за год вырос (деньги вложены), а где растаял (высвобождены).</div>
+       <div style="display:flex;align-items:center;gap:9px;margin:26px 0 3px"><span style="width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">3</span><span style="font-weight:800;font-size:14.5px;color:#f4f7fb">🔀 Движение за год</span></div>
+       <div class="sub" style="margin:2px 0 8px">Где остаток за год вырос (деньги вложены), а где растаял (высвобождены).</div>
        <div id="wa_move"></div>
+       <div class="insight" id="wa_move_ins" style="margin-top:10px"></div>
+       <div style="display:flex;align-items:center;gap:9px;margin:26px 0 3px"><span style="width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">4</span><span style="font-weight:800;font-size:14.5px;color:#f4f7fb">⚠️ Риски — минусовые склады</span></div>
+       <div id="wa_risk" style="margin-top:6px"></div>
+       <div style="display:flex;align-items:center;gap:9px;margin:26px 0 3px"><span style="width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✓</span><span style="font-weight:800;font-size:14.5px;color:#f4f7fb">🧭 Что делать</span></div>
+       <div class="insight" id="wa_todo" style="margin-top:6px"></div>
      </div>
    </details>
  </div>
@@ -542,5 +548,61 @@ render('YEAR');
   s+='</svg>';
   el.innerHTML=s;
  })();
+})();
+</script>
+<script>
+/* Текстовая логика отчёта по складам */
+(function(){
+ if(!window.DDS||!DDS.invStores) return;
+ var IS=DDS.invStores, MS=Object.keys(IS).sort(); if(MS.length<2) return;
+ var LM=MS[MS.length-1], FM=MS[0];
+ var RUF={ '01':'январь','02':'февраль','03':'март','04':'апрель','05':'май','06':'июнь','07':'июль','08':'август','09':'сентябрь','10':'октябрь','11':'ноябрь','12':'декабрь'};
+ function mfull(k){return RUF[k.slice(5)]||k;}
+ function stype(n){var s=n.toLowerCase();if(s.indexOf('инвентар')>=0)return'inv';if(s.indexOf('несъедоб')>=0||s.indexOf('расходн')>=0)return'other';return'goods';}
+ var HIDE=['складсайт','складгпфз'];
+ function hid(n){return HIDE.indexOf(n.toLowerCase().replace(/\s+/g,''))>=0;}
+ var nAll={}; MS.forEach(function(k){Object.keys(IS[k]).forEach(function(n){nAll[n]=1;});});
+ var allNames=Object.keys(nAll);
+ var shown=allNames.filter(function(n){return !hid(n);});
+ function val(k,n){return (IS[k]&&IS[k][n]!=null)?IS[k][n]:0;}
+ function tt(k,t){return shown.filter(function(n){return stype(n)===t;}).reduce(function(s,n){return s+Math.max(0,val(k,n));},0);}
+ function nn(n){return n.replace(' ФЗ','').replace('Основной склад','Осн. склад').replace('Склад Расходный материалов','Расходные материалы').replace('Склад Пекарня+Кондитерка','Пекарня+Кондитерка').replace(/\s+/g,' ').trim();}
+ function M(v){var s=v<0?'\u2212':'';v=Math.abs(v);return s+(v/1e6).toFixed(1).replace('.',',')+' млн';}
+ function sM(v){return (v>0?'+':v<0?'\u2212':'')+M(Math.abs(v)).replace('\u2212','');}
+
+ var g=tt(LM,'goods'), iv=tt(LM,'inv'), o=tt(LM,'other'), all=(g+iv+o)||1;
+ var gp=Math.round(g/all*100), fp=Math.round((iv+o)/all*100);
+ var g0=tt(FM,'goods'),iv0=tt(FM,'inv'),o0=tt(FM,'other'),all0=(g0+iv0+o0)||1;
+ var fp0=Math.round((iv0+o0)/all0*100);
+ // концентрация
+ var rows=shown.map(function(n){return {n:n,v:Math.max(0,val(LM,n))};}).filter(function(r){return r.v>0;}).sort(function(a,b){return b.v-a.v;});
+ var totC=rows.reduce(function(s,r){return s+r.v;},0)||1;
+ var top3=rows.slice(0,3), t3=top3.reduce(function(s,r){return s+r.v;},0);
+ // движение
+ var mv=allNames.map(function(n){return {n:n,d:val(LM,n)-val(FM,n)};}).sort(function(a,b){return b.d-a.d;});
+ var grower=mv[0], dropper=mv[mv.length-1];
+ // минусы
+ var neg=allNames.map(function(n){return {n:n,v:val(LM,n)};}).filter(function(r){return r.v<0;}).sort(function(a,b){return a.v-b.v;});
+ var negSum=neg.reduce(function(s,r){return s+r.v;},0);
+
+ function set(id,html){var e=document.getElementById(id); if(e) e.innerHTML=html;}
+ set('wa_asof','на конец '+mfull(LM)+' 2026');
+
+ set('wa_lead','\uD83D\uDCCC <b>Коротко.</b> На складах <b>'+M(all)+' \u20B8</b>. Половина — реальный товар для продажи (<b>'+M(g)+'</b>, '+gp+'%), другая половина <b>заморожена</b> в инвентаре и несъедобном (<b>'+M(iv+o)+'</b>, '+fp+'%), и за год эта доля '+(fp<=fp0?'снизилась':'выросла')+' с '+fp0+'% до '+fp+'%. Три склада держат <b>'+Math.round(t3/totC*100)+'%</b> всех денег. За год больше всего прибавил <b>'+nn(grower.n)+'</b> ('+sM(grower.d)+'), сильнее всего просел <b>'+nn(dropper.n)+'</b> ('+sM(dropper.d)+').'+(neg.length?' <b style="color:#ffb3be">'+neg.length+' склад'+(neg.length==1?'':'а')+' в минусе</b> — вероятны учётные ошибки.':' Минусовых складов нет.'));
+
+ set('wa_move_ins','\uD83D\uDCA1 За год деньги перетекли: больше всего вложено в <b>'+nn(grower.n)+'</b> (<span class="pos">'+sM(grower.d)+' \u20B8</span>), а из <b>'+nn(dropper.n)+'</b> ушло <span class="neg">'+sM(dropper.d)+' \u20B8</span>. Рост остатка замораживает деньги, снижение — высвобождает.');
+
+ if(neg.length){
+   var items=neg.map(function(r){return '<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)"><span style="color:#ffdfe4">'+nn(r.n)+'</span><b style="color:#ffb3be;font-variant-numeric:tabular-nums">'+M(r.v)+' \u20B8</b></div>';}).join('');
+   set('wa_risk','<div class="warn"><div style="margin-bottom:6px">Отрицательный остаток = расход провели, а приход нет. Это занижает реальный товар на сумму минуса.</div>'+items+'<div style="margin-top:8px">Итого занижено: <b>'+M(negSum)+' \u20B8</b>.</div></div>');
+ } else {
+   set('wa_risk','<div class="insight" style="border-left-color:#34d399"><b style="color:#7fe3bf">\u2713</b> Минусовых складов нет — учёт по остаткам чистый.</div>');
+ }
+
+ var todo=[];
+ if(neg.length) todo.push('Проверить накладные по складам в минусе (<b>'+neg.map(function(r){return nn(r.n);}).join(', ')+'</b>) — устранить пересорт, иначе реальный товар занижен на '+M(negSum)+' \u20B8.');
+ todo.push('Держать под контролем неликвид: сейчас <b>'+M(iv+o)+' \u20B8</b> ('+fp+'%) заморожено в инвентаре и несъедобном'+(fp<=fp0?' — доля снижается, так и продолжать.':' — доля выросла с начала года, стоит разгружать.'));
+ todo.push('Основные деньги сосредоточены в <b>'+nn(top3[0].n)+'</b> ('+Math.round(top3[0].v/totC*100)+'%) — следить за оборачиваемостью крупнейших складов.');
+ set('wa_todo','\uD83E\uDDED <b>Что делать:</b><ol style="margin:8px 0 0 18px;padding:0;line-height:1.7">'+todo.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ol>');
 })();
 </script></body></html>
