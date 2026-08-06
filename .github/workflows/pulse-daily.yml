@@ -3,7 +3,7 @@ name: Пульс — ежедневное обновление из iiko
 on:
   schedule:
     # 03:00 UTC = 08:00 Asia/Qyzylorda (UTC+5). Время GitHub может плавать на несколько минут.
-    - cron: "0 3 * * *"
+    - cron: "0 * * * *"
   workflow_dispatch: {}
   push:
     branches: [main]
