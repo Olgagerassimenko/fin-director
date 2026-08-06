@@ -24,6 +24,8 @@
  .seg button.on{background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205}
  .ctrl select,.ctrl input{font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#132234;color:var(--ink);font-weight:600}
  .ctrl label{font-size:12.5px;color:var(--ink2);font-weight:600}
+ .ctrltop{position:sticky;top:0;z-index:30;background:rgba(9,16,26,.94);backdrop-filter:blur(7px);padding:11px 12px;margin:0 -12px 12px;border-radius:0 0 14px 14px;border:1px solid rgba(212,175,55,.16);border-top:none;box-shadow:0 6px 18px rgba(0,0,0,.28)}
+ .ctrltop:empty{display:none}
  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
  .k{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(212,175,55,.2);border-radius:14px;padding:14px 16px;transition:.2s;position:relative;overflow:hidden}
  .k:hover{transform:translateY(-3px);border-color:rgba(232,199,102,.55);box-shadow:0 14px 30px -14px rgba(212,175,55,.5)}
@@ -87,9 +89,9 @@
  <div><h1>🛒 Закуп</h1><p>Мастерская Сегодня · приход, оплата, цены, остатки, долги · источник: iiko</p></div>
  <span class="live" id="live">🔄 из iiko · каждое утро</span></div>
 <div class="wrap">
- <div id="zhead"></div>
+ <div id="ctrl" class="ctrltop"></div>
  <div class="tabs" id="tabs"></div>
- <div id="ctrl"></div>
+ <div id="zhead"></div>
  <div id="body"></div>
  <div class="foot">Система «Пульс» · автор: <b>Ольга Герасименко</b> · © 2026 · <span id="prov"></span></div>
 </div>
@@ -107,16 +109,18 @@ const TABS=[['an','🔬 Аналитика сырья'],['po','📥 Приход
 /* combo: столбцы = приход, линия = оплата (или один ряд) */
 function comboChart(items){
  if(!items.length)return '';
- const n=items.length, W=Math.max(560,n*118), H=248, pad=30, bw=Math.min(52,(W-2*pad)/n*0.5);
- const max=Math.max(1,...items.map(i=>Math.max(i.bar||0,i.line||0)))*1.18;
+ const n=items.length, W=Math.max(560,n*118), H=272, pad=30, bw=Math.min(54,(W-2*pad)/n*0.52);
+ const max=Math.max(1,...items.map(i=>Math.max(i.bar||0,i.line||0)))*1.30;
  const X=i=>pad+(i+0.5)*((W-2*pad)/n);
  const Y=v=>H-26-(v/max)*(H-56);
  let grid='';for(let g=1;g<=3;g++){const gy=26+(H-56)*g/4;grid+=`<line class="grid" x1="${pad}" x2="${W-pad}" y1="${gy}" y2="${gy}"/>`;}
- let bars=items.map((it,i)=>{const by=Y(it.bar||0);const bh=Math.max(0,H-26-by);const base=bh>30;const ty=base?(H-26-9):(by-7);const col=base?'#3a2b05':'#e8c766';return `<rect x="${X(i)-bw/2}" y="${by}" width="${bw}" height="${bh}" rx="6" fill="url(#gld)"/><text x="${X(i)}" y="${ty}" text-anchor="middle" style="font-size:12px;font-weight:800;fill:${col}">${MLN(it.bar||0)}</text>`;}).join('');
+ // приход — столбик; подпись у ОСНОВАНИЯ на тёмной плашке (золотой текст)
+ let bars=items.map((it,i)=>{const x=X(i),by=Y(it.bar||0),bh=Math.max(0,H-26-by);const py=H-26-8;return `<rect x="${x-bw/2}" y="${by}" width="${bw}" height="${bh}" rx="6" fill="url(#gld)"/><rect x="${x-35}" y="${py-13}" width="70" height="17" rx="5" fill="#0b141f" opacity="0.85"/><text x="${x}" y="${py}" text-anchor="middle" style="font-size:11.5px;font-weight:800;fill:#f2d27a">${MLN(it.bar||0)}</text>`;}).join('');
  let line='',dots='';
  if(items.some(it=>it.line!=null)){
   line=`<polyline points="${items.map((it,i)=>X(i)+','+Y(it.line||0)).join(' ')}" fill="none" stroke="#34d399" stroke-width="2.6" stroke-linejoin="round"/>`;
-  dots=items.map((it,i)=>{const ly=Y(it.line||0);return `<rect x="${X(i)-33}" y="${ly-24}" width="66" height="16" rx="4" fill="#0b141f" opacity="0.8"/><text x="${X(i)}" y="${ly-12}" text-anchor="middle" style="font-size:12px;font-weight:800;fill:#5ee0ad">${MLN(it.line||0)}</text><circle cx="${X(i)}" cy="${ly}" r="4.4" fill="#34d399" stroke="#0b141f" stroke-width="2"/>`;}).join('');
+  // оплата — линия; подпись НАД точкой на тёмной плашке (зелёный текст), всегда выше основания
+  dots=items.map((it,i)=>{const x=X(i),ly=Y(it.line||0);const ry=ly-23,ty=ly-11;return `<circle cx="${x}" cy="${ly}" r="4.4" fill="#34d399" stroke="#0b141f" stroke-width="2"/><rect x="${x-35}" y="${ry}" width="70" height="17" rx="5" fill="#07321e" opacity="0.92"/><text x="${x}" y="${ty}" text-anchor="middle" style="font-size:11.5px;font-weight:800;fill:#6ee9b6">${MLN(it.line||0)}</text>`;}).join('');
  }
  let labels=items.map((it,i)=>`<text x="${X(i)}" y="${H-6}" text-anchor="middle" class="cax">${it.label}</text>`).join('');
  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="max-width:100%;display:block">
