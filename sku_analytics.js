@@ -661,6 +661,7 @@
       options: {
         responsive: true, maintainAspectRatio: false,
         animation: { duration: 650, easing: 'easeOutQuart' },
+        layout: { padding: { top: 30, right: 16, left: 4, bottom: 2 } },
         plugins: {
           legend: { display: false },
           datalabels: {
@@ -691,7 +692,7 @@
         },
         scales: {
           x: { stacked: true, ticks: { color: '#94a3b8', font: { size: 10 }, maxRotation: 38, minRotation: 0 }, grid: { display: false } },
-          y: { stacked: true, ticks: { color: '#64748b', font: { size: 10 }, callback: function (v) { return v + 'М'; } }, grid: { color: 'rgba(51,65,85,.3)' } }
+          y: { stacked: true, grace: '10%', ticks: { color: '#64748b', font: { size: 10 }, callback: function (v) { return v + 'М'; } }, grid: { color: 'rgba(51,65,85,.3)' } }
         }
       }
     });
