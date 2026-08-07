@@ -260,17 +260,21 @@ function renderOS(){
 }
 
 /* ---- Вкладка: КЗ / план оплат ---- */
+// исключаем итоговые/служебные строки листа КЗ (ИТОГО, ВСЕГО и т.п.) — это не поставщики
+function kzReal(){return ((D.kz&&D.kz.rows)||[]).filter(function(r){return !/^\s*(итого|всего|итог|total|остаток|баланс|сумма|результат)(?![а-яёa-z])/i.test((r.name||'').trim());});}
+function kzTotalDebt(){return kzReal().reduce(function(a,r){return a+(r.debt>0?r.debt:0);},0);}
+function kzNDebt(){return kzReal().filter(function(r){return r.debt>0;}).length;}
 function renderKZ(){
- const k=D.kz, rows=(k.rows||[]);
+ const k=D.kz, rows=kzReal();
  const owe=rows.filter(r=>r.debt>0);
  const total=owe.reduce((a,r)=>a+r.debt,0);
  const mx=Math.max(1,...owe.map(r=>r.debt));
  const hasFlow=rows.some(r=>(r.prihod||0)||(r.oplata||0));
  let kpi=`<div class="kpi">
   <div class="k"><div class="l">Должны поставщикам</div><div class="v neg">${MLN(total)}</div><div class="u">по листу КЗ</div></div>
-  <div class="k"><div class="l">Поставщиков с долгом</div><div class="v">${owe.length}</div><div class="u">из ${k.listN} в списке</div></div>
+  <div class="k"><div class="l">Поставщиков с долгом</div><div class="v">${owe.length}</div><div class="u">из ${rows.length} в списке</div></div>
   <div class="k"><div class="l">Крупнейший долг</div><div class="v">${MLN(owe[0]?owe[0].debt:0)}</div><div class="u">${(owe[0]||{}).name||''}</div></div>
-  <div class="k"><div class="l">Компаний в списке</div><div class="v">${k.listN}</div><div class="u">лист КЗ</div></div></div>`;
+  <div class="k"><div class="l">Компаний в списке</div><div class="v">${rows.length}</div><div class="u">лист КЗ</div></div></div>`;
  let note=`<div class="note">Список поставщиков и суммы долга — из файла <b>ДЗ КЗ (лист КЗ)</b> на Google Диске${k.date?', на <b>'+k.date+'</b>':''} (колонка «Задолженность перед поставщиками»). Это основа плана оплат: кому и сколько должны.</div>`;
  let rr=owe.map((r,i)=>`<tr><td class="rk">${i+1}</td><td class="nm bar"><div class="fill" style="width:${Math.round(r.debt/mx*100)}%;background:#fb7185"></div><span>${r.name}</span></td>${hasFlow?`<td>${r.prihod?PR(r.prihod):'—'}</td><td class="pos">${r.oplata?PR(r.oplata):'—'}</td>`:''}<td class="neg">${PR(r.debt)}</td></tr>`).join('');
  const zero=rows.filter(r=>r.debt<=0);
@@ -327,7 +331,7 @@ function filterDv(q){q=(q||'').toLowerCase().trim();document.querySelectorAll('#
 /* ---- Вкладка: План оплат на месяц (интерактивный распределитель) ---- */
 let PM=null;
 function pmInit(){
- const act=(D.kz.rows||[]).filter(r=>r.debt>0).sort((a,b)=>b.debt-a.debt);
+ const act=kzReal().filter(r=>r.debt>0).sort((a,b)=>b.debt-a.debt);
  PM={budget:0, rows:act.map(r=>({name:r.name,debt:r.debt,alloc:0,locked:false,skip:false}))};
 }
 function pmNum(v){return Math.max(0,Math.round(+String(v).replace(/[^\d]/g,'')||0));}
@@ -544,7 +548,7 @@ PKEY=defKey(); render();
    var K=[
      {l:'📥 Закуплено · '+perTxt,v:GN(po.prihod)+' ₸',s:(po.n||0)+' поставщиков',c:'#e8c766'},
      {l:'💸 Оплачено',v:GN(po.oplata)+' ₸',s:Math.round(po.oplata/(po.prihod||1)*100)+'% от закупа',c:'#1baf7a'},
-     {l:'📋 Долг поставщикам',v:GN((D.kz&&D.kz.total)||0)+' ₸',s:((D.kz&&D.kz.listN)||0)+' поставщиков',c:'#fb7185'},
+     {l:'📋 Долг поставщикам',v:GN(typeof kzTotalDebt==='function'?kzTotalDebt():((D.kz&&D.kz.total)||0))+' ₸',s:(typeof kzNDebt==='function'?kzNDebt():((D.kz&&D.kz.listN)||0))+' с долгом',c:'#fb7185'},
      {l:'🥩 Сырьё в закупе',v:GN(M.rawTotalBuy)+' ₸',s:Math.round(M.rawTotalBuy/M.allBuy*100)+'% всех закупок',c:'#eb6834'},
      {l:'🏷 Позиций сырья',v:RL.length,s:reg+' берём стабильно',c:'#2a78d6'},
      {l:'🚚 Поставщиков',v:sup.length,s:'топ-3 = '+Math.round(top3/supTot*100)+'% закупа',c:'#a78bfa'}

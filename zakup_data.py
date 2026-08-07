@@ -421,6 +421,7 @@ try:
         nm = (row[0] if row else "").strip()
         if not nm or re.sub(r"[^0-9a-zа-яё]", "", nm.lower()) == "": continue
         if re.match(r"^[\d\s.,\-]+$", nm): continue  # строки-числа/итоги
+        if re.match(r"^\s*(итого|итог|всего|total|остаток|баланс|сумма|результат)\b", nm, re.I): continue  # итоговые строки — не поставщики
         debt = num(row[1]) if len(row) > 1 else 0
         prihod = num(row[2]) if len(row) > 2 else 0
         oplata = num(row[3]) if len(row) > 3 else 0
