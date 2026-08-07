@@ -84,4 +84,20 @@ def main():
     for k in sorted(out):
         if k.startswith("2026"): log(f"   {k}: КЗ={out[k].get('kz'):>14,} ({out[k].get('kz_date')})   ДЗ={out[k].get('dz'):>14,} ({out[k].get('dz_date')})")
     log("ГОТОВО -> дз_кз_месяцы.json"); LOG.close(); print("OK")
-if __name__=="__main__": main()
+def _rebuild_dz_kz_page():
+    """Пересобрать страницу /дз_кз (dz_kz.js) из того же Google-файла — чтобы она
+    обновлялась автоматически в пульсе, а не только локальным батом."""
+    import subprocess
+    p=os.path.join(HERE,"parse_dz_kz.py")
+    if not os.path.exists(p):
+        print("parse_dz_kz.py рядом не найден — пересборку страницы ДЗ/КЗ пропускаю")
+        return
+    try:
+        subprocess.run([sys.executable,p],check=False,cwd=HERE)
+        print("страница ДЗ/КЗ пересобрана (dz_kz.js)")
+    except Exception as e:
+        print("парсер ДЗ/КЗ пропущен:",e)
+
+if __name__=="__main__":
+    main()
+    _rebuild_dz_kz_page()
