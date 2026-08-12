@@ -284,6 +284,17 @@ for sid, sm in sorted(byst_cur.items(), key=lambda x: -x[1]):
         top.append({"name": prod_name.get(pid, pid), "amount": round(a, 2), "sum": round(s2)})
     ost_stores.append({"store": store_name.get(sid, sid), "sum": round(sm), "top": top})
 log(f"   остатки итог {ost_total:,.0f} по {len(ost_stores)} складам")
+# Полный список сырья на складе «Основной склад (сырье) ФЗ» — для халал-аналитики (по остаткам)
+SYR_STORE = "Основной склад (сырье) ФЗ"
+syr_sid = next((sid for sid in prod_cur if store_name.get(sid) == SYR_STORE), None)
+sklad_syrye = {"store": SYR_STORE, "items": []}
+if syr_sid:
+    for pid, (a, sm) in prod_cur.get(syr_sid, {}).items():
+        nm = prod_name.get(pid, "")
+        if nm.startswith("С*"):
+            sklad_syrye["items"].append({"name": nm, "qty": round(a, 3), "sum": round(sm)})
+    sklad_syrye["items"].sort(key=lambda x: -x["sum"])
+log(f"   сырьё на складе '{SYR_STORE}': {len(sklad_syrye['items'])} позиций для халал")
 
 # тренд остатков по месяцам (конец месяца) и неделям (конец недели)
 ost_trend_m = []
@@ -449,6 +460,7 @@ data = {
     "dvizhenie": {"months": dv_months, "weeks": dv_weeks, "year": dv_year},
     "sklady": {"focus": FOCUS, "current": sk_current, "months": sk_months, "weeks": sk_weeks, "year": sk_year},
     "ostatki": {"total": round(ost_total), "stores": ost_stores, "trendM": ost_trend_m, "trendW": ost_trend_w},
+    "sklad_syrye": sklad_syrye,
     "kz": {"total": kz_total, "date": kz_date, "listN": len(kz_rows), "ndebt": kz_ndebt, "rows": kz_rows},
 }
 json.dump(data, open(os.path.join(HERE, "zakup.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)

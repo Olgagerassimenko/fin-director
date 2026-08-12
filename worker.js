@@ -82,6 +82,9 @@ export default {
       return new Response(JSON.stringify(out), { headers: {
         "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
     }
+    if (url.pathname === "/api/halal") {
+      return handleHalal(request, env);
+    }
     if (url.pathname === "/track") return handleTrack(url, request, env, ctx);
     if (url.pathname === "/mstats") return handleStats(url, env);
     // отдаём статику, а в HTML тихо вставляем счётчик просмотров
@@ -712,6 +715,72 @@ async function salesJs(env, url) {
 /* ── Общий план бюджета: заявки подразделений и решения директора ──
    Хранится в Cloudflare KV, поэтому виден всем сразу.               */
 const PLAN_KEY = "plan-2026-08";
+
+// ── ☪ ХАЛАЛ: ручные пометки статуса сырья (KV) ──
+const HALAL_KEY = "halal-overrides-v1";
+const HALAL_ST = ["ok", "meat", "warn", "risk"];
+
+async function handleHalal(request, env) {
+  if (request.method === "OPTIONS") return jsonResp({ ok: true });
+  const KV = env.PLAN;
+  if (!KV) return jsonResp({ error: "Хранилище не подключено" }, 500);
+
+  if (request.method === "GET") {
+    const s = await KV.get(HALAL_KEY);
+    return jsonResp(s ? JSON.parse(s) : { items: {}, log: [], seen: [], updated: null });
+  }
+
+  if (request.method === "POST") {
+    let body;
+    try { body = await request.json(); }
+    catch (e) { return jsonResp({ error: "Некорректные данные" }, 400); }
+
+    const raw = await KV.get(HALAL_KEY);
+    const cur = raw ? JSON.parse(raw) : { items: {}, log: [], seen: [] };
+    cur.items = cur.items || {}; cur.log = cur.log || []; cur.seen = cur.seen || [];
+    const ts = new Date().toISOString();
+    const fio = (body.fio || "").toString().trim();
+    const action = (body.action || "set").toString();
+
+    // отметить текущий список сырья как «просмотренный» (для подсветки новинок)
+    if (action === "seen") {
+      const names = Array.isArray(body.names) ? body.names.map((x) => String(x)) : [];
+      cur.seen = Array.from(new Set(names));
+      cur.updated = ts;
+      await KV.put(HALAL_KEY, JSON.stringify(cur));
+      return jsonResp({ ok: true, seen: cur.seen.length, updated: ts });
+    }
+
+    const product = (body.product || "").toString().trim();
+    if (!product) return jsonResp({ error: "Не указан товар" }, 400);
+    if (!fio) return jsonResp({ error: "Не указано ФИО" }, 400);
+
+    // снять ручную пометку (вернуть авто-статус)
+    if (action === "remove") {
+      delete cur.items[product];
+      cur.log.push({ product, fio, ts, action: "remove" });
+      if (cur.log.length > 800) cur.log = cur.log.slice(cur.log.length - 800);
+      cur.updated = ts;
+      await KV.put(HALAL_KEY, JSON.stringify(cur));
+      return jsonResp({ ok: true, updated: ts });
+    }
+
+    // задать/изменить статус (+ сертификат и срок)
+    const status = (body.status || "").toString().trim();
+    if (HALAL_ST.indexOf(status) < 0) return jsonResp({ error: "Неверный статус" }, 400);
+    const supplier = (body.supplier || "").toString().trim();
+    const cert = (body.cert || "").toString().trim();
+    const expiry = (body.expiry || "").toString().trim();
+    cur.items[product] = { status, supplier, fio, ts, cert, expiry };
+    cur.log.push({ product, supplier, status, fio, ts, cert, expiry });
+    if (cur.log.length > 800) cur.log = cur.log.slice(cur.log.length - 800);
+    cur.updated = ts;
+    await KV.put(HALAL_KEY, JSON.stringify(cur));
+    return jsonResp({ ok: true, updated: ts });
+  }
+
+  return jsonResp({ error: "Метод не поддерживается" }, 405);
+}
 
 function jsonResp(obj, status) {
   return new Response(JSON.stringify(obj), {
