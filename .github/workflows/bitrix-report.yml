@@ -2,6 +2,9 @@ name: Битрикс — отчёт по оплатам
 
 on:
   workflow_dispatch: {}
+  schedule:
+    # каждые 3 часа (UTC). Живой отчёт «Битрикс · Оплаты».
+    - cron: "0 */3 * * *"
   push:
     branches: [main]
     paths:
@@ -12,8 +15,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: bitrix-report
-  cancel-in-progress: true
+  group: pulse-daily        # общий с основным пайплайном — деплои не сталкиваются
+  cancel-in-progress: false
 
 jobs:
   bitrix:
@@ -24,17 +27,30 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Робот по оплатам (разведка + отчёт)
+
+      - name: Робот по оплатам (сбор + отчёт)
         continue-on-error: true
         env:
           BITRIX_WEBHOOK: ${{ secrets.BITRIX_WEBHOOK }}
         run: python bitrix_report.py
-      - name: Сохранить результат обратно
+
+      - name: Сохранить результат в репозиторий
         if: always()
         run: |
           git config user.name "pulse-ci"
           git config user.email "ci@local"
           git add -f bitrix_log.txt "bitrix_отчёт_оплаты.html" 2>/dev/null || true
-          git commit -m "Битрикс: результат робота по оплатам [skip ci]" || echo "нет изменений"
+          git commit -m "Битрикс: отчёт по оплатам [skip ci]" || echo "нет изменений"
           git pull --rebase --autostash origin main || true
           git push origin HEAD:main || echo "push не удался"
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Публикация отчёта (Cloudflare Workers)
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@3 deploy
