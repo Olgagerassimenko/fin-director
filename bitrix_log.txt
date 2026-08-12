@@ -1,17 +1,6 @@
-Битрикс-робот · 04.08.2026
-портал: https://segodnya.bitrix24.kz
-URL содержит '/rest/': True
-  сегментов после /rest/: 2 | userId: 9781 | длина токена: 16
-  GET https://segodnya.bitrix24.kz/rest/.../profile.json → {"result":{"ID":"9781","ADMIN":false,"NAME":"Ольга","LAST_NAME":"Герасименко","PERSONAL_GENDER":"","TIME_ZONE":"Asia\/Qyzylorda"},"time":{"start":1785848329,"finish":1785848329.422648,"duration":0.422
-  GET https://segodnya.bitrix24.kz/rest/.../profile → {"result":{"ID":"9781","ADMIN":false,"NAME":"Ольга","LAST_NAME":"Герасименко","PERSONAL_GENDER":"","TIME_ZONE":"Asia\/Qyzylorda"},"time":{"start":1785848330,"finish":1785848330.390827,"duration":0.390
+Битрикс · оплаты · 12.08.2026 16:36 (Алматы)
+profile: ok · Ольга Герасименко · admin= False
+scope: ['crm']
+смарт-процессы: нет/нет доступа — Доступ запрещен
 
-profile: ok
-scope (права вебхука): ['crm'] 
-
-Смарт-процессы: нет / нет доступа — Доступ запрещен
-lists.get(lists): The request requires higher privileges than provided by the webhook token
-lists.get(bitrix_processes): The request requires higher privileges than provided by the webhook token
-tasks.task.list: The request requires higher privileges than provided by the webhook token
-bizproc.workflow.template.list: The request requires higher privileges than provided by the webhook token
-
-Готово. Файлы: bitrix_log.txt, bitrix_отчёт_оплаты.html
+Готово · записей: 0 · источник: —

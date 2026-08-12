@@ -1,6 +1,45 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Оплаты Битрикс · 04.08.2026</title>
-<style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;background:#0b1220;color:#e5edf7;max-width:960px;margin:0 auto;padding:24px}h1{font-size:20px}</style></head>
-<body><h1>💳 Оплаты из Битрикс24 · 04.08.2026</h1><p style="color:#94a3b8">За сегодня структурированных заявок на оплату не найдено. См. bitrix_log.txt — там видно, что доступно вебхуку. Скорее всего, оплаты оформлены как бизнес-процессы (их REST не читает) — тогда нужен смарт-процесс «Заявки на оплату» с полями Сумма/Город.</p>
-<p style="color:#64748b;font-size:11.5px;margin-top:24px">Система «Пульс» · робот по оплатам (только чтение)</p></body></html>
+<title>Битрикс · Оплаты · 12.08.2026</title>
+<style>
+:root{--ink:#f4f7fb;--ink2:#b9c5d3;--mut:#8798ab;--line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.06)}
+*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Arial,sans-serif;background:#080d16;color:var(--ink);margin:0;padding:0}
+.wrap{max-width:1000px;margin:0 auto;padding:22px 18px 40px}
+.hdr{background:linear-gradient(135deg,#2563eb,#1e3a8a);border-radius:16px;padding:20px 24px;border-top:3px solid rgba(255,255,255,.5);box-shadow:0 16px 42px -24px rgba(37,99,235,.7)}
+.hdr h1{margin:0;font-size:23px;font-weight:800;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hdr .sub{color:#dbeafe;font-size:13px;margin-top:5px}
+.upd{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:5px 12px;border-radius:999px;font-size:12.5px;font-weight:700;margin-top:11px}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+@media(max-width:640px){.kpi{grid-template-columns:1fr}}
+.c{background:linear-gradient(162deg,#0f1b29,#0b141f);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.c .l{font-size:12px;color:var(--ink2);font-weight:700}.c .v{font-size:26px;font-weight:800;margin-top:3px}.c .s{font-size:11px;color:var(--mut);margin-top:3px}
+.card{background:linear-gradient(162deg,#0f1b29,#0b141f);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:16px}
+.card h3{margin:2px 0 10px;font-size:15px}
+.note ol{margin:8px 0 0;padding-left:20px;line-height:1.6}.note li{margin-bottom:6px}
+table.z{width:100%;border-collapse:collapse;font-size:13px}
+table.z th{text-align:right;color:var(--mut);font-weight:700;font-size:11.5px;padding:6px 10px;border-bottom:1px solid var(--line)}
+table.z td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+table.z .l{text-align:left;white-space:normal}table.z .r{text-align:right}
+</style></head>
+<body><div class="wrap">
+  <div class="hdr"><h1>💳 Битрикс · Оплаты</h1>
+    <div class="sub">Мастерская Сегодня · согласование и контроль оплат из Bitrix24 · только чтение</div>
+    <div class="upd">🔄 обновлено 12.08.2026 16:36 · Битрикс · автообновление каждые 3 часа</div>
+  </div>
+  <div class="kpi">
+      <div class="c"><div class="l">💳 Заявок / записей</div><div class="v">0</div><div class="s">источник: —</div></div>
+      <div class="c"><div class="l">💰 Сумма</div><div class="v">0 <span style="font-size:15px">₸</span></div><div class="s">по всем записям</div></div>
+      <div class="c"><div class="l">🔌 Подключение</div><div class="v" style="font-size:17px"><span style="color:#34d399">● подключено</span></div><div class="s">права вебхука: crm · <span style="color:#fbbf24">пользователь не админ — часть прав может быть ограничена</span></div></div>
+    </div>
+  
+      <div class="card note">
+        <h3>⏳ Данных по оплатам пока нет</h3>
+        <p>Вебхук подключён (права: <b>crm</b>), но структурированных заявок на оплату не найдено. Чтобы отчёт наполнялся, нужно два шага:</p>
+        <ol>
+          <li><b>Создать смарт-процесс «Заявки на оплату»</b> в Bitrix24 (CRM → Смарт-процессы) с полями <i>Подразделение, Статья, Сумма, Срок, Стадия</i>. Тогда каждая оплата — это карточка, которую отчёт читает.</li>
+          <li><b>Дать вебхуку права на смарт-процессы</b> (сейчас только «crm»). Нужен вебхук с доступом к CRM-смарт-процессам (или локальное приложение) — иначе REST их не видит («Доступ запрещён»).</li>
+        </ol>
+        <p style="color:#8798ab">Диагностика: Смарт-процессы: нет доступа (Доступ запрещен) · Сделки: за 60 дней нет. Полный лог — в <code>bitrix_log.txt</code>.</p>
+      </div>
+  <p style="color:#64748b;font-size:11.5px;margin-top:8px">Система «Пульс» · робот по оплатам (только чтение) · портал: https://segodnya.bitrix24.kz</p>
+</div></body></html>
