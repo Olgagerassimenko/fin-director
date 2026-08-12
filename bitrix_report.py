@@ -115,8 +115,15 @@ def main():
     log(f"\nГотово · записей: {len(payments)} · источник: {source or '—'}")
 
 def write_html(now, state, payments, source, diag):
+    path = os.path.join(HERE, "bitrix_отчёт_оплаты.html")
+    # ВАЖНО: не затирать реальный отчёт (ручная выгрузка «Согласованные оплаты»
+    # из бизнес-процессов Битрикса) пустой заглушкой. Робот пишет html ТОЛЬКО если
+    # у вебхука реально появились записи; иначе оставляет опубликованный отчёт как есть.
+    if not payments and os.path.exists(path):
+        log("[i] Реальных записей у вебхука нет — опубликованный HTML-отчёт оставлен без изменений (не затираю).")
+        return
     html = build_html(now, state, payments, source, diag)
-    with open(os.path.join(HERE, "bitrix_отчёт_оплаты.html"), "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.write(html)
 
 def fmt(v):
