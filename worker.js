@@ -90,10 +90,21 @@ export default {
     // отдаём статику, а в HTML тихо вставляем счётчик просмотров
     const _res = await env.ASSETS.fetch(request);
     const _ct = _res.headers.get("content-type") || "";
+    // Свежесть: страницы (HTML) и файл данных закупа не кэшируем на edge,
+    // иначе Cloudflare может «залипнуть» на старой версии после деплоя.
+    const _noStore = _ct.includes("text/html") || url.pathname === "/zakup_data.js";
     if (_ct.includes("text/html")) {
-      return new HTMLRewriter()
+      const _t = new HTMLRewriter()
         .on("head", { element(e) { e.append(METRICS_BEACON, { html: true }); } })
         .transform(_res);
+      const _r = new Response(_t.body, _t);
+      _r.headers.set("cache-control", "no-store, must-revalidate");
+      return _r;
+    }
+    if (_noStore) {
+      const _r = new Response(_res.body, _res);
+      _r.headers.set("cache-control", "no-store, must-revalidate");
+      return _r;
     }
     return _res;
   },
