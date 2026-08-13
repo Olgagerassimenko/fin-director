@@ -1,1 +1,1 @@
-window.DDS_META={"updated": "12.08.2026"};
+window.DDS_META={"updated": "13.08.2026"};
