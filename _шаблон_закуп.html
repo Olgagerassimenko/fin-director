@@ -938,6 +938,46 @@ PKEY=defKey(); render();
  var trendPct=0, trendUp=false;
  if(full.length>=2){var a=full[0].sum,b=full[full.length-1].sum; if(a>0){trendPct=(b-a)/a*100; trendUp=trendPct>0;}}
 
+ // ── пересчёт всех метрик по НАБОРУ строк (для привязки к выбранному периоду) ──
+ function computeMK(rows){
+   rows=rows||[];
+   var mkE=rows.filter(function(r){return r.supplier===SUP&&edible(r.product);});
+   var totE=mkE.reduce(function(a,r){return a+r.sum;},0);
+   var totMkAll=rows.filter(function(r){return r.supplier===SUP;}).reduce(function(a,r){return a+r.sum;},0);
+   var totZak=rows.reduce(function(a,r){return a+r.sum;},0);
+   var nonEdible=totMkAll-totE;
+   var alt={};
+   rows.forEach(function(r){ if(edible(r.product)&&r.supplier!==SUP){var a=alt[r.product]||(alt[r.product]={q:0,s:0});a.q+=r.qty;a.s+=r.sum;}});
+   var over=[], only=[];
+   mkE.forEach(function(r){
+     var a=alt[r.product];
+     if(a&&a.q>0){var ap=a.s/a.q; var diff=r.price-ap; var ov=diff>0?diff*r.qty:0;
+       over.push({name:r.product,qty:r.qty,sum:r.sum,mp:r.price,ap:ap,diff:diff,ov:ov});}
+     else only.push({name:r.product,qty:r.qty,sum:r.sum,mp:r.price});
+   });
+   var overTot=over.reduce(function(a,r){return a+r.ov;},0);
+   over.sort(function(a,b){return b.ov-a.ov;});
+   only.sort(function(a,b){return b.sum-a.sum;});
+   var onlyTot=only.reduce(function(a,r){return a+r.sum;},0);
+   var top=mkE.slice().sort(function(a,b){return b.sum-a.sum;});
+   var shareYr=totZak?totMkAll/totZak*100:0;
+   return {mkE:mkE,totE:totE,totMkAll:totMkAll,totZak:totZak,nonEdible:nonEdible,over:over,only:only,overTot:overTot,onlyTot:onlyTot,top:top,shareYr:shareYr};
+ }
+ // строки за выбранный период (тот же источник, что и вкладка «Что закупали»)
+ function mkPeriodRows(){ try{ if(typeof tvData==='function'){var d=tvData(); if(d&&d.rows)return d.rows;} }catch(e){} return YR; }
+ // человекочитаемая подпись выбранного периода
+ function mkPeriodLabel(){
+   try{
+     if(typeof MODE==='undefined')return 'с начала года';
+     if(MODE==='year')return 'за весь год (с начала года)';
+     if(MODE==='month')return 'за '+(((D.mmeta||{})[PKEY]||{}).ru||PKEY||'месяц');
+     if(MODE==='week'){var w=(WEEKS||[]).filter(function(x){return x.k===PKEY;})[0];return 'за неделю '+((w&&w.label)||PKEY||'');}
+     if(MODE==='day')return 'за день '+(PKEY||'');
+     if(MODE==='period')return 'за период '+((AFROM||'?')+' – '+(ATO||'?'));
+   }catch(e){}
+   return 'за выбранный период';
+ }
+
  // ── styles (market theme: amber→red glow) ──
  var mkstyle='<style>'+
   '@keyframes mkglow{0%,100%{box-shadow:0 14px 40px -24px rgba(0,0,0,.7),0 0 0 0 rgba(249,115,22,0)}50%{box-shadow:0 14px 46px -18px rgba(249,115,22,.5),0 0 46px 6px rgba(249,115,22,.38)}}'+
@@ -950,23 +990,32 @@ PKEY=defKey(); render();
   '</style>';
 
  window.renderMK=function(){
+  // ── данные за ВЫБРАННЫЙ период (привязка к переключателю сверху) ──
+  var PR=mkPeriodRows();
+  var M=computeMK(PR);
+  var mkE=M.mkE, totE=M.totE, totMkAll=M.totMkAll, totZak=M.totZak, nonEdible=M.nonEdible,
+      over=M.over, only=M.only, overTot=M.overTot, onlyTot=M.onlyTot, top=M.top, shareYr=M.shareYr;
+  var PERLBL=mkPeriodLabel();
+  // среднее в месяц и тренд — всегда за год (контекст), из месячного ряда S
+  var totEyr=S.reduce(function(a,m){return a+m.sum;},0);
+  var avgMo=actv.length?totEyr/actv.length:0;
   // banner
   var upd=D.updated||'';
   var patt='<svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.12;pointer-events:none" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="mkp" width="34" height="34" patternUnits="userSpaceOnUse"><text x="4" y="24" font-size="20" fill="#fff">🛒</text></pattern></defs><rect width="100%" height="100%" fill="url(#mkp)"/></svg>';
   var banner='<div class="mkbn" style="position:relative;overflow:hidden;background:linear-gradient(135deg,#f97316,#c2410c);border-radius:16px;padding:22px 26px;margin-bottom:16px;border-top:3px solid rgba(255,255,255,.55)">'+patt+'<span class="mkshine"></span><div style="position:relative;z-index:1">'+
     '<div style="font-size:24px;font-weight:800;color:#fff;display:flex;align-items:center;gap:12px;flex-wrap:wrap">🛒 РЫНОК СЫРЬЁ <span style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);padding:3px 11px;border-radius:999px;font-size:12px;font-weight:700">закуп на рынке — сокращаем</span></div>'+
     '<div style="color:#fff7ed;font-size:13px;margin-top:6px;max-width:720px">Отдельный контроль закупа съедобного сырья у поставщика «'+SUP+'». Наличный рынок дороже и непрозрачнее контрактных поставок — цель раздела: <b>показать, что и по какой цене берём, и сократить.</b></div>'+
-    '<div style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:5px 12px;border-radius:999px;font-size:12.5px;font-weight:700;color:#fff;margin-top:11px">🔄 обновлено '+esc(upd)+' · из iiko · с начала года</div>'+
+    '<div style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:5px 12px;border-radius:999px;font-size:12.5px;font-weight:700;color:#fff;margin-top:11px">🔄 обновлено '+esc(upd)+' · из iiko · '+esc(PERLBL)+'</div>'+
     '</div></div>';
 
   // KPI
   function kc(ic,lb,val,sub,col){return '<div class="card" style="margin:0;padding:13px 15px"><div style="font-size:12px;color:var(--ink2);font-weight:700;display:flex;align-items:center;gap:6px">'+ic+' '+lb+'</div><div style="font-size:26px;font-weight:800;color:'+(col||'#f4f7fb')+';margin-top:3px;line-height:1.1">'+val+'</div><div style="font-size:11px;color:var(--mut);margin-top:2px">'+sub+'</div></div>';}
   var trendTxt=full.length>=2?(trendUp?'📈 рост +':'📉 снижение ')+Math.abs(Math.round(trendPct))+'%':'—';
   var kpi='<div class="kpi" style="grid-template-columns:repeat(5,1fr)">'+
-    kc('🛒','Съедобное с рынка', MLN(totE)+' ₸','за год · '+mkE.length+' позиций','#fdba74')+
-    kc('📊','Доля рынка в закупе', shareYr.toFixed(1).replace('.',',')+'%','весь рынок '+MLN(totMkAll)+' ₸ из '+MLN(totZak),'#fff')+
-    kc('📅','В среднем в месяц', MLN(avgMo)+' ₸', actv.length+' активных мес.','#fff')+
-    kc('💸','Переплата vs альтернатив', MLN(overTot)+' ₸', over.length+' поз. дороже рынка','#fb7185')+
+    kc('🛒','Съедобное с рынка', MLN(totE)+' ₸', PERLBL+' · '+mkE.length+' позиций','#fdba74')+
+    kc('📊','Доля рынка в закупе', shareYr.toFixed(1).replace('.',',')+'%','рынок '+MLN(totMkAll)+' ₸ из '+MLN(totZak)+' · '+PERLBL,'#fff')+
+    kc('📅','В среднем в месяц', MLN(avgMo)+' ₸', 'за год · '+actv.length+' активных мес.','#fff')+
+    kc('💸','Переплата vs альтернатив', MLN(overTot)+' ₸', over.length+' поз. дороже · '+PERLBL,'#fb7185')+
     kc((trendUp?'📈':'📉'),'Динамика за год', trendTxt, 'первый → последний мес.', trendUp?'#fb7185':'#34d399')+
     '</div>';
 
@@ -983,7 +1032,7 @@ PKEY=defKey(); render();
     pts+=(i===0?'':' ')+(x+w/2).toFixed(2)+','+(100-shr/Math.max(20, Math.max.apply(null,S.map(function(z){return z.zak?z.mkAll/z.zak*100:0;})))*90).toFixed(2);
     lbls+='<div style="flex:1;text-align:center;font-size:10.5px;color:var(--ink2);font-weight:600">'+esc(m.label.replace(/ 2026/,'').slice(0,3))+(cur?' <span class="mktag">тек.</span>':'')+'<div style="color:var(--mut);font-size:9.5px">'+MLN(m.sum)+'</div><div style="color:#7dd3fc;font-size:9.5px;font-weight:700">'+shr.toFixed(0)+'% рынка</div></div>';
   });
-  var chart='<div class="card mkbn"><div class="hd"><h3>📉 Динамика закупа съедобного с рынка</h3><span class="sub">по месяцам · сумма закупа и доля рынка</span></div>'+
+  var chart='<div class="card mkbn"><div class="hd"><h3>📉 Динамика закупа съедобного с рынка</h3><span class="sub">по месяцам за весь год · не зависит от выбранного периода сверху</span></div>'+
     '<div style="display:flex;gap:20px;flex-wrap:wrap;padding:0 18px 6px;font-size:11.5px;color:var(--ink2)"><span><span style="display:inline-block;width:13px;height:13px;background:linear-gradient(180deg,#fb923c,#ea580c);border-radius:2px;vertical-align:-2px"></span> Сумма закупа с рынка, \u20b8/мес</span><span><span style="display:inline-block;width:20px;height:0;border-top:3px solid #38bdf8;box-shadow:0 0 6px #38bdf8;vertical-align:4px"></span> Доля рынка в общем закупе месяца, %</span></div>'+
     '<div style="padding:2px 18px 4px"><svg viewBox="0 0 100 108" preserveAspectRatio="none" style="width:100%;height:230px">'+
     '<defs><linearGradient id="mkgc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#ea580c"/></linearGradient>'+
@@ -1033,7 +1082,7 @@ PKEY=defKey(); render();
 
   // hint / recommendations
   var note='<div class="note" style="background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.32);color:#fdd7b0">'+
-    '<b>Как сократить рынок:</b> 1) по таблице «где рынок дороже» — перевести позиции на контрактных поставщиков (экономия ≈ '+MLN(overTot)+' ₸/год). '+
+    '<b>Как сократить рынок:</b> 1) по таблице «где рынок дороже» — перевести позиции на контрактных поставщиков (экономия ≈ '+MLN(overTot)+' ₸ '+PERLBL+'). '+
     '2) По «только рынок» — найти постоянного поставщика для топ-позиций (макароны, лапша, изюм, специи). '+
     '3) Держать долю рынка в закупе ниже '+Math.max(3,Math.round(shareYr-2))+'% (сейчас '+shareYr.toFixed(1).replace('.',',')+'%).</div>';
 
@@ -1061,7 +1110,20 @@ PKEY=defKey(); render();
   carr.forEach(function(c){var w=(c.v/cmax*100).toFixed(1), shr=totE?Math.round(c.v/totE*100):0;
     chtml+='<div style="display:flex;align-items:center;gap:10px;padding:5px 0"><div style="width:180px;font-size:12.5px;color:#e8eef5;font-weight:600">'+esc(c.k)+'</div><div style="flex:1"><div style="height:14px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:linear-gradient(90deg,#fbbf24,#f97316);border-radius:6px"></div></div></div><div style="width:130px;text-align:right;font-size:12px;color:#fdba74;font-weight:800">'+MLN(c.v)+' ₸ · '+shr+'%</div></div>';});
   var catCard='<div class="card" id="mk_cat"><div class="hd"><h3>🧺 Категории закупа с рынка</h3><span class="sub">по сумме ₸ · на чём сосредоточены деньги</span></div><div style="padding:10px 18px 12px">'+chtml+'</div><div style="padding:0 18px 16px;font-size:12px;color:#fdd7b0;line-height:1.55">💡 Самая крупная категория — сверху. Бакалею и макароны проще всего перевести на контракт. <a href="javascript:void(0)" onclick="setTab(\'ce\')" style="color:#7dd3fc;font-weight:700">→ цены во вкладке «Цены закупа»</a></div></div>';
-  return mkstyle+'<div style="position:relative">'+banner+strip+kpi+chart+topCard+catCard+note+ovCard+onCard+'</div>';
+  var explCard='<details class="card" style="margin-bottom:16px"><summary style="cursor:pointer;font-weight:800;font-size:14px;list-style:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap">❓ Как считается этот раздел <span class="mktag" style="font-weight:700">'+esc(PERLBL)+'</span></summary>'
+   +'<div style="padding:10px 2px 2px;font-size:12.5px;color:var(--ink2);line-height:1.65">'
+   +'<b>Кто:</b> поставщик <b>«'+esc(SUP)+'»</b> — наличный закуп на рынке (в iiko это отдельный контрагент).<br>'
+   +'<b>За что:</b> только <b>съедобное сырьё</b> — позиции с пометкой «С*» в номенклатуре iiko (напр. «С* Макароны Спираль»). Упаковка и хоз-товары сюда не входят (они в строке «несъедобное»).<br>'
+   +'<b>Период:</b> привязан к переключателю сверху (День · Неделя · Месяц · Год · Период). Сейчас выбрано: <b>'+esc(PERLBL)+'</b>. Смените период сверху — карточки, топ-15, категории и таблицы пересчитаются. Месячный график ниже всегда за весь год.<br>'
+   +'<b>Как считаются цифры:</b><br>'
+   +'• <b>Съедобное с рынка</b> = сумма закупа съедобных позиций у «'+esc(SUP)+'» за период.<br>'
+   +'• <b>Доля рынка в закупе</b> = весь закуп у «'+esc(SUP)+'» ÷ весь закуп у всех поставщиков × 100 (за период).<br>'
+   +'• <b>Переплата</b> = по позициям, что есть и у других поставщиков: (цена на рынке − средняя цена у других) × количество; берём только где рынок дороже.<br>'
+   +'• <b>% рынка</b> у товара = доля позиции в общей сумме съедобного с рынка.<br>'
+   +'• <b>Синяя линия</b> на графике = доля «'+esc(SUP)+'» в общем закупе каждого месяца.<br>'
+   +'<b>Источник:</b> iiko, обновляется автоматически (дата — в шапке).'
+   +'</div></details>';
+  return mkstyle+'<div style="position:relative">'+banner+strip+kpi+explCard+chart+topCard+catCard+note+ovCard+onCard+'</div>';
  };
 
  // ── interactions (global) ──
