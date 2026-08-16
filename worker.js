@@ -18,6 +18,78 @@ const M_KEY = "metrics:v1";
 const METRICS_HASH = "2391eadda6fbf6a5907d84883fdd4e84da1614f7de7db7dd74e4eb7e7ed1d67b";
 const METRICS_BEACON = '<script>try{fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true})}catch(e){}</script>';
 
+
+// ── Личная галерея «Мальдивы» (доступ по коду) ───────────────────────────────
+const GAL_HASH = "f8a5da214f3f6c281e008924914e7decf9a13637737204589eed04379dc600a8";
+const GAL_PREFIX = "gal:";
+
+function galOk(request, url) {
+  const t = url.searchParams.get("t") || request.headers.get("x-gal-token") || "";
+  return t === GAL_HASH;
+}
+function galJson(o, status) {
+  return new Response(JSON.stringify(o), { status: status || 200, headers: {
+    "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+}
+async function handleGallery(request, env, url) {
+  const path = url.pathname.replace(/^\/api\/gal\/?/, "");
+
+  if (path === "auth") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const ok = String(body.p || "") === GAL_HASH;
+    return galJson(ok ? { ok: true, t: GAL_HASH } : { ok: false }, ok ? 200 : 401);
+  }
+
+  if (!galOk(request, url)) return galJson({ error: "нет доступа" }, 401);
+
+  if (path === "list") {
+    const out = [];
+    let cursor;
+    do {
+      const r = await env.PLAN.list({ prefix: GAL_PREFIX, cursor, limit: 1000 });
+      for (const k of r.keys) out.push(Object.assign({ key: k.name }, k.metadata || {}));
+      cursor = r.list_complete ? null : r.cursor;
+    } while (cursor);
+    out.sort((a, b) => String(a.d || "").localeCompare(String(b.d || "")));
+    return galJson({ items: out, count: out.length });
+  }
+
+  if (path === "up" && request.method === "POST") {
+    const name = url.searchParams.get("n") || "file";
+    const ct = url.searchParams.get("ct") || "application/octet-stream";
+    const d = url.searchParams.get("d") || new Date().toISOString();
+    const kind = ct.indexOf("video") === 0 ? "video" : "photo";
+    const buf = await request.arrayBuffer();
+    if (!buf.byteLength) return galJson({ error: "пустой файл" }, 400);
+    if (buf.byteLength > 24 * 1024 * 1024) return galJson({ error: "файл больше 24 МБ" }, 413);
+    const key = GAL_PREFIX + d.slice(0, 19).replace(/[:T]/g, "-") + "_" +
+                Math.random().toString(36).slice(2, 8);
+    await env.PLAN.put(key, buf, { metadata: { n: name.slice(0, 120), ct, d, k: kind, s: buf.byteLength } });
+    return galJson({ ok: true, key });
+  }
+
+  if (path === "rm" && request.method === "POST") {
+    const key = url.searchParams.get("k") || "";
+    if (key.indexOf(GAL_PREFIX) !== 0) return galJson({ error: "нет такого файла" }, 400);
+    await env.PLAN.delete(key);
+    return galJson({ ok: true });
+  }
+
+  if (path.indexOf("f/") === 0) {
+    const key = decodeURIComponent(path.slice(2));
+    if (key.indexOf(GAL_PREFIX) !== 0) return galJson({ error: "нет такого файла" }, 400);
+    const r = await env.PLAN.getWithMetadata(key, { type: "arrayBuffer" });
+    if (!r || !r.value) return galJson({ error: "файл не найден" }, 404);
+    const m = r.metadata || {};
+    const h = { "content-type": m.ct || "application/octet-stream", "cache-control": "private, max-age=86400" };
+    if (url.searchParams.get("dl")) h["content-disposition"] = 'attachment; filename="' + encodeURIComponent(m.n || "file") + '"';
+    return new Response(r.value, { headers: h });
+  }
+
+  return galJson({ error: "неизвестный запрос" }, 404);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -81,6 +153,11 @@ export default {
       }
       return new Response(JSON.stringify(out), { headers: {
         "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+    }
+    if (url.pathname.indexOf("/api/gal") === 0) {
+      return handleGallery(request, env, url).catch((e) =>
+        new Response(JSON.stringify({ error: String(e).slice(0, 160) }), { status: 500,
+          headers: { "content-type": "application/json; charset=utf-8" } }));
     }
     if (url.pathname === "/api/halal") {
       return handleHalal(request, env);

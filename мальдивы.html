@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Мальдивы · Дарья</title>
+<style>
+  :root{
+    --ocean1:#7ff0dd; --ocean2:#2fc4d6; --ocean3:#1b7fa8; --deep:#07405e;
+    --sand:#fff6e2; --coral:#ff7a6b; --sun:#ffd166; --leaf:#2fbf87; --ink:#0b3d5c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:'Segoe UI',Inter,-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);
+    background:linear-gradient(180deg,#bff6ef 0%,#8fe6e0 22%,#4fd0d8 48%,#2ab0c8 74%,#1b7fa8 100%);
+    background-attachment:fixed;min-height:100vh;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 16px 60px}
+  .hidden{display:none!important}
+
+  /* ── замок ── */
+  #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;
+    background:linear-gradient(180deg,#bff6ef,#5fd8dc 55%,#1b7fa8)}
+  .gate-card{background:rgba(255,255,255,.92);border-radius:28px;padding:30px 26px 26px;max-width:380px;width:100%;
+    text-align:center;box-shadow:0 24px 60px rgba(7,64,94,.28)}
+  .gate-card h1{margin:12px 0 4px;font-size:30px;letter-spacing:-.02em;color:var(--deep)}
+  .gate-card p{margin:0 0 18px;font-size:13.5px;color:#5b8299}
+  #code{width:100%;text-align:center;font-size:26px;letter-spacing:.4em;padding:14px 10px;border-radius:16px;
+    border:2px solid #cfeaf0;background:#f6fdff;color:var(--deep);font-weight:800;outline:none}
+  #code:focus{border-color:var(--ocean2)}
+  .btn{border:0;border-radius:16px;padding:14px 22px;font-size:15px;font-weight:800;cursor:pointer;
+    background:var(--coral);color:#fff;box-shadow:0 8px 20px rgba(255,122,107,.35);transition:transform .12s}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:rgba(255,255,255,.85);color:var(--deep);box-shadow:0 6px 16px rgba(7,64,94,.12)}
+  #gate .btn{width:100%;margin-top:14px}
+  #gerr{color:var(--coral);font-size:13px;font-weight:700;margin-top:10px;min-height:18px}
+
+  /* ── шапка ── */
+  header{position:relative;text-align:center;padding:34px 10px 0}
+  .kicker{display:inline-block;background:rgba(255,255,255,.75);color:#0d6c86;font-size:11.5px;font-weight:800;
+    letter-spacing:.22em;text-transform:uppercase;padding:7px 16px;border-radius:999px}
+  h1.title{margin:14px 0 6px;font-size:clamp(30px,7vw,54px);line-height:1.05;letter-spacing:-.03em;color:#fff;
+    text-shadow:0 6px 26px rgba(7,64,94,.35)}
+  .sub{color:#eafcff;font-size:15px;font-weight:600;text-shadow:0 2px 10px rgba(7,64,94,.3)}
+  .stats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:18px 0 6px}
+  .stat{background:rgba(255,255,255,.85);border-radius:14px;padding:8px 15px;font-size:13px;font-weight:800;color:var(--deep)}
+  .stat span{color:#2a7f99;font-weight:600}
+
+  /* ── зона загрузки ── */
+  .drop{margin:22px 0 6px;border:3px dashed rgba(255,255,255,.85);border-radius:24px;padding:22px 18px;text-align:center;
+    background:rgba(255,255,255,.32);backdrop-filter:blur(3px);transition:.15s}
+  .drop.over{background:rgba(255,255,255,.6);border-color:#fff;transform:scale(1.01)}
+  .drop h3{margin:6px 0 4px;font-size:17px;color:var(--deep)}
+  .drop p{margin:0 0 12px;font-size:12.5px;color:#2a6d85}
+  .bar{height:8px;border-radius:6px;background:rgba(255,255,255,.6);overflow:hidden;margin-top:12px;display:none}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--sun),var(--coral));transition:width .2s}
+
+  /* ── галерея ── */
+  .day{margin:26px 0 8px;display:flex;align-items:center;gap:12px}
+  .day b{font-size:19px;color:#fff;text-shadow:0 3px 14px rgba(7,64,94,.35);letter-spacing:-.01em}
+  .day span{font-size:12px;font-weight:700;color:#0d6c86;background:rgba(255,255,255,.8);padding:4px 10px;border-radius:999px}
+  .day i{flex:1;height:2px;background:rgba(255,255,255,.5);border-radius:2px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+  .cell{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:1/1;background:rgba(255,255,255,.35);
+    cursor:pointer;box-shadow:0 8px 22px rgba(7,64,94,.18);transition:transform .16s}
+  .cell:hover{transform:translateY(-3px) scale(1.012)}
+  .cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block}
+  .cell .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .cell .play b{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;
+    justify-content:center;font-size:18px;color:var(--coral);box-shadow:0 6px 16px rgba(0,0,0,.2)}
+  .empty{background:rgba(255,255,255,.75);border-radius:24px;padding:34px 20px;text-align:center;color:#2a6d85;margin-top:20px}
+
+  /* ── просмотр ── */
+  #box{position:fixed;inset:0;background:rgba(4,32,48,.94);z-index:80;display:none;align-items:center;justify-content:center;flex-direction:column}
+  #box img,#box video{max-width:94vw;max-height:78vh;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  #box .tools{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+  #box .nav{position:absolute;top:50%;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;border:0;
+    background:rgba(255,255,255,.9);font-size:22px;cursor:pointer;color:var(--deep);font-weight:800}
+  #prev{left:14px}#next{right:14px}
+  #cap{color:#cfeef7;font-size:12.5px;margin-top:10px;text-align:center;padding:0 16px}
+  footer{text-align:center;color:#eafcff;font-size:12.5px;padding:34px 16px 10px;text-shadow:0 2px 10px rgba(7,64,94,.3)}
+  .deco{position:absolute;pointer-events:none;opacity:.95}
+</style>
+</head>
+<body>
+
+<!-- ══ ЗАМОК ══ -->
+<div id="gate">
+  <div class="gate-card">
+    <svg width="150" height="110" viewBox="0 0 150 110" fill="none" aria-hidden="true">
+      <circle cx="118" cy="26" r="15" fill="#ffd166"/>
+      <path d="M118 4v-4M118 52v4M96 26h-4M144 26h4M103 11l-3-3M133 41l3 3M133 11l3-3M103 41l-3 3" stroke="#ffd166" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M56 96V54" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>
+      <path d="M56 54c-13-9-27-7-33 2 11-3 22 0 33 4z" fill="#2fbf87"/>
+      <path d="M56 54c13-9 28-6 34 3-12-3-23 0-34 4z" fill="#35d19a"/>
+      <path d="M56 54c-5-13-1-25 8-30-3 11-3 21 0 32z" fill="#2fbf87"/>
+      <path d="M56 54c8-11 20-15 29-11-11 3-20 8-29 15z" fill="#35d19a"/>
+      <ellipse cx="66" cy="98" rx="60" ry="9" fill="#ffe7b8"/>
+      <path d="M4 88c10-5 18 5 28 0s18 5 28 0 18 5 28 0 18 5 28 0" stroke="#2fc4d6" stroke-width="3" stroke-linecap="round" fill="none"/>
+    </svg>
+    <h1>Мальдивы</h1>
+    <p>Фото и видео от Дарьи · только для своих</p>
+    <input id="code" type="password" inputmode="numeric" placeholder="код" autocomplete="off">
+    <button class="btn" id="go">Открыть</button>
+    <div id="gerr"></div>
+  </div>
+</div>
+
+<!-- ══ САЙТ ══ -->
+<div id="app" class="hidden">
+  <header>
+    <svg class="deco" style="left:2%;top:6px;width:88px" viewBox="0 0 100 120" fill="none" aria-hidden="true">
+      <path d="M50 118V52" stroke="#8a5a2b" stroke-width="6" stroke-linecap="round"/>
+      <path d="M50 52C34 40 16 42 8 53c14-4 28 0 42 6z" fill="#2fbf87"/>
+      <path d="M50 52c16-12 34-10 42 1-14-4-28 0-42 6z" fill="#35d19a"/>
+      <path d="M50 52c-6-16-2-31 9-37-4 13-4 26 0 39z" fill="#2fbf87"/>
+      <path d="M50 52c10-14 25-19 36-14-14 4-25 10-36 19z" fill="#35d19a"/>
+      <circle cx="46" cy="50" r="4" fill="#8a5a2b"/><circle cx="56" cy="53" r="3.5" fill="#8a5a2b"/>
+    </svg>
+    <svg class="deco" style="right:3%;top:14px;width:70px" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+      <circle cx="40" cy="40" r="18" fill="#ffd166"/>
+      <path d="M40 12V4M40 76v-8M12 40H4M76 40h-8M20 20l-6-6M60 60l6 6M60 20l6-6M20 60l-6 6" stroke="#ffd166" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+    <div class="kicker">NAKAI Alimathá · атолл Вааву</div>
+    <h1 class="title">Дарья на Мальдивах</h1>
+    <div class="sub">самая любименькая доченька 💙</div>
+    <div class="stats" id="stats"></div>
+    <svg viewBox="0 0 600 120" style="width:100%;max-width:620px;margin:10px auto -6px;display:block" fill="none" aria-hidden="true">
+      <path d="M0 96c40-14 70 10 110 0s70 10 110 0 70 10 110 0 70 10 110 0 70 10 160 0" stroke="rgba(255,255,255,.75)" stroke-width="4" stroke-linecap="round"/>
+      <path d="M0 110c50-12 80 12 130 0s80 12 130 0 80 12 130 0 80 12 210 0" stroke="rgba(255,255,255,.45)" stroke-width="4" stroke-linecap="round"/>
+      <g>
+        <path d="M232 60h136l-16-26H248z" fill="#ff9f7a"/>
+        <path d="M226 60h148v6H226z" fill="#fff1d6"/>
+        <rect x="248" y="66" width="104" height="26" rx="4" fill="#fffaf0"/>
+        <rect x="266" y="72" width="20" height="14" rx="2" fill="#8fe6e0"/>
+        <rect x="314" y="72" width="20" height="14" rx="2" fill="#8fe6e0"/>
+        <path d="M252 92v18M348 92v18M282 92v18M318 92v18" stroke="#c9a06a" stroke-width="4" stroke-linecap="round"/>
+        <path d="M368 92h84" stroke="#c9a06a" stroke-width="5" stroke-linecap="round"/>
+        <path d="M380 92v14M410 92v14M440 92v14" stroke="#c9a06a" stroke-width="4" stroke-linecap="round"/>
+      </g>
+      <g>
+        <path d="M120 84c10-8 22-8 30 0-8 8-20 8-30 0z" fill="#ffd166"/>
+        <path d="M150 84l10-6v12z" fill="#ffb347"/><circle cx="130" cy="83" r="2" fill="#7a4a1e"/>
+        <path d="M470 100c8-6 18-6 24 0-6 6-16 6-24 0z" fill="#ff7a6b"/>
+        <path d="M494 100l8-5v10z" fill="#ff5f4d"/><circle cx="478" cy="99" r="1.6" fill="#fff"/>
+      </g>
+    </svg>
+  </header>
+
+  <div class="wrap">
+    <div class="drop" id="drop">
+      <svg width="120" height="46" viewBox="0 0 160 60" fill="none" aria-hidden="true">
+        <path d="M8 44c12-6 20 6 32 0s20 6 32 0 20 6 32 0 20 6 32 0" stroke="#2fc4d6" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <path d="M60 34l20-16 20 16" stroke="#ff7a6b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M80 18v22" stroke="#ff7a6b" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <h3>Добавить фото и видео</h3>
+      <p>перетащите файлы сюда или нажмите кнопку · фото сожму автоматически</p>
+      <button class="btn" id="pick">Выбрать файлы</button>
+      <input id="file" type="file" accept="image/*,video/*" multiple class="hidden">
+      <div class="bar" id="bar"><i></i></div>
+    </div>
+    <div id="gal"></div>
+  </div>
+
+  <footer>
+    <svg width="180" height="40" viewBox="0 0 200 40" fill="none" aria-hidden="true" style="opacity:.9">
+      <path d="M10 26c14-8 24 8 38 0s24 8 38 0 24 8 38 0 24 8 38 0" stroke="#eafcff" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M96 14c6-4 12-4 16 0-4 4-10 4-16 0z" fill="#ff7a6b"/><circle cx="100" cy="14" r="1.6" fill="#fff"/>
+    </svg>
+    <div>сделано с любовью · Мальдивы 2026</div>
+  </footer>
+</div>
+
+<!-- ══ ПРОСМОТР ══ -->
+<div id="box">
+  <button class="nav" id="prev">‹</button>
+  <div id="stage"></div>
+  <div id="cap"></div>
+  <div class="tools">
+    <button class="btn ghost" id="dl">↓ Скачать</button>
+    <button class="btn ghost" id="dlall">↓ Скачать всё</button>
+    <button class="btn ghost" id="del">Удалить</button>
+    <button class="btn" id="close">Закрыть</button>
+  </div>
+  <button class="nav" id="next">›</button>
+</div>
+
+<script>
+(function(){
+  var T=null, ITEMS=[], IDX=0;
+  var $=function(id){ return document.getElementById(id); };
+  var MN=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+
+  async function sha256(s){
+    var b=await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0");}).join("");
+  }
+  function api(p){ return "/api/gal/"+p+(p.indexOf("?")>0?"&":"?")+"t="+T; }
+
+  async function enter(){
+    var v=$("code").value.trim();
+    if(!v){ $("gerr").textContent="введите код"; return; }
+    var h=await sha256(v);
+    var r=await fetch("/api/gal/auth",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({p:h})});
+    if(!r.ok){ $("gerr").textContent="код не подходит"; $("code").value=""; return; }
+    var j=await r.json(); T=j.t;
+    try{ sessionStorage.setItem("galt",T); }catch(e){}
+    $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
+    load();
+  }
+  $("go").onclick=enter;
+  $("code").addEventListener("keydown",function(e){ if(e.key==="Enter") enter(); });
+
+  function fmtSize(n){ return n>=1048576?(n/1048576).toFixed(1).replace(".",",")+" МБ":Math.round(n/1024)+" КБ"; }
+  function dayKey(d){ return String(d||"").slice(0,10); }
+  function dayLabel(k){
+    var p=k.split("-"); if(p.length<3) return "Без даты";
+    return (+p[2])+" "+MN[(+p[1])-1]+" "+p[0];
+  }
+
+  async function load(){
+    var r=await fetch(api("list"));
+    if(!r.ok){ return; }
+    var j=await r.json();
+    ITEMS=j.items||[];
+    render();
+  }
+
+  function render(){
+    var ph=ITEMS.filter(function(x){return x.k!=="video";}).length, vd=ITEMS.length-ph;
+    var days={}; ITEMS.forEach(function(x){ (days[dayKey(x.d)]=days[dayKey(x.d)]||[]).push(x); });
+    var keys=Object.keys(days).sort();
+    $("stats").innerHTML='<div class="stat">'+ph+' <span>фото</span></div>'
+      +'<div class="stat">'+vd+' <span>видео</span></div>'
+      +'<div class="stat">'+keys.length+' <span>'+(keys.length===1?"день":"дней")+'</span></div>';
+    if(!ITEMS.length){
+      $("gal").innerHTML='<div class="empty">Здесь пока пусто. Добавьте первые снимки — они появятся сразу.</div>';
+      return;
+    }
+    var h="";
+    keys.forEach(function(k){
+      var arr=days[k];
+      h+='<div class="day"><b>'+dayLabel(k)+'</b><span>'+arr.length+'</span><i></i></div><div class="grid">';
+      arr.forEach(function(x){
+        var i=ITEMS.indexOf(x);
+        if(x.k==="video"){
+          h+='<div class="cell" data-i="'+i+'"><video src="'+api("f/"+encodeURIComponent(x.key))+'" preload="metadata" muted playsinline></video><div class="play"><b>▶</b></div></div>';
+        } else {
+          h+='<div class="cell" data-i="'+i+'"><img loading="lazy" src="'+api("f/"+encodeURIComponent(x.key))+'" alt=""></div>';
+        }
+      });
+      h+='</div>';
+    });
+    $("gal").innerHTML=h;
+    Array.prototype.forEach.call(document.querySelectorAll(".cell"),function(c){
+      c.onclick=function(){ open(+c.getAttribute("data-i")); };
+    });
+  }
+
+  function open(i){
+    IDX=i; var x=ITEMS[i]; if(!x) return;
+    var src=api("f/"+encodeURIComponent(x.key));
+    $("stage").innerHTML = x.k==="video"
+      ? '<video src="'+src+'" controls autoplay playsinline></video>'
+      : '<img src="'+src+'" alt="">';
+    $("cap").textContent=(x.n||"")+" · "+dayLabel(dayKey(x.d))+(x.s?" · "+fmtSize(x.s):"");
+    $("box").style.display="flex"; document.body.style.overflow="hidden";
+  }
+  function close(){ $("box").style.display="none"; $("stage").innerHTML=""; document.body.style.overflow=""; }
+  function step(d){ if(!ITEMS.length) return; IDX=(IDX+d+ITEMS.length)%ITEMS.length; open(IDX); }
+  $("close").onclick=close; $("prev").onclick=function(){step(-1);}; $("next").onclick=function(){step(1);};
+  $("box").addEventListener("click",function(e){ if(e.target===this) close(); });
+  document.addEventListener("keydown",function(e){
+    if($("box").style.display!=="flex") return;
+    if(e.key==="Escape") close(); else if(e.key==="ArrowLeft") step(-1); else if(e.key==="ArrowRight") step(1);
+  });
+  var tx=0;
+  $("box").addEventListener("touchstart",function(e){ tx=e.changedTouches[0].clientX; },{passive:true});
+  $("box").addEventListener("touchend",function(e){ var d=e.changedTouches[0].clientX-tx; if(Math.abs(d)>60) step(d<0?1:-1); },{passive:true});
+
+  function download(x){
+    var a=document.createElement("a");
+    a.href=api("f/"+encodeURIComponent(x.key)+"?dl=1"); a.download=x.n||"maldives";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  $("dl").onclick=function(){ download(ITEMS[IDX]); };
+  $("dlall").onclick=function(){
+    var i=0;
+    (function nxt(){ if(i>=ITEMS.length) return; download(ITEMS[i++]); setTimeout(nxt,700); })();
+  };
+  $("del").onclick=async function(){
+    var x=ITEMS[IDX]; if(!x) return;
+    if(this.dataset.armed!=="1"){ this.dataset.armed="1"; this.textContent="Точно удалить?"; var b=this;
+      setTimeout(function(){ b.dataset.armed="0"; b.textContent="Удалить"; },4000); return; }
+    this.dataset.armed="0"; this.textContent="Удалить";
+    await fetch(api("rm?k="+encodeURIComponent(x.key)),{method:"POST"});
+    close(); await load();
+  };
+
+  // ── загрузка ──
+  function shrink(file){
+    return new Promise(function(res){
+      if(file.type.indexOf("image")!==0 || file.type.indexOf("gif")>0) return res(file);
+      var img=new Image(), url=URL.createObjectURL(file);
+      img.onload=function(){
+        var M=2200, w=img.width, h=img.height;
+        if(w<=M&&h<=M&&file.size<2500000){ URL.revokeObjectURL(url); return res(file); }
+        var s=Math.min(1,M/Math.max(w,h)), c=document.createElement("canvas");
+        c.width=Math.round(w*s); c.height=Math.round(h*s);
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        c.toBlob(function(b){ URL.revokeObjectURL(url); res(b&&b.size<file.size?b:file); },"image/jpeg",.85);
+      };
+      img.onerror=function(){ URL.revokeObjectURL(url); res(file); };
+      img.src=url;
+    });
+  }
+  async function upload(files){
+    files=Array.prototype.slice.call(files||[]);
+    if(!files.length) return;
+    var bar=$("bar"), fill=bar.querySelector("i");
+    bar.style.display="block"; fill.style.width="0%";
+    var okN=0, errN=0;
+    for(var i=0;i<files.length;i++){
+      var f=files[i];
+      var blob=await shrink(f);
+      var d=new Date(f.lastModified||Date.now()).toISOString();
+      var ct=(blob.type||f.type||"application/octet-stream");
+      if(blob.size>24*1024*1024){ errN++; }
+      else{
+        try{
+          var r=await fetch(api("up?n="+encodeURIComponent(f.name)+"&ct="+encodeURIComponent(ct)+"&d="+encodeURIComponent(d)),
+                            {method:"POST",body:blob});
+          if(r.ok) okN++; else errN++;
+        }catch(e){ errN++; }
+      }
+      fill.style.width=Math.round((i+1)/files.length*100)+"%";
+    }
+    setTimeout(function(){ bar.style.display="none"; },900);
+    var msg=$("drop").querySelector("p");
+    msg.textContent="Добавлено "+okN+(errN?(" · не поместилось "+errN+" (больше 24 МБ)"):"");
+    await load();
+  }
+  $("pick").onclick=function(){ $("file").click(); };
+  $("file").onchange=function(){ var fs=Array.prototype.slice.call(this.files); this.value=""; upload(fs); };
+  var dz=$("drop");
+  ["dragenter","dragover"].forEach(function(ev){ dz.addEventListener(ev,function(e){ e.preventDefault(); dz.classList.add("over"); }); });
+  ["dragleave","drop"].forEach(function(ev){ dz.addEventListener(ev,function(e){ e.preventDefault(); dz.classList.remove("over"); }); });
+  dz.addEventListener("drop",function(e){ upload(Array.prototype.slice.call(e.dataTransfer.files)); });
+
+  try{ var saved=sessionStorage.getItem("galt");
+    if(saved){ T=saved; $("gate").classList.add("hidden"); $("app").classList.remove("hidden"); load(); }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
