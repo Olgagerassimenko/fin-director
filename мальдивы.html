@@ -188,7 +188,7 @@
 
 <script>
 (function(){
-  var T=null, ITEMS=[], IDX=0;
+  var T=null, ITEMS=[], IDX=0, LOCAL=[];
   var $=function(id){ return document.getElementById(id); };
   var MN=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 
@@ -223,7 +223,13 @@
     var r=await fetch(api("list"));
     if(!r.ok){ return; }
     var j=await r.json();
-    ITEMS=j.items||[];
+    var seen={};
+    ITEMS=(j.items||[]).slice();
+    ITEMS.forEach(function(x){ seen[x.key]=1; });
+    // список в хранилище обновляется с задержкой — только что загруженное держим локально
+    LOCAL=LOCAL.filter(function(x){ return !seen[x.key]; });
+    ITEMS=ITEMS.concat(LOCAL);
+    ITEMS.sort(function(a,b){ return String(a.d||"").localeCompare(String(b.d||"")); });
     render();
   }
 
@@ -295,6 +301,8 @@
       setTimeout(function(){ b.dataset.armed="0"; b.textContent="Удалить"; },4000); return; }
     this.dataset.armed="0"; this.textContent="Удалить";
     await fetch(api("rm?k="+encodeURIComponent(x.key)),{method:"POST"});
+    LOCAL=LOCAL.filter(function(y){ return y.key!==x.key; });
+    ITEMS=ITEMS.filter(function(y){ return y.key!==x.key; });
     close(); await load();
   };
 
@@ -331,7 +339,10 @@
         try{
           var r=await fetch(api("up?n="+encodeURIComponent(f.name)+"&ct="+encodeURIComponent(ct)+"&d="+encodeURIComponent(d)),
                             {method:"POST",body:blob});
-          if(r.ok) okN++; else errN++;
+          if(r.ok){ okN++;
+            var jj=await r.json();
+            if(jj&&jj.key) LOCAL.push({key:jj.key,n:f.name,ct:ct,d:d,k:(ct.indexOf("video")===0?"video":"photo"),s:blob.size});
+          } else errN++;
         }catch(e){ errN++; }
       }
       fill.style.width=Math.round((i+1)/files.length*100)+"%";
@@ -340,6 +351,7 @@
     var msg=$("drop").querySelector("p");
     msg.textContent="Добавлено "+okN+(errN?(" · не поместилось "+errN+" (больше 24 МБ)"):"");
     await load();
+    setTimeout(load,6000); setTimeout(load,25000);
   }
   $("pick").onclick=function(){ $("file").click(); };
   $("file").onchange=function(){ var fs=Array.prototype.slice.call(this.files); this.value=""; upload(fs); };
