@@ -74,6 +74,10 @@ jobs:
         continue-on-error: true
         run: python gen_zakup.py
 
+      - name: "12. Аналитика возвратов Маймарт (полная себестоимость по ОПиУ)"
+        continue-on-error: true
+        run: python gen_maymart.py
+
       - name: Node
         uses: actions/setup-node@v4
         with:
