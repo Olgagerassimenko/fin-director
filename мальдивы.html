@@ -56,6 +56,16 @@
   .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--sun),var(--coral));transition:width .2s}
 
   /* ── галерея ── */
+  .hotel{margin:18px 0 4px;background:rgba(255,255,255,.86);border-radius:24px;padding:20px 22px;
+    box-shadow:0 10px 28px rgba(7,64,94,.16)}
+  .hotel h3{margin:0 0 8px;font-size:20px;color:var(--deep);letter-spacing:-.01em}
+  .hotel p{margin:0 0 12px;font-size:14px;line-height:1.7;color:#2a6d85}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+  .chips span{background:#e9fbff;color:#0d6c86;font-size:11.5px;font-weight:800;padding:6px 11px;border-radius:999px}
+  .links{display:flex;flex-wrap:wrap;gap:8px}
+  .links a{background:var(--ocean2);color:#fff;text-decoration:none;font-size:12.5px;font-weight:800;
+    padding:9px 14px;border-radius:12px;box-shadow:0 6px 14px rgba(47,196,214,.35)}
+  .links a:hover{background:#1b9fb5}
   .day{margin:26px 0 8px;display:flex;align-items:center;gap:12px}
   .day b{font-size:19px;color:#fff;text-shadow:0 3px 14px rgba(7,64,94,.35);letter-spacing:-.01em}
   .day span{font-size:12px;font-weight:700;color:#0d6c86;background:rgba(255,255,255,.8);padding:4px 10px;border-radius:999px}
@@ -125,24 +135,116 @@
     <h1 class="title">Ольга и Дарья</h1>
     <div class="sub">Мальдивы 2026 · мама и самая любименькая доченька 💙</div>
     <div class="stats" id="stats"></div>
-    <svg viewBox="0 0 600 120" style="width:100%;max-width:620px;margin:10px auto -6px;display:block" fill="none" aria-hidden="true">
-      <path d="M0 96c40-14 70 10 110 0s70 10 110 0 70 10 110 0 70 10 110 0 70 10 160 0" stroke="rgba(255,255,255,.75)" stroke-width="4" stroke-linecap="round"/>
-      <path d="M0 110c50-12 80 12 130 0s80 12 130 0 80 12 130 0 80 12 210 0" stroke="rgba(255,255,255,.45)" stroke-width="4" stroke-linecap="round"/>
-      <g>
-        <path d="M232 60h136l-16-26H248z" fill="#ff9f7a"/>
-        <path d="M226 60h148v6H226z" fill="#fff1d6"/>
-        <rect x="248" y="66" width="104" height="26" rx="4" fill="#fffaf0"/>
-        <rect x="266" y="72" width="20" height="14" rx="2" fill="#8fe6e0"/>
-        <rect x="314" y="72" width="20" height="14" rx="2" fill="#8fe6e0"/>
-        <path d="M252 92v18M348 92v18M282 92v18M318 92v18" stroke="#c9a06a" stroke-width="4" stroke-linecap="round"/>
-        <path d="M368 92h84" stroke="#c9a06a" stroke-width="5" stroke-linecap="round"/>
-        <path d="M380 92v14M410 92v14M440 92v14" stroke="#c9a06a" stroke-width="4" stroke-linecap="round"/>
-      </g>
-      <g>
-        <path d="M120 84c10-8 22-8 30 0-8 8-20 8-30 0z" fill="#ffd166"/>
-        <path d="M150 84l10-6v12z" fill="#ffb347"/><circle cx="130" cy="83" r="2" fill="#7a4a1e"/>
-        <path d="M470 100c8-6 18-6 24 0-6 6-16 6-24 0z" fill="#ff7a6b"/>
-        <path d="M494 100l8-5v10z" fill="#ff5f4d"/><circle cx="478" cy="99" r="1.6" fill="#fff"/>
+    <!-- нарисованная панорама острова Alimathà -->
+    <svg viewBox="0 0 1200 400" style="width:100%;max-width:1100px;margin:14px auto -10px;display:block;filter:drop-shadow(0 12px 26px rgba(7,64,94,.25))" fill="none" aria-label="Остров Алиматха">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#bff3ff"/><stop offset="1" stop-color="#eafcff"/>
+        </linearGradient>
+        <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2aa9c9"/><stop offset=".45" stop-color="#4fd3d6"/><stop offset="1" stop-color="#9df0e4"/>
+        </linearGradient>
+        <clipPath id="rnd"><rect x="0" y="0" width="1200" height="400" rx="26"/></clipPath>
+      </defs>
+      <g clip-path="url(#rnd)">
+        <rect width="1200" height="400" fill="url(#sky)"/>
+        <circle cx="1010" cy="78" r="40" fill="#ffd166"/>
+        <g stroke="#ffd166" stroke-width="6" stroke-linecap="round">
+          <path d="M1010 12v-8M1010 152v8M932 78h-8M1096 78h8M956 24l-6-6M1064 132l6 6M1064 24l6-6M956 132l-6 6"/>
+        </g>
+        <g fill="#ffffff" opacity=".85">
+          <ellipse cx="180" cy="70" rx="52" ry="20"/><ellipse cx="220" cy="60" rx="38" ry="22"/><ellipse cx="140" cy="62" rx="30" ry="16"/>
+          <ellipse cx="700" cy="52" rx="44" ry="17"/><ellipse cx="735" cy="45" rx="30" ry="18"/>
+        </g>
+        <g stroke="#0b3d5c" stroke-width="3" stroke-linecap="round" opacity=".5" fill="none">
+          <path d="M330 74c8-8 16-8 24 0M354 74c8-8 16-8 24 0"/>
+          <path d="M430 52c6-6 12-6 18 0M448 52c6-6 12-6 18 0"/>
+        </g>
+        <rect y="180" width="1200" height="220" fill="url(#sea)"/>
+        <!-- волны -->
+        <g stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity=".55" fill="none">
+          <path d="M0 214c40-14 70 12 110 0s70 12 110 0 70 12 110 0 70 12 110 0 70 12 110 0 70 12 110 0 70 12 110 0 70 12 110 0 70 12 110 0"/>
+          <path d="M-40 262c50-12 84 14 134 0s84 14 134 0 84 14 134 0 84 14 134 0 84 14 134 0 84 14 134 0 84 14 134 0 84 14 134 0"/>
+          <path d="M-20 330c56-12 92 14 148 0s92 14 148 0 92 14 148 0 92 14 148 0 92 14 148 0 92 14 148 0"/>
+        </g>
+        <!-- дальний остров -->
+        <ellipse cx="150" cy="182" rx="90" ry="16" fill="#ffe9bf"/>
+        <path d="M120 176c14-16 40-18 58-4-20-4-40-2-58 4z" fill="#2fbf87"/>
+        <!-- лодка дони -->
+        <g transform="translate(940 196)">
+          <path d="M-46 22h92l-14 16h-64z" fill="#e9d3a8"/>
+          <path d="M0 22V-34" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>
+          <path d="M2 -32l34 48H2z" fill="#fffaf0"/><path d="M-2 -26l-28 42h28z" fill="#ffe1c9"/>
+        </g>
+        <!-- водные виллы на сваях -->
+        <g transform="translate(520 150)">
+          <g stroke="#c9a06a" stroke-width="6" stroke-linecap="round">
+            <path d="M30 84v52M92 84v52M154 84v52M216 84v52M278 84v52M340 84v52"/>
+          </g>
+          <path d="M14 84h360" stroke="#d8b884" stroke-width="10" stroke-linecap="round"/>
+          <g>
+            <path d="M0 60h120L60 14z" fill="#c8814f"/>
+            <path d="M4 60h112v4H4z" fill="#fff3d9"/>
+            <rect x="16" y="64" width="88" height="22" rx="4" fill="#fffaf0"/>
+            <rect x="30" y="70" width="18" height="12" rx="2" fill="#9fe9e4"/>
+            <rect x="72" y="70" width="18" height="12" rx="2" fill="#9fe9e4"/>
+          </g>
+          <g transform="translate(150 6)">
+            <path d="M0 54h108L54 12z" fill="#d18a55"/>
+            <path d="M4 54h100v4H4z" fill="#fff3d9"/>
+            <rect x="14" y="58" width="80" height="20" rx="4" fill="#fffaf0"/>
+            <rect x="26" y="63" width="16" height="11" rx="2" fill="#9fe9e4"/>
+            <rect x="64" y="63" width="16" height="11" rx="2" fill="#9fe9e4"/>
+          </g>
+          <g transform="translate(288 14)">
+            <path d="M0 48h96L48 10z" fill="#c8814f"/>
+            <path d="M4 48h88v4H4z" fill="#fff3d9"/>
+            <rect x="12" y="52" width="72" height="18" rx="4" fill="#fffaf0"/>
+            <rect x="24" y="56" width="14" height="10" rx="2" fill="#9fe9e4"/>
+            <rect x="56" y="56" width="14" height="10" rx="2" fill="#9fe9e4"/>
+          </g>
+        </g>
+        <!-- пляж и остров -->
+        <path d="M0 300c120-40 260-52 400-40 90 8 150 26 210 44 40 12 80 20 130 24H0z" fill="#ffeec9"/>
+        <path d="M0 318c130-34 250-42 372-30 92 9 150 28 214 46H0z" fill="#fff6e2"/>
+        <!-- пальмы -->
+        <g>
+          <path d="M120 318c-6-38-2-64 10-86" stroke="#8a5a2b" stroke-width="9" stroke-linecap="round" fill="none"/>
+          <path d="M130 232c-26-16-54-10-66 6 24-6 46-2 66 6z" fill="#2fbf87"/>
+          <path d="M130 232c26-18 56-12 68 4-24-6-48-2-68 8z" fill="#35d19a"/>
+          <path d="M130 232c-10-26-4-50 12-60-6 20-8 40-4 62z" fill="#2fbf87"/>
+          <path d="M130 232c20-24 48-32 68-22-26 4-48 12-68 26z" fill="#35d19a"/>
+          <circle cx="124" cy="238" r="6" fill="#8a5a2b"/><circle cx="140" cy="242" r="5" fill="#8a5a2b"/>
+        </g>
+        <g transform="translate(230 24) scale(.82)">
+          <path d="M120 318c-6-38-2-64 10-86" stroke="#8a5a2b" stroke-width="9" stroke-linecap="round" fill="none"/>
+          <path d="M130 232c-26-16-54-10-66 6 24-6 46-2 66 6z" fill="#35d19a"/>
+          <path d="M130 232c26-18 56-12 68 4-24-6-48-2-68 8z" fill="#2fbf87"/>
+          <path d="M130 232c-10-26-4-50 12-60-6 20-8 40-4 62z" fill="#35d19a"/>
+          <path d="M130 232c20-24 48-32 68-22-26 4-48 12-68 26z" fill="#2fbf87"/>
+        </g>
+        <g transform="translate(-70 40) scale(.7)">
+          <path d="M120 318c-6-38-2-64 10-86" stroke="#8a5a2b" stroke-width="10" stroke-linecap="round" fill="none"/>
+          <path d="M130 232c-26-16-54-10-66 6 24-6 46-2 66 6z" fill="#2fbf87"/>
+          <path d="M130 232c26-18 56-12 68 4-24-6-48-2-68 8z" fill="#35d19a"/>
+          <path d="M130 232c-10-26-4-50 12-60-6 20-8 40-4 62z" fill="#2fbf87"/>
+        </g>
+        <!-- шезлонг и зонт -->
+        <g transform="translate(330 300)">
+          <path d="M0 40l40-14M0 40h44" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+          <path d="M64 40V6" stroke="#c9a06a" stroke-width="5" stroke-linecap="round"/>
+          <path d="M28 8h72L64 -14z" fill="#ff7a6b"/>
+        </g>
+        <!-- рыбки -->
+        <g transform="translate(180 250)">
+          <path d="M0 0c12-9 26-9 34 0-8 9-22 9-34 0z" fill="#ffd166"/><path d="M34 0l12-7v14z" fill="#ffb347"/><circle cx="12" cy="-1" r="2.4" fill="#7a4a1e"/>
+        </g>
+        <g transform="translate(760 300) scale(.9)">
+          <path d="M0 0c10-8 22-8 28 0-6 8-18 8-28 0z" fill="#ff7a6b"/><path d="M28 0l10-6v12z" fill="#ff5f4d"/><circle cx="10" cy="-1" r="2" fill="#fff"/>
+        </g>
+        <g transform="translate(1050 268) scale(1.05)">
+          <path d="M0 0c11-8 24-8 30 0-6 8-19 8-30 0z" fill="#a78bfa"/><path d="M30 0l11-7v14z" fill="#8b6df0"/><circle cx="11" cy="-1" r="2.2" fill="#fff"/>
+        </g>
       </g>
     </svg>
   </header>
@@ -159,6 +261,23 @@
       <button class="btn" id="pick">Выбрать файлы</button>
       <input id="file" type="file" accept="image/*,video/*" multiple class="hidden">
       <div class="bar" id="bar"><i></i></div>
+    </div>
+    <div class="hotel">
+      <div class="hotel-txt">
+        <h3>NAKAI Alimathà Resort</h3>
+        <p>Остров Алиматха в атолле Вааву — в 65 км от Мале: 20 минут на гидросамолёте или полтора часа на быстром катере.
+        Сверху остров похож на сердце: белый песок по кругу, коралловый риф у самого берега и 96 бунгало,
+        из них 34 — на воде, на сваях прямо над лагуной.</p>
+        <div class="chips">
+          <span>атолл Вааву</span><span>65 км от Мале</span><span>20 мин на гидросамолёте</span>
+          <span>96 бунгало</span><span>34 на воде</span><span>риф у берега</span>
+        </div>
+        <div class="links">
+          <a href="https://alimatha.nakairesorts.com/en/" target="_blank" rel="noopener">Сайт отеля</a>
+          <a href="https://alimatha.nakairesorts.com/en/accomodation/" target="_blank" rel="noopener">Номера и виллы</a>
+          <a href="https://alimatha.nakairesorts.com/en/Alimatha-and-the-Vaavu-s-atoll/" target="_blank" rel="noopener">Об острове и атолле</a>
+        </div>
+      </div>
     </div>
     <div id="gal"></div>
   </div>
