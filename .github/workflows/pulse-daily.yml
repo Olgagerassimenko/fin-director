@@ -54,10 +54,6 @@ jobs:
       - name: "6. Сборка дашборда ДДС"
         continue-on-error: true
         run: python gen_dds.py
-      - name: "6b. Дашборд складов"
-        continue-on-error: true
-        run: python gen_sklady.py
-
       - name: "7. ДДС прямой метод"
         continue-on-error: true
         run: python dds_pryamoy.py
@@ -74,14 +70,6 @@ jobs:
         continue-on-error: true
         run: python gen_zakup.py
 
-      - name: "12. Аналитика возвратов Маймарт (полная себестоимость по ОПиУ)"
-        continue-on-error: true
-        run: python gen_maymart.py
-
-      - name: "13. Полная себестоимость завода (ОПиУ + контрагенты)"
-        continue-on-error: true
-        run: python gen_fullcost.py
-
       - name: Node
         uses: actions/setup-node@v4
         with:
@@ -97,84 +85,7 @@ jobs:
         run: |
           git config user.name "pulse-ci"
           git config user.email "ci@local"
-          git add -f продажи_2026.html дашборд_ддс.html дашборд_ддс_прямой.html склады.html "дашборд_себестоимость_2025-2026.html" закуп.html zakup_data.js дашборд_sku_iiko.html *_meta.js sku_live.js contractor_items.js opiu_rev.js 2>/dev/null || true
+          git add -f продажи_2026.html дашборд_ддс.html дашборд_ддс_прямой.html закуп.html дашборд_sku_iiko.html *_meta.js sku_live.js contractor_items.js opiu_rev.js 2>/dev/null || true
           git commit -m "Свежие данные дашбордов [skip ci]" || echo "нет изменений"
           git pull --rebase --autostash origin main || true
           git push origin HEAD:main || echo "push не удался"
-
-      - name: "Проверка свежести (данные и сайт за сегодня)"
-        if: always()
-        run: |
-          python - <<'PY'
-          import datetime, re, sys, time, urllib.request, gzip, base64
-          TZ = datetime.timezone(datetime.timedelta(hours=5))
-          today = datetime.datetime.now(TZ).strftime("%d.%m.%Y")
-          SITE = "https://lucky-river-eaf1.findirfoodzavod.workers.dev"
-          stamp = str(int(time.time()))
-          UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
-          print("сегодня:", today)
-
-          def live(path):
-              req = urllib.request.Request("%s/%s?cb=%s" % (SITE, path, stamp))
-              req.add_header("User-Agent", UA)
-              req.add_header("Accept", "*/*")
-              return urllib.request.urlopen(req, timeout=90).read().decode("utf-8", "replace")
-
-          def date_meta(txt):
-              m = re.search(r'"(?:updated|pulled)":\s*"(\d{2}\.\d{2}\.\d{4})', txt)
-              return m.group(1) if m else "?"
-
-          def date_zakup(txt):
-              m = re.search(r'window\.__ZG="([^"]+)"', txt)
-              if not m: return "?"
-              head = gzip.decompress(base64.b64decode(m.group(1)))[:200].decode("utf-8", "replace")
-              d = re.search(r'"updated":\s*"(\d{2}\.\d{2}\.\d{4})', head)
-              return d.group(1) if d else "?"
-
-          checks = [("продажи", "sales_meta.js", date_meta),
-                    ("ДДС", "dds_meta.js", date_meta),
-                    ("ДДС прямой", "ddsp_meta.js", date_meta),
-                    ("закуп", "zakup_data.js", date_zakup)]
-
-          # 1) собранные файлы — главная проверка (упал iiko => красный прогон)
-          stale = []
-          for title, path, fn in checks:
-              try:
-                  d = fn(open(path, encoding="utf-8").read())
-              except Exception as e:
-                  d = "ошибка: %s" % e
-              print("%-12s собрано: %s" % (title, d))
-              if d != today:
-                  stale.append("%s: данные за %s вместо %s" % (title, d, today))
-
-          # 2) сайт — предупреждение (Cloudflare может не пустить робота)
-          print("")
-          print("ждём распространения деплоя 60 сек")
-          time.sleep(60)
-          rolled = []
-          for title, path, fn in checks:
-              try:
-                  s = fn(live(path))
-                  print("%-12s на сайте: %s" % (title, s))
-                  if s != today:
-                      rolled.append("%s: на сайте %s" % (title, s))
-              except Exception as e:
-                  print("%-12s на сайте: проверить не удалось (%s)" % (title, e))
-
-          if rolled:
-              print("")
-              print("ВНИМАНИЕ — сайт откатился:")
-              for r in rolled: print("  -", r)
-              print("Обычная причина: локальный npx wrangler deploy из папки ФД")
-              print("перезаписал сайт старой копией.")
-          if stale:
-              print("")
-              print("ПРОБЛЕМА — данные не собрались:")
-              for s in stale: print("  -", s)
-              sys.exit(1)
-          if rolled:
-              sys.exit(1)
-          print("")
-          print("ОК: данные и сайт за сегодня")
-          PY
