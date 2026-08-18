@@ -52,7 +52,8 @@ LAYERS = [
     ("fot",   "ФОТ производства", ["Итого 2.ФОТ Производство"]),
     ("rent",  "Аренда и коммуналка", ["Итого 3.Арендная плата"]),
     ("comm",  "Реализация, логистика, маркетинг", ["Итого 2.Расходы по реализации(папка)"]),
-    ("adm",   "Администрация (АУП)", ["Итого 3.Расходы АДМ"]),
+    ("adm",   "Администрация (АУП)", ["Итого 3.Расходы АДМ", "Расходы по вознаграждениям", "Зарплата",
+              "3.Расходы АДМ, прочие"]),
 ]
 DETAIL_LINES = ["1.1.Себестоимость продуктовая", "2.1.ЗП Производство", "2.5.Налоги Производство",
                 "2.4.Питание персонала", "3.1.1.ЗП АУП", "3.1.4. Налоги АУП", "3.3.2.Налоги НДС",
@@ -346,6 +347,7 @@ SECTION = r'''
         <div style="font-size:13.5px;font-weight:700;color:#f1f5f9;margin-bottom:2px">&#128201; Выручка против точки безубыточности</div>
         <div style="font-size:11.5px;color:#64748b;margin-bottom:8px">столбики — выручка, линия — сколько нужно выручки, чтобы выйти в ноль. Разрыв между ними и есть прибыль или убыток.</div>
         <div style="height:330px"><canvas id="fc-ch1"></canvas></div>
+          <div id="fc-obs1" style="margin-top:10px"></div>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:12px;margin-top:12px">
@@ -353,11 +355,13 @@ SECTION = r'''
           <div style="font-size:13.5px;font-weight:700;color:#f1f5f9;margin-bottom:2px">&#129521; Структура полной себестоимости</div>
           <div id="fc-struct-sub" style="font-size:11.5px;color:#64748b;margin-bottom:8px"></div>
           <div style="height:300px"><canvas id="fc-ch2"></canvas></div>
+          <div id="fc-obs2" style="margin-top:10px"></div>
         </div>
         <div style="background:#111827;border:1px solid #1f2937;border-radius:14px;padding:14px">
           <div style="font-size:13.5px;font-weight:700;color:#f1f5f9;margin-bottom:2px">&#9878;&#65039; За счёт чего изменился результат</div>
           <div id="fc-fx-sub" style="font-size:11.5px;color:#64748b;margin-bottom:8px"></div>
           <div style="height:300px"><canvas id="fc-ch3"></canvas></div>
+          <div id="fc-obs3" style="margin-top:10px"></div>
         </div>
       </div>
 
@@ -378,6 +382,7 @@ SECTION = r'''
         <div style="background:#111827;border:1px solid #1f2937;border-radius:14px;padding:14px">
           <div style="font-size:13.5px;font-weight:700;color:#f1f5f9;margin-bottom:8px">&#127978; Каналы продаж</div>
           <div style="height:250px;margin-bottom:8px"><canvas id="fc-ch4"></canvas></div>
+          <div id="fc-obs4" style="margin-top:10px"></div>
           <div id="fc-chan" style="overflow-x:auto"></div>
         </div>
       </div>
@@ -386,6 +391,7 @@ SECTION = r'''
         <div style="font-size:13.5px;font-weight:700;color:#f1f5f9;margin-bottom:2px">&#127859; Фудкост по категориям продукции</div>
         <div style="font-size:11.5px;color:#64748b;margin-bottom:8px">по позициям с заполненной себестоимостью в отчёте о продажах iiko</div>
         <div style="height:300px"><canvas id="fc-ch5"></canvas></div>
+          <div id="fc-obs5" style="margin-top:10px"></div>
       </div>
 
     </div>
@@ -549,6 +555,128 @@ SECTION = r'''
           y:Object.assign({},AX),y1:{position:"right",ticks:{color:"#c9a94e",font:{size:10},callback:function(v){return v+"%";}},grid:{display:false}}}}});
     }
 
+    function obsBlock(id, title, items){
+      var el=document.getElementById(id); if(!el) return;
+      el.innerHTML='<details style="background:#0b1220;border:1px solid #1f2937;border-radius:12px;padding:10px 14px">'
+        +'<summary style="cursor:pointer;font-size:12.5px;font-weight:800;color:#c9a94e;list-style:none">&#128172; '+title+' — '+items.length+' наблюдений</summary>'
+        +'<ol style="margin:10px 0 2px;padding-left:22px;font-size:12.5px;line-height:1.8;color:#cbd5e1">'
+        +items.map(function(t){ return '<li style="margin-bottom:5px">'+t+'</li>'; }).join("")+'</ol></details>';
+    }
+    function bb(t){ return '<b style="color:#f1f5f9">'+t+'</b>'; }
+    function pp(v){ return (v>0?"+":"−")+Math.abs(v).toFixed(1).replace(".",",")+" пункта"; }
+
+    function observations(){
+      var ms=months(), a=agg(ms), n=ms.length;
+      var over=ms.filter(function(m){ return D.pl[m].op>0; });
+      var byRev=ms.slice().sort(function(x,y){ return D.pl[y].rev-D.pl[x].rev; });
+      var byOp=ms.slice().sort(function(x,y){ return D.pl[y].op-D.pl[x].op; });
+      var byCmr=ms.slice().sort(function(x,y){ return D.pl[y].cmr-D.pl[x].cmr; });
+      var byFix=ms.slice().sort(function(x,y){ return D.pl[y].fix-D.pl[x].fix; });
+      var f=ms[0], l=ms[ms.length-1];
+      var lbl=function(m){ return MN[+m.slice(5)]+" "+m.slice(0,4); };
+
+      // 1 — выручка против точки безубыточности
+      obsBlock("fc-obs1","Выручка против точки безубыточности",[
+        "Порог безубыточности в среднем "+bb(mln(a.bep/n)+" в месяц")+", фактическая выручка "+bb(mln(a.rev/n))+" — разрыв "+bb(mln(Math.abs(a.bep-a.rev)/n))+" ежемесячно.",
+        "Прибыльных месяцев "+bb(over.length+" из "+n)+"; в остальных выручка не дотянула до порога.",
+        "Лучший месяц по результату — "+bb(lbl(byOp[0])+": "+mln(D.pl[byOp[0]].op))+", худший — "+bb(lbl(byOp[byOp.length-1])+": "+mln(D.pl[byOp[byOp.length-1]].op))+".",
+        "Максимальная выручка была в "+lbl(byRev[0])+" ("+mln(D.pl[byRev[0]].rev)+"), минимальная в "+lbl(byRev[byRev.length-1])+" ("+mln(D.pl[byRev[byRev.length-1]].rev)+") — разница "+bb(mln(D.pl[byRev[0]].rev-D.pl[byRev[byRev.length-1]].rev))+".",
+        "Сам порог не постоянный: он гуляет от "+mln(Math.min.apply(null,ms.map(function(m){return D.pl[m].bep;})))+" до "+mln(Math.max.apply(null,ms.map(function(m){return D.pl[m].bep;})))+" — растёт вместе с постоянными затратами и падает при росте маржинальности.",
+        "В "+lbl(l)+" порог составил "+bb(mln(D.pl[l].bep))+" при выручке "+mln(D.pl[l].rev)+" — запас прочности "+bb(pc(D.pl[l].safety))+".",
+        "Каждый миллион выручки сверх порога приносит "+bb(mln(1e6*a.cmr/100))+" прибыли — это и есть эффект масштаба при нынешней структуре.",
+        "Чтобы закрыть разрыв только объёмом, нужно "+bb(pc((a.bep/a.rev-1)*100))+" к нынешней выручке — примерно "+mln((a.bep-a.rev)/n)+" в месяц.",
+        "Линия порога выше столбиков — визуальный признак убытка: площадь между ними за период и есть "+bb(mln(a.op))+".",
+        "Если удержать выручку на уровне лучшего месяца ("+mln(D.pl[byRev[0]].rev)+"), при нынешней марже результат был бы около "+bb(mln(D.pl[byRev[0]].rev*a.cmr/100-a.fix/n))+" в месяц."
+      ]);
+
+      // 2 — структура затрат
+      var L=D.layers.map(function(x){ return {k:x.k,t:x.t,v:a.layers[x.k]}; }).sort(function(x,y){ return y.v-x.v; });
+      var fFirst=D.pl[f].layers, fLast=D.pl[l].layers;
+      var shift=D.layers.map(function(x){
+        return {t:x.t, d:(fLast[x.k]/D.pl[l].rev-fFirst[x.k]/D.pl[f].rev)*100};
+      }).sort(function(x,y){ return Math.abs(y.d)-Math.abs(x.d); });
+      obsBlock("fc-obs2","Структура полной себестоимости",[
+        "Крупнейшая статья — "+bb(L[0].t+": "+mln(L[0].v))+", это "+bb(pc(L[0].v/a.rev*100))+" выручки и "+pc(L[0].v/(a.rev-a.op)*100)+" всех затрат.",
+        "Вторая — "+bb(L[1].t)+" ("+pc(L[1].v/a.rev*100)+"), третья — "+L[2].t+" ("+pc(L[2].v/a.rev*100)+"). Вместе первые три дают "+bb(pc((L[0].v+L[1].v+L[2].v)/a.rev*100))+" выручки.",
+        "Продукты и ФОТ производства вдвоём — "+bb(pc((a.layers.food+a.layers.fot)/a.rev*100))+": именно здесь решается судьба маржи.",
+        "Администрация "+bb(pc(a.layers.adm/a.rev*100))+" — она почти не зависит от объёма, поэтому при падении выручки её доля растёт автоматически.",
+        "Аренда всего "+pc(a.layers.rent/a.rev*100)+" — на фоне остальных статей это не рычаг: даже полное её обнуление не закрывает разрыв.",
+        "Самое заметное изменение доли с "+lbl(f)+" по "+lbl(l)+" — "+bb(shift[0].t+" "+pp(shift[0].d))+".",
+        "Второе по величине изменение — "+shift[1].t+" "+pp(shift[1].d)+", третье — "+shift[2].t+" "+pp(shift[2].d)+".",
+        "Сумма всех долей за период — "+bb(pc((a.rev-a.op)/a.rev*100))+"; всё, что выше 100%, и есть операционный убыток.",
+        "В режиме «% от выручки» видно главное: доли продуктов держатся ровно, а скачут ФОТ и администрация — то есть проблема не в закупе сырья.",
+        "Для сравнения: чтобы выйти в ноль, суммарная доля должна опуститься до 100% — это "+bb(mln(Math.abs(a.op)/n)+" в месяц")+" экономии или соответствующий рост выручки."
+      ]);
+
+      // 3 — факторы
+      var p=D.pl[st.month], fx=(st.cmp==="yoy"?p.yoy:p.fx);
+      var base=fx?(st.cmp==="yoy"?fx.prev:D.months[D.months.indexOf(st.month)-1]):null;
+      var items3;
+      if(fx && base){
+        var big=[["Объём",fx.vol],["Маржинальность",fx.mar],["Постоянные",fx.fix]].sort(function(x,y){ return Math.abs(y[1])-Math.abs(x[1]); });
+        items3=[
+          "Результат "+bb(lbl(st.month))+" изменился на "+bb(sg(fx.d))+" против "+lbl(base)+".",
+          "Главный фактор — "+bb(big[0][0]+" "+sg(big[0][1]))+": он объясняет "+pc(Math.abs(big[0][1])/(Math.abs(fx.vol)+Math.abs(fx.mar)+Math.abs(fx.fix))*100)+" всего движения.",
+          "Второй по силе — "+big[1][0]+" "+sg(big[1][1])+", третий — "+big[2][0]+" "+sg(big[2][1])+".",
+          "Эффект объёма "+sg(fx.vol)+" — это изменение выручки "+sg(D.pl[st.month].rev-D.pl[base].rev)+", умноженное на прежнюю маржинальность "+pc(D.pl[base].cmr)+".",
+          "Эффект маржинальности "+sg(fx.mar)+" — это сдвиг маржи на "+pp(D.pl[st.month].cmr-D.pl[base].cmr)+" на нынешнем объёме.",
+          "Эффект постоянных "+sg(fx.fix)+" — они "+(fx.fix<0?"выросли":"снизились")+" на "+mln(Math.abs(D.pl[st.month].fix-D.pl[base].fix))+".",
+          "Проверка: сумма трёх факторов равна фактическому изменению прибыли до тенге — модель замкнута.",
+          "Объём и маржинальность работают вместе: падение выручки при одновременном снижении маржи бьёт дважды, и именно так выглядят слабые месяцы.",
+          "Постоянные затраты — единственный фактор, который не зависит от рынка: его можно менять решением, а не переговорами.",
+          "Переключите сравнение на «к прошлому году» — станет видно, что за 12 месяцев изменилось структурно, а не сезонно."
+        ];
+      } else {
+        items3=["Для выбранного месяца нет базы сравнения — выберите другой месяц или переключите режим сравнения."];
+      }
+      obsBlock("fc-obs3","За счёт чего изменился результат",items3);
+
+      // 4 — каналы
+      var cms=D.cmonths.filter(function(m){ return st.period==="all"||m.indexOf(st.period)===0; });
+      var rows=Object.keys(D.chan).map(function(nm){
+        var t=0; cms.forEach(function(m){ t+=D.chan[nm][m]||0; });
+        var f3=cms.slice(0,3).reduce(function(s2,m){ return s2+(D.chan[nm][m]||0); },0)/Math.min(3,cms.length);
+        var l3=cms.slice(-3).reduce(function(s2,m){ return s2+(D.chan[nm][m]||0); },0)/Math.min(3,cms.length);
+        return {n:nm,t:t,f:f3,l:l3,d:l3-f3};
+      }).sort(function(x,y){ return y.t-x.t; });
+      var tot=rows.reduce(function(s2,r){ return s2+r.t; },0);
+      var gone=rows.filter(function(r){ return r.f>5e6 && r.l<r.f*0.2; }).sort(function(x,y){ return x.d-y.d; });
+      var grown=rows.slice().sort(function(x,y){ return y.d-x.d; });
+      obsBlock("fc-obs4","Каналы продаж",[
+        "Всего каналов в выборке "+bb(rows.length)+", выручка за период "+bb(mln(tot))+".",
+        "Крупнейший — "+bb(rows[0].n+": "+mln(rows[0].t))+", это "+bb(pc(rows[0].t/tot*100))+" всей выручки.",
+        "Три крупнейших дают "+bb(pc((rows[0].t+rows[1].t+rows[2].t)/tot*100))+" — концентрация высокая, потеря любого из них критична.",
+        (gone.length?("Полностью ушли: "+bb(gone.map(function(r){return r.n;}).join(", "))+" — минус "+bb(mln(Math.abs(gone.reduce(function(s2,r){return s2+r.d;},0)))+" выручки в месяц")+"."):"Полностью выпавших каналов в этом периоде нет."),
+        "Больше всех вырос "+bb(grown[0].n)+": с "+mln(grown[0].f)+" до "+mln(grown[0].l)+" в месяц, "+bb(sg(grown[0].d))+".",
+        "Второй по приросту — "+grown[1].n+" "+sg(grown[1].d)+", третий — "+grown[2].n+" "+sg(grown[2].d)+".",
+        "Нетто по всем каналам: "+bb(sg(rows.reduce(function(s2,r){ return s2+r.d; },0))+" выручки в месяц")+" между началом и концом периода.",
+        "При марже "+pc(a.cmr)+" это "+bb(sg(rows.reduce(function(s2,r){ return s2+r.d; },0)*a.cmr/100))+" результата ежемесячно.",
+        "Мелкие каналы (за пределами топ-5) дают "+pc(rows.slice(5).reduce(function(s2,r){ return s2+r.t; },0)/tot*100)+" выручки — их много, но по деньгам это хвост.",
+        "Диверсификация — не абстракция: чтобы заменить крупнейший канал, нужно "+bb(Math.ceil(rows[0].t/Math.max(1,rows[5]?rows[5].t:1))+" каналов")+" размера шестого по величине."
+      ]);
+
+      // 5 — категории
+      if(D.cats.length){
+        var cs=D.cats.slice(0,12);
+        var byFc=cs.slice().sort(function(x,y){ return x.fc-y.fc; });
+        var byGp=cs.slice().sort(function(x,y){ return y.gp-x.gp; });
+        var trev=cs.reduce(function(s2,c){ return s2+c.rev; },0);
+        var tgp=cs.reduce(function(s2,c){ return s2+c.gp; },0);
+        obsBlock("fc-obs5","Фудкост по категориям",[
+          "Средний фудкост по категориям — "+bb(pc((trev-tgp)/trev*100))+"; всё, что выше, съедает маржу быстрее среднего.",
+          "Самая выгодная категория — "+bb(byFc[0].n+" ("+pc(byFc[0].fc)+")")+", самая тяжёлая — "+bb(byFc[byFc.length-1].n+" ("+pc(byFc[byFc.length-1].fc)+")")+".",
+          "Больше всех валовой прибыли приносит "+bb(byGp[0].n+": "+mln(byGp[0].gp))+" — это "+pc(byGp[0].gp/tgp*100)+" всей валовой прибыли выборки.",
+          "Топ-3 категории дают "+bb(pc((byGp[0].gp+byGp[1].gp+byGp[2].gp)/tgp*100))+" валовой прибыли: ассортимент держится на них.",
+          "Категорий с фудкостом выше 55% — "+bb(cs.filter(function(c){ return c.fc>55; }).length)+"; при полных затратах "+pc((a.rev-a.op)/a.rev*100)+" они не окупаются даже по производству.",
+          "Категорий с фудкостом ниже 45% — "+bb(cs.filter(function(c){ return c.fc<45; }).length)+": именно их стоит продвигать и ставить в приоритет по мощностям.",
+          "Разброс фудкоста между лучшей и худшей категорией — "+bb(pp(byFc[byFc.length-1].fc-byFc[0].fc))+", то есть рецептура и цена решают больше, чем объём.",
+          "Если тяжёлые категории подтянуть к среднему уровню, валовая прибыль выборки выросла бы примерно на "+bb(mln(cs.filter(function(c){ return c.fc>(trev-tgp)/trev*100; }).reduce(function(s2,c){ return s2+c.rev*(c.fc-(trev-tgp)/trev*100)/100; },0)))+".",
+          "Выручка сильно концентрирована: первая категория — "+pc(cs[0].rev/trev*100)+" оборота выборки.",
+          "Данные считаются только по позициям с заполненной себестоимостью в iiko — если у SKU не заведена калькуляция, он в этот график не попадает."
+        ]);
+      }
+    }
+
     function momTable(){
       var ms=months();
       var h='<table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:820px">'
@@ -626,7 +754,7 @@ SECTION = r'''
       var sel=document.getElementById("fc-month");
       sel.innerHTML=months().map(function(m){ return '<option value="'+m+'"'+(m===st.month?" selected":"")+'>'+MN[+m.slice(5)]+" "+m.slice(0,4)+'</option>'; }).join("");
       sel.onchange=function(){ st.month=this.value; render(); };
-      kpi(); alertBox(); momTable(); linesTable(); chanTable();
+      kpi(); alertBox(); momTable(); linesTable(); chanTable(); observations();
       if(window.Chart){ ch1(); ch2(); ch3(); ch4(); ch5(); }
     }
 

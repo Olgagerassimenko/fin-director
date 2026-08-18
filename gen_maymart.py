@@ -23,7 +23,7 @@ PL_RATIOS = {
 "fot": 0.26064,
 "ar": 0.03105,
 "com": 0.04601,
-"adm": 0.17347
+"adm": 0.17631
 },
 "2026-02": {
 "food": 0.51888,
@@ -31,7 +31,7 @@ PL_RATIOS = {
 "fot": 0.27792,
 "ar": 0.03217,
 "com": 0.04779,
-"adm": 0.17711
+"adm": 0.17916
 },
 "2026-03": {
 "food": 0.50547,
@@ -39,7 +39,7 @@ PL_RATIOS = {
 "fot": 0.25429,
 "ar": 0.03114,
 "com": 0.07399,
-"adm": 0.15446
+"adm": 0.16299
 },
 "2026-04": {
 "food": 0.4968,
@@ -47,7 +47,7 @@ PL_RATIOS = {
 "fot": 0.26593,
 "ar": 0.03022,
 "com": 0.05435,
-"adm": 0.15025
+"adm": 0.15641
 },
 "2026-05": {
 "food": 0.49077,
@@ -55,10 +55,10 @@ PL_RATIOS = {
 "fot": 0.22907,
 "ar": 0.02891,
 "com": 0.04993,
-"adm": 0.144
+"adm": 0.15151
 }
 }
-PL_AVG = {"food": 0.50246, "prod": 0.06603, "fot": 0.25757, "ar": 0.0307, "com": 0.05441, "adm": 0.15986}
+PL_AVG = {"food": 0.50246, "prod": 0.06603, "fot": 0.25757, "ar": 0.0307, "com": 0.05441, "adm": 0.16528}
 FOODCOST = {"Упак Плов по-ташкентски (1порц)": 0.5011, "Упак Удон с говядиной (1порц)": 0.4262, "Упак Кимпаб с тунцом (1шт)": 0.4933, "Упак Лагман по-домашнему (1порц)": 0.4087, "Упак Манты с говядиной (1порц)": 0.5797, "Упак Бифштекс с яйцом и картофелем (1порц)": 0.4868, "Упак Плов с курицей (1порц)": 0.3337, "Упак Бефстроганов с картофельным пюре (1порц)": 0.4342, "Упак Зразы куриные с сырным соусом и фузилли (1порц)": 0.4292, "Упак Кимпаб с курицей (1шт)": 0.5424, "Упак Гуйру цомян (1порц)": 0.4697, "Упак Котлета домашняя с рисом и овощами (1порц)": 0.5182, "Упак Куриные котлеты с картофельным пюре и овощами (1порц)": 0.447, "Упак Пенне болоньезе (1порц)": 0.4808, "Упак Шницель куриный с гречкой (1порц)": 0.436, "Упак Тефтели говяжьи с гречкой и овощами (1порц)": 0.4151, "Упак Блины с мясом (3шт)": 0.5297, "Упак Шницель куриный с картофельным пюре (1порц)": 0.4397, "Упак Пельмени с говядиной (1 порц)": 0.5785, "Упак Курица с сыром и гречкой (1порц)": 0.4154, "Упак Салат Гнездо глухаря (1порц)": 0.5056, "Упак Паста с курицей и грибами (1порц)": 0.4806, "Упак Блины с творогом (3шт)": 0.3483, "Упак Курица с сыром и картофельным пюре (1порц)": 0.4375, "Упак Салат Цезарь с курицей (1порц)": 0.5131, "Упак Круассан с курицей (1шт)": 0.3869, "Упак Блины с курицей (3шт)": 0.3937, "Упак Онигири с лососем (1шт)": 0.4328, "Упак Онигири с тунцом (1шт)": 0.2931, "Упак Салат Мимоза (1порц)": 0.4267, "Упак Вареники с картофелем (1порц)": 0.302, "Упак Запеканка картофельная с курицей (по-французски) (1порц)": 0.49, "Упак Курица с сыром с пастой фузилли (1порц)": 0.4407, "Упак Курица с сыром с рисом и паутини (1порц)": 0.4344, "Упак Салат Оливье (1порц)": 0.5087, "Упак Клаб Сэндвич с индейкой (1шт)": 0.4553, "Упак Пельмени с курицей (1 порц)": 0.4149, "Упак Круассан с индейкой (1шт)": 0.3998, "Упак Сэндвич с колбасой (1шт)": 0.4589, "Упак Ролл-салат с курицей (1шт)": 0.5909, "Упак Багет с индейкой (1шт)": 0.4017, "Упак Сельдь под шубой (1порц)": 0.4066, "Упак Онигири с курицей (1шт)": 0.3483, "Упак Клаб Сэндвич с говядиной (1шт)": 0.4408, "Упак Салат Малибу (1порц)": 0.5213, "Упак Блины с ветчиной и сыром (3шт)": 0.4351, "Упак Клаб Сэндвич с курицей (1шт)": 0.4473, "Упак Макароны по-флотски (1порц)": 0.5359, "Упак Солянка (1порц)": 0.5343, "Упак Клаб Сэндвич крок-месье (1шт)": 0.4323, "Упак Морс Черная смородина 0,5 (1шт)": 0.4959, "Упак Компот из сухофруктов 0,5 (1шт)": 0.3246, "Упак Жареная говядина с картофелем и овощами (1порц)": 0.4708, "Упак Казон кабоб с овощами (1порц)": 0.4494, "Упак Курица карри с картофельным пюре (1порц)": 0.4738, "Упак Курица карри с турецким рисом (1порц)": 0.5162, "Упак Спагетти с курицей в грибном соусе (1порц)": 0.5094, "Упак Куриная грудка с овощным рататуем (1порц)": 0.512, "Упак Спагетти с курицей в соусе том ям (1порц)": 0.472, "Упак Хот дог (1шт)": 0.6811, "Упак Жареные сосиски с пюре и капустой (1порц)": 0.4426, "Упак Суп борщ с говядиной (1порц)": 0.4626, "Упак Суп говяжий с фрикадельками (1порц)": 0.3632, "ЛЛ* Упак Круассан с курицей (1шт)": 0.3869, "Упак Самса с курицей сырая ФЗ СМ (30 шт гофра)": 0.3439, "ЛЛ* Упак Круассан с лососем (1шт)": 0.3816, "Упак Суп лапша с курицей (1порц)": 0.4296, "ЛЛ* Упак Плов по-ташкентски (1порц)": 0.5011, "Упак Чиабатта с говядиной и омлетом (1шт)": 0.4135, "ЛЛ* Упак Ролл-салат с лососем (1шт)": 0.6498, "Упак Клаб Сэндвич с говядиной замор (24шт гофра)": 0.348, "Упак Сосиска в тесте  готов СМ (30шт гофра)": 0.4119, "ЛЛ* Упак Сэндвич с колбасой (1шт)": 0.4589, "Упак Круассан с лососем (1шт)": 0.3816, "Упак Эклер крем-брюле (6 упак гофра)": 0.4552, "ЛЛ* Упак Гуйру цомян (1порц)": 0.4697, "Упак Самса с курицей готов ФЗ СМ (30шт гофра )": 0.3592, "Упак Самса с говядиной сырая ФЗ СМ (30 шт гофра)": 0.482, "RP* Упак Булка с яблоком готов СМ (15 шт гофра)": 0.28, "Упак Клаб Сэндвич с курицей замор (24 шт гофра)": 0.3968, "RP* Упак Брецель-дог (20шт)": 0.5658, "RP* Упак Маффин шоколадный (24шт)": 0.5066, "ЛЛ* Упак Бризоль с рисом (1порц)": 0.6263, "ЛЛ* Упак Шницель куриный с картофельным пюре (1порц)": 0.4397, "ЛЛ* Упак Багет с индейкой (1шт)": 0.4017, "ЛЛ* Упак Хот дог (1шт)": 0.6811, "RP* Упак Сосиска в тесте  готов СМ (30шт гофра)": 0.4233, "ЛЛ* Упак Блины с ветчиной и сыром (3шт)": 0.4351, "ЛЛ* Упак Чиабатта с говядиной и омлетом (1шт)": 0.4135, "ЛЛ* Упак Шницель куриный с гречкой (1порц)": 0.436, "Б* Самса с курицей ФЗ (1шт)": 0.8584, "ЛЛ* Упак Блины с мясом (3шт)": 0.5297, "ЛЛ* Упак Клаб Сэндвич с курицей (1шт)": 0.4473, "ЛЛ* Упак Бифштекс с яйцом и картофелем (1порц)": 0.4868, "ЛЛ* Упак Кимпаб с тунцом (1шт)": 0.4933, "Упак Маффин с черной смородиной (24шт)": 0.5515, "ЛЛ* Упак Курица с сыром с пастой фузилли (1порц)": 0.4407, "ЛЛ* Упак Ролл-салат с курицей (1шт)": 0.5909, "ЛЛ* Упак Онигири с тунцом (1шт)": 0.2931, "ЛЛ* Упак Тучикены с картофельным пюре (1порц)": 0.571, "Упак Бризоль с рисом (1порц)": 0.6263, "RP* Упак Пирожок с капустой  готов СМ (30 шт гофра)": 0.3329, "RP* Упак Пирожок с картофелем готов СМ (30 шт гофра)": 0.432, "ЛЛ* Упак Пенне болоньезе (1порц)": 0.4808, "ЛЛ* Упак Онигири с лососем (1шт)": 0.4328, "RP* Упак Улитка с изюмом готов СМ (10 шт гофра)": 0.326, "ЛЛ* Упак Блины с яблоком (3шт)": 0.3675, "Упак Ролл-салат с лососем (1шт)": 0.6498, "ЛЛ* Упак Котлета пожарская с картофельным пюре (1порц)": 0.5163, "ЛЛ* Упак Кимпаб с курицей (1шт)": 0.5424, "Упак Котлеты куриные с картофельным пюре и капустой (1порц)": 0.5429, "ЛЛ* Упак Паста с курицей и грибами (1порц)": 0.4806, "Упак Сосиска в тесте СМ (8шт)": 0.3447, "RP* Упак Блины с ветчиной и сыром (3шт)": 0.5071, "Упак Эклер крем-брюле (5шт)": 0.4173, "Упак Салат с хрустящей курочкой (1порц)": 0.3442, "Упак Салат фунчоза с овощами (1порц)": 0.4074, "RP* Упак Плов по-ташкентски (1порц)": 0.5498, "RP* Упак Куриные котлеты с картофельным пюре и овощами (1порц)": 0.5159, "RP* Упак Багет с курицей под гриль (1шт)": 0.4956, "АР* Упак Бефстроганов с картофельным пюре (1порц)": 0.5367, "ЛЛ* Упак Вареники с картофелем (1порц)": 0.302, "RP* Упак Блины с творогом (3шт)": 0.4073, "ЛЛ* Упак Клаб Сэндвич с говядиной (1шт)": 0.4408, "Упак Красный бархат в стакане с вилкой (1шт)": 0.4692, "АР* Упак Шницель куриный с гречкой (1порц)": 0.4713, "АР* Упак Салат Цезарь с курицей (1порц)": 0.5301, "ЛЛ* Упак Манты с говядиной (1порц)": 0.5797, "ЛЛ* Упак Блины с творогом (3шт)": 0.3483, "Упак Сникерс в стакане с вилкой (1шт)": 0.4113, "RP* Упак Манты с говядиной (1порц)": 0.6143, "RP* Упак Булка с маком готов СМ (15 шт гофра)": 0.295, "Упак Медовик в стакане с вилкой (1шт)": 0.4629}
 PL_ABS = {"2026-01": {"rev": 237310863, "op": -19742583}, "2026-02": {"rev": 226011522, "op": -27838396}, "2026-03": {"rev": 258037214, "op": -23989908}, "2026-04": {"rev": 262061486, "op": -16702850}, "2026-05": {"rev": 260781489, "op": -5002942}}
 FOODCOST_DEFAULT = 0.456
@@ -233,12 +233,22 @@ SECTION = r'''
       <span style="font-weight:500;font-size:12px;color:#94a3b8;margin-left:auto">полная себестоимость по ОПиУ &middot; нажмите, чтобы раскрыть</span>
     </summary>
     <div style="padding:4px 14px 18px">
+      <div class="card" style="margin:8px 0 12px;background:linear-gradient(160deg,#111c2e,#0f172a)">
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:2px">
+          <div style="font-size:14px;font-weight:800;color:#f1f5f9">&#129518; Как из ОПиУ получается полная себестоимость</div>
+          <div id="mm-scheme-sel" style="margin-left:auto;display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:2px"></div>
+        </div>
+        <div style="font-size:11.5px;color:#94a3b8;margin-bottom:12px">Каждый тенге выручки проходит шесть ступеней затрат. Нажмите на любую — покажу, что в неё входит, сколько это в деньгах и что с этим делать.</div>
+        <div id="mm-scheme"></div>
+        <div id="mm-scheme-detail" style="margin-top:12px"></div>
+      </div>
       <div id="mm-verdict" style="margin:8px 0 12px"></div>
       <div class="card" style="margin:0 0 14px">
         <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:2px">&#127919; При каких показателях продавать в Маймарт выгодно</div>
         <div style="font-size:11.5px;color:#94a3b8;margin-bottom:10px">Две ручки, которыми можно управлять: доля возвратов и цена отгрузки. В таблице — результат канала за период при разных сочетаниях, объём тот же.</div>
         <div id="mm-cond"></div>
         <div id="mm-matrix" style="overflow-x:auto;margin-top:10px"></div>
+        <div id="obs-cond" style="margin-top:10px"></div>
       </div>
       <div id="mm-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px"></div>
 
@@ -248,12 +258,14 @@ SECTION = r'''
         <div id="mm-strip" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
         <div style="height:320px"><canvas id="mm-ch-months"></canvas></div>
         <div id="mm-verdict-months" style="margin-top:10px"></div>
+        <div id="obs-months" style="margin-top:10px"></div>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-top:12px">
         <div class="card">
           <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px">&#129517; От отгрузки до маржи <span style="font-weight:500;font-size:11px;color:#64748b">— куда уходят деньги, с начала года</span></div>
           <div style="height:320px"><canvas id="mm-ch-fall"></canvas></div>
+          <div id="obs-fall" style="margin-top:10px"></div>
         </div>
         <div class="card">
           <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px">&#129518; Порог безубыточности по возвратам</div>
@@ -304,6 +316,8 @@ SECTION = r'''
   <script>
   (function(){
     var D = window.MAYMART; if(!D) return;
+    var MS=["","Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+    var MN=["","январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
     function fmt(v){ var a=Math.abs(Math.round(v)); var s=a>=1e6?(a/1e6).toFixed(1).replace(".",",")+" млн":(a>=1e3?Math.round(a/1e3)+" тыс":String(a)); return (v<0?"−":"")+s; }
     function pc(v){ var x=Math.round(v*10)/10; return (x<0?"−":"")+String(Math.abs(x)).replace(".",",")+"%"; }
     function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
@@ -334,6 +348,118 @@ SECTION = r'''
         : "<b>Канал прибыльный.</b> Возвраты "+pc(T.pct)+" при пороге "+pc(BE.deliv)+", маржа "+fmt(T.margin)+".";
       document.getElementById("mm-verdict").innerHTML =
         '<div style="background:'+(neg?"rgba(239,68,68,.12)":"rgba(34,197,94,.12)")+';border:1px solid '+(neg?"rgba(239,68,68,.35)":"rgba(34,197,94,.35)")+';border-radius:12px;padding:12px 14px;font-size:13px;color:#e2e8f0;line-height:1.65">'+txt+'</div>';
+    }
+
+    var SCHEME=[
+      {k:"food", t:"Продукты и сырьё", c:"#ef4444",
+       what:"Себестоимость продуктовая и фритюрное масло — всё, что физически ушло в блюдо.",
+       why:"Самая крупная статья. Управляется закупочными ценами, рецептурой и потерями на производстве.",
+       act:"Пересмотр цен поставщиков, работа с фудкостом по позициям, контроль отклонений факта от калькуляции."},
+      {k:"prod", t:"Производственные накладные", c:"#f97316",
+       what:"Расходные материалы, электроэнергия, мусор, ремонты цеха, спецодежда, а также потери: недостача, порча, брак, бракераж и возвраты дистрибьюторам.",
+       why:"Здесь сидят все потери. Формально это себестоимость, но большая часть — управляемые утечки.",
+       act:"Инвентаризации, контроль сроков, разбор причин брака. Сокращение этой статьи почти полностью падает в прибыль."},
+      {k:"fot", t:"ФОТ производства", c:"#eab308",
+       what:"Зарплата цеха, налоги с неё, питание персонала, аренда квартир для сотрудников производства.",
+       why:"Вторая по величине статья и почти постоянная: при падении объёма она не уменьшается и сразу съедает маржу.",
+       act:"Выработка на человека, графики под фактический объём, пересмотр численности при снижении заказов."},
+      {k:"ar", t:"Аренда и коммуналка", c:"#84cc16",
+       what:"Аренда производственных площадей и коммунальные услуги по ним.",
+       why:"Полностью постоянная статья: не зависит ни от объёма, ни от ассортимента.",
+       act:"Пересмотр договора, субаренда неиспользуемых площадей, уплотнение производства."},
+      {k:"com", t:"Реализация и логистика", c:"#22d3ee",
+       what:"Доставка и логистика, маркетинг, продвижение товара, проработка новых блюд.",
+       why:"Полупеременная: растёт с объёмом отгрузки, но маркетинг решается отдельно.",
+       act:"Оптимизация маршрутов и частоты доставки, оценка отдачи от маркетинга по каналам."},
+      {k:"adm", t:"Администрация (АУП)", c:"#a78bfa",
+       what:"Зарплата и налоги АУП, административные расходы, НДС, банк, охрана, IT, связь, вознаграждения.",
+       why:"Постоянная статья, не зависящая от продаж. Именно она делает полную себестоимость больше 100% при падении выручки.",
+       act:"Это база для решения о масштабе: либо наращивать выручку под нынешний АУП, либо сокращать сам АУП."}
+    ];
+    var schemeMonth="avg";
+
+    function schemeRatios(){
+      if(schemeMonth==="avg") return {r:R, label:"среднее за "+D.pl_months.length+" мес.", rev:null};
+      var rr=D.ratios_by_month[schemeMonth]||R;
+      var ab=(D.pl_abs||{})[schemeMonth]||null;
+      return {r:rr, label:MN[+schemeMonth.slice(5)]+" "+schemeMonth.slice(0,4), rev:ab?ab.rev:null};
+    }
+
+    function scheme(){
+      var sel=document.getElementById("mm-scheme-sel");
+      if(sel){
+        var opts=[["avg","среднее"]].concat(D.pl_months.map(function(m){ return [m, MS[+m.slice(5)]]; }));
+        sel.innerHTML=opts.map(function(o){ var on=o[0]===schemeMonth;
+          return '<button type="button" data-m="'+o[0]+'" style="border:0;background:'+(on?"#c9a94e":"transparent")+';color:'+(on?"#111827":"#cbd5e1")+';font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:7px;cursor:pointer">'+o[1]+'</button>';
+        }).join("");
+        sel.onclick=function(e){ var b=e.target.closest("button"); if(!b) return; schemeMonth=b.getAttribute("data-m"); scheme(); };
+      }
+      var S=schemeRatios(), rr=S.r;
+      var total=SCHEME.reduce(function(a,x){ return a+(rr[x.k]||0); },0);
+      var revTxt=S.rev?(" · выручка "+fmt(S.rev)):"";
+      var left=100, steps=[];
+      SCHEME.forEach(function(x){ var val=rr[x.k]||0; steps.push({x:x, val:val, from:left, to:left-val}); left-=val; });
+      var W=function(p){ return Math.max(0,Math.min(100,p)); };
+
+      var h='<div style="font-size:11.5px;color:#64748b;margin-bottom:8px">'+S.label+revTxt+' · каждая полоса — доля от выручки</div>';
+      // шкала 100%
+      h+='<div style="position:relative;height:26px;border-radius:8px;overflow:hidden;background:#0b1220;border:1px solid #1f2937;display:flex;margin-bottom:6px">';
+      SCHEME.forEach(function(x){ var val=rr[x.k]||0;
+        h+='<div data-step="'+x.k+'" title="'+x.t+'" style="width:'+W(val/Math.max(total,100)*100)+'%;background:'+x.c+';cursor:pointer;opacity:.9"></div>';
+      });
+      if(total<100) h+='<div style="flex:1;background:rgba(34,197,94,.35)"></div>';
+      h+='</div>';
+      h+='<div style="display:flex;justify-content:space-between;font-size:10.5px;color:#64748b;margin-bottom:14px"><span>0%</span><span>'
+        +(total>100?('затраты '+pc(total)+' — выходим за 100% выручки'):('затраты '+pc(total)+', остаётся '+pc(100-total)))+'</span><span>'+pc(Math.max(total,100))+'</span></div>';
+
+      // лесенка
+      h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">';
+      h+='<div style="background:#0b1220;border:1px solid #1f2937;border-radius:12px;padding:10px 12px">'
+        +'<div style="font-size:10.5px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Выручка</div>'
+        +'<div style="font-size:20px;font-weight:800;color:#e2e8f0;margin:3px 0">100%</div>'
+        +'<div style="font-size:10.5px;color:#64748b">'+(S.rev?fmt(S.rev):"база расчёта")+'</div></div>';
+      steps.forEach(function(st){
+        var val=st.val, x=st.x;
+        h+='<div data-step="'+x.k+'" style="background:#0b1220;border:1px solid #1f2937;border-left:4px solid '+x.c+';border-radius:12px;padding:10px 12px;cursor:pointer;transition:.15s" '
+          +'onmouseover="this.style.background=\'#111c2e\'" onmouseout="this.style.background=\'#0b1220\'">'
+          +'<div style="font-size:10.5px;color:#94a3b8;font-weight:700">'+x.t+'</div>'
+          +'<div style="font-size:20px;font-weight:800;color:'+x.c+';margin:3px 0">−'+pc(val)+'</div>'
+          +'<div style="font-size:10.5px;color:#64748b">осталось '+pc(st.to)+(S.rev?(" · "+fmt(S.rev*val/100)):"")+'</div></div>';
+      });
+      var fin=100-total;
+      h+='<div style="background:'+(fin<0?"rgba(239,68,68,.12)":"rgba(34,197,94,.12)")+';border:1px solid '+(fin<0?"rgba(239,68,68,.4)":"rgba(34,197,94,.4)")+';border-radius:12px;padding:10px 12px">'
+        +'<div style="font-size:10.5px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Результат</div>'
+        +'<div style="font-size:20px;font-weight:800;color:'+(fin<0?"#ef4444":"#22c55e")+';margin:3px 0">'+pc(fin)+'</div>'
+        +'<div style="font-size:10.5px;color:#64748b">'+(fin<0?"убыток на каждом тенге":"прибыль на каждом тенге")+'</div></div>';
+      h+='</div>';
+      document.getElementById("mm-scheme").innerHTML=h;
+
+      var host=document.getElementById("mm-scheme");
+      host.onclick=function(e){ var t=e.target.closest("[data-step]"); if(t) schemeDetail(t.getAttribute("data-step")); };
+      schemeDetail(window.__mmStep||"food");
+    }
+
+    function schemeDetail(key){
+      window.__mmStep=key;
+      var x=null; SCHEME.forEach(function(s){ if(s.k===key) x=s; });
+      if(!x) return;
+      var S=schemeRatios(), val=S.r[key]||0;
+      var money=S.rev?fmt(S.rev*val/100):null;
+      var mm=D.pl_months.map(function(m){ return {m:m, v:(D.ratios_by_month[m]||{})[key]||0}; });
+      var mn=mm.slice().sort(function(a,b){return a.v-b.v;})[0], mx=mm.slice().sort(function(a,b){return b.v-a.v;})[0];
+      var el=document.getElementById("mm-scheme-detail");
+      el.innerHTML='<div style="background:#0b1220;border:1px solid #1f2937;border-left:4px solid '+x.c+';border-radius:14px;padding:14px 16px">'
+        +'<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:8px">'
+        +'<div style="font-size:14px;font-weight:800;color:#f1f5f9">'+x.t+'</div>'
+        +'<div style="font-size:14px;font-weight:800;color:'+x.c+'">'+pc(val)+' от выручки'+(money?(" · "+money):"")+'</div>'
+        +'<div style="margin-left:auto;font-size:11px;color:#64748b">разброс по месяцам: '+pc(mn.v)+' ('+MS[+mn.m.slice(5)]+') … '+pc(mx.v)+' ('+MS[+mx.m.slice(5)]+')</div></div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;font-size:12.5px;line-height:1.7;color:#cbd5e1">'
+        +'<div><b style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.04em">Что входит</b><br>'+x.what+'</div>'
+        +'<div><b style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.04em">Почему важно</b><br>'+x.why+'</div>'
+        +'<div><b style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.04em">Что с этим делать</b><br>'+x.act+'</div></div>'
+        +'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #1b2636;font-size:12px;color:#94a3b8">'
+        +'В расчёте Маймарта эта статья ложится на '+((key==="adm")?"нетто-выручку":"всю отгрузку")+': '
+        +fmt((key==="adm"?T.n:T.g)*val/100)+' за период — это '+pc((key==="adm"?T.n:T.g)*val/100/Math.abs(T.full)*100)+' всей полной себестоимости канала.</div></div>';
     }
 
     function conditions(){
@@ -382,6 +508,78 @@ SECTION = r'''
       h+='</table><div style="font-size:11.5px;color:#64748b;margin-top:8px">Зелёная клетка — канал в плюсе за '+D.months.length
         +' мес. при том же объёме отгрузки. Красная — в минусе. Цена считается как изменение отпускной цены на весь ассортимент Маймарта.</div>';
       document.getElementById("mm-matrix").innerHTML=h;
+    }
+
+    function obsBlock(id, title, items){
+      var el=document.getElementById(id); if(!el) return;
+      el.innerHTML='<details style="background:#0f172a;border:1px solid #1f2937;border-radius:12px;padding:10px 14px">'
+        +'<summary style="cursor:pointer;font-size:12.5px;font-weight:800;color:#c9a94e;list-style:none">&#128172; '+title+' — '+items.length+' наблюдений</summary>'
+        +'<ol style="margin:10px 0 2px;padding-left:22px;font-size:12.5px;line-height:1.8;color:#cbd5e1">'
+        +items.map(function(t){ return '<li style="margin-bottom:5px">'+t+'</li>'; }).join("")
+        +'</ol></details>';
+    }
+    function b_(t){ return '<b style="color:#f1f5f9">'+t+'</b>'; }
+
+    function obsMonths(){
+      var M=D.months, n=M.length;
+      var over=M.filter(function(m){return m.pct>BE.deliv;});
+      var best=M.slice().sort(function(a,b){return a.pct-b.pct;})[0];
+      var worst=M.slice().sort(function(a,b){return b.pct-a.pct;})[0];
+      var first=M.slice(0,3), last=M.slice(-3);
+      var avgF=first.reduce(function(s,m){return s+m.pct;},0)/first.length;
+      var avgL=last.reduce(function(s,m){return s+m.pct;},0)/last.length;
+      var totalG=M.reduce(function(s,m){return s+m.g;},0);
+      var perPP=totalG*0.01*(R.food+R.prod+R.fot+R.ar+R.com)/100;
+      var ifBest=M.reduce(function(s,m){ return s+(m.g*(1-best.pct/100)*(1-R.adm/100)-m.g*(R.food+R.prod+R.fot+R.ar+R.com)/100); },0);
+      var need=(T.pct-BE.deliv);
+      obsBlock("obs-months","Что видно на графике возвратов",[
+        "Средний уровень возвратов за период — "+b_(pc(T.pct))+" при пороге "+b_(pc(BE.deliv))+". Канал живёт втрое выше того уровня, который он способен вынести.",
+        "Выше порога "+b_(over.length+" месяцев из "+n)+" — то есть провал не разовый, а системный: это норма работы канала, а не случайность.",
+        "Худший месяц — "+b_(worst.lbl+": "+pc(worst.pct))+", убыток "+fmt(Math.abs(worst.margin))+". Один такой месяц стоит примерно как "+(Math.abs(worst.margin)/Math.max(1,Math.abs(best.margin))).toFixed(1).replace(".",",")+" лучших.",
+        "Лучший месяц — "+b_(best.lbl+": "+pc(best.pct))+", и даже он "+(best.pct>BE.deliv?("выше порога на "+(best.pct-BE.deliv).toFixed(1).replace(".",",")+" пункта"):"уже в зелёной зоне")+".",
+        "Первые три месяца дали в среднем "+pc(avgF)+", последние три — "+b_(pc(avgL))+": динамика "+(avgL<avgF?("улучшается, минус "+(avgF-avgL).toFixed(1).replace(".",",")+" пункта"):("ухудшается, плюс "+(avgL-avgF).toFixed(1).replace(".",",")+" пункта"))+".",
+        "Чтобы попасть в зелёную зону, нужно снять "+b_((need).toFixed(1).replace(".",",")+" пункта возвратов")+" — в деньгах это примерно "+b_(fmt(totalG*need/100))+" товара за период, который сейчас едет обратно.",
+        "Каждый процентный пункт возвратов стоит около "+b_(fmt(perPP))+" за период: столько завод тратит на производство и доставку того, что вернётся.",
+        "Разброс между лучшим и худшим месяцем — "+b_((worst.pct-best.pct).toFixed(1).replace(".",",")+" пункта")+". Такая амплитуда означает, что уровень возвратов управляем: значит, дело в заказе и ротации, а не в природе товара.",
+        "Суммарный убыток канала за "+n+" мес. — "+b_(fmt(T.margin))+", в среднем "+fmt(T.margin/n)+" в месяц.",
+        "Если бы все месяцы были как лучший, результат составил бы "+b_(fmt(ifBest))+" вместо "+fmt(T.margin)+" — разница "+fmt(ifBest-T.margin)+" только за счёт дисциплины по возвратам."
+      ]);
+    }
+
+    function obsFall(){
+      var L=[["food","Продукты"],["prod","Производственные накладные"],["fot","ФОТ производства"],["ar","Аренда"],["com","Доставка"],["adm","Администрация"]];
+      var costs=L.map(function(x){ return {k:x[0],t:x[1],v:T.cost[x[0]]}; }).sort(function(a,b){return b.v-a.v;});
+      var prodPart=T.cost.food+T.cost.prod+T.cost.fot+T.cost.ar;
+      obsBlock("obs-fall","Что видно на разложении от отгрузки до маржи",[
+        "Отгрузка за период — "+b_(fmt(T.g))+", но до выручки доходит только "+b_(fmt(T.n))+": "+pc(T.pct)+" уезжает обратно ещё до первого рубля затрат.",
+        "Самая тяжёлая ступень — "+b_(costs[0].t+": "+fmt(costs[0].v))+", это "+pc(costs[0].v/T.full*100)+" всей полной себестоимости канала.",
+        "Вторая по весу — "+b_(costs[1].t+": "+fmt(costs[1].v))+"; вместе с первой они дают "+pc((costs[0].v+costs[1].v)/T.full*100)+" затрат.",
+        "Производственный блок целиком (продукты, накладные, ФОТ, аренда) — "+b_(fmt(prodPart))+", это "+pc(prodPart/T.g*100)+" от отгрузки.",
+        "Доставка и реализация — "+fmt(T.cost.com)+"; в пересчёте на один возвращённый тенге товара это "+fmt(T.cost.com*T.r/T.g)+" впустую.",
+        "Администрация "+fmt(T.cost.adm)+" считается от нетто-выручки, а не от отгрузки — иначе канал выглядел бы ещё хуже на "+fmt(T.cost.adm*T.r/T.n)+".",
+        "Полная себестоимость "+b_(fmt(T.full))+" против нетто-выручки "+fmt(T.n)+": разрыв "+b_(fmt(Math.abs(T.margin)))+".",
+        "На каждые 100 ₸ выручки канал тратит "+b_(Math.round(T.cost_per_rev*100)+" ₸")+" против "+Math.round(D.company.full)+" ₸ по заводу в среднем.",
+        "Стоимость самих возвратов — "+b_(fmt(T.ret_cost))+": это уже произведённый и доставленный товар, который пришлось списать.",
+        "Если убрать только потери на возвратах, канал всё ещё не выйдет в плюс — не хватит "+b_(fmt(Math.abs(T.margin)-T.ret_cost))+", и это уже вопрос цены, а не логистики."
+      ]);
+    }
+
+    function obsCond(){
+      var kDeliv=(R.food+R.prod+R.fot+R.ar+R.com)/100, adm=R.adm/100, need=kDeliv/(1-adm), G=T.g;
+      function margin(p,r){ return G*p*(1-r)*(1-adm) - G*kDeliv; }
+      function needPrice(r){ return need/(1-r); }
+      obsBlock("obs-cond","Как читать таблицу выгодности",[
+        "Условие выгодности одно: "+b_("цена × (1 − доля возвратов) ≥ "+pc(need*100))+". Всё остальное — следствия из него.",
+        "При нынешней цене канал не выходит в плюс ни при каких возвратах: даже при нуле не хватает "+b_(pc((need-1)*100))+".",
+        "Снижение возвратов с "+pc(T.pct)+" до "+pc(15)+" улучшает результат на "+b_(fmt(margin(1,0.15)-margin(1,T.pct/100)))+" без единого изменения цены.",
+        "Снижение до "+pc(10)+" даёт "+b_(fmt(margin(1,0.10)-margin(1,T.pct/100)))+", до "+pc(5)+" — "+b_(fmt(margin(1,0.05)-margin(1,T.pct/100)))+".",
+        "Повышение цены на 5% при нынешних возвратах приносит "+b_(fmt(margin(1.05,T.pct/100)-margin(1,T.pct/100)))+" — заметно меньше, чем работа с возвратами.",
+        "Первая зелёная клетка появляется при "+b_("цене +10% и возвратах 0%")+" либо "+b_("+15% и 5%")+" — это ориентир для переговоров с сетью.",
+        "Реалистичная связка "+b_("возвраты 10% и цена +"+pc((needPrice(0.10)-1)*100))+" выводит канал ровно в ноль.",
+        "Мягкая связка "+b_("возвраты 15% и цена +"+pc((needPrice(0.15)-1)*100))+" — тоже ноль, но требует большего роста цены.",
+        "Матрица считает при неизменном объёме: если рост цены уменьшит отгрузку, зелёные клетки сместятся вправо — это стоит проверять на переговорах.",
+        "Порядок действий по деньгам: сначала возвраты (дешевле всего), потом цена, и только затем — сокращение ассортимента под Маймарт."
+      ]);
     }
 
     function chMonths(){
@@ -738,7 +936,7 @@ SECTION = r'''
     }
 
     var built=false;
-    function renderAll(){ kpi(); verdict(); conditions(); beBlock(); plTable(); renderPoints(); renderSkus(); method(); if(window.Chart){ chMonths(); chFall(); } built=true; }
+    function renderAll(){ scheme(); kpi(); verdict(); conditions(); obsMonths(); obsFall(); obsCond(); beBlock(); plTable(); renderPoints(); renderSkus(); method(); if(window.Chart){ chMonths(); chFall(); } built=true; }
     function boot(){
       document.getElementById("mm-sum").textContent="возвраты "+pc(T.pct)+" · "+(T.margin<0?"убыток ":"прибыль ")+fmt(T.margin)+" с начала года";
       var det=document.getElementById("mm-details");
