@@ -205,8 +205,11 @@ SECTION = r'''
       <div id="mm-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px"></div>
 
       <div class="card" style="margin-top:14px">
-        <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px">&#128200; Отгрузка, возвраты и маржа по месяцам</div>
-        <div style="height:300px"><canvas id="mm-ch-months"></canvas></div>
+        <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:2px">&#128200; Когда канал выгоден, а когда нет</div>
+        <div style="font-size:11.5px;color:#94a3b8;margin-bottom:10px">Столбик — сколько процентов отгрузки вернулось. Золотая линия — порог: пока возвраты ниже неё, месяц окупает производство и доставку. Синяя линия — результат месяца в деньгах.</div>
+        <div id="mm-strip" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+        <div style="height:320px"><canvas id="mm-ch-months"></canvas></div>
+        <div id="mm-verdict-months" style="margin-top:10px"></div>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-top:12px">
@@ -296,20 +299,73 @@ SECTION = r'''
     }
 
     function chMonths(){
+      var strip=document.getElementById("mm-strip");
+      if(strip){
+        strip.innerHTML=D.months.map(function(m){
+          var ok=m.pct<=BE.deliv;
+          return '<div style="flex:1;min-width:96px;background:'+(ok?"rgba(34,197,94,.14)":"rgba(239,68,68,.13)")
+            +';border:1px solid '+(ok?"rgba(34,197,94,.45)":"rgba(239,68,68,.4)")+';border-radius:12px;padding:7px 9px;text-align:center">'
+            +'<div style="font-size:11px;color:#94a3b8;font-weight:700">'+m.lbl+'</div>'
+            +'<div style="font-size:16px;font-weight:800;color:'+(ok?"#22c55e":"#ef4444")+';line-height:1.25">'+pc(m.pct)+'</div>'
+            +'<div style="font-size:10.5px;color:#94a3b8">'+(m.margin<0?"убыток ":"прибыль ")+fmt(Math.abs(m.margin))+'</div></div>';
+        }).join("");
+      }
+      var vm=document.getElementById("mm-verdict-months");
+      if(vm){
+        var good=D.months.filter(function(m){ return m.pct<=BE.deliv; });
+        var best=D.months.slice().sort(function(a,b){ return a.pct-b.pct; })[0];
+        var worst=D.months.slice().sort(function(a,b){ return b.pct-a.pct; })[0];
+        vm.innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#cbd5e1">'
+          +'<span style="background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.4);border-radius:9px;padding:6px 11px">'
+          +'<b style="color:#22c55e">Ниже '+pc(BE.deliv)+'</b> — месяц в плюсе по производству и доставке</span>'
+          +'<span style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.38);border-radius:9px;padding:6px 11px">'
+          +'<b style="color:#ef4444">Выше '+pc(BE.deliv)+'</b> — каждый отгруженный тенге приносит убыток</span>'
+          +'<span style="color:#94a3b8;padding:6px 0">Прибыльных месяцев: <b style="color:'+(good.length?"#22c55e":"#ef4444")+'">'
+          +good.length+' из '+D.months.length+'</b> · лучший '+best.lbl+' ('+pc(best.pct)+'), худший '+worst.lbl+' ('+pc(worst.pct)+')</span></div>';
+      }
       var cv=document.getElementById("mm-ch-months"); if(!cv||!window.Chart) return;
       try{var ex=Chart.getChart?Chart.getChart(cv):null; if(ex) ex.destroy();}catch(e){}
       var L=D.months.map(function(m){return m.lbl;});
+      var labelPlugin={id:"mmlab",afterDatasetsDraw:function(ch){
+        var c=ch.ctx, ds=ch.getDatasetMeta(0);
+        c.save(); c.font="800 11px system-ui,-apple-system,sans-serif"; c.textAlign="center";
+        ds.data.forEach(function(el,i){
+          var m=D.months[i], ok=m.pct<=BE.deliv;
+          c.fillStyle=ok?"#22c55e":"#f87171";
+          c.fillText(pc(m.pct), el.x, el.y-7);
+        });
+        var ms=ch.getDatasetMeta(2);
+        c.font="700 10.5px system-ui,-apple-system,sans-serif"; c.fillStyle="#93c5fd";
+        ms.data.forEach(function(el,i){ c.fillText(fmt(D.months[i].margin), el.x, el.y+16); });
+        c.restore();
+      }};
       new Chart(cv.getContext("2d"),{data:{labels:L,datasets:[
-        {type:"bar",label:"Нетто-выручка",data:D.months.map(function(m){return +(m.n/1e6).toFixed(2);}),backgroundColor:"#22c55e",borderRadius:5,stack:"s",order:3},
-        {type:"bar",label:"Возвраты",data:D.months.map(function(m){return +(m.r/1e6).toFixed(2);}),backgroundColor:"#e2896b",borderRadius:5,stack:"s",order:3},
-        {type:"line",label:"Маржа после полной с/с",data:D.months.map(function(m){return +(m.margin/1e6).toFixed(2);}),borderColor:"#ef4444",backgroundColor:"#ef4444",borderWidth:2,tension:.3,pointRadius:3,order:1},
-        {type:"line",label:"% возврата",data:D.months.map(function(m){return m.pct;}),borderColor:"#c9a94e",backgroundColor:"#c9a94e",borderWidth:2,borderDash:[5,4],tension:.3,pointRadius:3,yAxisID:"y1",order:2}
-      ]},options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:"#cbd5e1",font:{size:11},boxWidth:12}},datalabels:{display:false},
-          tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+(c.dataset.yAxisID==="y1"?pc(c.parsed.y):(String(c.parsed.y).replace(".",",")+" млн"));}}}},
-        scales:{x:{stacked:true,ticks:{color:"#94a3b8",font:{size:12,weight:"600"}},grid:{display:false}},
-          y:{stacked:true,ticks:{color:"#64748b",font:{size:10},callback:function(v){return v+" М";}},grid:{color:"rgba(51,65,85,.4)"}},
-          y1:{position:"right",beginAtZero:true,ticks:{color:"#c9a94e",font:{size:10},callback:function(v){return v+"%";}},grid:{display:false}}}}});
+        {type:"bar",label:"Возвраты, % от отгрузки",yAxisID:"y",order:3,borderRadius:6,
+         data:D.months.map(function(m){return m.pct;}),
+         backgroundColor:D.months.map(function(m){return m.pct<=BE.deliv?"rgba(34,197,94,.75)":"rgba(239,68,68,.7)";})},
+        {type:"line",label:"Порог безубыточности "+pc(BE.deliv),yAxisID:"y",order:1,
+         data:D.months.map(function(){return BE.deliv;}),
+         borderColor:"#c9a94e",borderWidth:2.5,borderDash:[7,5],pointRadius:0,
+         fill:{target:"origin",above:"rgba(34,197,94,.13)"}},
+        {type:"line",label:"Результат месяца, ₸",yAxisID:"y1",order:2,
+         data:D.months.map(function(m){return +(m.margin/1e6).toFixed(2);}),
+         borderColor:"#60a5fa",backgroundColor:"#60a5fa",borderWidth:2,tension:.3,pointRadius:4,
+         pointBackgroundColor:D.months.map(function(m){return m.margin<0?"#ef4444":"#22c55e";})}
+      ]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
+        interaction:{mode:"index",intersect:false},
+        plugins:{legend:{labels:{color:"#cbd5e1",font:{size:11},boxWidth:12,usePointStyle:true}},datalabels:{display:false},
+          tooltip:{callbacks:{label:function(c){
+            var m=D.months[c.dataIndex];
+            if(c.datasetIndex===0) return " возвраты "+pc(m.pct)+" при пороге "+pc(BE.deliv)+(m.pct>BE.deliv?" — выше нормы":" — в норме");
+            if(c.datasetIndex===1) return " порог: столько возвратов канал выдерживает";
+            return " результат "+fmt(m.margin)+" · отгрузка "+fmt(m.g)+", вернулось "+fmt(m.r);
+          }}}},
+        scales:{x:{ticks:{color:"#cbd5e1",font:{size:12,weight:"700"}},grid:{display:false}},
+          y:{position:"left",beginAtZero:true,suggestedMax:40,title:{display:true,text:"возвраты, %",color:"#64748b",font:{size:10}},
+             ticks:{color:"#94a3b8",font:{size:10},callback:function(v){return v+"%";}},grid:{color:"rgba(51,65,85,.35)"}},
+          y1:{position:"right",title:{display:true,text:"результат, млн ₸",color:"#64748b",font:{size:10}},
+              ticks:{color:"#60a5fa",font:{size:10},callback:function(v){return v+" М";}},grid:{display:false}}}},
+        plugins:[labelPlugin]});
     }
 
     function chFall(){
