@@ -74,6 +74,10 @@ jobs:
         continue-on-error: true
         run: python gen_zakup.py
 
+      - name: "11b. Структура затрат ОПиУ из iiko (свежие месяцы)"
+        continue-on-error: true
+        run: python opiu_full.py
+
       - name: "12. Аналитика возвратов Маймарт (полная себестоимость по ОПиУ)"
         continue-on-error: true
         run: python gen_maymart.py
