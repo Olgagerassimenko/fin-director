@@ -266,14 +266,24 @@ def main():
                        "full": round(sum(g.values()) / rev, 5),
                        "var": round(vf["var"]), "fix": round(vf["fix"]),
                        "days": min(date(YEAR, mi, calendar.monthrange(YEAR, mi)[1]), last_full).isoformat()}
-        print("  %s: выручка %s, полная себестоимость %.1f%%"
-              % (key, f"{round(rev):,}".replace(",", " "), months[key]["full"] * 100))
+        # проверка правдоподобия: незакрытые начисления видно по провалу ФОТ и АУП
+        r = months[key]["ratios"]
+        why = []
+        if r["food"] < 0.35 or r["food"] > 0.65: why.append("продуктовая %.0f%%" % (r["food"] * 100))
+        if r["fot"] < 0.15: why.append("ФОТ всего %.1f%% — зарплата ещё не начислена" % (r["fot"] * 100))
+        if r["adm"] < 0.08: why.append("АУП всего %.1f%%" % (r["adm"] * 100))
+        if months[key]["full"] < 0.90 or months[key]["full"] > 1.35: why.append("итог %.0f%%" % (months[key]["full"] * 100))
+        months[key]["ok"] = not why
+        months[key]["why"] = "; ".join(why)
+        print("  %s: выручка %s, полная себестоимость %.1f%% %s"
+              % (key, f"{round(rev):,}".replace(",", " "), months[key]["full"] * 100,
+                 "✓" if not why else "— НЕ БЕРЁМ: " + months[key]["why"]))
     print("типы счетов в выгрузке:", ", ".join("%s×%d" % (t or "—", n) for t, n in sorted(types.items())))
 
     # ── сверка с эталоном из xlsx ────────────────────────────────
     worst, checked = 0.0, []
     for m, ref in REFERENCE.items():
-        if m not in months:
+        if m not in months or not months[m].get("ok", True):
             continue
         got = months[m]["ratios"]
         dev = max(abs(got.get(k, 0) - ref[k]) * 100 for k in ref)

@@ -105,7 +105,7 @@ def effective_ratios():
             d = json.load(open(p, encoding="utf-8"))
             if d.get("check", {}).get("ok"):
                 for m, v in sorted(d.get("months", {}).items()):
-                    if m in eff or not v.get("rev"):
+                    if m in eff or not v.get("rev") or not v.get("ok", True):
                         continue
                     eff[m] = v["ratios"]
                     ab[m] = {"rev": v["rev"], "op": round(v["rev"] - sum(v["abs"].values()))}

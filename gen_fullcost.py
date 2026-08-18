@@ -204,7 +204,7 @@ def build():
                 m2l = {"food": "food", "prod": "povh", "fot": "fot", "ar": "rent", "com": "comm", "adm": "adm"}
                 added = 0
                 for m, v in sorted(fd.get("months", {}).items()):
-                    if m in pl or not v.get("rev"):
+                    if m in pl or not v.get("rev") or not v.get("ok", True):
                         continue
                     rev = v["rev"]
                     var = v.get("var") or 0
