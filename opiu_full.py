@@ -182,12 +182,15 @@ def olap(body, tries=4):
     return None
 
 
-def turnover(mi, last_full, acc_type):
+def turnover(mi, last_full):
+    """Один запрос на месяц: обороты по всем счетам с их типами.
+    Тип счёта не фильтруем — в разных версиях iiko набор констант отличается,
+    поэтому раскладываем по названиям счетов (они совпадают со строками ОПиУ)."""
     d1 = date(YEAR, mi, 1)
     d2 = min(date(YEAR, mi, calendar.monthrange(YEAR, mi)[1]), last_full)
     body = {
         "reportType": "TRANSACTIONS", "buildSummary": "true",
-        "groupByRowFields": ["Account.Name"],
+        "groupByRowFields": ["Account.Name", "Account.Type"],
         "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
         "filters": {
             "DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
@@ -195,22 +198,21 @@ def turnover(mi, last_full, acc_type):
                                    "to": (d2 + timedelta(days=1)).isoformat(),
                                    "includeLow": True, "includeHigh": True},
             "Department": {"filterType": "IncludeValues", "values": [FZ_DEPT]},
-            "Account.Type": {"filterType": "IncludeValues", "values": [acc_type]},
         },
     }
     data = olap(body)
     if data is None:
         return None
-    out = {}
+    rows = {}
     for row in data:
         nm = (row.get("Account.Name") or "—").strip()
+        tp = (row.get("Account.Type") or "").strip()
         inc = row.get("Sum.Incoming") or 0
         outg = row.get("Sum.Outgoing") or 0
-        val = (inc - outg) if acc_type == "EXPENSE" else -(inc - outg)
-        if abs(val) < 0.5:
-            continue
-        out[nm] = out.get(nm, 0.0) + val
-    return out
+        r = rows.setdefault(nm, {"debit": 0.0, "credit": 0.0, "type": tp})
+        r["debit"] += inc - outg           # расход (дебетовый оборот)
+        r["credit"] += outg - inc          # доход (кредитовый оборот)
+    return rows
 
 
 def main():
@@ -219,24 +221,33 @@ def main():
     last_full = date.today() - timedelta(days=1)
     print("iiko ok, структура затрат по %s" % last_full.strftime("%d.%m.%Y"))
 
-    months, unknown = {}, {}
+    months, unknown, types = {}, {}, {}
     for mi in range(1, 13):
         if date(YEAR, mi, 1) > last_full:
             break
-        inc = turnover(mi, last_full, "INCOME")
-        exp = turnover(mi, last_full, "EXPENSE")
-        if not inc or not exp:
+        rows = turnover(mi, last_full)
+        if not rows:
             continue
-        rev = sum(inc.values())
+        for nm, r in rows.items():
+            types[r["type"]] = types.get(r["type"], 0) + 1
+        rev = sum(r["credit"] for r in rows.values() if r["type"] == "INCOME")
         if rev <= 0:
+            # запасной вариант: выручка по названию счёта
+            rev = sum(r["credit"] for nm, r in rows.items()
+                      if norm(nm).startswith(("торговая выручка", "выручка")))
+        if rev <= 0:
+            print("  %d: выручка не найдена, месяц пропущен" % mi)
             continue
         g = {k: 0.0 for k in GROUPS}
         vf = {"var": 0.0, "fix": 0.0}
-        for nm, val in exp.items():
+        for nm, r in rows.items():
+            val = r["debit"]
+            if abs(val) < 0.5:
+                continue
             key = NAME2GROUP.get(norm(nm))
             if key:
                 g[key] += val
-            else:
+            elif r["type"] != "INCOME":
                 unknown[nm] = unknown.get(nm, 0.0) + val
             kind = NAME2VF.get(norm(nm))
             if kind:
@@ -248,8 +259,9 @@ def main():
                        "full": round(sum(g.values()) / rev, 5),
                        "var": round(vf["var"]), "fix": round(vf["fix"]),
                        "days": min(date(YEAR, mi, calendar.monthrange(YEAR, mi)[1]), last_full).isoformat()}
-        print("  %s: выручка %s, полная себестоимость %.1f%%" % (key, f"{round(rev):,}".replace(",", " "),
-                                                                months[key]["full"] * 100))
+        print("  %s: выручка %s, полная себестоимость %.1f%%"
+              % (key, f"{round(rev):,}".replace(",", " "), months[key]["full"] * 100))
+    print("типы счетов в выгрузке:", ", ".join("%s×%d" % (t or "—", n) for t, n in sorted(types.items())))
 
     # ── сверка с эталоном из xlsx ────────────────────────────────
     worst, checked = 0.0, []
@@ -270,6 +282,7 @@ def main():
     out = {"months": months, "check": {"ok": ok, "worst_dev": round(worst, 2), "months": checked,
                                        "tolerance": TOLERANCE},
            "unknown": {n: round(v) for n, v in sorted(unknown.items(), key=lambda x: -abs(x[1]))[:20]},
+           "types": types,
            "_pulled": date.today().strftime("%d.%m.%Y"), "_through": last_full.isoformat()}
     with open(os.path.join(HERE, "opiu_full.json"), "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
