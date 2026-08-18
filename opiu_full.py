@@ -222,9 +222,16 @@ def main():
     print("iiko ok, структура затрат по %s" % last_full.strftime("%d.%m.%Y"))
 
     months, unknown, types = {}, {}, {}
+    today = date.today()
     for mi in range(1, 13):
         if date(YEAR, mi, 1) > last_full:
             break
+        # берём только закрытые месяцы: месяц считается закрытым к 18-му числу следующего.
+        # незакрытый месяц занижает ФОТ и администрацию — начисления проходят в конце месяца.
+        nxt = date(YEAR + (1 if mi == 12 else 0), 1 if mi == 12 else mi + 1, 18)
+        if today < nxt:
+            print("  %02d: месяц ещё не закрыт (закрытие с %s) — пропускаю" % (mi, nxt.strftime("%d.%m")))
+            continue
         rows = turnover(mi, last_full)
         if not rows:
             continue
