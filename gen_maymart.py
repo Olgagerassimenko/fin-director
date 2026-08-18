@@ -92,7 +92,38 @@ def cost_layers(g, n, rt):
     }
 
 
+
+def effective_ratios():
+    """Доли затрат: факт из xlsx (эталон) + свежие месяцы из iiko (opiu_full.json),
+    но только если сверка с эталоном прошла."""
+    eff = dict(PL_RATIOS)
+    ab = dict(PL_ABS)
+    src = {m: "ОПиУ" for m in PL_RATIOS}
+    p = os.path.join(HERE, "opiu_full.json")
+    if os.path.exists(p):
+        try:
+            d = json.load(open(p, encoding="utf-8"))
+            if d.get("check", {}).get("ok"):
+                for m, v in sorted(d.get("months", {}).items()):
+                    if m in eff or not v.get("rev"):
+                        continue
+                    eff[m] = v["ratios"]
+                    ab[m] = {"rev": v["rev"], "op": round(v["rev"] - sum(v["abs"].values()))}
+                    src[m] = "iiko"
+                print("доли затрат: xlsx %d мес. + iiko %d мес."
+                      % (len(PL_RATIOS), len(eff) - len(PL_RATIOS)))
+            else:
+                print("[!] opiu_full.json не прошёл сверку — беру только xlsx")
+        except Exception as e:
+            print("[!] opiu_full.json не прочитан:", e)
+    return eff, ab, src
+
+
 def build():
+    global PL_RATIOS, PL_AVG, PL_ABS
+    PL_RATIOS, PL_ABS, PL_SRC = effective_ratios()
+    PL_AVG = {k: sum(PL_RATIOS[m][k] for m in PL_RATIOS) / len(PL_RATIOS)
+              for k in ("food", "prod", "fot", "ar", "com", "adm")}
     R = load_returns()
     months = sorted(R.get("by_month", {}).keys())
     pts = [c for c in R.get("contractors", []) if GROUP_RE.match(str(c.get("n", "")))]
@@ -189,6 +220,7 @@ def build():
         "be": be, "points": plist, "skus": slist,
         "company": {"full": round(sum(a.values()) * 100, 1), "op": round((1 - sum(a.values())) * 100, 1)},
         "pl_months": sorted(PL_RATIOS.keys()),
+        "pl_src": PL_SRC,
     }
 
 
@@ -201,7 +233,13 @@ SECTION = r'''
       <span style="font-weight:500;font-size:12px;color:#94a3b8;margin-left:auto">полная себестоимость по ОПиУ &middot; нажмите, чтобы раскрыть</span>
     </summary>
     <div style="padding:4px 14px 18px">
-      <div id="mm-verdict" style="margin:8px 0 14px"></div>
+      <div id="mm-verdict" style="margin:8px 0 12px"></div>
+      <div class="card" style="margin:0 0 14px">
+        <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:2px">&#127919; При каких показателях продавать в Маймарт выгодно</div>
+        <div style="font-size:11.5px;color:#94a3b8;margin-bottom:10px">Две ручки, которыми можно управлять: доля возвратов и цена отгрузки. В таблице — результат канала за период при разных сочетаниях, объём тот же.</div>
+        <div id="mm-cond"></div>
+        <div id="mm-matrix" style="overflow-x:auto;margin-top:10px"></div>
+      </div>
       <div id="mm-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px"></div>
 
       <div class="card" style="margin-top:14px">
@@ -296,6 +334,54 @@ SECTION = r'''
         : "<b>Канал прибыльный.</b> Возвраты "+pc(T.pct)+" при пороге "+pc(BE.deliv)+", маржа "+fmt(T.margin)+".";
       document.getElementById("mm-verdict").innerHTML =
         '<div style="background:'+(neg?"rgba(239,68,68,.12)":"rgba(34,197,94,.12)")+';border:1px solid '+(neg?"rgba(239,68,68,.35)":"rgba(34,197,94,.35)")+';border-radius:12px;padding:12px 14px;font-size:13px;color:#e2e8f0;line-height:1.65">'+txt+'</div>';
+    }
+
+    function conditions(){
+      var kDeliv=(R.food+R.prod+R.fot+R.ar+R.com)/100;   // производство + доставка, доля от выручки при нынешней цене
+      var adm=R.adm/100;
+      var need=kDeliv/(1-adm);                            // требуемое произведение цена × (1 − возвраты)
+      var G=T.g;
+      function margin(p,r){ return G*p*(1-r)*(1-adm) - G*kDeliv; }
+      function needPrice(r){ return need/(1-r); }         // во сколько раз поднять цену при данном уровне возвратов
+      function needRet(p){ return 1 - need/p; }           // какая доля возвратов допустима при данной цене
+
+      var rNow=T.pct/100;
+      var pNow=needPrice(rNow);
+      var el=document.getElementById("mm-cond"); if(!el) return;
+      var rows=[
+        ["Порог по производству и доставке", "возвраты не выше "+pc(BE.deliv), "сейчас "+pc(T.pct), T.pct<=BE.deliv],
+        ["Полная окупаемость при нынешней цене", "недостижима", "даже при нулевых возвратах не хватает "+pc((need-1)*100)+" цены", false],
+        ["Полная окупаемость при нынешних возвратах", "цена выше на "+pc((pNow-1)*100), "при возвратах "+pc(T.pct), false],
+        ["Реалистичное сочетание", "возвраты "+pc(10)+" и цена выше на "+pc((needPrice(0.10)-1)*100), "результат выйдет в ноль", true],
+        ["Мягкий вариант", "возвраты "+pc(15)+" и цена выше на "+pc((needPrice(0.15)-1)*100), "результат выйдет в ноль", true]
+      ];
+      el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px">'
+        +rows.map(function(r){
+          return '<tr style="border-bottom:1px solid #1b2636">'
+            +'<td style="padding:7px 4px;color:#cbd5e1">'+r[0]+'</td>'
+            +'<td style="padding:7px 4px;text-align:right;font-weight:800;color:'+(r[3]?"#22c55e":"#f59e0b")+';white-space:nowrap">'+r[1]+'</td>'
+            +'<td style="padding:7px 4px;text-align:right;color:#64748b;font-size:11.5px">'+r[2]+'</td></tr>';
+        }).join("")+'</table>';
+
+      var RS=[T.pct/100,0.20,0.15,0.10,0.05,0], PS=[1,1.05,1.10,1.15,1.20];
+      var h='<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:560px">'
+        +'<tr><th style="text-align:left;padding:6px 5px;color:#64748b;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">Цена \\ возвраты</th>'
+        +RS.map(function(r,i){ return '<th style="padding:6px 5px;text-align:right;color:'+(i===0?"#e2896b":"#64748b")+';font-size:11px;font-weight:800">'
+            +pc(r*100)+(i===0?" сейчас":"")+'</th>'; }).join("")+'</tr>';
+      PS.forEach(function(p){
+        h+='<tr style="border-top:1px solid #1b2636"><td style="padding:6px 5px;color:#cbd5e1;font-weight:700;white-space:nowrap">'
+          +(p===1?"как сейчас":"+"+Math.round((p-1)*100)+"%")+'</td>';
+        RS.forEach(function(r){
+          var m=margin(p,r), ok=m>=0;
+          var bg=ok?"rgba(34,197,94,"+Math.min(.4,.12+m/1e8)+")":"rgba(239,68,68,"+Math.min(.35,.1+Math.abs(m)/1.4e8)+")";
+          h+='<td style="padding:7px 5px;text-align:right;font-weight:800;white-space:nowrap;background:'+bg+';color:'+(ok?"#4ade80":"#fca5a5")+'">'
+            +(m>=0?"+":"")+fmt(m)+'</td>';
+        });
+        h+='</tr>';
+      });
+      h+='</table><div style="font-size:11.5px;color:#64748b;margin-top:8px">Зелёная клетка — канал в плюсе за '+D.months.length
+        +' мес. при том же объёме отгрузки. Красная — в минусе. Цена считается как изменение отпускной цены на весь ассортимент Маймарта.</div>';
+      document.getElementById("mm-matrix").innerHTML=h;
     }
 
     function chMonths(){
@@ -652,7 +738,7 @@ SECTION = r'''
     }
 
     var built=false;
-    function renderAll(){ kpi(); verdict(); beBlock(); plTable(); renderPoints(); renderSkus(); method(); if(window.Chart){ chMonths(); chFall(); } built=true; }
+    function renderAll(){ kpi(); verdict(); conditions(); beBlock(); plTable(); renderPoints(); renderSkus(); method(); if(window.Chart){ chMonths(); chFall(); } built=true; }
     function boot(){
       document.getElementById("mm-sum").textContent="возвраты "+pc(T.pct)+" · "+(T.margin<0?"убыток ":"прибыль ")+fmt(T.margin)+" с начала года";
       var det=document.getElementById("mm-details");

@@ -195,6 +195,39 @@ def build():
             "layers": {k: round(x) for k, x in layers.items()},
         }
 
+    # ── свежие месяцы из iiko (opiu_full.json), которых ещё нет в xlsx ──
+    fresh = os.path.join(HERE, "opiu_full.json")
+    if os.path.exists(fresh):
+        try:
+            fd = json.load(open(fresh, encoding="utf-8"))
+            if fd.get("check", {}).get("ok"):
+                m2l = {"food": "food", "prod": "povh", "fot": "fot", "ar": "rent", "com": "comm", "adm": "adm"}
+                added = 0
+                for m, v in sorted(fd.get("months", {}).items()):
+                    if m in pl or not v.get("rev"):
+                        continue
+                    rev = v["rev"]
+                    var = v.get("var") or 0
+                    fix = v.get("fix") or 0
+                    if not var or not fix:
+                        continue
+                    cm = rev - var
+                    cmr = cm / rev if rev else 0
+                    op = cm - fix
+                    layers = {m2l[k]: round(x) for k, x in v.get("abs", {}).items() if k in m2l}
+                    pl[m] = {"rev": round(rev), "var": round(var), "fix": round(fix), "cm": round(cm),
+                             "cmr": round(cmr * 100, 2), "op": round(op),
+                             "bep": round(fix / cmr) if cmr > 0 else 0,
+                             "safety": round((rev - (fix / cmr if cmr > 0 else 0)) / rev * 100, 1) if rev else 0,
+                             "gross": 0, "net": 0, "layers": layers, "src": "iiko"}
+                    months.append(m)
+                    added += 1
+                months = sorted(set(months))
+                if added:
+                    print("добавлено месяцев из iiko: %d" % added)
+        except Exception as e:
+            print("[!] opiu_full.json не прочитан:", e)
+
     # факторное разложение изменения операционной прибыли
     for i, m in enumerate(months):
         if i == 0:
