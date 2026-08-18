@@ -88,10 +88,7 @@ GROUPS = {
 "3.3.15.Командировки",
 "3.3.16.Регистрация нерезидентов",
 "3.3.17.Вакансии размещение",
-"3.3. РазныеАдмРасходы, прочие",
-"Расходы по вознаграждениям",
-"Зарплата",
-"3.Расходы АДМ, прочие"
+"3.3. РазныеАдмРасходы, прочие"
 ]
 }
 
@@ -276,6 +273,10 @@ def main():
         if r["fot"] < 0.15: why.append("ФОТ всего %.1f%% — зарплата ещё не начислена" % (r["fot"] * 100))
         if r["adm"] < 0.08: why.append("АУП всего %.1f%%" % (r["adm"] * 100))
         if months[key]["full"] < 0.90 or months[key]["full"] > 1.35: why.append("итог %.0f%%" % (months[key]["full"] * 100))
+        ref_avg = {k: sum(REFERENCE[m][k] for m in REFERENCE) / len(REFERENCE) for k in GROUPS}
+        for k in ("adm", "fot", "food"):
+            if abs(r[k] - ref_avg[k]) > 0.06:
+                why.append("%s %.1f%% против обычных %.1f%%" % (k, r[k] * 100, ref_avg[k] * 100))
         months[key]["ok"] = not why
         months[key]["why"] = "; ".join(why)
         print("  %s: выручка %s, полная себестоимость %.1f%% %s"
