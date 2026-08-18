@@ -205,22 +205,40 @@ def build():
                 m2l = {"food": "food", "prod": "povh", "fot": "fot", "ar": "rent", "com": "comm", "adm": "adm"}
                 added = 0
                 for m, v in sorted(fd.get("months", {}).items()):
-                    if m in pl or not v.get("rev") or not v.get("ok", True):
+                    if m in pl or not v.get("rev"):
+                        continue
+                    if not v.get("ok", True) and not (v.get("gaps") or []):
                         continue
                     rev = v["rev"]
                     var = v.get("var") or 0
                     fix = v.get("fix") or 0
                     if not var or not fix:
                         continue
+                    gaps = v.get("gaps") or []
+                    layers = {m2l[k]: round(x) for k, x in v.get("abs", {}).items() if k in m2l}
+                    if gaps:
+                        # начисления по этим группам ещё не проведены — заменяем их средней долей
+                        base = {}
+                        for key, lay in m2l.items():
+                            vals = [pl[x]["layers"].get(lay, 0) / pl[x]["rev"]
+                                    for x in pl if pl[x].get("rev") and not pl[x].get("est")]
+                            base[key] = sum(vals) / len(vals) if vals else 0
+                        for key in gaps:
+                            if key not in m2l:
+                                continue
+                            fact = (v.get("abs", {}) or {}).get(key, 0)
+                            est = rev * base.get(key, 0)
+                            fix = fix - fact + est          # ФОТ и АУП — постоянные затраты
+                            layers[m2l[key]] = round(est)   # слои приводим к той же оценке
                     cm = rev - var
                     cmr = cm / rev if rev else 0
                     op = cm - fix
-                    layers = {m2l[k]: round(x) for k, x in v.get("abs", {}).items() if k in m2l}
                     pl[m] = {"rev": round(rev), "var": round(var), "fix": round(fix), "cm": round(cm),
                              "cmr": round(cmr * 100, 2), "op": round(op),
                              "bep": round(fix / cmr) if cmr > 0 else 0,
                              "safety": round((rev - (fix / cmr if cmr > 0 else 0)) / rev * 100, 1) if rev else 0,
-                             "gross": 0, "net": 0, "layers": layers, "src": "iiko"}
+                             "gross": 0, "net": 0, "layers": layers,
+                             "src": "iiko+оценка" if gaps else "iiko", "est": bool(gaps)}
                     months.append(m)
                     added += 1
                 months = sorted(set(months))
@@ -555,12 +573,35 @@ SECTION = r'''
           y:Object.assign({},AX),y1:{position:"right",ticks:{color:"#c9a94e",font:{size:10},callback:function(v){return v+"%";}},grid:{display:false}}}}});
     }
 
+    var TONE={bad:["#ef4444","rgba(239,68,68,.10)"],warn:["#f59e0b","rgba(245,158,11,.10)"],
+              good:["#22c55e","rgba(34,197,94,.10)"],info:["#38bdf8","rgba(56,189,248,.08)"],
+              tip:["#c9a94e","rgba(201,169,78,.10)"]};
+    var ICONS={
+      "fc-obs1":[["\uD83C\uDFAF","tip"],["\uD83D\uDCC5","bad"],["\uD83C\uDFC6","info"],["\u2195\uFE0F","info"],["\uD83D\uDCC8","warn"],
+                 ["\uD83E\uDDEE","info"],["\uD83D\uDCB0","good"],["\uD83D\uDE80","warn"],["\uD83D\uDD3B","bad"],["\u2728","good"]],
+      "fc-obs2":[["\uD83E\uDD69","bad"],["\uD83D\uDCCA","info"],["\uD83D\uDC77","warn"],["\uD83C\uDFE2","warn"],["\uD83C\uDFED","info"],
+                 ["\uD83D\uDD04","tip"],["\uD83D\uDD04","tip"],["\uD83D\uDCAF","bad"],["\uD83D\uDD0D","tip"],["\uD83C\uDFAF","good"]],
+      "fc-obs3":[["\u2696\uFE0F","info"],["\uD83E\uDD47","warn"],["\uD83E\uDD48","info"],["\uD83D\uDCE6","info"],["\uD83D\uDCC9","warn"],
+                 ["\uD83C\uDFE6","warn"],["\u2705","good"],["\u26A0\uFE0F","bad"],["\uD83E\uDDF0","tip"],["\uD83D\uDD01","tip"]],
+      "fc-obs4":[["\uD83C\uDFEA","info"],["\uD83E\uDD47","info"],["\u26A0\uFE0F","bad"],["\uD83D\uDEAA","bad"],["\uD83D\uDCC8","good"],
+                 ["\uD83D\uDCC8","good"],["\u2696\uFE0F","info"],["\uD83D\uDCB5","info"],["\uD83D\uDD22","info"],["\uD83E\uDDED","tip"]],
+      "fc-obs5":[["\uD83C\uDF7D\uFE0F","info"],["\uD83E\uDD47","good"],["\uD83D\uDCB0","good"],["\uD83C\uDFC6","info"],["\uD83D\uDD34","bad"],
+                 ["\uD83D\uDFE2","good"],["\u2195\uFE0F","info"],["\uD83D\uDCA1","tip"],["\uD83D\uDCCA","info"],["\u2139\uFE0F","tip"]]
+    };
     function obsBlock(id, title, items){
       var el=document.getElementById(id); if(!el) return;
+      var meta=ICONS[id]||[];
+      var rows=items.map(function(t,i){
+        var m=meta[i]||["\u2022","info"], tone=TONE[m[1]]||TONE.info;
+        return '<div style="display:flex;gap:10px;align-items:flex-start;background:'+tone[1]+';border-left:3px solid '+tone[0]
+          +';border-radius:9px;padding:8px 11px;margin-bottom:6px">'
+          +'<div style="font-size:16px;line-height:1.3;flex:0 0 auto">'+m[0]+'</div>'
+          +'<div style="font-size:12.5px;line-height:1.7;color:#cbd5e1"><b style="color:'+tone[0]+'">'+(i+1)+'.</b> '+t+'</div></div>';
+      }).join("");
       el.innerHTML='<details style="background:#0b1220;border:1px solid #1f2937;border-radius:12px;padding:10px 14px">'
-        +'<summary style="cursor:pointer;font-size:12.5px;font-weight:800;color:#c9a94e;list-style:none">&#128172; '+title+' — '+items.length+' наблюдений</summary>'
-        +'<ol style="margin:10px 0 2px;padding-left:22px;font-size:12.5px;line-height:1.8;color:#cbd5e1">'
-        +items.map(function(t){ return '<li style="margin-bottom:5px">'+t+'</li>'; }).join("")+'</ol></details>';
+        +'<summary style="cursor:pointer;font-size:12.5px;font-weight:800;color:#c9a94e;list-style:none">&#128161; '+title
+        +' <span style="color:#64748b;font-weight:600">— '+items.length+' наблюдений, нажмите</span></summary>'
+        +'<div style="margin-top:10px">'+rows+'</div></details>';
     }
     function bb(t){ return '<b style="color:#f1f5f9">'+t+'</b>'; }
     function pp(v){ return (v>0?"+":"−")+Math.abs(v).toFixed(1).replace(".",",")+" пункта"; }
@@ -712,7 +753,18 @@ SECTION = r'''
         return {n:l.n,g:l.g,cur:cur,prv:prv,d:cur-prv,dp:prv?((cur-prv)/Math.abs(prv)*100):null}; })
         .filter(function(r){ return Math.abs(r.cur)>300000||Math.abs(r.d)>300000; });
       rows.sort(function(a,b){ return Math.abs(b.d)-Math.abs(a.d); });
-      var h='<div style="font-size:11.5px;color:#64748b;margin-bottom:6px">'+MN[+m.slice(5)]+" "+m.slice(0,4)+(base?(" против "+MN[+base.slice(5)]+" "+base.slice(0,4)):"")+'</div>'
+      var note="";
+      if(!rows.length){
+        note='<div style="font-size:11px;color:#c4b5fd;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.35);'
+           +'border-radius:8px;padding:6px 9px;margin-bottom:7px">&#9432; Постатейной расшифровки ОПиУ за этот месяц ещё нет &mdash; '
+           +'показаны шесть групп затрат из iiko. Детализация появится после закрытия месяца.</div>';
+        rows=D.layers.map(function(l){
+          var cur=(D.pl[m].layers||{})[l.k]||0, prv=base?((D.pl[base].layers||{})[l.k]||0):0;
+          return {n:l.t,g:"группа",cur:cur,prv:prv,d:cur-prv,dp:prv?((cur-prv)/Math.abs(prv)*100):null};
+        }).filter(function(r){ return r.cur||r.d; });
+        rows.sort(function(a,b){ return Math.abs(b.d)-Math.abs(a.d); });
+      }
+      var h=note+'<div style="font-size:11.5px;color:#64748b;margin-bottom:6px">'+MN[+m.slice(5)]+" "+m.slice(0,4)+(base?(" против "+MN[+base.slice(5)]+" "+base.slice(0,4)):"")+'</div>'
         +'<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:380px">';
       rows.slice(0,14).forEach(function(r){
         h+='<tr style="border-top:1px solid #1b2636">'
@@ -752,7 +804,7 @@ SECTION = r'''
       seg("fc-mode",[["abs","₸"],["pct","% от выручки"]],st.mode,function(v){ st.mode=v; render(); });
       seg("fc-cmp",[["mom","к прошлому месяцу"],["yoy","к прошлому году"]],st.cmp,function(v){ st.cmp=v; render(); });
       var sel=document.getElementById("fc-month");
-      sel.innerHTML=months().map(function(m){ return '<option value="'+m+'"'+(m===st.month?" selected":"")+'>'+MN[+m.slice(5)]+" "+m.slice(0,4)+'</option>'; }).join("");
+      sel.innerHTML=months().map(function(m){ return '<option value="'+m+'"'+(m===st.month?" selected":"")+'>'+MN[+m.slice(5)]+" "+m.slice(0,4)+(D.pl[m].est?" · оценка":(D.pl[m].src==="iiko"?" · iiko":""))+'</option>'; }).join("");
       sel.onchange=function(){ st.month=this.value; render(); };
       kpi(); alertBox(); momTable(); linesTable(); chanTable(); observations();
       if(window.Chart){ ch1(); ch2(); ch3(); ch4(); ch5(); }

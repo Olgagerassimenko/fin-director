@@ -277,8 +277,15 @@ def main():
         for k in ("adm", "fot", "food"):
             if abs(r[k] - ref_avg[k]) > 0.06:
                 why.append("%s %.1f%% против обычных %.1f%%" % (k, r[k] * 100, ref_avg[k] * 100))
+        gaps = []
+        ref_avg2 = {k: sum(REFERENCE[m][k] for m in REFERENCE) / len(REFERENCE) for k in GROUPS}
+        for k in ("fot", "adm"):
+            if r[k] < ref_avg2[k] * 0.55:
+                gaps.append(k)
         months[key]["ok"] = not why
         months[key]["why"] = "; ".join(why)
+        months[key]["gaps"] = gaps          # группы, где начисления ещё не проведены
+        months[key]["ref"] = {k: round(v, 5) for k, v in ref_avg2.items()}
         print("  %s: выручка %s, полная себестоимость %.1f%% %s"
               % (key, f"{round(rev):,}".replace(",", " "), months[key]["full"] * 100,
                  "✓" if not why else "— НЕ БЕРЁМ: " + months[key]["why"]))

@@ -104,12 +104,23 @@ def effective_ratios():
         try:
             d = json.load(open(p, encoding="utf-8"))
             if d.get("check", {}).get("ok"):
+                base = {k: sum(PL_RATIOS[x][k] for x in PL_RATIOS) / len(PL_RATIOS)
+                        for k in ("food", "prod", "fot", "ar", "com", "adm")}
                 for m, v in sorted(d.get("months", {}).items()):
-                    if m in eff or not v.get("rev") or not v.get("ok", True):
+                    if m in eff or not v.get("rev"):
                         continue
-                    eff[m] = v["ratios"]
-                    ab[m] = {"rev": v["rev"], "op": round(v["rev"] - sum(v["abs"].values()))}
-                    src[m] = "iiko"
+                    gaps = v.get("gaps") or []
+                    if not v.get("ok", True) and not gaps:
+                        continue                      # месяц брак по другой причине — пропускаем
+                    r = dict(v["ratios"])
+                    if gaps:
+                        # начисления по этим статьям ещё не проведены — подставляем среднюю долю
+                        for k in gaps:
+                            r[k] = base[k]
+                    eff[m] = r
+                    rev = v["rev"]
+                    ab[m] = {"rev": rev, "op": round(rev - rev * sum(r.values()))}
+                    src[m] = "iiko" if not gaps else "iiko+оценка"
                 print("доли затрат: xlsx %d мес. + iiko %d мес."
                       % (len(PL_RATIOS), len(eff) - len(PL_RATIOS)))
             else:
@@ -143,7 +154,8 @@ def build():
             "k": m, "lbl": MS[int(m.split("-")[1])], "g": round(g), "r": round(r), "n": round(n),
             "pct": round(r / g * 100, 1), "cost": {k: round(v) for k, v in cl.items()},
             "full": round(full), "margin": round(n - full),
-            "est": m not in PL_RATIOS,
+            "est": "оценк" in PL_SRC.get(m, ""),
+            "src": PL_SRC.get(m, "ОПиУ"),
         })
 
     G = sum(x["g"] for x in rows); RR = sum(x["r"] for x in rows); N = G - RR
@@ -257,6 +269,7 @@ SECTION = r'''
         <div style="font-size:11.5px;color:#94a3b8;margin-bottom:10px">Столбик — сколько процентов отгрузки вернулось. Золотая линия — порог: пока возвраты ниже неё, месяц окупает производство и доставку. Синяя линия — результат месяца в деньгах.</div>
         <div id="mm-strip" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
         <div style="height:320px"><canvas id="mm-ch-months"></canvas></div>
+        <div id="mm-notes" style="margin-top:10px"></div>
         <div id="mm-verdict-months" style="margin-top:10px"></div>
         <div id="obs-months" style="margin-top:10px"></div>
       </div>
@@ -510,14 +523,31 @@ SECTION = r'''
       document.getElementById("mm-matrix").innerHTML=h;
     }
 
+    var TONE={bad:["#ef4444","rgba(239,68,68,.10)"],warn:["#f59e0b","rgba(245,158,11,.10)"],
+              good:["#22c55e","rgba(34,197,94,.10)"],info:["#38bdf8","rgba(56,189,248,.08)"],
+              tip:["#c9a94e","rgba(201,169,78,.10)"]};
+    var ICONS={};
     function obsBlock(id, title, items){
       var el=document.getElementById(id); if(!el) return;
+      var meta=ICONS[id]||[];
+      var rows=items.map(function(t,i){
+        var m=meta[i]||["\u2022","info"], tone=TONE[m[1]]||TONE.info;
+        return '<div style="display:flex;gap:10px;align-items:flex-start;background:'+tone[1]+';border-left:3px solid '+tone[0]
+          +';border-radius:9px;padding:8px 11px;margin-bottom:6px">'
+          +'<div style="font-size:16px;line-height:1.3;flex:0 0 auto">'+m[0]+'</div>'
+          +'<div style="font-size:12.5px;line-height:1.7;color:#cbd5e1"><b style="color:'+tone[0]+'">'+(i+1)+'.</b> '+t+'</div></div>';
+      }).join("");
       el.innerHTML='<details style="background:#0f172a;border:1px solid #1f2937;border-radius:12px;padding:10px 14px">'
-        +'<summary style="cursor:pointer;font-size:12.5px;font-weight:800;color:#c9a94e;list-style:none">&#128172; '+title+' — '+items.length+' наблюдений</summary>'
-        +'<ol style="margin:10px 0 2px;padding-left:22px;font-size:12.5px;line-height:1.8;color:#cbd5e1">'
-        +items.map(function(t){ return '<li style="margin-bottom:5px">'+t+'</li>'; }).join("")
-        +'</ol></details>';
+        +'<summary style="cursor:pointer;font-size:12.5px;font-weight:800;color:#c9a94e;list-style:none">&#128161; '+title
+        +' <span style="color:#64748b;font-weight:600">— '+items.length+' наблюдений, нажмите</span></summary>'
+        +'<div style="margin-top:10px">'+rows+'</div></details>';
     }
+    ICONS["obs-months"]=[["\uD83D\uDCCA","info"],["\uD83D\uDD34","bad"],["\u26A0\uFE0F","bad"],["\uD83E\uDD47","warn"],
+      ["\uD83D\uDCC9","good"],["\uD83C\uDFAF","tip"],["\uD83D\uDCB8","warn"],["\u2195\uFE0F","info"],["\uD83E\uDDFE","bad"],["\u2728","good"]];
+    ICONS["obs-fall"]=[["\uD83D\uDE9A","info"],["\uD83E\uDD69","bad"],["\uD83D\uDC77","warn"],["\uD83C\uDFED","info"],["\uD83D\uDEF5","info"],
+      ["\uD83C\uDFE2","info"],["\uD83D\uDCC9","bad"],["\uD83D\uDCAF","bad"],["\u267B\uFE0F","warn"],["\uD83D\uDD0D","tip"]];
+    ICONS["obs-cond"]=[["\uD83D\uDCD0","tip"],["\uD83D\uDEAB","bad"],["\uD83D\uDCC9","good"],["\uD83D\uDCC9","good"],["\uD83D\uDCB5","warn"],
+      ["\uD83D\uDFE9","good"],["\uD83E\uDD1D","tip"],["\uD83E\uDD1D","tip"],["\u26A0\uFE0F","warn"],["\uD83E\uDDED","tip"]];
     function b_(t){ return '<b style="color:#f1f5f9">'+t+'</b>'; }
 
     function obsMonths(){
@@ -589,7 +619,9 @@ SECTION = r'''
           var ok=m.pct<=BE.deliv;
           return '<div style="flex:1;min-width:96px;background:'+(ok?"rgba(34,197,94,.14)":"rgba(239,68,68,.13)")
             +';border:1px solid '+(ok?"rgba(34,197,94,.45)":"rgba(239,68,68,.4)")+';border-radius:12px;padding:7px 9px;text-align:center">'
-            +'<div style="font-size:11px;color:#94a3b8;font-weight:700">'+m.lbl+'</div>'
+            +'<div style="font-size:11px;color:#94a3b8;font-weight:700">'+m.lbl
+            +(m.est?' <span title="часть затрат ещё не проведена — доли взяты средние" style="background:rgba(167,139,250,.18);border:1px solid rgba(167,139,250,.5);color:#c4b5fd;border-radius:6px;padding:1px 5px;font-size:9px">оценка</span>':"")
+            +'</div>'
             +'<div style="font-size:16px;font-weight:800;color:'+(ok?"#22c55e":"#ef4444")+';line-height:1.25">'+pc(m.pct)+'</div>'
             +'<div style="font-size:10.5px;color:#94a3b8">'+(m.margin<0?"убыток ":"прибыль ")+fmt(Math.abs(m.margin))+'</div></div>';
         }).join("");
@@ -610,6 +642,41 @@ SECTION = r'''
       var cv=document.getElementById("mm-ch-months"); if(!cv||!window.Chart) return;
       try{var ex=Chart.getChart?Chart.getChart(cv):null; if(ex) ex.destroy();}catch(e){}
       var L=D.months.map(function(m){return m.lbl;});
+      var worstI=0, bestI=0;
+      D.months.forEach(function(m,i){ if(m.pct>D.months[worstI].pct) worstI=i; if(m.pct<D.months[bestI].pct) bestI=i; });
+      var estI=-1; D.months.forEach(function(m,i){ if(m.est&&estI<0) estI=i; });
+      var NOTES=[
+        {i:worstI, num:"\u2460", tone:"#ef4444", txt:"Пик возвратов: "+D.months[worstI].lbl+" — "+pc(D.months[worstI].pct)+", убыток "+fmt(Math.abs(D.months[worstI].margin))},
+        {i:bestI, num:"\u2461", tone:"#22c55e", txt:"Лучший месяц: "+D.months[bestI].lbl+" — "+pc(D.months[bestI].pct)+", но всё ещё выше порога"},
+        {i:D.months.length-1, num:"\u2462", tone:"#c9a94e", txt:"Порог "+pc(BE.deliv)+": ниже этой линии месяц окупает производство и доставку"},
+        {i:Math.max(0,D.months.length-3), num:"\u2463", tone:"#38bdf8", txt:"Последние три месяца: средний возврат "+pc(D.months.slice(-3).reduce(function(s2,m){return s2+m.pct;},0)/Math.min(3,D.months.length))}
+      ];
+      if(estI>=0) NOTES.push({i:estI, num:"\u2464", tone:"#a78bfa", txt:D.months[estI].lbl+": часть затрат ещё не проведена в учёте, доли взяты средние"});
+      var noteEl=document.getElementById("mm-notes");
+      if(noteEl) noteEl.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px">'+NOTES.map(function(n){
+        return '<div style="display:flex;gap:7px;align-items:center;background:#0f172a;border:1px solid #1f2937;border-left:3px solid '
+          +n.tone+';border-radius:9px;padding:6px 10px;font-size:11.5px;color:#cbd5e1">'
+          +'<span style="color:'+n.tone+';font-size:15px;font-weight:800">'+n.num+'</span>'+n.txt+'</div>';
+      }).join("")+'</div>';
+      var notePlugin={id:"mmnotes",afterDatasetsDraw:function(ch){
+        var c=ch.ctx, bars=ch.getDatasetMeta(0), line=ch.getDatasetMeta(1), used={};
+        c.save();
+        NOTES.forEach(function(n){
+          var el=(n.num==="\u2462")?(line.data[n.i]):(bars.data[n.i]);
+          if(!el) return;
+          var x=el.x, y=(n.num==="\u2462")?el.y:(el.y-26);
+          if(n.num==="\u2463"){ y=ch.chartArea.top+14; }
+          var slot=Math.round(x)+"_"+Math.round(y/24);
+          while(used[slot]){ y-=24; slot=Math.round(x)+"_"+Math.round(y/24); }
+          used[slot]=1;
+          c.beginPath(); c.arc(x, y, 10, 0, Math.PI*2);
+          c.fillStyle=n.tone; c.globalAlpha=.95; c.fill(); c.globalAlpha=1;
+          c.fillStyle="#0b1220"; c.font="800 11px system-ui,-apple-system,sans-serif";
+          c.textAlign="center"; c.textBaseline="middle";
+          c.fillText(n.num, x, y+.5);
+        });
+        c.restore();
+      }};
       var labelPlugin={id:"mmlab",afterDatasetsDraw:function(ch){
         var c=ch.ctx, ds=ch.getDatasetMeta(0);
         c.save(); c.font="800 11px system-ui,-apple-system,sans-serif"; c.textAlign="center";
@@ -620,17 +687,24 @@ SECTION = r'''
         });
         var ms=ch.getDatasetMeta(2);
         c.font="700 10.5px system-ui,-apple-system,sans-serif"; c.fillStyle="#93c5fd";
-        ms.data.forEach(function(el,i){ c.fillText(fmt(D.months[i].margin), el.x, el.y+16); });
+        ms.data.forEach(function(el,i){
+          var low = el.y > ch.chartArea.bottom-34;      // точка у самой оси — подпись сверху
+          c.fillText(fmt(D.months[i].margin), el.x, low ? el.y-11 : el.y+16);
+        });
         c.restore();
       }};
-      new Chart(cv.getContext("2d"),{data:{labels:L,datasets:[
-        {type:"bar",label:"Возвраты, % от отгрузки",yAxisID:"y",order:3,borderRadius:6,
+      var cx=cv.getContext("2d");
+      function grad(c1,c2){ var g=cx.createLinearGradient(0,0,0,320); g.addColorStop(0,c1); g.addColorStop(1,c2); return g; }
+      var gBad=grad("rgba(248,113,113,.95)","rgba(239,68,68,.35)"), gOk=grad("rgba(74,222,128,.95)","rgba(34,197,94,.32)");
+      new Chart(cx,{data:{labels:L,datasets:[
+        {type:"bar",label:"Возвраты, % от отгрузки",yAxisID:"y",order:3,borderRadius:8,borderSkipped:false,
          data:D.months.map(function(m){return m.pct;}),
-         backgroundColor:D.months.map(function(m){return m.pct<=BE.deliv?"rgba(34,197,94,.75)":"rgba(239,68,68,.7)";})},
+         hoverBackgroundColor:D.months.map(function(m){return m.pct<=BE.deliv?"rgba(74,222,128,1)":"rgba(248,113,113,1)";}),
+         backgroundColor:D.months.map(function(m){return m.pct<=BE.deliv?gOk:gBad;})},
         {type:"line",label:"Порог безубыточности "+pc(BE.deliv),yAxisID:"y",order:1,
          data:D.months.map(function(){return BE.deliv;}),
-         borderColor:"#c9a94e",borderWidth:2.5,borderDash:[7,5],pointRadius:0,
-         fill:{target:"origin",above:"rgba(34,197,94,.13)"}},
+         borderColor:"#e3c46a",borderWidth:3,borderDash:[8,5],pointRadius:0,
+         fill:{target:"origin",above:"rgba(34,197,94,.14)"}},
         {type:"line",label:"Результат месяца, ₸",yAxisID:"y1",order:2,
          data:D.months.map(function(m){return +(m.margin/1e6).toFixed(2);}),
          borderColor:"#60a5fa",backgroundColor:"#60a5fa",borderWidth:2,tension:.3,pointRadius:4,
@@ -649,7 +723,7 @@ SECTION = r'''
              ticks:{color:"#94a3b8",font:{size:10},callback:function(v){return v+"%";}},grid:{color:"rgba(51,65,85,.35)"}},
           y1:{position:"right",title:{display:true,text:"результат, млн ₸",color:"#64748b",font:{size:10}},
               ticks:{color:"#60a5fa",font:{size:10},callback:function(v){return v+" М";}},grid:{display:false}}}},
-        plugins:[labelPlugin]});
+        plugins:[labelPlugin,notePlugin]});
     }
 
     function chFall(){
@@ -958,20 +1032,34 @@ SECTION = r'''
 '''
 
 
+MM_BEG = "<!--MAYMART-START-->"
+MM_END = "<!--MAYMART-END-->"
+
+
 def inject(html, data):
-    block = SECTION.replace("__MMDATA__", json.dumps(data, ensure_ascii=False, separators=(",", ":")))
-    # убираем прошлую версию секции, если пересобираем поверх
-    i = html.find('<div class="section" id="maymart-analytics"')
-    if i >= 0:
-        j = html.find("<footer id=\"psig-sales\"", i)
-        if j < 0:
-            j = html.find("</body>", i)
-        if j > 0:
-            html = html[:i] + html[j:]
-    for anchor in ('<footer id="psig-sales"', "</body>", "</html>"):
+    block = (MM_BEG + "\n"
+             + SECTION.replace("__MMDATA__", json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+             + "\n" + MM_END + "\n")
+    # ── убираем прошлую версию секции, если пересобираем поверх ──
+    a = html.find(MM_BEG)
+    if a >= 0:                                   # новая разметка с маркерами
+        b = html.find(MM_END, a)
+        html = html[:a] + (html[b + len(MM_END):] if b >= 0 else "")
+    else:                                        # старая версия — секция стояла в самом низу
+        i = html.find('<div class="section" id="maymart-analytics"')
+        if i >= 0:
+            j = html.find('<footer id="psig-sales"', i)
+            if j < 0:
+                j = html.find("</body>", i)
+            if j > 0:
+                html = html[:i] + html[j:]
+    # ── ставим сразу под блоком «Аналитика возвратов» ──
+    for anchor in ('<div class="section" id="wf-section"',
+                   '<div class="section" id="ctr-section"',
+                   '<footer id="psig-sales"', "</body>", "</html>"):
         k = html.find(anchor)
         if k >= 0:
-            return html[:k] + block + "\n" + html[k:]
+            return html[:k] + block + html[k:]
     return html + block
 
 
