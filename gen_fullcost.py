@@ -183,11 +183,18 @@ def build():
         rev = v("Итого Выручка", m)
         var = sum(v(k, m) for k in VARIABLE)
         fix = sum(v(k, m) for k in FIXED)
+        layers = {key: sum(v(k, m) for k in keys) for key, _t, keys in LAYERS}
+        # Полная себестоимость = сумма шести слоёв (она сверена с ОПиУ построчно).
+        # Деление на переменные/постоянные вспомогательное, поэтому постоянные берём
+        # остатком — иначе мелкая статья, не попавшая ни в один список, ломает сходимость.
+        S = sum(layers.values())
+        if S > 0:
+            var = min(var, S)
+            fix = S - var
         cm = rev - var
         cmr = cm / rev if rev else 0
         op = cm - fix
         bep = fix / cmr if cmr > 0 else 0
-        layers = {key: sum(v(k, m) for k in keys) for key, _t, keys in LAYERS}
         pl[m] = {
             "rev": round(rev), "var": round(var), "fix": round(fix), "cm": round(cm),
             "cmr": round(cmr * 100, 2), "op": round(op), "bep": round(bep),
@@ -254,26 +261,38 @@ def build():
         except Exception as e:
             print("[!] opiu_full.json не прочитан:", e)
 
-    # факторное разложение изменения операционной прибыли
+    # факторное разложение изменения операционной прибыли.
+    # Маржинальность берём НЕокруглённую: cmr в pl хранится с точностью 0,01%,
+    # а 0,01% от 260 млн — это 26 тыс. ₸, из-за чего сумма факторов не сходилась с дельтой.
+    def _cmr(p):
+        return (p["rev"] - p["var"]) / p["rev"] if p["rev"] else 0.0
+
+    def _factors(p0, p1):
+        c0, c1 = _cmr(p0), _cmr(p1)
+        vol = (p1["rev"] - p0["rev"]) * c0          # эффект объёма при старой маржинальности
+        mar = p1["rev"] * (c1 - c0)                 # эффект маржинальности на новом объёме
+        fxd = -(p1["fix"] - p0["fix"])              # эффект постоянных затрат
+        # vol+mar+fix тождественно равно (op1-op0); остаток гасим в самый крупный фактор
+        d = p1["op"] - p0["op"]
+        parts = {"vol": vol, "mar": mar, "fix": fxd}
+        resid = d - (vol + mar + fxd)
+        big = max(parts, key=lambda k: abs(parts[k]))
+        parts[big] += resid
+        return {"vol": round(parts["vol"]), "mar": round(parts["mar"]),
+                "fix": round(parts["fix"]), "d": round(d)}
+
     for i, m in enumerate(months):
         if i == 0:
             pl[m]["fx"] = None
             continue
-        p0, p1 = pl[months[i - 1]], pl[m]
-        vol = (p1["rev"] - p0["rev"]) * p0["cmr"] / 100
-        mar = p1["rev"] * (p1["cmr"] - p0["cmr"]) / 100
-        fxd = -(p1["fix"] - p0["fix"])
-        pl[m]["fx"] = {"vol": round(vol), "mar": round(mar), "fix": round(fxd),
-                       "d": round(p1["op"] - p0["op"])}
+        pl[m]["fx"] = _factors(pl[months[i - 1]], pl[m])
     # год к году
     for m in months:
         prev = "%d-%s" % (int(m[:4]) - 1, m[5:])
         if prev in pl:
-            p0, p1 = pl[prev], pl[m]
-            pl[m]["yoy"] = {"vol": round((p1["rev"] - p0["rev"]) * p0["cmr"] / 100),
-                            "mar": round(p1["rev"] * (p1["cmr"] - p0["cmr"]) / 100),
-                            "fix": round(-(p1["fix"] - p0["fix"])),
-                            "d": round(p1["op"] - p0["op"]), "prev": prev}
+            f = _factors(pl[prev], pl[m])
+            f["prev"] = prev
+            pl[m]["yoy"] = f
         else:
             pl[m]["yoy"] = None
 

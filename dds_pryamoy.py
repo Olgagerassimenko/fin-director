@@ -15,8 +15,8 @@ HERE=os.path.dirname(os.path.abspath(__file__))
 src=open(os.path.join(HERE,"iiko_export.py"),encoding="utf-8").read()
 URL=re.search(r'URL\s*=\s*"([^"]+)"',src).group(1);LOGIN=re.search(r'LOGIN\s*=\s*"([^"]+)"',src).group(1);PASS=re.search(r'PASS\s*=\s*"([^"]+)"',src).group(1)
 YEAR=2026; FZ="2aafb9a8-7c62-499f-80b7-c3935348b891"
-ACTIVE=["99Главная касса","Касса Взаиморасчеты","ФЗ Айдана каспи","ФЗ Жусан Банк","ФЗ Каспи","ФЗ Каспи копилка","ФЗ РБК Каламкас","Цой Д.Л.Каспи"]
-SHORT={"99Главная касса":"Гл. касса","Касса Взаиморасчеты":"Взаиморасчёты","ФЗ Айдана каспи":"Айдана","ФЗ Жусан Банк":"Жусан","ФЗ Каспи":"Каспи","ФЗ Каспи копилка":"Каспи копилка","ФЗ РБК Каламкас":"РБК Каламкас","Цой Д.Л.Каспи":"Цой Д.Л."}
+ACTIVE=["99Главная касса","Касса Взаиморасчеты","ФЗ Айдана каспи","ФЗ Жусан Банк","ФЗ Каспи","ФЗ Каспи копилка","ФЗ РБК Каламкас","Цой Д.Л.Каспи","ФЗ Ермагамбет отдел продаж"]
+SHORT={"99Главная касса":"Гл. касса","Касса Взаиморасчеты":"Взаиморасчёты","ФЗ Айдана каспи":"Айдана","ФЗ Жусан Банк":"Жусан","ФЗ Каспи":"Каспи","ФЗ Каспи копилка":"Каспи копилка","ФЗ РБК Каламкас":"РБК Каламкас","Цой Д.Л.Каспи":"Цой Д.Л.","ФЗ Ермагамбет отдел продаж":"Ермагамбет"}
 _ACT=set(ACTIVE); REVCAT="1.Выручка"
 _NORM={a.replace(" ","").lower():a for a in ACTIVE}
 def _canon(nm): return _NORM.get((nm or "").replace(" ","").lower())
@@ -53,8 +53,9 @@ def articles(d1,d2):
                      "Account.Name":{"filterType":"IncludeValues","values":ACTIVE}}}
     agg={}
     for row in _olap(body):
-        cat=row.get("CashFlowCategory")
-        if cat is None: continue
+        # Раньше строки без статьи ДДС отбрасывались, и расшифровка не сходилась
+        # с изменением остатка денег (до 7,5 млн за месяц уходило в никуда).
+        cat=row.get("CashFlowCategory") or "— без статьи ДДС"
         acc=_canon(row.get("Account.Name"))
         if not acc: continue
         inc=round(row.get("Sum.Incoming") or 0); o=round(row.get("Sum.Outgoing") or 0)
@@ -96,8 +97,9 @@ def daily_all(d1,d2):
                      "Account.Name":{"filterType":"IncludeValues","values":ACTIVE}}}
     byDay={}
     for row in _olap(body):
-        cat=row.get("CashFlowCategory")
-        if cat is None: continue
+        # Раньше строки без статьи ДДС отбрасывались, и расшифровка не сходилась
+        # с изменением остатка денег (до 7,5 млн за месяц уходило в никуда).
+        cat=row.get("CashFlowCategory") or "— без статьи ДДС"
         acc=_canon(row.get("Account.Name"))
         if not acc: continue
         dt=str(row.get("DateTime.DateTyped") or "")[:10]
