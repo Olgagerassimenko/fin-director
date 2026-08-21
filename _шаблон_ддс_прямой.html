@@ -3,8 +3,10 @@
 <title>ДДС — движение денежных средств · Мастерская Сегодня</title><meta name="author" content="Ольга Герасименко">
 <script src="nav.js"></script>
 <style>
- :root{--in:#34d399;--out:#fb7185;--ink:#f4f7fb;--ink2:#b9c5d3;--mut:#8798ab;
-   --line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.055);--surf:#0f1a27;--page:#080d16;--accent:#e8c766;--accentbg:rgba(232,199,102,.14)}
+ /* --out подобран так, чтобы приход и расход различались и при дальтонизме (ΔE 12 deutan) */
+ :root{--in:#34d399;--out:#f43f5e;--ink:#f4f7fb;--ink2:#b9c5d3;--mut:#8798ab;
+   --line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.055);--surf:#0f1a27;--page:#080d16;--accent:#e8c766;--accentbg:rgba(232,199,102,.14);
+   --grid:rgba(255,255,255,.09);--card:#0f1b29;--dim:#8a7c4e}
  *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
  body{background:var(--page);color:var(--ink);-webkit-font-smoothing:antialiased}
  .topbar{background:var(--surf);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:14px 24px;flex-wrap:wrap}
@@ -23,6 +25,9 @@
  .daypick label{font-size:12.5px;color:var(--ink2);font-weight:600}
  .daypick select,.daypick input[type=date]{font-size:13.5px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#132234;color:var(--ink);font-weight:600}
  .daypick select{min-width:190px}
+ .d1grp{display:flex;align-items:center;gap:8px;flex:1 1 250px;min-width:0}
+ .d1grp select{flex:1 1 auto;min-width:110px}
+ .d1grp .rgo{padding:8px 13px;line-height:1}
  .rgo{font-size:13px;font-weight:700;padding:8px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;cursor:pointer}
  .rgo:hover{filter:brightness(1.08)}
  .anlz{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:4px 14px 14px}
@@ -61,7 +66,7 @@
  .wfrk{color:#8798ab;font-size:12px;font-weight:700;text-align:center}
  .wfnm{color:#d7dee8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .wfbar{position:relative;height:26px;background:rgba(255,255,255,.04);border-radius:7px;overflow:hidden}
- .wffill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#fb7185,#e0526e);border-radius:7px;box-shadow:0 0 14px -4px rgba(251,113,133,.55);transform-origin:left;animation:wfgrow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
+ .wffill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#f43f5e,#be123c);border-radius:7px;box-shadow:0 0 14px -4px rgba(251,113,133,.55);transform-origin:left;animation:wfgrow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
  @keyframes wfgrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
  .wfam{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-weight:800;font-variant-numeric:tabular-nums;color:#fff;font-size:12px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.6)}
  .wfpc{text-align:right;color:#8798ab;font-size:12px;font-weight:700}
@@ -82,6 +87,83 @@
  tr.bal td{font-weight:800;background:rgba(232,199,102,.09)}tr.bal .stub{background:rgba(232,199,102,.09)}
  tr.other td{color:var(--ink2);font-style:italic;background:rgba(255,255,255,.035)}tr.other .stub{background:rgba(255,255,255,.035)}
  .pos{color:var(--in)}.neg{color:var(--out)}.z{color:#465264}
+ /* ================= ДДС ЗА ДЕНЬ: рассказ о дне ================= */
+ .story{padding:4px 18px 18px;font-size:14.5px;line-height:1.62;color:#dbe4ef}
+ .story p{margin:0 0 9px}
+ .story .hero{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:2px 0 10px;color:var(--ink)}
+ .story .hero .u{font-size:15px;font-weight:700;color:var(--mut);margin-left:4px}
+ .story b{color:#f2dd9e;font-weight:700}
+ .story .gi{color:var(--in);font-weight:700}.story .ro{color:var(--out);font-weight:700}
+ .story .note{margin-top:11px;padding-top:10px;border-top:1px solid var(--line2);font-size:12.5px;color:var(--mut)}
+ .story ul{margin:2px 0 9px 0;padding-left:18px}.story li{margin:3px 0}
+ /* ================= общая обвязка графиков ================= */
+ .chgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+ @media(max-width:920px){.chgrid{grid-template-columns:1fr}}
+ .chgrid .card{margin-bottom:0}
+ .lgd{display:flex;gap:14px;flex-wrap:wrap;padding:0 18px 8px;font-size:12px;color:var(--ink2)}
+ .lgd i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+ .lgd i.ln{width:16px;height:2px;border-radius:2px;vertical-align:3px}
+ .tv{margin:2px 18px 14px;font-size:12.5px}
+ .tv summary{cursor:pointer;color:#f2dd9e;font-weight:700;list-style:none;padding:6px 0}
+ .tv summary::-webkit-details-marker{display:none}
+ .tv summary::before{content:"▸ ";color:var(--mut)}
+ .tv[open] summary::before{content:"▾ "}
+ .tv table{width:100%;border-collapse:collapse;font-size:12px}
+ .tv th,.tv td{padding:5px 8px;border-bottom:1px solid var(--line2);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+ .tv th{color:var(--mut);font-weight:700;font-size:10.5px;text-transform:uppercase}
+ .tv th:first-child,.tv td:first-child{text-align:left}
+ .empty{padding:16px 18px 20px;color:var(--mut);font-size:13px}
+ /* на телефоне названию статьи и счёта отдаём отдельную строку — полосе нужна ширина */
+ @media(max-width:640px){
+   .dvgrow{grid-template-columns:1fr;gap:2px}
+   .dvgnm{font-size:12px;color:var(--ink2)}
+   .dmbrow{grid-template-columns:minmax(64px,92px) 1fr 96px;gap:8px;font-size:11.5px}
+   .story{font-size:13.5px}.story .hero{font-size:26px}
+   .svgwrap svg{min-width:340px}
+ }
+ /* ---- diverging: приход/расход по статьям ---- */
+ .dvg{padding:6px 16px 14px;display:flex;flex-direction:column;gap:6px}
+ .dvgrow{display:grid;grid-template-columns:minmax(110px,190px) 1fr;gap:12px;align-items:center;font-size:12.5px}
+ .dvgnm{color:#d7dee8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .dvgbar{position:relative;height:24px;display:grid;grid-template-columns:1fr 1fr}
+ .dvgbar::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--grid)}
+ .dvgL,.dvgR{position:relative}
+ .dvgf{position:absolute;top:3px;bottom:3px;animation:dvgrow .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
+ .dvgL .dvgf{right:0;background:var(--out);border-radius:4px 0 0 4px;transform-origin:right}
+ .dvgR .dvgf{left:0;background:var(--in);border-radius:0 4px 4px 0;transform-origin:left}
+ @keyframes dvgrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+ .dvgv{position:absolute;top:50%;transform:translateY(-50%);font-weight:700;font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink2);pointer-events:none}
+ .dvgv.in{left:calc(var(--w) + 8px)}.dvgv.out{right:calc(var(--w) + 8px);text-align:right}
+ /* если снаружи не помещается — подпись уезжает внутрь полосы, к её концу (класс .ins ставится после замера) */
+ .dvgv.ins{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+ .dvgv.ins.in{left:calc(var(--w) - 8px);transform:translate(-100%,-50%)}
+ .dvgv.ins.out{right:calc(var(--w) - 8px);transform:translate(100%,-50%)}
+ .dvgf{pointer-events:none}
+ .dvghit{position:absolute;inset:-3px 0;cursor:default;z-index:3}
+ /* ---- dumbbell: деньги по счетам утро -> вечер ---- */
+ .dmb{padding:6px 16px 14px;display:flex;flex-direction:column;gap:7px}
+ .dmbrow{display:grid;grid-template-columns:minmax(84px,132px) 1fr 118px;gap:12px;align-items:center;font-size:12.5px}
+ .dmbnm{color:#d7dee8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .dmbtr{position:relative;height:22px}
+ .dmbtr::before{content:"";position:absolute;left:0;right:0;top:10.5px;height:1px;background:var(--line2)}
+ .dmbln{position:absolute;top:10px;height:2px;border-radius:2px;background:rgba(232,199,102,.5)}
+ .dmbd{position:absolute;top:5px;width:12px;height:12px;border-radius:50%;margin-left:-6px;box-shadow:0 0 0 2px var(--card)}
+ .dmbd.s{background:var(--dim)}.dmbd.e{background:var(--accent)}
+ .dmbv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink2);white-space:nowrap}
+ /* ---- svg-графики ---- */
+ .svgwrap{padding:4px 12px 10px;overflow-x:auto}
+ .svgwrap svg{display:block;width:100%;min-width:420px;touch-action:pan-y}
+ .ax{font-size:10.5px;fill:var(--mut);font-variant-numeric:tabular-nums}
+ .gl{stroke:var(--grid);stroke-width:1}
+ /* ---- общий тултип ---- */
+ #tip{position:fixed;z-index:99;pointer-events:none;opacity:0;transition:opacity .12s;background:#16243a;border:1px solid rgba(232,199,102,.35);
+   border-radius:10px;padding:8px 11px;font-size:12.5px;color:var(--ink2);box-shadow:0 14px 34px -16px #000;max-width:280px}
+ #tip.on{opacity:1}
+ #tip .tt{font-weight:700;color:var(--ink);margin-bottom:3px;font-size:12px}
+ #tip .tr{display:flex;gap:9px;align-items:baseline;justify-content:space-between;white-space:nowrap}
+ #tip .tv2{font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+ [data-t]{outline:none}
+ [data-t]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
  .foot{text-align:center;color:#8798ab;font-size:12px;padding:22px}.foot b{color:#c9d4e2}
  .card{position:relative}
  .card::before{content:"";position:absolute;top:0;left:18px;right:18px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,199,102,.55),transparent);z-index:2}
@@ -98,12 +180,14 @@
 <div class="wrap">
  <div class="tabs" id="tabs"></div>
  <div class="daypick" id="daypick"><label for="daysel">День:</label><select id="daysel"></select></div>
+ <div class="daypick" id="d1pick"><label for="d1sel">Дата:</label><span class="d1grp"><button id="d1prev" class="rgo" title="Предыдущий день">‹</button><select id="d1sel"></select><button id="d1next" class="rgo" title="Следующий день">›</button></span></div>
  <div class="daypick" id="rangepick"><label for="rfrom">Период с</label><input type="date" id="rfrom"><label for="rto">по</label><input type="date" id="rto"><button id="rgo" class="rgo">Показать</button></div>
  <div id="openbadge"></div>
  <div style="margin-bottom:12px"><button id="xls" class="rgo" style="background:#107c41">📥 Выгрузить в Excel</button></div>
  <div id="body"></div>
  <div class="foot">Система «Пульс» · автор: <b>Ольга Герасименко</b> · © 2026 · <span id="prov"></span></div>
 </div>
+<div id="tip" role="tooltip" aria-hidden="true"></div>
 <script>
 /*__DATA__*/
 const ACCS=D.accounts||[], SH=D.short||{};
@@ -195,15 +279,15 @@ function kpi(obj){
  const net=hasBal?(end-start):arts.reduce((s,a)=>s+a.net,0);
  const c=[];
  if(hasBal)c.push(`<div class="k"><div class="l">Остаток на начало</div><div class="v">${MLN(start)}<span class="u">₸</span></div></div>`);
- c.push(`<div class="k"><div class="l">Приход</div><div class="v pos">+${MLN(sIn)}<span class="u">₸</span></div></div>`);
- c.push(`<div class="k"><div class="l">Расход</div><div class="v neg">−${MLN(sOut)}<span class="u">₸</span></div></div>`);
+ c.push(`<div class="k"><div class="l">Приход</div><div class="v pos">${sIn?'+':''}${MLN(sIn)}<span class="u">₸</span></div></div>`);
+ c.push(`<div class="k"><div class="l">Расход</div><div class="v neg">${sOut?'−':''}${MLN(sOut)}<span class="u">₸</span></div></div>`);
  if(hasBal)c.push(`<div class="k"><div class="l">Остаток на конец</div><div class="v">${MLN(end)}<span class="u">₸</span></div></div>`);
  const rawRe=/сырь|упаковк|хоз\.?\s*товар/i;
  const rawPay=arts.filter(a=>rawRe.test(a.cat)).reduce((s,a)=>s+a.out,0);
  const revA=arts.find(a=>/выручк/i.test(a.cat));
  const rev=((obj.revByContr||[]).filter(r=>r.net>0).reduce((s,r)=>s+r.net,0))||(revA?revA.in:0);
  if(rawPay>0&&rev>0)c.push(`<div class="k" title="Сырьё Платежи поставщикам + Упаковка + Хоз. товары к выручке"><div class="l">🌾 Сырьё</div><div class="v">${(rawPay/rev*100).toFixed(1).replace('.',',')}<span class="u">%</span></div></div>`);
- return `<div class="kpi" style="grid-template-columns:repeat(${c.length},1fr)">${c.join('')}</div>`;
+ return `<div class="kpi" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">${c.join('')}</div>`;
 }
 function analytics(obj){
  const arts=obj.articles||[];
@@ -316,6 +400,328 @@ function renderPeriod(obj,label,ru,closed){
  document.getElementById('openbadge').innerHTML=(closed===false)?`<div class="openb">⚠️ период не закрыт — данные предварительные, обновятся после 18-го числа</div>`:'';
  bindFold();
 }
+/* =======================================================================
+   ДДС ЗА ДЕНЬ — полный отчёт за одну дату:
+   рассказ о дне + 5 графиков + таблица движения по счетам.
+   Все цифры берутся из того же дневного среза iiko, что и остальные вкладки.
+   ======================================================================= */
+const WD=['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+const MROD=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const dRU=k=>k.split('-').reverse().join('.');
+const dLong=k=>{const d=new Date(k+'T00:00:00');return d.getDate()+' '+MROD[d.getMonth()]+', '+WD[d.getDay()];};
+const dShift=(k,n)=>{const d=new Date(k+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+const balTot=k=>{const b=(D.balByDay||{})[k];return b?ACCS.reduce((s,a)=>s+(b[a]||0),0):null;};
+const netOf=k=>(D.byDay[k]||[]).reduce((s,e)=>s+Object.keys(e.a||{}).reduce((q,ix)=>q+e.a[ix],0),0);
+
+/* ---------- общий тултип ---------- */
+const TIP=document.getElementById('tip');
+function tipHTML(title,rows){
+ let h='<div class="tt"></div>';
+ TIP.innerHTML=h+rows.map(()=>'<div class="tr"><span class="tl"></span><span class="tv2"></span></div>').join('');
+ TIP.querySelector('.tt').textContent=title;
+ const ls=TIP.querySelectorAll('.tl'),vs=TIP.querySelectorAll('.tv2');
+ rows.forEach((r,i)=>{ls[i].textContent=r[0];vs[i].textContent=r[1];});
+}
+let TIPEL=null,TIPFOCUS=false;
+function tipShow(el,ev){
+ TIPEL=el; TIPFOCUS=!ev;
+ const raw=el.getAttribute('data-t')||''; const parts=raw.split('¦');
+ tipHTML(parts[0],parts.slice(1).filter(Boolean).map(s=>{const i=s.indexOf('=');return [s.slice(0,i),s.slice(i+1)];}));
+ TIP.classList.add('on'); TIP.setAttribute('aria-hidden','false'); tipMove(el,ev);
+}
+function tipMove(el,ev){
+ let x,y;
+ if(ev&&ev.clientX!=null){x=ev.clientX+14;y=ev.clientY+16;}
+ else{const r=el.getBoundingClientRect();x=r.left+r.width/2;y=r.bottom+8;}
+ const w=TIP.offsetWidth,h=TIP.offsetHeight;
+ if(x+w>innerWidth-8)x=innerWidth-w-8; if(y+h>innerHeight-8)y=Math.max(8,y-h-30);
+ TIP.style.left=x+'px'; TIP.style.top=y+'px';
+}
+function tipHide(){TIPEL=null;TIPFOCUS=false;TIP.classList.remove('on');TIP.setAttribute('aria-hidden','true');}
+function bindTips(root){
+ (root||document).querySelectorAll('[data-t]').forEach(el=>{
+   if(!el.hasAttribute('tabindex'))el.setAttribute('tabindex','0');
+   el.addEventListener('pointerenter',e=>tipShow(el,e));
+   el.addEventListener('pointermove',e=>tipMove(el,e));
+   el.addEventListener('pointerleave',tipHide);
+   el.addEventListener('focus',()=>tipShow(el,null));
+   el.addEventListener('blur',tipHide);
+ });
+}
+// при прокрутке подсказку мыши прячем, а подсказку от клавиатуры держим приклеенной к элементу
+addEventListener('scroll',()=>{if(TIPFOCUS&&TIPEL)tipMove(TIPEL,null);else tipHide();},{passive:true});
+
+/* ---------- данные одного дня ---------- */
+function dayObj(k){
+ const obj=rangeData(k,k), bb=D.balByDay||{};
+ if(bb[k])obj.startByAcc=bb[k];
+ const nk=dShift(k,1);
+ if(bb[nk])obj.endByAcc=bb[nk];
+ if(obj.startByAcc)obj.start=ACCS.reduce((s,a)=>s+(obj.startByAcc[a]||0),0);
+ if(obj.endByAcc)obj.end=ACCS.reduce((s,a)=>s+(obj.endByAcc[a]||0),0);
+ return obj;
+}
+
+/* ---------- 1. Рассказ: что было в этот день ---------- */
+function dayStory(obj,k){
+ const arts=(obj.articles||[]).filter(a=>!isInt(a.cat));
+ const ints=(obj.articles||[]).filter(a=>isInt(a.cat));
+ const sIn=arts.reduce((s,a)=>s+a.in,0), sOut=arts.reduce((s,a)=>s+a.out,0);
+ const st=obj.start||0, en=obj.end||0, delta=en-st;
+ const rev=(obj.revByContr||[]).filter(r=>r.net>0).sort((a,b)=>b.net-a.net);
+ const totRev=rev.reduce((s,r)=>s+r.net,0);
+ const inA=arts.filter(a=>a.in>0).sort((x,y)=>y.in-x.in);
+ const outA=arts.filter(a=>a.out>0).sort((x,y)=>y.out-x.out);
+ const isToday=(k===(D.today||''));
+ // фон: средние за 30 дней до этого дня
+ let hist=[],c=dShift(k,-30);
+ while(c<k){ if(D.byDay[c]){const a=rangeData(c,c).articles.filter(x=>!isInt(x.cat));
+   hist.push({in:a.reduce((s,x)=>s+x.in,0),out:a.reduce((s,x)=>s+x.out,0)});} c=dShift(c,1); }
+ const avgIn=hist.length?hist.reduce((s,x)=>s+x.in,0)/hist.length:0;
+ const avgOut=hist.length?hist.reduce((s,x)=>s+x.out,0)/hist.length:0;
+ const cmp=(v,a)=>{if(!a)return '';const p=Math.round((v-a)/a*100);
+   return p>=15?(' — это на '+p+'% больше обычного'):p<=-15?(' — это на '+Math.abs(p)+'% меньше обычного'):' — как в обычный день';};
+ // где лежат деньги на конец дня
+ const tops=ACCS.map(a=>({a:a,v:(obj.endByAcc||{})[a]||0})).filter(x=>Math.abs(x.v)>1).sort((x,y)=>y.v-x.v);
+ let p=[];
+ p.push('<div class="hero">'+(delta>0?'+':delta<0?'−':'')+MLN(Math.abs(delta))+'<span class="u">₸ за день</span></div>');
+ if(!arts.length&&!ints.length){
+   p.push('<p>В этот день движений по счетам не было. На счетах как лежало <b>'+MLN(st)+' ₸</b>, так и осталось.</p>');
+ }else{
+   p.push('<p>Утром на счетах было <b>'+MLN(st)+' ₸</b>. За день пришло <span class="gi">+'+MLN(sIn)+' ₸</span>'+
+     cmp(sIn,avgIn)+', ушло <span class="ro">−'+MLN(sOut)+' ₸</span>'+cmp(sOut,avgOut)+
+     '. К концу дня осталось <b>'+MLN(en)+' ₸</b> — денег '+(delta>=0?'стало больше на <span class="gi">'+MLN(delta)+' ₸</span>':'стало меньше на <span class="ro">'+MLN(-delta)+' ₸</span>')+'.</p>');
+   let li=[];
+   if(totRev>0){
+     li.push('<b>Выручка:</b> '+MLN(totRev)+' ₸ от '+rev.length+' '+plural(rev.length,'плательщика','плательщиков','плательщиков')+
+       (rev[0]?'. Больше всех — '+esc(rev[0].name)+' ('+MLN(rev[0].net)+' ₸, '+Math.round(rev[0].net/totRev*100)+'% дневного прихода)':''));
+   }
+   const inNoRev=inA.filter(a=>!/выручк/i.test(a.cat));
+   if(inNoRev.length)li.push('<b>Прочие поступления:</b> '+inNoRev.slice(0,3).map(a=>esc(a.cat)+' — '+MLN(a.in)+' ₸').join(', '));
+   if(outA.length)li.push('<b>Крупнейшие выплаты:</b> '+outA.slice(0,3).map(a=>esc(a.cat)+' — '+MLN(a.out)+' ₸').join(', ')+
+     (outA.length>3?' и ещё '+(outA.length-3)+' '+plural(outA.length-3,'статья','статьи','статей'):''));
+   if(ints.length){const iv=ints.reduce((s,a)=>s+a.in,0);
+     if(iv>0)li.push('<b>Внутренние переводы между своими счетами:</b> '+MLN(iv)+' ₸ — на общий остаток не влияют');}
+   if(li.length)p.push('<ul><li>'+li.join('</li><li>')+'</li></ul>');
+   if(tops.length)p.push('<p>Вечером деньги лежат так: '+tops.slice(0,3).map(x=>(SH[x.a]||x.a)+' — <b>'+MLN(x.v)+' ₸</b>').join(', ')+
+     (tops.length>3?', остальное — на других счетах':'')+'.</p>');
+   const cov=sOut?Math.round(sIn/sOut*100):null;
+   if(cov!=null)p.push('<p>Поступления покрыли выплаты на <b>'+cov+'%</b>'+
+     (cov>=100?' — день закрыли с запасом.':' — разницу добрали из остатка на счетах.')+'</p>');
+ }
+ p.push('<div class="note">'+(isToday
+   ? 'День ещё идёт: данные на '+esc(D.updatedFull||D.updated||'')+', сборка из iiko каждый день в 18:00.'
+   : 'Данные закрытого дня, прямой метод, источник — iiko.')+
+   ' Внутренние переводы между своими счетами в приход и расход не входят.</div>');
+ return '<div class="card"><div class="hd"><h3>📅 Что было '+dLong(k)+'</h3><div class="sub">Коротко и по-человечески: откуда пришли и куда ушли деньги</div></div>'+
+   '<div class="story">'+p.join('')+'</div></div>';
+}
+function plural(n,a,b,c){n=Math.abs(n)%100;const n1=n%10;
+ if(n>10&&n<20)return c; if(n1>1&&n1<5)return b; if(n1===1)return a; return c;}
+
+/* ---------- 2. Водопад: как утренний остаток стал вечерним ---------- */
+function chartWaterfall(obj,k){
+ if(!obj.startByAcc||!obj.endByAcc)return '';
+ const arts=obj.articles||[], bk={op:0,inv:0,fin:0,int:0};
+ arts.forEach(a=>{bk[grp(a)]+=a.net;});
+ const start=Math.round(obj.start||0), end=Math.round(obj.end||0);
+ const other=end-start-bk.op-bk.inv-bk.fin-bk.int;
+ const steps=[{l:'Утро',full:'Остаток на начало дня',v:start,anchor:1}];
+ [['Операционная','Операционная деятельность',bk.op],['Инвестиционная','Инвестиционная деятельность',bk.inv],
+  ['Финансовая','Финансовая деятельность',bk.fin],['Внутренние','Внутренние переводы',bk.int],
+  ['Прочее','Прочее / без статьи ДДС',other]].forEach(pp=>{
+   if(Math.abs(pp[2])>1)steps.push({l:pp[0],full:pp[1],v:Math.round(pp[2])});});
+ steps.push({l:'Вечер',full:'Остаток на конец дня',v:end,anchor:1});
+ if(steps.length<3)return '';
+ let run=0; steps.forEach(s=>{if(s.anchor){s.lo=0;s.hi=s.v;run=s.v;}else{s.lo=run;s.hi=run+s.v;run=s.hi;}});
+ const vals=steps.flatMap(s=>[s.lo,s.hi]); const mx=Math.max(...vals,0), mn=Math.min(...vals,0);
+ const W=880,H=286,pT=34,pB=62,pL=12,pR=12,n=steps.length,gap=14;
+ const band=(W-pL-pR-gap*(n-1))/n, bw=Math.min(24,band);
+ const Y=v=>pT+(H-pT-pB)*(mx-v)/((mx-mn)||1), X=i=>pL+i*(band+gap)+(band-bw)/2;
+ let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Как утренний остаток стал вечерним">'+
+   '<defs><linearGradient id="wfg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6e6ad"/><stop offset="1" stop-color="#d4af37"/></linearGradient></defs>';
+ s+='<line class="gl" x1="'+pL+'" y1="'+Y(0).toFixed(1)+'" x2="'+(W-pR)+'" y2="'+Y(0).toFixed(1)+'"/>';
+ steps.forEach((st,i)=>{
+   const x=X(i), top=Y(Math.max(st.lo,st.hi)), bot=Y(Math.min(st.lo,st.hi)), h=Math.max(3,bot-top);
+   const fill=st.anchor?'url(#wfg)':(st.v>=0?'var(--in)':'var(--out)');
+   const tt=st.full+'¦'+(st.anchor?'на счетах':(st.v>=0?'прибавило':'убавило'))+'='+(st.anchor?SUM(st.v):((st.v>=0?'+':'−')+RUB(st.v)))+' ₸';
+   s+='<g data-t="'+esc(tt)+'" role="listitem">'+
+      '<rect x="'+(X(i)-gap/2).toFixed(1)+'" y="'+pT+'" width="'+(bw+gap).toFixed(1)+'" height="'+(H-pT-pB+22)+'" fill="transparent"/>'+
+      '<rect x="'+x.toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="4" fill="'+fill+'"/></g>';
+   s+='<text class="ax" x="'+(x+bw/2).toFixed(1)+'" y="'+(top-10).toFixed(1)+'" text-anchor="middle" font-size="12" font-weight="800" fill="'+
+      (st.anchor?'#f2dd9e':(st.v>=0?'var(--in)':'var(--out)'))+'">'+(st.anchor?'':(st.v>=0?'+':'−'))+MLN(Math.abs(st.v))+'</text>';
+   s+='<text class="ax" x="'+(x+bw/2).toFixed(1)+'" y="'+(H-38)+'" text-anchor="middle">'+st.l+'</text>';
+   if(i<n-1){const y=Y(st.hi);
+     s+='<line class="gl" x1="'+(x+bw).toFixed(1)+'" y1="'+y.toFixed(1)+'" x2="'+X(i+1).toFixed(1)+'" y2="'+y.toFixed(1)+'"/>';}
+ });
+ s+='</svg>';
+ return '<div class="card"><div class="hd"><h3>💠 Как утренний остаток стал вечерним</h3>'+
+   '<div class="sub">Слева направо: что прибавило и что убавило деньги за '+dRU(k)+'</div></div>'+
+   '<div class="svgwrap">'+s+'</div></div>';
+}
+
+/* ---------- 3. Приход и расход по статьям (расходящиеся полосы) ---------- */
+function chartArticles(obj,k){
+ const arts=(obj.articles||[]).filter(a=>!isInt(a.cat)&&Math.abs(a.net)>0)
+   .map(a=>({cat:a.cat,net:Math.round(a.net),in:Math.round(a.in),out:Math.round(a.out)}))
+   .sort((x,y)=>Math.abs(y.net)-Math.abs(x.net));
+ if(!arts.length)return '';
+ const show=arts.slice(0,14), mx=Math.max(...show.map(a=>Math.abs(a.net)))||1;
+ const rows=show.map((a,i)=>{
+   const w=Math.max(2,Math.round(Math.abs(a.net)/mx*100)), pos=a.net>0;
+   const lab=(pos?'+':'−')+RUB(a.net)+' ₸';
+   const vst='--w:'+w+'%';
+   const fill='<div class="dvgf" style="width:'+w+'%;--d:'+(i*.04).toFixed(2)+'s"></div>';
+   const tt=a.cat+'¦приход='+RUB(a.in)+' ₸¦расход='+RUB(a.out)+' ₸¦итог='+(pos?'+':'−')+RUB(a.net)+' ₸';
+   return '<div class="dvgrow"><div class="dvgnm" title="'+esc(a.cat)+'">'+esc(a.cat)+'</div>'+
+     '<div class="dvgbar"><div class="dvghit" data-t="'+esc(tt)+'"></div>'+
+       '<div class="dvgL">'+(pos?'':fill+'<div class="dvgv out" style="'+vst+'">'+lab+'</div>')+'</div>'+
+       '<div class="dvgR">'+(pos?fill+'<div class="dvgv in" style="'+vst+'">'+lab+'</div>':'')+'</div>'+
+     '</div></div>';
+ }).join('');
+ const more=arts.length>14?'<div class="empty">и ещё '+(arts.length-14)+' '+plural(arts.length-14,'статья','статьи','статей')+' — все они есть в таблице ниже</div>':'';
+ return '<div class="card"><div class="hd"><h3>⚖️ Приход и расход по статьям</h3>'+
+   '<div class="sub">Влево — что забрало деньги, вправо — что принесло · '+dRU(k)+'</div></div>'+
+   '<div class="lgd"><span><i style="background:var(--in)"></i>приход (вправо)</span>'+
+   '<span><i style="background:var(--out)"></i>расход (влево)</span></div>'+
+   '<div class="dvg">'+rows+'</div>'+more+'</div>';
+}
+
+/* подписи на полосах: снаружи, если помещаются; иначе внутрь; иначе только в подсказке и таблице */
+function fitDvg(root){
+ root.querySelectorAll('.dvgrow').forEach(r=>{
+   const bar=r.querySelector('.dvgbar'), v=r.querySelector('.dvgv'); if(!bar||!v)return;
+   const br=bar.getBoundingClientRect(); let vr=v.getBoundingClientRect();
+   if(vr.left>=br.left-.5&&vr.right<=br.right+.5)return;
+   v.classList.add('ins'); vr=v.getBoundingClientRect();
+   if(vr.left<br.left-.5||vr.right>br.right+.5)v.style.display='none';
+ });
+}
+
+/* ---------- 4. Деньги по счетам: утро → вечер (dumbbell) ---------- */
+function chartAccounts(obj,k){
+ if(!obj.startByAcc||!obj.endByAcc)return '';
+ const rows0=ACCV.map(a=>({a:a,s:Math.round(obj.startByAcc[a]||0),e:Math.round(obj.endByAcc[a]||0)}))
+   .filter(x=>Math.abs(x.s)>1||Math.abs(x.e)>1).sort((x,y)=>y.e-x.e);
+ if(!rows0.length)return '';
+ const all=rows0.flatMap(x=>[x.s,x.e]); const lo=Math.min(0,...all), hi=Math.max(...all,1);
+ const P=v=>((v-lo)/((hi-lo)||1))*100;
+ const rows=rows0.map(x=>{
+   const a=P(Math.min(x.s,x.e)), b=P(Math.max(x.s,x.e)), d=x.e-x.s;
+   const tt=(SH[x.a]||x.a)+'¦утром='+SUM(x.s)+' ₸¦вечером='+SUM(x.e)+' ₸¦за день='+(d>=0?'+':'−')+RUB(d)+' ₸';
+   return '<div class="dmbrow"><div class="dmbnm" title="'+esc(x.a)+'">'+esc(SH[x.a]||x.a)+'</div>'+
+     '<div class="dmbtr" data-t="'+esc(tt)+'">'+
+       '<div class="dmbln" style="left:'+a.toFixed(2)+'%;width:'+Math.max(0,b-a).toFixed(2)+'%"></div>'+
+       '<div class="dmbd s" style="left:'+P(x.s).toFixed(2)+'%"></div>'+
+       '<div class="dmbd e" style="left:'+P(x.e).toFixed(2)+'%"></div></div>'+
+     '<div class="dmbv">'+SUM(x.e)+' ₸</div></div>';
+ }).join('');
+ return '<div class="card"><div class="hd"><h3>🏦 Деньги по счетам: утро → вечер</h3>'+
+   '<div class="sub">Где лежали деньги в начале дня и где оказались в конце · справа — остаток вечером</div></div>'+
+   '<div class="lgd"><span><i class="dmbd s" style="position:static;margin:0 6px 0 0;box-shadow:none;display:inline-block;width:11px;height:11px"></i>утром</span>'+
+   '<span><i class="dmbd e" style="position:static;margin:0 6px 0 0;box-shadow:none;display:inline-block;width:11px;height:11px"></i>вечером</span></div>'+
+   '<div class="dmb">'+rows+'</div></div>';
+}
+
+/* круглые деления оси: 0 / 5 млн / 10 млн, а не 8 763 412 */
+function niceTicks(lo,hi,n){
+ if(!(hi>lo))return [lo];
+ const raw=(hi-lo)/n, mag=Math.pow(10,Math.floor(Math.log10(raw)));
+ let step=mag*10; for(const s of [1,2,2.5,5,10]){if(mag*s>=raw){step=mag*s;break;}}
+ const out=[]; for(let v=Math.ceil(lo/step)*step; v<=hi+step*1e-6; v+=step)out.push(v);
+ if(lo<0&&hi>0&&out.indexOf(0)<0)out.push(0);
+ return out.sort((a,b)=>a-b);
+}
+
+/* ---------- 5+6. Тридцать дней: остаток и дневной поток ---------- */
+function last30(k){
+ const out=[]; for(let i=29;i>=0;i--){const d=dShift(k,-i);
+   out.push({d:d,bal:balTot(d),net:D.byDay[d]?Math.round(netOf(d)):0});}
+ return out.filter(x=>x.bal!=null);
+}
+function chartBalance30(k){
+ const S=last30(k); if(S.length<3)return '';
+ const W=560,H=210,pT=18,pB=30,pL=58,pR=18;
+ const vs=S.map(x=>x.bal); const hi=Math.max(...vs), lo=Math.min(...vs,0);
+ const X=i=>pL+(W-pL-pR)*(S.length<2?0:i/(S.length-1));
+ const Y=v=>pT+(H-pT-pB)*(hi-v)/((hi-lo)||1);
+ let g='';
+ niceTicks(lo,hi,4).forEach(v=>{const y=Y(v);
+   g+='<line class="gl" x1="'+pL+'" y1="'+y.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y.toFixed(1)+'"/>'+
+      '<text class="ax" x="'+(pL-8)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end">'+MLN(v)+'</text>';});
+ const line=S.map((x,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(x.bal).toFixed(1)).join(' ');
+ const area=line+' L'+X(S.length-1).toFixed(1)+' '+Y(lo).toFixed(1)+' L'+X(0).toFixed(1)+' '+Y(lo).toFixed(1)+' Z';
+ let hits='';
+ S.forEach((x,i)=>{const w=(W-pL-pR)/S.length;
+   hits+='<rect x="'+(X(i)-w/2).toFixed(1)+'" y="'+pT+'" width="'+w.toFixed(1)+'" height="'+(H-pT-pB)+'" fill="transparent" '+
+     'data-t="'+esc(dRU(x.d)+'¦на счетах='+SUM(x.bal)+' ₸¦за день='+(x.net>=0?'+':'−')+RUB(x.net)+' ₸')+'"/>';});
+ const li=S.length-1, cur=S.findIndex(x=>x.d===k), ci=cur<0?li:cur;
+ const ticks=[0,Math.floor(li/2),li].map(i=>'<text class="ax" x="'+X(i).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle">'+dRU(S[i].d).slice(0,5)+'</text>').join('');
+ return '<div class="card"><div class="hd"><h3>📈 Остаток на счетах, 30 дней</h3>'+
+   '<div class="sub">Сколько всего денег было на всех счетах на утро каждого дня</div></div>'+
+   '<div class="svgwrap"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Остаток на счетах за 30 дней">'+g+
+   '<path d="'+area+'" fill="var(--accent)" fill-opacity=".10"/>'+
+   '<path d="'+line+'" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+   '<circle cx="'+X(ci).toFixed(1)+'" cy="'+Y(S[ci].bal).toFixed(1)+'" r="5" fill="var(--accent)" stroke="var(--card)" stroke-width="2"/>'+
+   '<text class="ax" x="'+X(ci).toFixed(1)+'" y="'+(Y(S[ci].bal)-12).toFixed(1)+'" text-anchor="'+(ci>S.length-4?'end':'middle')+'" font-size="12" font-weight="800" fill="#f2dd9e">'+MLN(S[ci].bal)+'</text>'+
+   ticks+hits+'</svg></div></div>';
+}
+function chartFlow30(k){
+ const S=last30(k); if(S.length<3)return '';
+ const W=560,H=210,pT=20,pB=30,pL=58,pR=18;
+ const hi=Math.max(0,...S.map(x=>x.net)), lo=Math.min(0,...S.map(x=>x.net));
+ const band=(W-pL-pR)/S.length, bw=Math.min(24,Math.max(3,band-4));
+ const Y=v=>pT+(H-pT-pB)*(hi-v)/((hi-lo)||1);
+ let g='';
+ niceTicks(lo,hi,4).forEach(v=>{const y=Y(v);
+   g+='<line class="gl" x1="'+pL+'" y1="'+y.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y.toFixed(1)+'"/>'+
+      '<text class="ax" x="'+(pL-8)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end">'+MLN(v)+'</text>';});
+ const bars=S.map((x,i)=>{
+   const cx=pL+band*i+band/2, y0=Y(0), y1=Y(x.net), top=Math.min(y0,y1), h=Math.max(2,Math.abs(y1-y0));
+   const on=(x.d===k), col=x.net>=0?'var(--in)':'var(--out)';
+   const r=Math.min(4,bw/2);
+   return '<g data-t="'+esc(dRU(x.d)+'¦итог дня='+(x.net>=0?'+':'−')+RUB(x.net)+' ₸¦на счетах утром='+RUB(x.bal)+' ₸')+'">'+
+     '<rect x="'+(cx-band/2).toFixed(1)+'" y="'+pT+'" width="'+band.toFixed(1)+'" height="'+(H-pT-pB)+'" fill="transparent"/>'+
+     '<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+r.toFixed(1)+'" fill="'+col+'" fill-opacity="'+(on?1:.45)+'"/></g>';
+ }).join('');
+ const li=S.length-1;
+ const ticks=[0,Math.floor(li/2),li].map(i=>'<text class="ax" x="'+(pL+band*i+band/2).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle">'+dRU(S[i].d).slice(0,5)+'</text>').join('');
+ return '<div class="card"><div class="hd"><h3>📊 Итог каждого дня, 30 дней</h3>'+
+   '<div class="sub">Насколько денег стало больше или меньше за день · выбранный день выделен</div></div>'+
+   '<div class="lgd"><span><i style="background:var(--in)"></i>день в плюс</span><span><i style="background:var(--out)"></i>день в минус</span></div>'+
+   '<div class="svgwrap"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Итог каждого дня за 30 дней">'+g+
+   '<line class="gl" x1="'+pL+'" y1="'+Y(0).toFixed(1)+'" x2="'+(W-pR)+'" y2="'+Y(0).toFixed(1)+'"/>'+bars+ticks+'</svg></div></div>';
+}
+function table30(k){
+ const S=last30(k).slice().reverse();
+ const rows=S.map(x=>'<tr><td>'+dRU(x.d)+(x.d===k?' ·':'')+'</td><td>'+SUM(x.bal)+'</td><td>'+(x.net?SIGN(x.net):'—')+'</td></tr>').join('');
+ return '<details class="tv"><summary>Те же 30 дней — таблицей</summary>'+
+   '<table><thead><tr><th>Дата</th><th>На счетах утром, ₸</th><th>Итог дня, ₸</th></tr></thead><tbody>'+rows+'</tbody></table></details>';
+}
+
+/* ---------- сборка вкладки ---------- */
+function renderDay1(k){
+ if(!k)return;
+ const obj=dayObj(k), dt=dRU(k), label='день '+dt;
+ LAST={obj:obj,label:label};
+ let h=kpi(obj);
+ h+=dayStory(obj,k);
+ h+=chartWaterfall(obj,k);
+ h+=chartArticles(obj,k);
+ h+=payHTML(obj.revByContr);
+ h+=expScheme(obj);
+ h+=chartAccounts(obj,k);
+ h+='<div class="chgrid">'+chartBalance30(k)+chartFlow30(k)+'</div>'+table30(k);
+ h+=analytics(obj);
+ h+=ddsTable(obj,{label:dt});
+ const body=document.getElementById('body');
+ body.innerHTML=h;
+ document.getElementById('sub').textContent='Мастерская Сегодня · '+label+' · прямой метод · по счетам · источник: iiko';
+ document.getElementById('openbadge').innerHTML=(k===(D.today||''))
+   ? '<div class="openb">⏱ день ещё идёт — данные на '+esc(D.updatedFull||D.updated||'')+' · сборка из iiko каждый день в 18:00</div>' : '';
+ bindFold(); tipHide(); bindTips(body); fitDvg(body);
+}
 function renderDay(k){
  const dd=D.days[k]; if(!dd)return;
  const dt=k.split('-').reverse().join('.');
@@ -360,18 +766,20 @@ function exportXls(){
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 document.getElementById('xls').onclick=exportXls;
-function rerender(){ if(CUR.type==='day'){renderDay(CUR.key);} else if(CUR.type==='range'){renderRange(rfrom.value,rto.value);} else if(CUR.type==='year'){goYear();} else {const m=D.months[CUR.key],meta=(D.mmeta||{})[CUR.key]||{};renderPeriod(m,meta.ru||CUR.key,meta.ru,meta.closed);} }
+function rerender(){ if(CUR.type==='day1'){renderDay1(CUR.key);} else if(CUR.type==='day'){renderDay(CUR.key);} else if(CUR.type==='range'){renderRange(rfrom.value,rto.value);} else if(CUR.type==='year'){goYear();} else {const m=D.months[CUR.key],meta=(D.mmeta||{})[CUR.key]||{};renderPeriod(m,meta.ru||CUR.key,meta.ru,meta.closed);} }
 
 /* ---------- вкладки ---------- */
 const tabs=document.getElementById('tabs'),dp=document.getElementById('daypick'),dsel=document.getElementById('daysel');
 const rp=document.getElementById('rangepick'),rfrom=document.getElementById('rfrom'),rto=document.getElementById('rto');
+const d1p=document.getElementById('d1pick'),d1sel=document.getElementById('d1sel');
 function setActive(k){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.k===k));}
 function addTab(k,label,mark){const t=document.createElement('div');t.className='tab';t.dataset.k=k;
  t.innerHTML=label+(mark?'<span class="dot">•</span>':'');t.onclick=()=>go(k);tabs.appendChild(t);}
 function goYear(){const y=D.year;const toRu=(D.mmeta[y.to]||{}).ru||'';renderPeriod(y,'2026 год (январь — '+(toRu.split(' ')[0]||'')+')','2026 год',true);}
 function go(k){
  payAll=false; setActive(k);
- dp.classList.remove('show'); rp.classList.remove('show');
+ dp.classList.remove('show'); rp.classList.remove('show'); d1p.classList.remove('show');
+ if(k==='DAY1'){CUR={type:'day1',key:d1sel.value};d1p.classList.add('show');renderDay1(d1sel.value);return;}
  if(k==='DAYS'){CUR={type:'day',key:dsel.value};dp.classList.add('show');renderDay(dsel.value);return;}
  if(k==='RANGE'){CUR={type:'range'};rp.classList.add('show');renderRange(rfrom.value,rto.value);return;}
  if(k==='YEAR'){CUR={type:'year',key:'YEAR'};goYear();}
@@ -379,6 +787,20 @@ function go(k){
 }
 if(D.year&&D.year.articles&&D.year.articles.length) addTab('YEAR','2026 · год');
 MK.forEach(k=>{const meta=(D.mmeta||{})[k]||{};addTab(k,(meta.ru||k).replace(' 2026','').replace(/^./,c=>c.toUpperCase()),meta.closed===false);});
+/* --- вкладка «ДДС за день»: полный отчёт за одну дату (остатки + статьи + кто оплатил).
+       Сегодняшний день есть в списке всегда и выбран по умолчанию — сборка в 18:00 показывает текущий день. --- */
+const D1K=Object.keys(Object.assign({},D.byDay||{},(D.today?{[D.today]:1}:{}))).sort();
+if(D1K.length){
+ addTab('DAY1','ДДС за день');
+ D1K.slice().reverse().forEach(k=>{const o=document.createElement('option');o.value=k;
+   o.textContent=dRU(k)+(k===(D.today||'')?'  · сегодня':'')+'  ('+SIGN(Math.round(netOf(k)))+' ₸)';
+   d1sel.appendChild(o);});
+ d1sel.value=(D.today&&D1K.indexOf(D.today)>=0)?D.today:D1K[D1K.length-1];
+ const pick=k=>{d1sel.value=k;CUR={type:'day1',key:k};payAll=false;renderDay1(k);};
+ d1sel.onchange=()=>pick(d1sel.value);
+ document.getElementById('d1prev').onclick=()=>{const i=D1K.indexOf(d1sel.value);if(i>0)pick(D1K[i-1]);};
+ document.getElementById('d1next').onclick=()=>{const i=D1K.indexOf(d1sel.value);if(i>=0&&i<D1K.length-1)pick(D1K[i+1]);};
+}
 const DK=Object.keys(D.days||{}).sort();
 if(DK.length){ addTab('DAYS','По дням');
  DK.slice().reverse().forEach(k=>{const o=document.createElement('option');o.value=k;
