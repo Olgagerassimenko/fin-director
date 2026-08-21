@@ -146,7 +146,11 @@ def daily_net_acc(d1,d2):
         dn.setdefault(dt,{}); dn[dt][acc]=dn[dt].get(acc,0)+net
     return dn
 
-today=datetime.date.today(); last_full=today-datetime.timedelta(days=1); lastm=last_full.month
+# «Сегодня» и время обновления — по Алматы (UTC+5), а не по UTC:
+# прогон идёт на серверах GitHub, там время UTC, и без этого отчёт за 18:00 показывал бы 13:00.
+ALM=datetime.timezone(datetime.timedelta(hours=5))
+now_alm=datetime.datetime.now(ALM)
+today=now_alm.date(); last_full=today-datetime.timedelta(days=1); lastm=last_full.month
 def eom(mi): return datetime.date(YEAR,mi+1,1) if mi<lastm else last_full+datetime.timedelta(days=1)
 def bom(mi): return datetime.date(YEAR,mi,1)
 
@@ -197,9 +201,9 @@ for mi,d1,d2,arts,st,en,rev in _mres:
         "articles":arts,"revByContr":rev}
     log(f"  {YEAR}-{mi:02d}: старт {stTot:,.0f} -> конец {enTot:,.0f} | статей {len(arts)} | контрагентов выручки {len(rev)}")
 
-# последние дни (по счетам, без разбивки выручки)
+# последние дни (по счетам, без разбивки выручки) — включая сегодняшний (незакрытый) день
 days={}
-_dds=[last_full-datetime.timedelta(days=k-1) for k in range(14,0,-1)]
+_dds=[today-datetime.timedelta(days=k-1) for k in range(14,0,-1)]
 def _day_fetch(d): return (d,articles(d,d+datetime.timedelta(days=1)))
 with _cf.ThreadPoolExecutor(max_workers=_POOL) as _ex:
     for d,arts in _ex.map(_day_fetch,_dds):
@@ -221,36 +225,48 @@ if ymonths:
     log(f"  ГОД {year['from']}..{year['to']}: старт {year['start']:,.0f} -> конец {year['end']:,.0f} | статей {len(yarts)} | контрагентов {len(yrev)}")
 
 log("  дневная детализация для произвольного периода...")
-allD1=datetime.date(YEAR,1,1); allD2=last_full+datetime.timedelta(days=1)
+# дневной разрез тянем ВКЛЮЧАЯ сегодня — вкладка «ДДС за день» должна показывать текущий день
+allD1=datetime.date(YEAR,1,1); allD2=today+datetime.timedelta(days=1)
 with _cf.ThreadPoolExecutor(max_workers=2) as _ex:
     _fa=_ex.submit(daily_all,allD1,allD2); _fr=_ex.submit(daily_rev,allD1,allD2)
     byDay=_fa.result(); byDayRev=_fr.result()
 log("  дней с движением: %d"%len(byDay))
 # дневные остатки по счетам — ТОЧНЫЕ снимки баланса (balance на каждый день с движением)
-balByDay={}; cur=datetime.date(YEAR,1,1); endcur=last_full+datetime.timedelta(days=1)
-# заранее параллельно тянем нужные снимки баланса: Jan1 + (день+1) для каждого дня с движением
+balByDay={}; cur=datetime.date(YEAR,1,1); endcur=today+datetime.timedelta(days=1)
+# заранее параллельно тянем нужные снимки баланса: Jan1 + (день+1) для каждого дня с движением.
+# Для СЕГОДНЯ снимок «на завтра» не запрашиваем (будущая дата) — остаток на конец дня считаем
+# как остаток на начало дня + движение за день по каждому счёту.
 _need=[cur]; _c=cur
 while _c<=endcur:
-    if _c.isoformat() in byDay: _need.append(_c+datetime.timedelta(days=1))
+    if _c.isoformat() in byDay and _c!=today: _need.append(_c+datetime.timedelta(days=1))
     _c+=datetime.timedelta(days=1)
 _todo=[d for d in _need if d.isoformat() not in _balcache]
 with _cf.ThreadPoolExecutor(max_workers=_POOL) as _ex:
     for d,res in zip(_todo,_ex.map(cash_by_acc,_todo)):
         _balcache[d.isoformat()]=res
 _calls=len(_todo)
+# движение за сегодня по каждому счёту (из дневного разреза)
+_todayNet={}
+for _e in byDay.get(today.isoformat(),[]):
+    for _ix,_v in (_e.get("a") or {}).items():
+        _a=ACTIVE[int(_ix)]; _todayNet[_a]=_todayNet.get(_a,0)+_v
 snap=bal(cur)  # точный остаток на начало Jan1 (из кэша)
 while cur<=endcur:
     k=cur.isoformat(); balByDay[k]=snap
-    if k in byDay:  # был день движения -> берём точный остаток на начало следующего дня
-        snap=bal(cur+datetime.timedelta(days=1))
+    if k in byDay:  # был день движения -> остаток на начало следующего дня
+        if cur==today:
+            snap={a:round(snap.get(a,0)+_todayNet.get(a,0)) for a in ACTIVE}
+        else:
+            snap=bal(cur+datetime.timedelta(days=1))
     cur+=datetime.timedelta(days=1)
 _chk=sum(balByDay.get(f"{YEAR}-02-01",{}).values())
 log("  дневные остатки: снимков баланса %d; сверка на 01.02: %d (эталон 34 391 753, Δ %d)"%(_calls,_chk,_chk-34391753))
 
 RUM={1:"январь",2:"февраль",3:"март",4:"апрель",5:"май",6:"июнь",7:"июль",8:"август",9:"сентябрь",10:"октябрь",11:"ноябрь",12:"декабрь"}
 mmeta={f"{YEAR}-{mi:02d}":{"ru":f"{RUM[mi]} {YEAR}","closed":closed(mi)} for mi in range(1,lastm+1)}
-data={"updated":today.strftime("%d.%m.%Y"),"updatedFull":today.strftime("%d.%m.%Y ")+datetime.datetime.now().strftime("%H:%M"),
+data={"updated":today.strftime("%d.%m.%Y"),"updatedFull":now_alm.strftime("%d.%m.%Y %H:%M"),
       "through":last_full.strftime("%d.%m.%Y"),
+      "today":today.isoformat(),"todayRu":today.strftime("%d.%m.%Y"),
       "accounts":ACTIVE,"short":SHORT,"months":months,"mmeta":mmeta,"days":days,"year":year,"cogs_auto":cogs_auto,
       "byDay":byDay,"byDayRev":byDayRev,"balByDay":balByDay,
       "dayMin":(min(byDay) if byDay else ""),"dayMax":(max(byDay) if byDay else "")}
