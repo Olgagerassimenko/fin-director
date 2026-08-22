@@ -88,6 +88,10 @@ jobs:
         continue-on-error: true
         run: python gen_fullcost.py
 
+      - name: "14. Рычаги прибыли (цены, потери, ножницы, ассортимент)"
+        continue-on-error: true
+        run: python gen_levers.py
+
       - name: Node
         uses: actions/setup-node@v4
         with:
@@ -103,7 +107,7 @@ jobs:
         run: |
           git config user.name "pulse-ci"
           git config user.email "ci@local"
-          git add -f продажи_2026.html дашборд_ддс.html дашборд_ддс_прямой.html склады.html "дашборд_себестоимость_2025-2026.html" закуп.html zakup_data.js dz_kz.js дашборд_sku_iiko.html *_meta.js sku_live.js contractor_items.js opiu_rev.js 2>/dev/null || true
+          git add -f продажи_2026.html дашборд_ддс.html дашборд_ддс_прямой.html склады.html "дашборд_себестоимость_2025-2026.html" закуп.html zakup_data.js dz_kz.js рычаги.html дашборд_sku_iiko.html *_meta.js sku_live.js contractor_items.js opiu_rev.js 2>/dev/null || true
           git commit -m "Свежие данные дашбордов [skip ci]" || echo "нет изменений"
           git pull --rebase --autostash origin main || true
           git push origin HEAD:main || echo "push не удался"
