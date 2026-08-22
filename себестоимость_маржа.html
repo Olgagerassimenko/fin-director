@@ -123,6 +123,8 @@
      <option value="ytd" selected>Год к дате</option>
    </select>
    <select id="per"></select>
+   <label for="buyer" style="margin-left:6px">Покупатель:</label>
+   <select id="buyer" style="min-width:200px;max-width:320px"></select>
    <span class="hint" id="perhint"></span>
  </div>
  <div class="tabs" id="tabs"></div>
@@ -150,6 +152,7 @@ const SKU = {}; (S.skus||[]).forEach(s=>SKU[s.name]=s);
 const MONTHS = Object.keys(C).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort();
 const RUM = ['','январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
 const RUMS = ['','янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const RUMG = ['','января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
 const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const RUB = v => Math.round(Math.abs(v)).toLocaleString('ru-RU');
@@ -201,12 +204,13 @@ function unitOf(name,mi){
   return {cost:(rev-vp)/q, price:rev/q, cat:s.cat||'—'};
 }
 // агрегируем набор месяцев -> клиенты, товары, связки
-function build(months){
+function build(months,buyer){
   const cl={}, it={};
   let noCost=0, noCostRev=0;
   months.forEach(m=>{
     const mi=MIDX[m]; if(mi===undefined||!C[m])return;
     C[m].forEach(c=>{
+      if(buyer&&c.name!==buyer)return;
       const key=c.num+'|'+c.name;
       const e=cl[key]||(cl[key]={num:c.num,name:c.name,rev:0,cost:0,revAvg:0,items:{}});
       (c.items||[]).forEach(x=>{
@@ -272,9 +276,10 @@ function verdict(gap,margin,avg){
 }
 
 /* ---------- вкладка 1: клиентский портфель ---------- */
-function tabClients(D){
+function tabClients(D,DALL){
   const T=D.T, cl=D.clients.filter(c=>c.rev>0);
   if(!cl.length) return '<div class="card"><div class="empty">За выбранный период данных нет.</div></div>';
+  if(BUYER) return buyerProfile(cl[0],DALL);
   const totVP=T.vp||1, totRev=T.rev||1;
   // ABC
   let cum=0; const abc=cl.map(c=>{cum+=c.vp; return {c:c, cum:cum/totVP*100};});
@@ -438,8 +443,88 @@ function clientsTable(cl,T){
    +'</tbody></table></div></div>';
 }
 
+
+/* ---------- профиль одного покупателя (когда включён фильтр) ---------- */
+function buyerProfile(c,DALL){
+  const F=DALL.T;                                  // завод целиком
+  const all=DALL.clients.filter(x=>x.rev>0).sort((a,b)=>b.vp-a.vp);
+  const rank=all.findIndex(x=>x.name===c.name)+1;
+  const shRev=F.rev?c.rev/F.rev*100:0, shVP=F.vp?c.vp/F.vp*100:0, gap=shVP-shRev;
+  const s=split(c,F);
+  let cum=0,grp='C';
+  for(const x of all){cum+=x.vp; if(x.name===c.name){const p=cum/(F.vp||1)*100; grp=p<=80?'A':(p<=95?'B':'C'); break;}}
+  let h='<div class="kpi">'
+   +kpi('Выручка',MLN(c.rev),'₸',PCT(shRev)+' от завода')
+   +kpi('Себестоимость реализации',MLN(c.cost),'₸',PCT(c.rev?c.cost/c.rev*100:0)+' от его выручки')
+   +kpi('Валовая прибыль',MLN(c.vp),'₸',PCT(shVP)+' от прибыли завода')
+   +kpi('Маржинальность',PCT(c.margin),'','по заводу '+PCT(F.margin))
+   +kpi('Место по прибыли',rank+' из '+all.length,'','группа '+grp)
+   +'</div>';
+  h+='<div class="card"><div class="hd"><h3>🎯 '+esc(c.name)+' — что он значит для завода</h3>'
+   +'<div class="sub">Вес в обороте против веса в прибыли и причина расхождения</div></div><div class="why">'
+   +'Даёт <b>'+PCT(shRev)+'</b> выручки завода и <b>'+PCT(shVP)+'</b> валовой прибыли — разрыв <b>'+PP(gap)+'</b> '
+   +(gap>=1.5?'Это <b>донор прибыли</b>: зарабатываем на нём больше, чем его доля в обороте.'
+     :gap<=-1.5?'Это <b>балласт</b>: оборот делает, а прибыли приносит непропорционально мало.'
+     :'Вклад в прибыль примерно равен весу в обороте.')
+   +'<br>Маржа <b>'+PCT(c.margin)+'</b> при средней по заводу '+PCT(F.margin)+'. '
+   +(whyClient(c,F)||'Отклонение в пределах нормы.')
+   +'<br>По прибыли он <b>'+rank+'-й</b> из '+all.length+' покупателей, группа <b>'+grp+'</b>'
+   +(grp==='A'?' — входит в те, кто даёт 80% прибыли завода.':grp==='B'?' — вторая по важности группа.':' — хвост, 5% прибыли.')
+   +'</div></div>';
+  h+=defsBlock();
+  h+=buyerDyn(c.name);
+  const its=(c.itemsArr||[]).slice().sort((a,b)=>b.vp-a.vp);
+  h+=barsCard('🏆 На чём мы на нём зарабатываем','Позиции его корзины по вкладу в валовую прибыль',
+      its.slice(0,18),i=>i.vp,i=>i.n,i=>MLN(i.vp)+' ₸',
+      i=>i.n+'¦кол-во='+RUB(i.q)+'¦выручка='+SUM(i.rev)+' ₸¦валовая прибыль='+SUM(i.vp)+' ₸¦маржа='+PCT(i.margin),'g');
+  const neg=its.filter(i=>i.vp<0);
+  if(neg.length) h+=barsCard('🩸 Что мы на нём теряем','Позиции, проданные ниже себестоимости',
+      neg.slice(0,12),i=>Math.abs(i.vp),i=>i.n,i=>SUM(i.vp)+' ₸',
+      i=>i.n+'¦выручка='+SUM(i.rev)+' ₸¦себестоимость='+SUM(i.cost)+' ₸¦маржа='+PCT(i.margin),'r');
+  const rows=its.map(i=>{const dP=i.revAvg?(i.rev-i.revAvg)/i.revAvg*100:null;
+    return '<tr><td class="stub">'+esc(i.n)+'</td><td>'+RUB(i.q)+'</td><td>'+RUB(i.rev)+'</td><td>'+RUB(i.cost)+'</td>'
+     +'<td class="'+(i.vp<0?'neg':'pos')+'">'+SUM(i.vp)+'</td><td>'+PCT(i.margin)+'</td>'
+     +'<td class="'+(dP<0?'neg':(dP>0?'pos':''))+'">'+(dP==null?'—':PCT(dP))+'</td></tr>';}).join('');
+  h+='<div class="card"><div class="hd"><h3>📋 Корзина покупателя</h3>'
+   +'<div class="sub">Последняя колонка — насколько цена для него отличается от средней цены завода по той же позиции</div></div>'
+   +'<div class="tblwrap"><table class="t"><thead><tr><th class="stub">Позиция</th><th>Кол-во</th><th>Выручка, ₸</th>'
+   +'<th>Себестоимость, ₸</th><th>Валовая прибыль, ₸</th><th>Маржа</th><th>Цена к средней</th></tr></thead><tbody>'
+   +rows+'</tbody></table></div></div>';
+  return h;
+}
+/* динамика выбранного покупателя по месяцам */
+function buyerDyn(name){
+  const pts=MONTHS.map(m=>{const d=build([m],name).T;return {m:m,rev:d.rev,vp:d.vp,margin:d.margin||0};}).filter(p=>p.rev>0);
+  if(pts.length<2) return '';
+  const W=880,H=250,pT=20,pB=42,pL=64,pR=16;
+  const mx=Math.max(...pts.map(p=>p.rev)), X=i=>pL+(W-pL-pR)*(pts.length<2?0:i/(pts.length-1));
+  const band=(W-pL-pR)/pts.length, bw=Math.min(24,band-8);
+  const Yr=v=>pT+(H-pT-pB)*(1-v/(mx||1));
+  const mm=pts.map(p=>p.margin), mmx=Math.max(...mm), mmn=Math.min(...mm);
+  const Ym=v=>pT+(H-pT-pB)*(mmx-v)/((mmx-mmn)||1);
+  let g='';
+  [0,mx/2,mx].forEach(v=>{const y=Yr(v);
+    g+='<line class="gl" x1="'+pL+'" y1="'+y.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y.toFixed(1)+'"/>'
+      +'<text class="ax" x="'+(pL-8)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end">'+MLN(v)+'</text>';});
+  const bars=pts.map((p,i)=>{const cx=pL+band*i+band/2, y=Yr(p.rev);
+    return '<g data-t="'+esc(RUM[+p.m.slice(5)]+' '+p.m.slice(0,4)+'¦выручка='+SUM(p.rev)+' ₸¦валовая прибыль='+SUM(p.vp)+' ₸¦маржа='+PCT(p.margin))+'">'
+      +'<rect x="'+(cx-band/2).toFixed(1)+'" y="'+pT+'" width="'+band.toFixed(1)+'" height="'+(H-pT-pB)+'" fill="transparent"/>'
+      +'<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(2,(H-pB)-y).toFixed(1)+'" rx="4" fill="var(--accent)" fill-opacity=".85"/></g>';}).join('');
+  const line=pts.map((p,i)=>(i?'L':'M')+(pL+band*i+band/2).toFixed(1)+' '+Ym(p.margin).toFixed(1)).join(' ');
+  const ticks=pts.map((p,i)=>'<text class="ax" x="'+(pL+band*i+band/2).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle">'+RUMS[+p.m.slice(5)]+'</text>').join('');
+  const f=pts[0],l=pts[pts.length-1],dm=l.margin-f.margin;
+  return '<div class="card"><div class="hd"><h3>📅 Как менялся этот покупатель по месяцам</h3>'
+   +'<div class="sub">Столбики — его выручка, линия — его маржинальность</div></div>'
+   +'<div class="lgd"><span><i style="background:var(--accent)"></i>выручка</span><span><i class="ln" style="background:#a78bfa"></i>маржа</span></div>'
+   +'<div class="svgwrap"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Динамика покупателя по месяцам">'+g+bars
+   +'<path d="'+line+'" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linejoin="round"/>'+ticks+'</svg></div>'
+   +'<div class="why">С '+RUMG[+f.m.slice(5)]+' по '+RUM[+l.m.slice(5)]+' его маржа '
+   +(Math.abs(dm)<0.3?'не изменилась':(dm>0?'выросла на <b>'+PP(dm)+'</b>':'снизилась на <b>'+PP(dm)+'</b>'))
+   +', выручка '+(l.rev>f.rev?'выросла':'снизилась')+' с '+MLN(f.rev)+' до '+MLN(l.rev)+' ₸.</div></div>';
+}
+
 /* ---------- вкладка 2: продуктовый портфель ---------- */
-function tabItems(D){
+function tabItems(D,DALL){
   const T=D.T, items=D.items.filter(i=>i.rev!==0);
   if(!items.length) return '<div class="card"><div class="empty">За выбранный период данных нет.</div></div>';
   const totVP=T.vp||1;
@@ -451,8 +536,8 @@ function tabItems(D){
   const cats={}; items.forEach(i=>{const c=cats[i.cat]||(cats[i.cat]={cat:i.cat,rev:0,cost:0,vp:0});c.rev+=i.rev;c.cost+=i.cost;c.vp+=i.vp;});
   const catsArr=Object.values(cats).map(c=>{c.margin=c.rev?c.vp/c.rev*100:null;return c;}).sort((a,b)=>b.vp-a.vp);
   let h='';
-  h+='<div class="card"><div class="hd"><h3>🎯 Главное по товарам</h3>'
-   +'<div class="sub">Концентрация прибыли в ассортименте и позиции, которые её съедают</div></div><div class="why">'
+  h+='<div class="card"><div class="hd"><h3>🎯 Главное по товарам'+(BUYER?' — '+esc(BUYER):'')+'</h3>'
+   +'<div class="sub">'+(BUYER?'Только позиции этого покупателя. ':'')+'Концентрация прибыли в ассортименте и позиции, которые её съедают</div></div><div class="why">'
    +'Из <b>'+items.length+'</b> позиций <b>'+nA+'</b> дают 80% валовой прибыли. '
    +(abc[0]?'Лидер — <b>'+esc(abc[0].i.n)+'</b>: '+MLN(abc[0].i.vp)+' ₸ прибыли при марже '+PCT(abc[0].i.margin)+'. ':'')
    +(loss.length?'<br>Убыточных позиций <b>'+loss.length+'</b>, они забирают <b>'+MLN(Math.abs(lossSum))+' ₸</b>. Худшая — '+esc(loss[0].n)+' ('+SUM(loss[0].vp)+' ₸, маржа '+PCT(loss[0].margin)+'). Причина убытка всегда одна из двух: цена продажи ниже себестоимости или списания и возвраты, попавшие в себестоимость месяца.'
@@ -494,13 +579,15 @@ function barsCard(title,sub,arr,valFn,nameFn,labFn,tipFn,cls){
 
 /* ---------- вкладка 3: клиент × товар ---------- */
 let CURCLIENT=null;
-function tabCross(D){
+function tabCross(D,DALL){
   const cl=D.clients.filter(c=>c.rev>0);
   if(!cl.length) return '<div class="card"><div class="empty">За выбранный период данных нет.</div></div>';
+  if(BUYER) CURCLIENT=BUYER;
   if(!CURCLIENT||!cl.find(c=>c.name===CURCLIENT)) CURCLIENT=cl[0].name;
   const c=cl.find(x=>x.name===CURCLIENT);
-  const T=D.T;
-  const opts=cl.map(x=>'<option value="'+esc(x.name)+'"'+(x.name===CURCLIENT?' selected':'')+'>'+esc(x.name)+' — ВП '+MLN(x.vp)+' ₸</option>').join('');
+  const T=(DALL||D).T;
+  const src=BUYER?cl:( (DALL||D).clients.filter(x=>x.rev>0) );
+  const opts=src.map(x=>'<option value="'+esc(x.name)+'"'+(x.name===CURCLIENT?' selected':'')+'>'+esc(x.name)+' — ВП '+MLN(x.vp)+' ₸</option>').join('');
   let h='<div class="card"><div class="hd"><h3>🔗 Что покупает клиент и на чём мы на нём зарабатываем</h3>'
    +'<div class="sub">Корзина выбранного покупателя: каждая позиция с её выручкой, себестоимостью и вкладом в прибыль</div></div>'
    +'<div class="sel"><label for="csel" style="font-size:12.5px;color:var(--ink2);font-weight:600">Покупатель:</label>'
@@ -530,8 +617,8 @@ function tabCross(D){
 }
 
 /* ---------- вкладка 4: почему так ---------- */
-function tabWhy(D){
-  const T=D.T, cl=D.clients.filter(c=>c.rev>0&&c.revAvg>0);
+function tabWhy(D,DALL){
+  const T=(DALL||D).T, cl=(BUYER?D:(DALL||D)).clients.filter(c=>c.rev>0&&c.revAvg>0);
   if(!cl.length) return '<div class="card"><div class="empty">За выбранный период данных нет.</div></div>';
   const base=T.margin||0;
   const rows=cl.map(c=>Object.assign({c:c},split(c,T)))
@@ -558,7 +645,7 @@ function tabWhy(D){
         +'<td style="text-align:left;white-space:normal">'+m.join('; ')+'</td></tr>';}).join('')
    +'</tbody></table></div></div>';
   // динамика маржи по месяцам
-  h+=dynCard();
+  h+=BUYER?buyerDyn(BUYER):dynCard();
   h+=defsBlock();
   return h;
 }
@@ -586,7 +673,7 @@ function dynCard(){
    +'<div class="sub">Валовая прибыль ÷ выручка, по всем покупателям</div></div>'
    +'<div class="svgwrap"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Динамика маржи по месяцам">'+g
    +'<path d="'+line+'" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>'+dots+ticks+'</svg></div>'
-   +'<div class="why">С '+RUM[+first.m.slice(5)]+' по '+RUM[+last.m.slice(5)]+' маржа '
+   +'<div class="why">С '+RUMG[+first.m.slice(5)]+' по '+RUM[+last.m.slice(5)]+' маржа '
    +(Math.abs(d)<0.3?'практически не изменилась':(d>0?'выросла на <b>'+PP(d)+'</b>':'снизилась на <b>'+PP(d)+'</b>'))
    +' — с '+PCT(first.margin)+' до '+PCT(last.margin)+'. Маржа падает, когда дорожает сырьё, растёт доля дешёвого ассортимента или увеличиваются скидки; растёт — в обратных случаях.</div></div>';
 }
@@ -609,9 +696,10 @@ const TABS=[
   {k:'cross',  l:'🔗 Клиент × товар',f:tabCross},
   {k:'why',    l:'🧭 Почему так',f:tabWhy}
 ];
-let CUR='clients', GRAN='ytd', PER='ytd';
+let CUR='clients', GRAN='ytd', PER='ytd', BUYER='';
 const elTabs=document.getElementById('tabs'), elBody=document.getElementById('body'),
-      elG=document.getElementById('gran'), elP=document.getElementById('per'), elH=document.getElementById('perhint');
+      elG=document.getElementById('gran'), elP=document.getElementById('per'),
+      elB=document.getElementById('buyer'), elH=document.getElementById('perhint');
 
 function fillPeriods(){
   const os=periodOptions(GRAN);
@@ -619,12 +707,22 @@ function fillPeriods(){
   if(!os.find(o=>o.v===PER)) PER=os[0].v;
   elP.value=PER;
 }
+function fillBuyers(ms){
+  const all=build(ms,'').clients.filter(c=>c.rev>0);
+  const prev=BUYER;
+  elB.innerHTML='<option value="">Все покупатели</option>'+
+    all.map(c=>'<option value="'+esc(c.name)+'">'+esc(c.name)+' — ВП '+MLN(c.vp)+' ₸</option>').join('');
+  if(prev&&all.some(c=>c.name===prev))elB.value=prev; else {BUYER='';elB.value='';}
+}
 function render(){
   const ms=monthsOf(GRAN,PER);
-  const D=build(ms);
-  elBody.innerHTML=TABS.find(t=>t.k===CUR).f(D);
-  document.getElementById('sub').textContent='Кто из покупателей и какие товары приносят прибыль · '+periodLabel(GRAN,PER)+' · источник: iiko';
-  elH.textContent='месяцев в расчёте: '+ms.length+(D.noCost?' · без себестоимости '+D.noCost+' позиций на '+MLN(D.noCostRev)+' ₸':'');
+  fillBuyers(ms);
+  const DALL=build(ms,'');
+  const D=BUYER?build(ms,BUYER):DALL;
+  if(BUYER)CURCLIENT=BUYER;
+  elBody.innerHTML=TABS.find(t=>t.k===CUR).f(D,DALL);
+  document.getElementById('sub').textContent=(BUYER?BUYER+' · ':'Кто из покупателей и какие товары приносят прибыль · ')+periodLabel(GRAN,PER)+' · источник: iiko';
+  elH.textContent='месяцев в расчёте: '+ms.length+(BUYER?' · фильтр по покупателю':'')+(D.noCost?' · без себестоимости '+D.noCost+' позиций на '+MLN(D.noCostRev)+' ₸':'');
   const cs=document.getElementById('csel');
   if(cs) cs.onchange=()=>{CURCLIENT=cs.value;render();};
   fitLabels(elBody); tipHide(); bindTips(elBody);
@@ -635,6 +733,7 @@ function setTabs(){
 }
 elG.onchange=()=>{GRAN=elG.value;fillPeriods();render();};
 elP.onchange=()=>{PER=elP.value;render();};
+elB.onchange=()=>{BUYER=elB.value;render();};
 
 (function init(){
   const meta=window.SKU_LIVE_META||{};
