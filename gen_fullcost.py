@@ -15,7 +15,7 @@
   • «SKU_Себестоимость/2025-2026год анализ себестоимости по май.xlsx» — себестоимость по SKU.
 Обновлять файлы при закрытии месяца — вкладка пересоберётся сама на следующем прогоне CI.
 """
-import json, os, re, datetime
+import io, json, os, re, datetime
 from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -170,6 +170,150 @@ def load_cats():
             cat[c][mk][0] += rev
             cat[c][mk][1] += qty * cpu
     return cat, sorted(months)
+
+
+
+def load_iiko_clients():
+    """Продажи по покупателям из iiko: contractor_items.js + себестоимость SKU из sku_live.js.
+
+    Возвращает {месяц: {покупатель: {"rev": выручка, "cost": продуктовая себестоимость,
+    "cats": {категория: [выручка, себестоимость]}}}}. Себестоимость единицы берём из
+    sku_live: (выручка - валовая прибыль) / количество за тот же месяц.
+    """
+    def _js(fn):
+        pth = os.path.join(HERE, fn)
+        if not os.path.exists(pth):
+            return None
+        t = io.open(pth, encoding="utf-8").read()
+        i = t.index("=")
+        obj, _ = json.JSONDecoder().raw_decode(t[i + 1:].lstrip())
+        return obj
+
+    try:
+        ctr = _js("contractor_items.js")
+        sku = _js("sku_live.js")
+    except Exception as e:
+        print("[!] покупатели: не прочитаны contractor_items/sku_live:", e)
+        return {}
+    if not ctr or not sku:
+        return {}
+
+    keys = sku.get("mo_keys") or []
+    idx = {m: i for i, m in enumerate(keys)}
+    S = {}
+    for x in sku.get("skus", []):
+        S[x.get("name") or x.get("n")] = x
+    out = {}
+    for m, clients in ctr.items():
+        if m == "year" or m not in idx:
+            continue
+        mi = idx[m]
+        row = {}
+        for c in clients:
+            rev = c.get("rev") or 0
+            if rev <= 0:
+                continue
+            cost = 0.0
+            known = 0.0
+            cats = {}
+            for it in c.get("items", []):
+                x = S.get(it["n"])
+                if not x:
+                    continue
+                q = abs((x.get("monthly_qty") or [0] * 20)[mi] or 0)
+                if not q:
+                    continue
+                r0 = (x.get("monthly_rev") or [0] * 20)[mi] or 0
+                v0 = (x.get("monthly_vp") or [0] * 20)[mi] or 0
+                unit = (r0 - v0) / q
+                cst = (it.get("q") or 0) * unit
+                cost += cst
+                known += it.get("r") or 0
+                cat = x.get("cat") or "Прочее"
+                a = cats.setdefault(cat, [0.0, 0.0])
+                a[0] += it.get("r") or 0
+                a[1] += cst
+            if known > 0 and known < rev:      # позиции без калькуляции — достраиваем по средней
+                k = rev / known
+                cost *= k
+                for a in cats.values():
+                    a[0] *= k
+                    a[1] *= k
+            row[c["name"]] = {"rev": rev, "cost": cost, "cats": cats}
+        if row:
+            out[m] = row
+    return out
+
+
+def build_buyers(pl, months, factors):
+    """ОПиУ, разложенный на покупателей.
+
+    Правило разнесения (оно же написано на самой вкладке):
+      • выручка — доля покупателя в выручке завода по расходным накладным iiko;
+      • продуктовая себестоимость — по фактическому товарному набору покупателя
+        (количество × себестоимость единицы из iiko), а не по доле выручки;
+      • остальные переменные и все постоянные затраты — пропорционально выручке.
+    Сумма по всем покупателям в каждом месяце равна ОПиУ завода до тенге.
+    """
+    cl = load_iiko_clients()
+    if not cl:
+        return {}, []
+    ms = [m for m in sorted(cl) if m in pl and pl[m].get("rev")]
+    if not ms:
+        return {}, []
+
+    B = {}
+    for m in ms:
+        p = pl[m]
+        lay = p.get("layers") or {}
+        food = lay.get("food", 0)
+        rest_var = p["var"] - food
+        totrev = sum(x["rev"] for x in cl[m].values())
+        totcost = sum(x["cost"] for x in cl[m].values()) or 1.0
+        for name, x in cl[m].items():
+            sh = x["rev"] / totrev if totrev else 0
+            cs = x["cost"] / totcost
+            layers = {k: round(v * sh) for k, v in lay.items()}
+            layers["food"] = round(food * cs)
+            rev = p["rev"] * sh
+            var = food * cs + rest_var * sh
+            fix = p["fix"] * sh
+            cm = rev - var
+            cmr = cm / rev if rev else 0
+            op = cm - fix
+            bep = fix / cmr if cmr > 0 else 0
+            b = B.setdefault(name, {"pl": {}, "months": [], "share": {}, "cats": {}})
+            b["pl"][m] = {"rev": round(rev), "var": round(var), "fix": round(fix), "cm": round(cm),
+                          "cmr": round(cmr * 100, 2), "op": round(op), "bep": round(bep),
+                          "safety": round((rev - bep) / rev * 100, 1) if rev else 0,
+                          "gross": 0, "net": 0, "layers": layers,
+                          "src": p.get("src", ""), "est": p.get("est", False)}
+            b["months"].append(m)
+            b["share"][m] = round(sh, 6)
+            for cat, a in x["cats"].items():
+                t = b["cats"].setdefault(cat, {})
+                t[m] = [round(a[0]), round(a[1])]
+
+    out = {}
+    for name, b in B.items():
+        mm = sorted(b["months"])
+        for i, m in enumerate(mm):
+            b["pl"][m]["fx"] = None if i == 0 else factors(b["pl"][mm[i - 1]], b["pl"][m])
+            b["pl"][m]["yoy"] = None
+        cats = []
+        for cat, mo in b["cats"].items():
+            rev = sum(v[0] for v in mo.values())
+            cost = sum(v[1] for v in mo.values())
+            if rev < 300000 or cost <= 0:
+                continue
+            cats.append({"n": cat, "rev": round(rev), "cost": round(cost),
+                         "fc": round(cost / rev * 100, 1), "gp": round(rev - cost), "m": mo})
+        cats.sort(key=lambda x: -x["rev"])
+        out[name] = {"months": mm, "pl": b["pl"], "share": b["share"], "cats": cats[:14],
+                     "rev": round(sum(b["pl"][m]["rev"] for m in mm)),
+                     "op": round(sum(b["pl"][m]["op"] for m in mm))}
+    order = sorted(out, key=lambda n: -out[n]["rev"])
+    return out, order
 
 
 def build():
@@ -358,8 +502,11 @@ def build():
                  "fix": sum(pl[m]["fix"] for m in ms), "op": sum(pl[m]["op"] for m in ms),
                  "cmr": round(sum(pl[m]["cm"] for m in ms) / max(1, sum(pl[m]["rev"] for m in ms)) * 100, 2)}
 
+    buyers, border = build_buyers(pl, months, _factors)
+
     return {
         "months": months, "pl": pl, "lines": lines,
+        "buyers": buyers, "border": border,
         "layers": [{"k": k, "t": t} for k, t, _ in LAYERS],
         "chan": chan_out, "cmonths": cmonths, "ctr": top_ctr,
         "cats": cats[:16], "years": y,
@@ -381,9 +528,11 @@ SECTION = r'''
         <div id="fc-period" style="display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:3px"></div>
         <select id="fc-month" style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:9px;padding:7px 11px;font-size:12.5px;cursor:pointer"></select>
         <div id="fc-mode" style="display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:3px"></div>
+        <select id="fc-buyer" style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:9px;padding:7px 11px;font-size:12.5px;cursor:pointer;max-width:280px"></select>
         <button id="fc-open" type="button" style="margin-left:auto;background:#c9a94e;color:#111827;border:0;border-radius:10px;padding:9px 16px;font-size:12.5px;font-weight:800;cursor:pointer">&#128203; Полный разбор</button>
       </div>
 
+      <div id="fc-bnote"></div>
       <div id="fc-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:9px"></div>
       <div id="fc-alert" style="margin-top:12px"></div>
 
@@ -424,7 +573,7 @@ SECTION = r'''
           <div id="fc-lines" style="overflow-x:auto"></div>
         </div>
         <div style="background:#111827;border:1px solid #1f2937;border-radius:14px;padding:14px">
-          <div style="font-size:13.5px;font-weight:700;color:#f1f5f9;margin-bottom:8px">&#127978; Каналы продаж</div>
+          <div id="fc-chan-title" style="font-size:13.5px;font-weight:700;color:#f1f5f9;margin-bottom:8px">&#127978; Каналы продаж</div>
           <div style="height:250px;margin-bottom:8px"><canvas id="fc-ch4"></canvas></div>
           <div id="fc-obs4" style="margin-top:10px"></div>
           <div id="fc-chan" style="overflow-x:auto"></div>
@@ -468,12 +617,27 @@ SECTION = r'''
     function lbl(m){ return MS[+m.slice(5)]+" "+m.slice(2,4); }
     function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
+    var BUYER="";
+    function BO(){ return (BUYER&&D.buyers&&D.buyers[BUYER])?D.buyers[BUYER]:null; }
+    function PL(){ var b=BO(); return b?b.pl:D.pl; }
+    function MONTHS(){ var b=BO(); return b?b.months:D.months; }
+    function CATS(){ var b=BO(); return b?(b.cats||[]):D.cats; }
+    function SHARE(m){ var b=BO(); return b?(b.share[m]||0):1; }
+    function LINES(){ var b=BO(); if(!b) return D.lines;
+      return D.lines.map(function(l){ var mm={}; for(var k in l.m){ mm[k]=Math.round(l.m[k]*(b.share[k]||0)); } return {n:l.n,g:l.g,m:mm}; }); }
+    function YRS(){ var b=BO(); if(!b) return D.years;
+      var y={}; b.months.forEach(function(m){ var k=m.slice(0,4), p=b.pl[m];
+        if(!y[k]) y[k]={months:[],rev:0,"var":0,fix:0,op:0,cm:0};
+        y[k].months.push(m); y[k].rev+=p.rev; y[k]["var"]+=p.var; y[k].fix+=p.fix; y[k].op+=p.op; y[k].cm+=p.cm; });
+      for(var k2 in y) y[k2].cmr=y[k2].rev?+(y[k2].cm/y[k2].rev*100).toFixed(2):0;
+      return y; }
+
     var st={period:"all",month:D.months[D.months.length-1],mode:"abs",cmp:"mom"};
-    function months(){ return st.period==="all"?D.months:D.months.filter(function(m){return m.indexOf(st.period)===0;}); }
+    function months(){ return st.period==="all"?MONTHS():MONTHS().filter(function(m){return m.indexOf(st.period)===0;}); }
     function agg(ms){
       var o={rev:0,var_:0,fix:0,op:0,layers:{}};
       D.layers.forEach(function(l){ o.layers[l.k]=0; });
-      ms.forEach(function(m){ var p=D.pl[m]; o.rev+=p.rev; o.var_+=p.var; o.fix+=p.fix; o.op+=p.op;
+      ms.forEach(function(m){ var p=PL()[m]; o.rev+=p.rev; o.var_+=p.var; o.fix+=p.fix; o.op+=p.op;
         D.layers.forEach(function(l){ o.layers[l.k]+=p.layers[l.k]||0; }); });
       o.cm=o.rev-o.var_; o.cmr=o.rev?o.cm/o.rev*100:0; o.full=o.rev-o.op;
       o.bep=o.cmr>0?o.fix/(o.cmr/100):0; o.safety=o.rev?(o.rev-o.bep)/o.rev*100:0;
@@ -487,8 +651,24 @@ SECTION = r'''
       el.onclick=function(e){ var b=e.target.closest("button"); if(b) cb(b.getAttribute("data-v")); };
     }
 
+    function bnote(){
+      var el=document.getElementById("fc-bnote"); if(!el) return;
+      var b=BO();
+      if(!b){ el.innerHTML=""; return; }
+      var a=agg(months()), ms=months();
+      var all=0, allop=0;
+      ms.forEach(function(m){ all+=D.pl[m].rev; allop+=D.pl[m].op; });
+      var sh=all?a.rev/all*100:0;
+      var facCmr=0; (function(){ var r=0,v=0; ms.forEach(function(m){ r+=D.pl[m].rev; v+=D.pl[m].var; }); facCmr=r?(r-v)/r*100:0; })();
+      var dm=a.cmr-facCmr;
+      el.innerHTML='<div style="background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.32);border-radius:12px;padding:11px 14px;margin-bottom:12px;font-size:12.5px;color:#cbd5e1;line-height:1.6">'
+        +'<b style="color:#f1f5f9">'+esc(BUYER)+'</b> — доля в выручке завода <b style="color:#f1f5f9">'+pc(sh)+'</b>, '
+        +'маржинальность <b style="color:'+(dm>=0?"#22c55e":"#ef4444")+'">'+pc(a.cmr)+'</b> против '+pc(facCmr)+' по заводу ('+(dm>=0?"+":"−")+Math.abs(dm).toFixed(1).replace(".",",")+' пункта).'
+        +'<div style="color:#94a3b8;font-size:11.5px;margin-top:5px">Как разнесено: выручка — по расходным накладным iiko; продуктовая себестоимость — по фактическому товарному набору покупателя (количество × себестоимость единицы из iiko), поэтому маржинальность у всех разная; прочие переменные и постоянные затраты — пропорционально доле в выручке. Сумма по всем покупателям равна ОПиУ завода до тенге. Постоянные затраты покупателя — не «его» расходы, а его доля общезаводских: при его уходе они никуда не денутся. Маржинальность здесь ниже, чем на вкладке «Себестоимость · маржа»: там из выручки вычитается только продуктовая себестоимость, а тут — все переменные затраты ОПиУ, включая логистику, электроэнергию, потери и возвраты.</div></div>';
+    }
+
     function kpi(){
-      var a=agg(months()), p=D.pl[st.month];
+      var a=agg(months()), p=PL()[st.month];
       var neg=a.op<0;
       var cards=[
         ["Выручка",mln(a.rev),months().length+" мес.","#e2e8f0"],
@@ -526,9 +706,9 @@ SECTION = r'''
     function ch1(){
       var cv=destroy("fc-ch1"); if(!cv) return; var ms=months();
       new Chart(cv.getContext("2d"),{data:{labels:ms.map(lbl),datasets:[
-        {type:"bar",label:"Выручка",data:ms.map(function(m){return +(D.pl[m].rev/1e6).toFixed(1);}),backgroundColor:ms.map(function(m){return D.pl[m].op<0?"rgba(239,68,68,.55)":"rgba(34,197,94,.55)";}),borderRadius:5,order:3},
-        {type:"line",label:"Точка безубыточности",data:ms.map(function(m){return +(D.pl[m].bep/1e6).toFixed(1);}),borderColor:"#c9a94e",backgroundColor:"#c9a94e",borderWidth:2.5,tension:.25,pointRadius:3,order:1},
-        {type:"line",label:"Операционная прибыль",data:ms.map(function(m){return +(D.pl[m].op/1e6).toFixed(1);}),borderColor:"#38bdf8",backgroundColor:"#38bdf8",borderWidth:2,borderDash:[5,4],tension:.25,pointRadius:2,yAxisID:"y1",order:2}
+        {type:"bar",label:"Выручка",data:ms.map(function(m){return +(PL()[m].rev/1e6).toFixed(1);}),backgroundColor:ms.map(function(m){return PL()[m].op<0?"rgba(239,68,68,.55)":"rgba(34,197,94,.55)";}),borderRadius:5,order:3},
+        {type:"line",label:"Точка безубыточности",data:ms.map(function(m){return +(PL()[m].bep/1e6).toFixed(1);}),borderColor:"#c9a94e",backgroundColor:"#c9a94e",borderWidth:2.5,tension:.25,pointRadius:3,order:1},
+        {type:"line",label:"Операционная прибыль",data:ms.map(function(m){return +(PL()[m].op/1e6).toFixed(1);}),borderColor:"#38bdf8",backgroundColor:"#38bdf8",borderWidth:2,borderDash:[5,4],tension:.25,pointRadius:2,yAxisID:"y1",order:2}
       ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
         plugins:{legend:{labels:{color:"#cbd5e1",font:{size:11},boxWidth:12}},datalabels:{display:false},
           tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+String(c.parsed.y).replace(".",",")+" млн";}}}},
@@ -541,9 +721,9 @@ SECTION = r'''
       var cv=destroy("fc-ch2"); if(!cv) return; var ms=months(), pctMode=st.mode==="pct";
       document.getElementById("fc-struct-sub").textContent=pctMode?"доли от выручки, %":"абсолютные суммы, млн ₸";
       var ds=D.layers.map(function(l){ return {label:l.t,backgroundColor:LC[l.k],borderRadius:3,
-        data:ms.map(function(m){ var x=D.pl[m].layers[l.k]||0; return pctMode?+(x/D.pl[m].rev*100).toFixed(1):+(x/1e6).toFixed(1); })}; });
+        data:ms.map(function(m){ var x=PL()[m].layers[l.k]||0; return pctMode?+(x/PL()[m].rev*100).toFixed(1):+(x/1e6).toFixed(1); })}; });
       if(pctMode) ds.push({label:"Результат",type:"line",borderColor:"#f8fafc",backgroundColor:"#f8fafc",borderWidth:2,pointRadius:2,tension:.25,
-        data:ms.map(function(m){ return +(D.pl[m].op/D.pl[m].rev*100).toFixed(1); })});
+        data:ms.map(function(m){ return +(PL()[m].op/PL()[m].rev*100).toFixed(1); })});
       new Chart(cv.getContext("2d"),{type:"bar",data:{labels:ms.map(lbl),datasets:ds},
         options:{responsive:true,maintainAspectRatio:false,
           plugins:{legend:{labels:{color:"#cbd5e1",font:{size:10},boxWidth:10}},datalabels:{display:false},
@@ -554,12 +734,12 @@ SECTION = r'''
 
     function ch3(){
       var cv=destroy("fc-ch3"); if(!cv) return;
-      var p=D.pl[st.month], f=(st.cmp==="yoy"?p.yoy:p.fx);
+      var p=PL()[st.month], f=(st.cmp==="yoy"?p.yoy:p.fx);
       var sub=document.getElementById("fc-fx-sub");
       if(!f){ sub.textContent="для этого месяца нет базы сравнения"; return; }
-      var base=st.cmp==="yoy"?f.prev:D.months[D.months.indexOf(st.month)-1];
+      var base=st.cmp==="yoy"?f.prev:MONTHS()[MONTHS().indexOf(st.month)-1];
       sub.textContent=MN[+st.month.slice(5)]+" "+st.month.slice(0,4)+" против "+MN[+base.slice(5)]+" "+base.slice(0,4)+" · изменение прибыли "+sg(f.d);
-      var steps=[["Было",D.pl[base].op,"#64748b",true],["Объём продаж",f.vol,f.vol>=0?"#22c55e":"#ef4444",false],
+      var steps=[["Было",PL()[base].op,"#64748b",true],["Объём продаж",f.vol,f.vol>=0?"#22c55e":"#ef4444",false],
                  ["Маржинальность",f.mar,f.mar>=0?"#22c55e":"#ef4444",false],["Постоянные затраты",f.fix,f.fix>=0?"#22c55e":"#ef4444",false]];
       var labels=[],data=[],colors=[],cur=0;
       steps.forEach(function(s){ if(s[3]){ cur=s[1]; labels.push(s[0]); data.push([0,cur/1e6]); colors.push(s[2]); }
@@ -574,6 +754,18 @@ SECTION = r'''
 
     function ch4(){
       var cv=destroy("fc-ch4"); if(!cv) return;
+      if(BO()){
+        var bm=months(), bp=PL();
+        new Chart(cv.getContext("2d"),{data:{labels:bm.map(lbl),datasets:[
+          {type:"bar",label:"Выручка, млн",data:bm.map(function(m){return +(bp[m].rev/1e6).toFixed(1);}),backgroundColor:"#60a5fa",borderRadius:4,order:3},
+          {type:"bar",label:"Маржинальная прибыль, млн",data:bm.map(function(m){return +(bp[m].cm/1e6).toFixed(1);}),backgroundColor:"#34d399",borderRadius:4,order:2},
+          {type:"line",label:"Маржинальность, %",data:bm.map(function(m){return bp[m].cmr;}),borderColor:"#c9a94e",backgroundColor:"#c9a94e",borderWidth:2,pointRadius:3,tension:.25,yAxisID:"y1",order:1}
+        ]},options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:"#cbd5e1",font:{size:9.5},boxWidth:9}},datalabels:{display:false}},
+          scales:{x:{ticks:{color:"#94a3b8",font:{size:9.5}},grid:{display:false}},y:Object.assign({},AX),
+            y1:{position:"right",ticks:{color:"#c9a94e",font:{size:10},callback:function(v){return v+"%";}},grid:{display:false}}}}});
+        return;
+      }
       var ms=D.cmonths.filter(function(m){ return st.period==="all"||m.indexOf(st.period)===0; });
       var names=Object.keys(D.chan).sort(function(a,b){ return sum(D.chan[b])-sum(D.chan[a]); }).slice(0,8);
       function sum(o){ var s=0; for(var k in o) s+=o[k]; return s; }
@@ -588,7 +780,7 @@ SECTION = r'''
 
     function ch5(){
       var cv=destroy("fc-ch5"); if(!cv) return;
-      var cs=D.cats.slice(0,14);
+      var cs=CATS().slice(0,14);
       new Chart(cv.getContext("2d"),{data:{labels:cs.map(function(c){return c.n;}),datasets:[
         {type:"bar",label:"Выручка, млн",data:cs.map(function(c){return +(c.rev/1e6).toFixed(1);}),backgroundColor:"#334155",borderRadius:4,yAxisID:"y",order:3},
         {type:"bar",label:"Валовая прибыль, млн",data:cs.map(function(c){return +(c.gp/1e6).toFixed(1);}),backgroundColor:"#22c55e",borderRadius:4,yAxisID:"y",order:2},
@@ -634,11 +826,11 @@ SECTION = r'''
 
     function observations(){
       var ms=months(), a=agg(ms), n=ms.length;
-      var over=ms.filter(function(m){ return D.pl[m].op>0; });
-      var byRev=ms.slice().sort(function(x,y){ return D.pl[y].rev-D.pl[x].rev; });
-      var byOp=ms.slice().sort(function(x,y){ return D.pl[y].op-D.pl[x].op; });
-      var byCmr=ms.slice().sort(function(x,y){ return D.pl[y].cmr-D.pl[x].cmr; });
-      var byFix=ms.slice().sort(function(x,y){ return D.pl[y].fix-D.pl[x].fix; });
+      var over=ms.filter(function(m){ return PL()[m].op>0; });
+      var byRev=ms.slice().sort(function(x,y){ return PL()[y].rev-PL()[x].rev; });
+      var byOp=ms.slice().sort(function(x,y){ return PL()[y].op-PL()[x].op; });
+      var byCmr=ms.slice().sort(function(x,y){ return PL()[y].cmr-PL()[x].cmr; });
+      var byFix=ms.slice().sort(function(x,y){ return PL()[y].fix-PL()[x].fix; });
       var f=ms[0], l=ms[ms.length-1];
       var lbl=function(m){ return MN[+m.slice(5)]+" "+m.slice(0,4); };
 
@@ -646,21 +838,21 @@ SECTION = r'''
       obsBlock("fc-obs1","Выручка против точки безубыточности",[
         "Порог безубыточности в среднем "+bb(mln(a.bep/n)+" в месяц")+", фактическая выручка "+bb(mln(a.rev/n))+" — разрыв "+bb(mln(Math.abs(a.bep-a.rev)/n))+" ежемесячно.",
         "Прибыльных месяцев "+bb(over.length+" из "+n)+"; в остальных выручка не дотянула до порога.",
-        "Лучший месяц по результату — "+bb(lbl(byOp[0])+": "+mln(D.pl[byOp[0]].op))+", худший — "+bb(lbl(byOp[byOp.length-1])+": "+mln(D.pl[byOp[byOp.length-1]].op))+".",
-        "Максимальная выручка была в "+lbl(byRev[0])+" ("+mln(D.pl[byRev[0]].rev)+"), минимальная в "+lbl(byRev[byRev.length-1])+" ("+mln(D.pl[byRev[byRev.length-1]].rev)+") — разница "+bb(mln(D.pl[byRev[0]].rev-D.pl[byRev[byRev.length-1]].rev))+".",
-        "Сам порог не постоянный: он гуляет от "+mln(Math.min.apply(null,ms.map(function(m){return D.pl[m].bep;})))+" до "+mln(Math.max.apply(null,ms.map(function(m){return D.pl[m].bep;})))+" — растёт вместе с постоянными затратами и падает при росте маржинальности.",
-        "В "+lbl(l)+" порог составил "+bb(mln(D.pl[l].bep))+" при выручке "+mln(D.pl[l].rev)+" — запас прочности "+bb(pc(D.pl[l].safety))+".",
+        "Лучший месяц по результату — "+bb(lbl(byOp[0])+": "+mln(PL()[byOp[0]].op))+", худший — "+bb(lbl(byOp[byOp.length-1])+": "+mln(PL()[byOp[byOp.length-1]].op))+".",
+        "Максимальная выручка была в "+lbl(byRev[0])+" ("+mln(PL()[byRev[0]].rev)+"), минимальная в "+lbl(byRev[byRev.length-1])+" ("+mln(PL()[byRev[byRev.length-1]].rev)+") — разница "+bb(mln(PL()[byRev[0]].rev-PL()[byRev[byRev.length-1]].rev))+".",
+        "Сам порог не постоянный: он гуляет от "+mln(Math.min.apply(null,ms.map(function(m){return PL()[m].bep;})))+" до "+mln(Math.max.apply(null,ms.map(function(m){return PL()[m].bep;})))+" — растёт вместе с постоянными затратами и падает при росте маржинальности.",
+        "В "+lbl(l)+" порог составил "+bb(mln(PL()[l].bep))+" при выручке "+mln(PL()[l].rev)+" — запас прочности "+bb(pc(PL()[l].safety))+".",
         "Каждый миллион выручки сверх порога приносит "+bb(mln(1e6*a.cmr/100))+" прибыли — это и есть эффект масштаба при нынешней структуре.",
         "Чтобы закрыть разрыв только объёмом, нужно "+bb(pc((a.bep/a.rev-1)*100))+" к нынешней выручке — примерно "+mln((a.bep-a.rev)/n)+" в месяц.",
         "Линия порога выше столбиков — визуальный признак убытка: площадь между ними за период и есть "+bb(mln(a.op))+".",
-        "Если удержать выручку на уровне лучшего месяца ("+mln(D.pl[byRev[0]].rev)+"), при нынешней марже результат был бы около "+bb(mln(D.pl[byRev[0]].rev*a.cmr/100-a.fix/n))+" в месяц."
+        "Если удержать выручку на уровне лучшего месяца ("+mln(PL()[byRev[0]].rev)+"), при нынешней марже результат был бы около "+bb(mln(PL()[byRev[0]].rev*a.cmr/100-a.fix/n))+" в месяц."
       ]);
 
       // 2 — структура затрат
       var L=D.layers.map(function(x){ return {k:x.k,t:x.t,v:a.layers[x.k]}; }).sort(function(x,y){ return y.v-x.v; });
-      var fFirst=D.pl[f].layers, fLast=D.pl[l].layers;
+      var fFirst=PL()[f].layers, fLast=PL()[l].layers;
       var shift=D.layers.map(function(x){
-        return {t:x.t, d:(fLast[x.k]/D.pl[l].rev-fFirst[x.k]/D.pl[f].rev)*100};
+        return {t:x.t, d:(fLast[x.k]/PL()[l].rev-fFirst[x.k]/PL()[f].rev)*100};
       }).sort(function(x,y){ return Math.abs(y.d)-Math.abs(x.d); });
       obsBlock("fc-obs2","Структура полной себестоимости",[
         "Крупнейшая статья — "+bb(L[0].t+": "+mln(L[0].v))+", это "+bb(pc(L[0].v/a.rev*100))+" выручки и "+pc(L[0].v/(a.rev-a.op)*100)+" всех затрат.",
@@ -676,8 +868,8 @@ SECTION = r'''
       ]);
 
       // 3 — факторы
-      var p=D.pl[st.month], fx=(st.cmp==="yoy"?p.yoy:p.fx);
-      var base=fx?(st.cmp==="yoy"?fx.prev:D.months[D.months.indexOf(st.month)-1]):null;
+      var p=PL()[st.month], fx=(st.cmp==="yoy"?p.yoy:p.fx);
+      var base=fx?(st.cmp==="yoy"?fx.prev:MONTHS()[MONTHS().indexOf(st.month)-1]):null;
       var items3;
       if(fx && base){
         var big=[["Объём",fx.vol],["Маржинальность",fx.mar],["Постоянные",fx.fix]].sort(function(x,y){ return Math.abs(y[1])-Math.abs(x[1]); });
@@ -685,9 +877,9 @@ SECTION = r'''
           "Результат "+bb(lbl(st.month))+" изменился на "+bb(sg(fx.d))+" против "+lbl(base)+".",
           "Главный фактор — "+bb(big[0][0]+" "+sg(big[0][1]))+": он объясняет "+pc(Math.abs(big[0][1])/(Math.abs(fx.vol)+Math.abs(fx.mar)+Math.abs(fx.fix))*100)+" всего движения.",
           "Второй по силе — "+big[1][0]+" "+sg(big[1][1])+", третий — "+big[2][0]+" "+sg(big[2][1])+".",
-          "Эффект объёма "+sg(fx.vol)+" — это изменение выручки "+sg(D.pl[st.month].rev-D.pl[base].rev)+", умноженное на прежнюю маржинальность "+pc(D.pl[base].cmr)+".",
-          "Эффект маржинальности "+sg(fx.mar)+" — это сдвиг маржи на "+pp(D.pl[st.month].cmr-D.pl[base].cmr)+" на нынешнем объёме.",
-          "Эффект постоянных "+sg(fx.fix)+" — они "+(fx.fix<0?"выросли":"снизились")+" на "+mln(Math.abs(D.pl[st.month].fix-D.pl[base].fix))+".",
+          "Эффект объёма "+sg(fx.vol)+" — это изменение выручки "+sg(PL()[st.month].rev-PL()[base].rev)+", умноженное на прежнюю маржинальность "+pc(PL()[base].cmr)+".",
+          "Эффект маржинальности "+sg(fx.mar)+" — это сдвиг маржи на "+pp(PL()[st.month].cmr-PL()[base].cmr)+" на нынешнем объёме.",
+          "Эффект постоянных "+sg(fx.fix)+" — они "+(fx.fix<0?"выросли":"снизились")+" на "+mln(Math.abs(PL()[st.month].fix-PL()[base].fix))+".",
           "Проверка: сумма трёх факторов равна фактическому изменению прибыли до тенге — модель замкнута.",
           "Объём и маржинальность работают вместе: падение выручки при одновременном снижении маржи бьёт дважды, и именно так выглядят слабые месяцы.",
           "Постоянные затраты — единственный фактор, который не зависит от рынка: его можно менять решением, а не переговорами.",
@@ -698,7 +890,29 @@ SECTION = r'''
       }
       obsBlock("fc-obs3","За счёт чего изменился результат",items3);
 
-      // 4 — каналы
+      // 4 — каналы / покупатель
+      if(BO()){
+        var bm4=months(), bp4=PL();
+        var facR=0, facO=0; bm4.forEach(function(m){ facR+=D.pl[m].rev; facO+=D.pl[m].op; });
+        var rank=(D.border||[]).indexOf(BUYER)+1;
+        var byOp4=bm4.slice().sort(function(x,y){ return bp4[y].op-bp4[x].op; });
+        var pos=bm4.filter(function(m){ return bp4[m].op>0; }).length;
+        var cmA=bm4.reduce(function(s2,m){ return s2+bp4[m].cm; },0);
+        var fixA=bm4.reduce(function(s2,m){ return s2+bp4[m].fix; },0);
+        obsBlock("fc-obs4","Покупатель: "+BUYER,[
+          "Доля в выручке завода за период — "+bb(pc(a.rev/facR*100))+", по обороту это "+bb(rank+"-е место")+" из "+(D.border||[]).length+".",
+          "Маржинальная прибыль "+bb(mln(cmA))+" — столько он приносит на покрытие общезаводских постоянных затрат.",
+          "Его доля постоянных затрат — "+bb(mln(fixA))+"; разница и есть результат "+bb(mln(a.op))+".",
+          (cmA>fixA?"Он окупает свою долю постоянных затрат — каждый следующий тенге его выручки работает на прибыль завода."
+                   :"Он не окупает свою долю постоянных затрат: не хватает "+bb(mln(fixA-cmA))+" за период."),
+          "Прибыльных месяцев "+bb(pos+" из "+bm4.length)+"; лучший — "+lbl(byOp4[0])+" ("+mln(bp4[byOp4[0]].op)+"), худший — "+lbl(byOp4[byOp4.length-1])+" ("+mln(bp4[byOp4[byOp4.length-1]].op)+").",
+          "Точка безубыточности лично для него — "+bb(mln(a.bep/bm4.length)+" выручки в месяц")+" при фактических "+mln(a.rev/bm4.length)+".",
+          "Если бы завод состоял только из таких покупателей, результат был бы "+bb(pc(a.op/a.rev*100)+" к выручке")+" против "+pc(facO/facR*100)+" фактических.",
+          "Чтобы он вышел в ноль без роста объёма, его маржинальность должна быть "+bb(pc(a.fix/a.rev*100))+" — сейчас "+pc(a.cmr)+".",
+          "Рост его выручки на 10% при нынешней марже дал бы "+bb(sg(a.rev*0.1*a.cmr/100))+" результата за период (постоянные затраты при этом не растут).",
+          "Постоянные затраты разнесены пропорционально выручке — это условная база: при уходе покупателя они остаются на заводе и лягут на остальных."
+        ]);
+      } else {
       var cms=D.cmonths.filter(function(m){ return st.period==="all"||m.indexOf(st.period)===0; });
       var rows=Object.keys(D.chan).map(function(nm){
         var t=0; cms.forEach(function(m){ t+=D.chan[nm][m]||0; });
@@ -722,9 +936,11 @@ SECTION = r'''
         "Диверсификация — не абстракция: чтобы заменить крупнейший канал, нужно "+bb(Math.ceil(rows[0].t/Math.max(1,rows[5]?rows[5].t:1))+" каналов")+" размера шестого по величине."
       ]);
 
+      }
+
       // 5 — категории
-      if(D.cats.length){
-        var cs=D.cats.slice(0,12);
+      if(CATS().length>=3){
+        var cs=CATS().slice(0,12);
         var byFc=cs.slice().sort(function(x,y){ return x.fc-y.fc; });
         var byGp=cs.slice().sort(function(x,y){ return y.gp-x.gp; });
         var trev=cs.reduce(function(s2,c){ return s2+c.rev; },0);
@@ -752,8 +968,8 @@ SECTION = r'''
         +'<th style="padding:6px 4px">Маржин.</th><th style="padding:6px 4px">Δ маржин.</th><th style="padding:6px 4px">Постоянные</th>'
         +'<th style="padding:6px 4px">Δ постоян.</th><th style="padding:6px 4px">Результат</th><th style="padding:6px 4px">Δ результата</th><th style="padding:6px 4px">Запас</th></tr>';
       ms.forEach(function(m,i){
-        var p=D.pl[m], base=(st.cmp==="yoy"?(p.yoy?p.yoy.prev:null):(D.months[D.months.indexOf(m)-1]||null));
-        var b=base?D.pl[base]:null;
+        var p=PL()[m], base=(st.cmp==="yoy"?(p.yoy?p.yoy.prev:null):(MONTHS()[MONTHS().indexOf(m)-1]||null));
+        var b=base?PL()[base]:null;
         var dr=b?(p.rev-b.rev)/b.rev*100:null, dm=b?(p.cmr-b.cmr):null, df=b?(p.fix-b.fix)/b.fix*100:null, dop=b?(p.op-b.op):null;
         function cell(v,txt,inv){ var c=v==null?"#64748b":((inv?-v:v)>0?"#22c55e":((inv?-v:v)<0?"#ef4444":"#94a3b8"));
           return '<td style="padding:6px 4px;text-align:right;white-space:nowrap;color:'+c+';font-weight:700">'+txt+'</td>'; }
@@ -774,8 +990,8 @@ SECTION = r'''
     }
 
     function linesTable(){
-      var m=st.month, base=(st.cmp==="yoy"?(D.pl[m].yoy?D.pl[m].yoy.prev:null):(D.months[D.months.indexOf(m)-1]||null));
-      var rows=D.lines.map(function(l){ var cur=l.m[m]||0, prv=base?(l.m[base]||0):0;
+      var m=st.month, base=(st.cmp==="yoy"?(PL()[m].yoy?PL()[m].yoy.prev:null):(MONTHS()[MONTHS().indexOf(m)-1]||null));
+      var rows=LINES().map(function(l){ var cur=l.m[m]||0, prv=base?(l.m[base]||0):0;
         return {n:l.n,g:l.g,cur:cur,prv:prv,d:cur-prv,dp:prv?((cur-prv)/Math.abs(prv)*100):null}; })
         .filter(function(r){ return Math.abs(r.cur)>300000||Math.abs(r.d)>300000; });
       rows.sort(function(a,b){ return Math.abs(b.d)-Math.abs(a.d); });
@@ -785,7 +1001,7 @@ SECTION = r'''
            +'border-radius:8px;padding:6px 9px;margin-bottom:7px">&#9432; Постатейной расшифровки ОПиУ за этот месяц ещё нет &mdash; '
            +'показаны шесть групп затрат из iiko. Детализация появится после закрытия месяца.</div>';
         rows=D.layers.map(function(l){
-          var cur=(D.pl[m].layers||{})[l.k]||0, prv=base?((D.pl[base].layers||{})[l.k]||0):0;
+          var cur=(PL()[m].layers||{})[l.k]||0, prv=base?((PL()[base].layers||{})[l.k]||0):0;
           return {n:l.t,g:"группа",cur:cur,prv:prv,d:cur-prv,dp:prv?((cur-prv)/Math.abs(prv)*100):null};
         }).filter(function(r){ return r.cur||r.d; });
         rows.sort(function(a,b){ return Math.abs(b.d)-Math.abs(a.d); });
@@ -802,6 +1018,28 @@ SECTION = r'''
     }
 
     function chanTable(){
+      var tt=document.getElementById("fc-chan-title");
+      if(BO()){
+        if(tt) tt.innerHTML="&#128100; "+esc(BUYER)+" по месяцам";
+        var bm=months(), bp=PL();
+        var h2='<div style="font-size:11.5px;color:#64748b;margin:6px 0">выручка, доля завода и результат с учётом разнесённых затрат</div>'
+          +'<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:380px">'
+          +'<tr style="color:#64748b;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">'
+          +'<th style="text-align:left;padding:5px 4px">Месяц</th><th style="text-align:right;padding:5px 4px">Выручка</th>'
+          +'<th style="text-align:right;padding:5px 4px">Доля</th><th style="text-align:right;padding:5px 4px">Маржин.</th>'
+          +'<th style="text-align:right;padding:5px 4px">Результат</th></tr>';
+        bm.forEach(function(m){ var p=bp[m];
+          h2+='<tr style="border-top:1px solid #1b2636">'
+            +'<td style="padding:5px 4px;color:#cbd5e1">'+MS[+m.slice(5)]+" "+m.slice(0,4)+'</td>'
+            +'<td style="padding:5px 4px;text-align:right;color:#94a3b8">'+mln(p.rev)+'</td>'
+            +'<td style="padding:5px 4px;text-align:right;color:#64748b">'+pc(SHARE(m)*100,0)+'</td>'
+            +'<td style="padding:5px 4px;text-align:right;color:#22d3ee;font-weight:700">'+pc(p.cmr)+'</td>'
+            +'<td style="padding:5px 4px;text-align:right;font-weight:700;color:'+(p.op<0?"#ef4444":"#22c55e")+'">'+mln(p.op)+'</td></tr>';
+        });
+        document.getElementById("fc-chan").innerHTML=h2+"</table>";
+        return;
+      }
+      if(tt) tt.innerHTML="&#127978; Каналы продаж";
       var ms=D.cmonths.filter(function(m){ return st.period==="all"||m.indexOf(st.period)===0; });
       var last=ms[ms.length-1], prev=ms[ms.length-2];
       var rows=Object.keys(D.chan).map(function(n){
@@ -825,20 +1063,33 @@ SECTION = r'''
     __MODAL__
 
     function render(){
-      seg("fc-period",[["all","Весь период"],["2025","2025"],["2026","2026"]],st.period,function(v){ st.period=v;
+      var yrsA=[]; MONTHS().forEach(function(m){ var y=m.slice(0,4); if(yrsA.indexOf(y)<0) yrsA.push(y); });
+      seg("fc-period",[["all","Весь период"]].concat(yrsA.map(function(y){ return [y,y]; })),st.period,function(v){ st.period=v;
         var ms=months(); if(ms.indexOf(st.month)<0) st.month=ms[ms.length-1]; render(); });
       seg("fc-mode",[["abs","₸"],["pct","% от выручки"]],st.mode,function(v){ st.mode=v; render(); });
-      seg("fc-cmp",[["mom","к прошлому месяцу"],["yoy","к прошлому году"]],st.cmp,function(v){ st.cmp=v; render(); });
+      seg("fc-cmp",BO()?[["mom","к прошлому месяцу"]]:[["mom","к прошлому месяцу"],["yoy","к прошлому году"]],st.cmp,function(v){ st.cmp=v; render(); });
+      var bs=document.getElementById("fc-buyer");
+      if(bs){
+        bs.innerHTML='<option value="">&#127981; Весь завод</option>'+((D.border||[]).map(function(n){
+          return '<option value="'+esc(n)+'"'+(n===BUYER?" selected":"")+'>'+esc(n)+'</option>'; }).join(""));
+        bs.onchange=function(){
+          BUYER=this.value; var ms=MONTHS();
+          if(st.period!=="all" && !ms.filter(function(m){return m.indexOf(st.period)===0;}).length) st.period="all";
+          if(ms.indexOf(st.month)<0) st.month=ms[ms.length-1];
+          if(BUYER && st.cmp==="yoy") st.cmp="mom";
+          render();
+        };
+      }
       var sel=document.getElementById("fc-month");
-      sel.innerHTML=months().map(function(m){ return '<option value="'+m+'"'+(m===st.month?" selected":"")+'>'+MN[+m.slice(5)]+" "+m.slice(0,4)+(D.pl[m].est?" · оценка":(D.pl[m].src==="iiko"?" · iiko":""))+'</option>'; }).join("");
+      sel.innerHTML=months().map(function(m){ return '<option value="'+m+'"'+(m===st.month?" selected":"")+'>'+MN[+m.slice(5)]+" "+m.slice(0,4)+(PL()[m].est?" · оценка":(PL()[m].src==="iiko"?" · iiko":""))+'</option>'; }).join("");
       sel.onchange=function(){ st.month=this.value; render(); };
-      kpi(); alertBox(); momTable(); linesTable(); chanTable(); observations();
+      bnote(); kpi(); alertBox(); momTable(); linesTable(); chanTable(); observations();
       if(window.Chart){ ch1(); ch2(); ch3(); ch4(); ch5(); }
     }
 
     function boot(){
-      var a=agg(D.months);
-      document.getElementById("fc-sum").textContent="выручка "+mln(a.rev)+" · результат "+mln(a.op)+" · "+D.months.length+" мес.";
+      var a=agg(MONTHS());
+      document.getElementById("fc-sum").textContent="выручка "+mln(a.rev)+" · результат "+mln(a.op)+" · "+MONTHS().length+" мес.";
       var det=document.getElementById("fc-details");
       det.addEventListener("toggle",function(){ var c=document.getElementById("fc-caret"); if(c) c.innerHTML=det.open?"&#9662;":"&#9656;"; if(det.open) render(); });
       document.getElementById("fc-open").onclick=function(){ openModal(); };
@@ -856,17 +1107,17 @@ SECTION = r'''
 MODAL_JS = r'''
     function openModal(){
       var ms=months(), a=agg(ms), n=ms.length;
-      var y25=D.years["2025"], y26=D.years["2026"];
+      var y25=YRS()["2025"], y26=YRS()["2026"];
       var cmp=null;
       if(y26){
-        var same=y26.months.map(function(m){ return "2025"+m.slice(4); }).filter(function(m){ return D.pl[m]; });
+        var same=y26.months.map(function(m){ return "2025"+m.slice(4); }).filter(function(m){ return PL()[m]; });
         if(same.length===y26.months.length){ cmp={a:agg(same),b:agg(y26.months),ms:same,ms2:y26.months}; }
       }
-      var sorted=ms.slice().sort(function(x,y){ return D.pl[y].op-D.pl[x].op; });
+      var sorted=ms.slice().sort(function(x,y){ return PL()[y].op-PL()[x].op; });
       var best=sorted[0], worst=sorted[sorted.length-1];
-      var revS=ms.slice().sort(function(x,y){ return D.pl[y].rev-D.pl[x].rev; });
+      var revS=ms.slice().sort(function(x,y){ return PL()[y].rev-PL()[x].rev; });
       var LOSS=["1.30.Возвраты от дистрибьютеров","1.28.Брак","1.7.Истек срок хранения (порча)","1.3.Недостача инвентаризации","1.24.Бракераж","1.27.Нарушение тех.процесса","1.11.Списание сломанных ТМЗ"];
-      function lineSum(name,mm){ var l=null; D.lines.forEach(function(x){ if(x.n===name) l=x; }); if(!l) return 0;
+      function lineSum(name,mm){ var l=null; LINES().forEach(function(x){ if(x.n===name) l=x; }); if(!l) return 0;
         var s=0; mm.forEach(function(m){ s+=l.m[m]||0; }); return s; }
       var lossTot=0; LOSS.forEach(function(k){ lossTot+=lineSum(k,ms); });
 
@@ -903,19 +1154,19 @@ MODAL_JS = r'''
              ["Запас прочности",pc(a.safety),a.safety<0?"#ef4444":"#22c55e"]]);
 
       h+=H("2 · Выручка");
-      h+=P("Лучший месяц по выручке — "+b(MN[+revS[0].slice(5)]+" "+revS[0].slice(0,4))+" ("+mln(D.pl[revS[0]].rev)+"), худший — "+b(MN[+revS[revS.length-1].slice(5)]+" "+revS[revS.length-1].slice(0,4))+" ("+mln(D.pl[revS[revS.length-1]].rev)+"). Разброс "+mln(D.pl[revS[0]].rev-D.pl[revS[revS.length-1]].rev)+" — это "+pc((D.pl[revS[0]].rev/D.pl[revS[revS.length-1]].rev-1)*100)+" к минимуму.");
+      h+=P("Лучший месяц по выручке — "+b(MN[+revS[0].slice(5)]+" "+revS[0].slice(0,4))+" ("+mln(PL()[revS[0]].rev)+"), худший — "+b(MN[+revS[revS.length-1].slice(5)]+" "+revS[revS.length-1].slice(0,4))+" ("+mln(PL()[revS[revS.length-1]].rev)+"). Разброс "+mln(PL()[revS[0]].rev-PL()[revS[revS.length-1]].rev)+" — это "+pc((PL()[revS[0]].rev/PL()[revS[revS.length-1]].rev-1)*100)+" к минимуму.");
       if(cmp){
         var dr=(cmp.b.rev-cmp.a.rev)/cmp.a.rev*100;
         h+=P("Сопоставимый период "+b(MN[+cmp.ms2[0].slice(5)]+"–"+MN[+cmp.ms2[cmp.ms2.length-1].slice(5)])+": 2026 год дал "+b(mln(cmp.b.rev))+" против "+mln(cmp.a.rev)+" в 2025 — "+b(pc(dr))+" ("+sg(cmp.b.rev-cmp.a.rev)+")."
           +(dr<0?" Провал выручки и есть основная причина убытка."
                 :" То есть выручка год к году не упала — значит результат ухудшили не продажи, а маржинальность и постоянные затраты."));
-        var h2=D.months.filter(function(m){ return m.indexOf("2025")===0 && +m.slice(5)>=7; });
+        var h2=MONTHS().filter(function(m){ return m.indexOf("2025")===0 && +m.slice(5)>=7; });
         if(h2.length){
           var a2=agg(h2), am2=a2.rev/h2.length, am26=cmp.b.rev/cmp.ms2.length;
           h+=P("Но если сравнивать со вторым полугодием 2025 ("+b(mln(am2)+" в месяц")+"), то текущий уровень "+b(mln(am26)+" в месяц")+" — это "+b(pc((am26/am2-1)*100))+", то есть "+b(mln(Math.abs(am2-am26))+" выручки в месяц")+", которых не хватает при неизменных постоянных затратах.");
         }
       }
-      h+=P("Прибыльных месяцев "+b(ms.filter(function(m){return D.pl[m].op>0;}).length+" из "+n)+". Лучший результат — "+b(MN[+best.slice(5)]+" "+best.slice(0,4)+": "+mln(D.pl[best].op))+", худший — "+b(MN[+worst.slice(5)]+" "+worst.slice(0,4)+": "+mln(D.pl[worst].op))+".");
+      h+=P("Прибыльных месяцев "+b(ms.filter(function(m){return PL()[m].op>0;}).length+" из "+n)+". Лучший результат — "+b(MN[+best.slice(5)]+" "+best.slice(0,4)+": "+mln(PL()[best].op))+", худший — "+b(MN[+worst.slice(5)]+" "+worst.slice(0,4)+": "+mln(PL()[worst].op))+".");
 
       h+=H("3 · Маржинальность: сколько остаётся после переменных затрат");
       h+=P("Средняя маржинальность периода — "+b(pc(a.cmr))+". Это доля выручки, которая доходит до покрытия постоянных затрат. Каждый процентный пункт маржинальности стоит "+b(mln(a.rev/n/100))+" в месяц.");
@@ -937,10 +1188,19 @@ MODAL_JS = r'''
 
       h+=H("5 · Точка безубыточности");
       h+=P("При маржинальности "+b(pc(a.cmr))+" для покрытия постоянных затрат нужна выручка "+b(mln(a.bep/n)+" в месяц")+". Фактическая — "+b(mln(a.rev/n))+". Разрыв "+b(mln(Math.abs(a.bep/n-a.rev/n)))+" в месяц"+(a.op<0?" — это и есть месячный убыток в пересчёте на выручку.":"."));
-      var bepRows=ms.slice(-6).map(function(m){ var p=D.pl[m];
+      var bepRows=ms.slice(-6).map(function(m){ var p=PL()[m];
         return [MN[+m.slice(5)]+" "+m.slice(0,4), mln(p.rev)+" при пороге "+mln(p.bep)+" · "+pc(p.safety), p.safety<0?"#ef4444":"#22c55e"]; });
       h+=KV(bepRows);
 
+      if(BO()){
+        h+=H("6 · Покупатель в разрезе завода");
+        var fR=0,fO=0; ms.forEach(function(m){ fR+=D.pl[m].rev; fO+=D.pl[m].op; });
+        h+=P("Выбран "+b(esc(BUYER))+". Все цифры выше — его доля завода: выручка по расходным накладным iiko, продуктовая себестоимость по его фактическому товарному набору, прочие переменные и постоянные затраты — пропорционально выручке.");
+        h+=KV([["Доля в выручке завода",pc(a.rev/fR*100)],["Место по обороту",((D.border||[]).indexOf(BUYER)+1)+" из "+(D.border||[]).length],
+               ["Маржинальная прибыль",mln(a.cm)+" · "+pc(a.cmr),"#22d3ee"],["Доля постоянных затрат",mln(a.fix),"#f59e0b"],
+               ["Результат",mln(a.op),a.op<0?"#ef4444":"#22c55e"]]);
+        h+=P(a.cm>a.fix?"Он окупает свою долю общезаводских постоянных затрат.":"Маржинальной прибыли не хватает на его долю постоянных затрат: разрыв "+b(mln(a.fix-a.cm))+". Это не значит, что от него надо отказаться — при его уходе постоянные затраты останутся и лягут на остальных. Значит, нужна либо цена, либо набор с более высокой маржой, либо объём.");
+      } else {
       h+=H("6 · Каналы продаж: кто ушёл и кто пришёл");
       if(gone.length){
         h+=P(b("Потерянные каналы.")+" Сравнение первых и последних трёх месяцев данных:");
@@ -955,10 +1215,11 @@ MODAL_JS = r'''
       var top=chRows.slice(0,5);
       h+=KV(top.map(function(r){ return [r.n, mln(r.t)+" · "+pc(r.t/chRows.reduce(function(s,x){return s+x.t;},0)*100,0)]; }));
       h+=P("Концентрация: три крупнейших канала дают "+b(pc(top.slice(0,3).reduce(function(s,r){return s+r.t;},0)/chRows.reduce(function(s,x){return s+x.t;},0)*100))+" всей выручки. Уход любого из них повторит сценарий текущего года.");
+      }
 
       h+=H("7 · Продукт и фудкост");
-      if(D.cats.length){
-        var cs=D.cats.slice(0,10);
+      if(CATS().length){
+        var cs=CATS().slice(0,10);
         var bestC=cs.slice().sort(function(x,y){ return x.fc-y.fc; })[0];
         var worstC=cs.slice().sort(function(x,y){ return y.fc-x.fc; })[0];
         h+=P("Средний фудкост по категориям с заполненной себестоимостью — "+b(pc(cs.reduce(function(s,c){return s+c.cost;},0)/cs.reduce(function(s,c){return s+c.rev;},0)*100))+". Самая выгодная категория — "+b(bestC.n+" ("+pc(bestC.fc)+")")+", самая тяжёлая — "+b(worstC.n+" ("+pc(worstC.fc)+")")+".");
@@ -972,7 +1233,7 @@ MODAL_JS = r'''
 
       h+=H("9 · За счёт чего прибыль и за счёт чего убыток");
       h+=LI([
-        b("Прибыль дают:")+" маржинальность "+pc(a.cmr)+" — каждый тенге выручки приносит "+b(Math.round(a.cmr)+" тиын")+" на покрытие постоянных затрат; объём в сильные месяцы (в лучшем месяце результат "+mln(D.pl[best].op)+"); каналы с растущим объёмом"+(grown.length?" — прежде всего "+grown[0].n:"")+".",
+        b("Прибыль дают:")+" маржинальность "+pc(a.cmr)+" — каждый тенге выручки приносит "+b(Math.round(a.cmr)+" тиын")+" на покрытие постоянных затрат; объём в сильные месяцы (в лучшем месяце результат "+mln(PL()[best].op)+"); каналы с растущим объёмом"+(grown.length?" — прежде всего "+grown[0].n:"")+".",
         b("Убыток создают:")+" падение выручки ниже порога "+mln(a.bep/n)+" в месяц; постоянные затраты "+mln(a.fix/n)+" в месяц, не сокращённые вслед за объёмом; потери в себестоимости "+mln(lossTot)+"; концентрация на нескольких крупных покупателях.",
         (function(){ var lv=a.rev/n*0.01*a.cmr/100, lf=a.fix/n*0.01, k=lv/lf;
           return b("Главный рычаг:")+" при нынешней структуре "+b("+1% выручки")+" даёт "+b(mln(lv))+" результата в месяц, а "+b("−1% постоянных затрат")+" — "+b(mln(lf))+". "
@@ -995,7 +1256,7 @@ MODAL_JS = r'''
       }
 
       h+=H("11 · Методика и ограничения");
-      h+=P("Данные — управленческий ОПиУ ("+D.months.length+" мес., "+MN[+D.months[0].slice(5)]+" "+D.months[0].slice(0,4)+" — "+MN[+D.months[D.months.length-1].slice(5)]+" "+D.months[D.months.length-1].slice(0,4)+") и отчёт о продажах по контрагентам из iiko. Переменными считаются статьи, зависящие от объёма: продуктовая себестоимость, расходные материалы, логистика, потери, электроэнергия. Постоянными — ФОТ производства и АУП, аренда, администрация, маркетинг, ремонты. Деление условное: часть статей полупеременные, поэтому точка безубыточности — ориентир, а не бухгалтерская величина. Выручка по каналам берётся по расходным накладным и может незначительно расходиться с ОПиУ из-за возвратов и внутренних перемещений. Прочие доходы и КПН в операционный результат не включены.");
+      h+=P("Данные — управленческий ОПиУ ("+MONTHS().length+" мес., "+MN[+MONTHS()[0].slice(5)]+" "+MONTHS()[0].slice(0,4)+" — "+MN[+MONTHS()[MONTHS().length-1].slice(5)]+" "+MONTHS()[MONTHS().length-1].slice(0,4)+") и отчёт о продажах по контрагентам из iiko. Переменными считаются статьи, зависящие от объёма: продуктовая себестоимость, расходные материалы, логистика, потери, электроэнергия. Постоянными — ФОТ производства и АУП, аренда, администрация, маркетинг, ремонты. Деление условное: часть статей полупеременные, поэтому точка безубыточности — ориентир, а не бухгалтерская величина. Выручка по каналам берётся по расходным накладным и может незначительно расходиться с ОПиУ из-за возвратов и внутренних перемещений. Прочие доходы и КПН в операционный результат не включены.");
       h+=P('<span style="color:#475569;font-size:11.5px">Собрано '+D.built+' · система «Пульс» · Ольга Герасименко</span>');
 
       document.getElementById("fc-modal-body").innerHTML=h;
