@@ -451,13 +451,6 @@ function tabItems(D){
   const cats={}; items.forEach(i=>{const c=cats[i.cat]||(cats[i.cat]={cat:i.cat,rev:0,cost:0,vp:0});c.rev+=i.rev;c.cost+=i.cost;c.vp+=i.vp;});
   const catsArr=Object.values(cats).map(c=>{c.margin=c.rev?c.vp/c.rev*100:null;return c;}).sort((a,b)=>b.vp-a.vp);
   let h='';
-  h+='<div class="kpi">'
-   +kpi('Позиций в продаже',items.length.toLocaleString('ru-RU'),'','из них '+nA+' дают 80% прибыли')
-   +kpi('Выручка',MLN(T.rev),'₸','')
-   +kpi('Валовая прибыль',MLN(T.vp),'₸','')
-   +kpi('Маржинальность',PCT(T.margin),'','средняя по портфелю')
-   +kpi('Убыточных позиций',loss.length.toLocaleString('ru-RU'),'',loss.length?('минус '+MLN(Math.abs(lossSum))+' ₸'):'нет')
-   +'</div>';
   h+='<div class="card"><div class="hd"><h3>🎯 Главное по товарам</h3>'
    +'<div class="sub">Концентрация прибыли в ассортименте и позиции, которые её съедают</div></div><div class="why">'
    +'Из <b>'+items.length+'</b> позиций <b>'+nA+'</b> дают 80% валовой прибыли. '

@@ -369,11 +369,11 @@ def build():
 
 SECTION = r'''
 <div id="fullcost-analytics" style="max-width:1400px;margin:26px auto 0;padding:0 16px;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <details id="fc-details" style="background:#111827;border:1px solid #1f2937;border-radius:16px;overflow:hidden">
+  <details id="fc-details" open style="background:#111827;border:1px solid #1f2937;border-radius:16px;overflow:hidden">
     <summary style="cursor:pointer;list-style:none;padding:16px 20px;font-size:15px;font-weight:800;color:#f1f5f9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:linear-gradient(90deg,#111827,#0f172a)">
-      <span style="color:#c9a94e"><span id="fc-caret">&#9656;</span> &#129518; Полная себестоимость: за счёт чего прибыль и убыток</span>
+      <span style="color:#c9a94e"><span id="fc-caret">&#9662;</span> &#129518; Полная себестоимость: за счёт чего прибыль и убыток</span>
       <span id="fc-sum" style="font-weight:600;font-size:12px;color:#94a3b8"></span>
-      <span style="font-weight:500;font-size:12px;color:#64748b;margin-left:auto">ОПиУ + продажи по контрагентам с 2025 года &middot; нажмите, чтобы раскрыть</span>
+      <span style="font-weight:500;font-size:12px;color:#64748b;margin-left:auto">ОПиУ + продажи по контрагентам с 2025 года &middot; нажмите на заголовок, чтобы свернуть</span>
     </summary>
     <div style="padding:14px 18px 22px;background:#0b1220">
 
@@ -1006,13 +1006,33 @@ MODAL_JS = r'''
 '''
 
 
+def _match_div(s, start):
+    """Индекс сразу за парным </div> для тега <div, начинающегося в start."""
+    depth = 0
+    for m in re.finditer(r"<(/?)div\b[^>]*?(/?)>", s[start:]):
+        if m.group(2) == "/":
+            continue
+        depth += -1 if m.group(1) else 1
+        if depth == 0:
+            return start + m.end()
+    return -1
+
+
 def inject(html, data):
+    """Кладём блок аналитики СРАЗУ ПОД ШАПКОЙ — он главный на странице, а не сноска внизу."""
     block = SECTION.replace("__MODAL__", MODAL_JS).replace(
         "__FCDATA__", json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+    # вырезаем прошлую версию блока (ровно её, а не всё до конца страницы)
     i = html.find('<div id="fullcost-analytics"')
     if i >= 0:
-        j = html.find("</body>", i)
+        j = _match_div(html, i)
         html = html[:i] + (html[j:] if j > 0 else "")
+    # вставляем сразу после шапки
+    a = html.find('<div class="topbar"')
+    if a >= 0:
+        b = _match_div(html, a)
+        if b > 0:
+            return html[:b] + "\n" + block + html[b:]
     k = html.find("</body>")
     if k >= 0:
         return html[:k] + block + "\n" + html[k:]
