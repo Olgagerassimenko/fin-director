@@ -8,6 +8,7 @@
     {href:'продажи_2026.html',icon:'🛒',label:'Продажи'},
     {href:'дашборд_sku_iiko.html',icon:'🔍',label:'SKU 360'},
     {href:'себестоимость_маржа.html',icon:'💰',label:'Себестоимость · маржа'},
+    {href:'рычаги.html',icon:'🎯',label:'Рычаги прибыли'},
     {href:'metrics.html',icon:'🔒',label:'Метрики'}
   ];
   var cur=location.pathname.split('/').pop()||'index.html';
