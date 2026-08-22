@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Рычаги прибыли — где завод теряет деньги · Пульс</title><meta name="author" content="Ольга Герасименко">
+<style>
+ /* Пара приход/расход проверена на дальтонизм: ΔE 12 (deutan) */
+ :root{--in:#34d399;--out:#f43f5e;--ink:#f4f7fb;--ink2:#b9c5d3;--mut:#8798ab;
+   --line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.055);--surf:#0f1a27;--page:#080d16;
+   --accent:#e8c766;--accentbg:rgba(232,199,102,.14);--grid:rgba(255,255,255,.09);--card:#0f1b29;--dim:#8a7c4e}
+ *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+ body{background:var(--page);color:var(--ink);-webkit-font-smoothing:antialiased}
+ .topbar{background:var(--surf);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:14px 24px;flex-wrap:wrap}
+ .topbar h1{font-size:20px;font-weight:800;letter-spacing:-.01em}
+ .topbar p{font-size:12.5px;color:var(--ink2);margin-top:1px}
+ .backbtn{background:rgba(255,255,255,.06);color:#c9d4e2;border:1px solid rgba(255,255,255,.12);font-weight:700;font-size:13px;padding:8px 14px;border-radius:999px;text-decoration:none;transition:.2s}
+ .backbtn:hover{background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;border-color:#e8c766}
+ .live{margin-left:auto;background:var(--accentbg);color:var(--accent);font-weight:700;font-size:12px;padding:6px 12px;border-radius:999px;white-space:nowrap}
+ .wrap{max-width:1240px;margin:0 auto;padding:18px 18px 56px}
+ .tabs{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+ .tab{background:var(--surf);color:#c9d4e2;border:1px solid var(--line);border-radius:999px;padding:7px 15px;font-weight:700;font-size:12.5px;cursor:pointer;transition:.18s}
+ .tab:hover{border-color:rgba(232,199,102,.45)}
+ .tab.active{background:linear-gradient(135deg,#e8c766,#d4af37);color:#1a1205;border-color:#e8c766;box-shadow:0 6px 18px -8px rgba(212,175,55,.7)}
+ .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:var(--surf);border:1px solid var(--line);border-radius:14px}
+ .filters label{font-size:12.5px;color:var(--ink2);font-weight:600}
+ .filters select{font-size:13.5px;padding:7px 11px;border:1px solid var(--line);border-radius:10px;background:#132234;color:var(--ink);font-weight:600;min-width:120px}
+ .filters .hint{font-size:11.5px;color:var(--mut);margin-left:auto}
+ .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+ .k{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(212,175,55,.2);border-radius:14px;padding:13px 15px;transition:.2s}
+ .k:hover{transform:translateY(-3px);border-color:rgba(232,199,102,.55);box-shadow:0 14px 30px -14px rgba(212,175,55,.5)}
+ .k .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700}
+ .k .v{font-size:20px;font-weight:800;margin-top:5px;letter-spacing:-.01em}
+ .k .u{font-size:11px;color:var(--mut);font-weight:600;margin-left:2px}
+ .k .s{font-size:11px;color:var(--mut);margin-top:3px}
+ .card{background:linear-gradient(162deg,#0f1b29,#0b141f);border:1px solid rgba(212,175,55,.15);border-radius:16px;margin-bottom:16px;overflow:hidden;box-shadow:0 16px 42px -24px rgba(0,0,0,.75);position:relative}
+ .card::before{content:"";position:absolute;top:0;left:18px;right:18px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,199,102,.55),transparent);z-index:2}
+ .card .hd{padding:14px 18px 10px}
+ .card h3{font-size:15px;font-weight:800}
+ .card .sub{font-size:12px;color:var(--ink2);margin-top:3px;line-height:1.5}
+ .card .why{margin:2px 18px 12px;padding:9px 13px;border-radius:10px;font-size:12.5px;line-height:1.55;
+   background:rgba(139,92,246,.09);border:1px solid rgba(167,139,250,.28);border-left:3px solid #a78bfa;color:#ddd6fe}
+ .card .why b{color:#c4b5fd}
+ .def{margin:2px 18px 14px;font-size:12.5px}
+ .def summary{cursor:pointer;color:#f2dd9e;font-weight:700;list-style:none;padding:6px 0}
+ .def summary::-webkit-details-marker{display:none}
+ .def summary::before{content:"▸ ";color:var(--mut)} .def[open] summary::before{content:"▾ "}
+ .def dl{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:6px 14px;padding:6px 0 4px;line-height:1.55;color:var(--ink2)}
+ .def dt{color:#f2dd9e;font-weight:700} .def dd{color:var(--ink2)}
+ .lgd{display:flex;gap:14px;flex-wrap:wrap;padding:0 18px 8px;font-size:12px;color:var(--ink2)}
+ .lgd i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+ .lgd i.ln{width:16px;height:2px;border-radius:2px;vertical-align:3px}
+ /* полосы */
+ .bars{padding:6px 16px 14px;display:flex;flex-direction:column;gap:6px}
+ .brow{display:grid;grid-template-columns:minmax(120px,230px) 1fr 108px;gap:12px;align-items:center;font-size:12.5px}
+ .bnm{color:#d7dee8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .btr{position:relative;height:22px}
+ .bfill{position:absolute;left:0;top:3px;bottom:3px;border-radius:0 4px 4px 0;background:var(--accent);
+   animation:grow .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s);transform-origin:left}
+ .bfill.g{background:var(--in)} .bfill.r{background:var(--out)} .bfill.dim{background:var(--dim)}
+ @keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+ .bval{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink2);white-space:nowrap}
+ .bhit{position:absolute;inset:-3px 0;z-index:3}
+ .avgl{position:absolute;top:-1px;bottom:-1px;width:2px;background:#cbd5e1;opacity:.75;border-radius:1px;pointer-events:none}
+ /* расходящиеся полосы (разрыв доли) */
+ .dvg{padding:6px 16px 14px;display:flex;flex-direction:column;gap:6px}
+ .drow{display:grid;grid-template-columns:minmax(120px,230px) 1fr;gap:12px;align-items:center;font-size:12.5px}
+ .dbar{position:relative;height:24px;display:grid;grid-template-columns:1fr 1fr}
+ .dbar::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--grid)}
+ .dL,.dR{position:relative}
+ .dfill{position:absolute;top:3px;bottom:3px;animation:grow .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
+ .dL .dfill{right:0;background:var(--out);border-radius:4px 0 0 4px;transform-origin:right}
+ .dR .dfill{left:0;background:var(--in);border-radius:0 4px 4px 0;transform-origin:left}
+ .dval{position:absolute;top:50%;transform:translateY(-50%);font-weight:700;font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink2);pointer-events:none}
+ .dval.p{left:calc(var(--w) + 8px)} .dval.n{right:calc(var(--w) + 8px)}
+ .dval.ins{color:#0b1220;text-shadow:none}
+ .dval.ins.p{left:calc(var(--w) - 8px);transform:translate(-100%,-50%)}
+ .dval.ins.n{right:calc(var(--w) - 8px);transform:translate(100%,-50%)}
+ /* таблица */
+ .tblwrap{overflow-x:auto}
+ table.t{width:100%;border-collapse:collapse;font-size:12.5px;min-width:760px}
+ table.t th,table.t td{padding:8px 10px;border-bottom:1px solid var(--line2);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+ table.t thead th{font-size:10.5px;text-transform:uppercase;letter-spacing:.02em;color:var(--mut);font-weight:700;border-bottom:1px solid var(--line);background:rgba(255,255,255,.035);position:sticky;top:0;cursor:pointer;user-select:none}
+ table.t thead th:hover{color:#f2dd9e}
+ table.t .stub{text-align:left;white-space:normal;color:#c9d4e2;position:sticky;left:0;background:var(--surf);z-index:2;min-width:190px;max-width:280px}
+ table.t thead .stub{background:rgba(255,255,255,.035);z-index:3}
+ table.t tbody tr:hover td{background:rgba(255,255,255,.03)}
+ table.t tr.tot td{font-weight:800;background:rgba(232,199,102,.09);border-top:1px solid var(--line)}
+ table.t tr.tot .stub{background:rgba(232,199,102,.09)}
+ .pos{color:var(--in)}.neg{color:var(--out)}.z{color:#465264}
+ .chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap}
+ .chip.d{background:rgba(52,211,153,.14);color:#7ff0c0;border:1px solid rgba(52,211,153,.3)}
+ .chip.b{background:rgba(244,63,94,.13);color:#fda4b4;border:1px solid rgba(244,63,94,.3)}
+ .chip.n{background:rgba(255,255,255,.06);color:#a9b6c6;border:1px solid var(--line)}
+ .svgwrap{padding:4px 12px 10px;overflow-x:auto}
+ .svgwrap svg{display:block;width:100%;min-width:420px}
+ .ax{font-size:10.5px;fill:var(--mut);font-variant-numeric:tabular-nums}
+ .gl{stroke:var(--grid);stroke-width:1}
+ .empty{padding:16px 18px 20px;color:var(--mut);font-size:13px}
+ .sel{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 18px 4px}
+ .sel select{font-size:13px;padding:7px 11px;border:1px solid var(--line);border-radius:10px;background:#132234;color:var(--ink);font-weight:600;max-width:100%}
+ #tip{position:fixed;z-index:99;pointer-events:none;opacity:0;transition:opacity .12s;background:#16243a;border:1px solid rgba(232,199,102,.35);
+   border-radius:10px;padding:8px 11px;font-size:12.5px;color:var(--ink2);box-shadow:0 14px 34px -16px #000;max-width:300px}
+ #tip.on{opacity:1}
+ #tip .tt{font-weight:700;color:var(--ink);margin-bottom:3px;font-size:12px}
+ #tip .tr{display:flex;gap:9px;justify-content:space-between;white-space:nowrap}
+ #tip .tv2{font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+ [data-t]{outline:none}[data-t]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+ .foot{text-align:center;color:#8798ab;font-size:12px;padding:22px}.foot b{color:#c9d4e2}
+ @media(max-width:720px){
+   .brow{grid-template-columns:1fr;gap:2px} .bval{text-align:left}
+   .drow{grid-template-columns:1fr;gap:2px}
+   .def dl{grid-template-columns:1fr;gap:2px 0} .def dt{margin-top:6px}
+ }
+</style>
+<style>
+ .lev{display:flex;flex-direction:column;gap:12px}
+ .lv{display:grid;grid-template-columns:132px 1fr;gap:16px;align-items:start;background:linear-gradient(162deg,#0f1b29,#0b141f);
+     border:1px solid rgba(212,175,55,.15);border-radius:16px;padding:16px 18px}
+ .lv .amt{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+ .lv .amtu{font-size:11px;color:var(--mut);font-weight:700;margin-top:2px}
+ .lv h4{font-size:15px;font-weight:800;margin-bottom:5px}
+ .lv p{font-size:12.8px;color:var(--ink2);line-height:1.65}
+ .lv .meta{margin-top:7px;display:flex;gap:8px;flex-wrap:wrap}
+ .rk{display:inline-block;width:22px;height:22px;border-radius:7px;background:rgba(232,199,102,.16);color:var(--accent);
+     font-size:11.5px;font-weight:800;text-align:center;line-height:22px;margin-bottom:6px}
+ .note{margin:0 18px 14px;padding:10px 13px;border-radius:10px;font-size:12.5px;line-height:1.6;
+       background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.3);color:#cbe6f7}
+ .note b{color:#e8f4ff}
+ .warn{background:rgba(244,63,94,.09);border-color:rgba(244,63,94,.32);color:#fecdd3}
+ .warn b{color:#ffe4e6}
+ .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:10px;padding:4px 18px 14px}
+ .st{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+ .st .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700}
+ .st .v{font-size:18px;font-weight:800;margin-top:4px}
+ .st .s{font-size:11px;color:var(--mut);margin-top:3px;line-height:1.4}
+ @media(max-width:720px){ .lv{grid-template-columns:1fr;gap:6px} }
+</style>
+</head>
+<body>
+<div class="topbar"><a href="index.html" class="backbtn">← На главную</a>
+ <div><h1>🎯 Рычаги прибыли</h1><p id="sub">Где завод теряет деньги и сколько стоит каждый рычаг</p></div>
+ <span class="live" id="live">🔄 из iiko</span></div>
+<div class="wrap">
+ <div class="kpi" id="kpi"></div>
+ <div class="tabs" id="tabs"></div>
+ <div id="body"></div>
+ <div class="foot" id="foot"></div>
+</div>
+<div id="tip"></div>
+<script src="nav.js"></script>
+<script>window.LEV=__DATA__;</script>
+<script>
+(function(){
+var D=window.LEV; if(!D){document.getElementById("body").innerHTML='<div class="empty">Данные не собрались.</div>';return;}
+var MS=["","янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function mln(v){var a=Math.abs(v)/1e6,s=(a>=100?a.toFixed(0):a.toFixed(1)).replace(".",",");return (v<0?"−":"")+s+" млн";}
+function sg(v){return (v>0?"+":"")+mln(v);}
+function pc(v,d){d=(d==null?1:d);return (v<0?"−":"")+Math.abs(v).toFixed(d).replace(".",",")+"%";}
+function pp(v){return (v>0?"+":"−")+Math.abs(v).toFixed(1).replace(".",",")+" п.п.";}
+function num(v){return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g," ");}
+function short(s,n){s=String(s);return s.length>n?s.slice(0,n-1)+"…":s;}
+function nm(s){return String(s).replace(/^\d+\s*[-–]\s*/,"").replace(/\s*\(.*\)\s*$/,"").trim()||String(s);}
+
+/* ── подсказки ── */
+var TIP=document.getElementById("tip");
+function tipShow(html,e){TIP.innerHTML=html;TIP.classList.add("on");tipMove(e);}
+function tipMove(e){var x=e.clientX+14,y=e.clientY+16,w=TIP.offsetWidth,h=TIP.offsetHeight;
+  if(x+w>innerWidth-8)x=e.clientX-w-14; if(y+h>innerHeight-8)y=e.clientY-h-14;
+  TIP.style.left=x+"px";TIP.style.top=y+"px";}
+function tipHide(){TIP.classList.remove("on");}
+function bindTips(root){
+  [].forEach.call(root.querySelectorAll("[data-t]"),function(el){
+    el.onmouseenter=function(e){tipShow(el.getAttribute("data-t"),e);};
+    el.onmousemove=tipMove; el.onmouseleave=tipHide;});
+}
+function tt(title,rows){return '<div class="tt">'+esc(title)+'</div>'+rows.map(function(r){
+  return '<div class="tr"><span>'+r[0]+'</span><span class="tv2">'+r[1]+'</span></div>';}).join("");}
+
+function niceTicks(max,n){var raw=max/n,mag=Math.pow(10,Math.floor(Math.log10(raw)||0)),norm=raw/mag,
+  step=(norm<=1?1:norm<=2?2:norm<=2.5?2.5:norm<=5?5:10)*mag,out=[];
+  for(var v=0;v<=max*1.0001;v+=step)out.push(v); return out;}
+
+/* ── карточки KPI ── */
+function kpi(){
+  var A=D.asrt,O=D.opiu,P=D.prices||[];
+  var totLev=D.lev.reduce(function(s,l){return s+l.money;},0);
+  var gap=P.filter(function(r){return r.gap>0;}).reduce(function(s,r){return s+r.gap;},0);
+  var log=O?O.sc.filter(function(x){return x.n.indexOf("Логистика")===0;})[0]:null;
+  var c=[
+    ["Рычаги на столе",mln(totLev),"₸ в год, если отработать всё"],
+    ["Скидки ниже средней",mln(gap),"у покупателей, берущих дешевле средней цены, за "+D.nmo+" мес."],
+    O?["Потери",pc(O.pl26,2),"выручки против "+pc(O.pl25,2)+" в 2025"]:null,
+    log?["Логистика",pc(log.pb,1),"выручки против "+pc(log.pa,1)+" — рост в тенге "+pc(log.dmp,0)]:null,
+    ["Ассортимент",A.n80+" SKU","делают 80% выручки из "+num(A.n)],
+    ["Хвост",num(A.tail.cnt)+" SKU","дают "+pc(A.tail.rev/A.rev*100,0)+" выручки"]
+  ].filter(Boolean);
+  document.getElementById("kpi").innerHTML=c.map(function(x){
+    return '<div class="k"><div class="l">'+x[0]+'</div><div class="v">'+x[1]+'</div><div class="s">'+x[2]+'</div></div>';}).join("");
+}
+
+/* ── 1. план ── */
+function tabPlan(){
+  var h='<div class="card"><div class="hd"><h3>Что делать и сколько это стоит</h3>'
+   +'<div class="sub">Рычаги отсортированы по деньгам в год. Суммы — это цена вопроса при нынешнем обороте, '
+   +'а не гарантированная прибыль: часть каждого рычага упирается в переговоры и рынок.</div></div>'
+   +'<div class="note">Как читать: <b>«доля выручки»</b> и <b>«тенге в месяц»</b> — это разные вещи. '
+   +'Статья может не расти в тенге, но съедать больше выручки просто потому, что выручка упала. '
+   +'В таких случаях рычаг двойной: вернуть объём или урезать саму статью.</div>'
+   +'<div class="lev" style="padding:0 18px 18px">';
+  D.lev.forEach(function(l,i){
+    h+='<div class="lv"><div><div class="rk">'+(i+1)+'</div>'
+      +'<div class="amt" style="color:'+(l.money>0?"var(--in)":"var(--mut)")+'">'+(l.money>0?mln(l.money):"—")+'</div>'
+      +'<div class="amtu">'+(l.money>0?"₸ в год":"не в деньгах ОПиУ")+'</div></div>'
+      +'<div><h4>'+esc(l.t.charAt(0).toUpperCase()+l.t.slice(1))+'</h4><p>'+esc(l.how)+'</p>'
+      +'<div class="meta"><span class="chip n">'+esc(l.who)+'</span><span class="chip '+(l.hard==="учёт"?"d":"n")+'">'+esc(l.hard)+'</span>'
+      +(l.full&&l.full!==l.money?'<span class="chip n">полный размер разрыва '+mln(l.full)+'</span>':'')
+      +'</div></div></div>';
+  });
+  return h+'</div></div>';
+}
+
+/* ── 2. цена ── */
+function tabPrice(){
+  var P=D.prices||[];
+  if(!P.length) return '<div class="card"><div class="empty">Нет данных по ценам.</div></div>';
+  var mx=Math.max.apply(null,P.map(function(r){return Math.abs(r.gap);}))||1;
+  var h='<div class="card"><div class="hd"><h3>Ценовая дисциплина: кто покупает дешевле средней</h3>'
+   +'<div class="sub">Берём набор товара каждого покупателя и переоцениваем его по средневзвешенной цене завода. '
+   +'Разница — это деньги, которые завод недобрал или добрал сверху. Набор товара у всех разный, '
+   +'поэтому сравнение идёт позиция в позицию, а не по общей марже.</div></div>'
+   +'<div class="lgd"><span><i style="background:var(--out)"></i>покупает дешевле средней — недобор</span>'
+   +'<span><i style="background:var(--in)"></i>покупает дороже средней</span></div><div class="dvg">';
+  P.forEach(function(r,i){
+    var w=Math.abs(r.gap)/mx*50, pos=r.gap>0;
+    h+='<div class="drow"><div class="bnm" title="'+esc(r.n)+'">'+esc(short(nm(r.n),26))+'</div>'
+      +'<div class="dbar" data-t="'+esc(tt(r.n,[["оборот за "+D.nmo+" мес.",mln(r.rev)],
+            [pos?"недобор к средней цене":"сверх средней цены",mln(Math.abs(r.gap))],
+            ["в процентах",pc(Math.abs(r.pct))]]))+'">'
+      +'<div class="dL">'+(pos?'<div class="dfill" style="width:'+w*2+'%;--d:'+(i*.03)+'s"></div>'
+             +'<div class="dval n" style="--w:'+(w*2)+'%">'+mln(r.gap)+' ('+pc(r.pct)+')</div>':'')+'</div>'
+      +'<div class="dR">'+(!pos?'<div class="dfill" style="width:'+w*2+'%;--d:'+(i*.03)+'s"></div>'
+             +'<div class="dval p" style="--w:'+(w*2)+'%">'+mln(-r.gap)+' ('+pc(-r.pct)+')</div>':'')+'</div>'
+      +'</div></div>';
+  });
+  h+='</div>';
+  h+='<div class="note">Сумма всех отклонений равна нулю по построению: средняя цена и есть средневзвешенная '
+    +'по всем покупателям. Поэтому смотреть надо не на итог, а на отдельные строки — и держать в голове, '
+    +'что <b>скидка должна расти с объёмом</b>: у дистрибьютора цена ниже, чем у доставки, и это нормально.</div>';
+  var an=P.filter(function(r){return r.anom;});
+  if(an.length){
+    h+='<div class="note warn"><b>Скидка, которая не объясняется объёмом.</b> '
+      +an.map(function(r){ var big=P.filter(function(q){return q.n===r.bigger;})[0];
+        return esc(nm(r.n))+' берёт на '+pc(r.pct)+' ниже средней при обороте '+mln(r.rev)
+          +' — глубже, чем '+esc(nm(r.bigger))+' с оборотом '+mln(big?big.rev:0)+' ('+pc(r.biggerpct||0)+')';
+        }).join('; ')
+      +'. Это перевёрнутая логика прайса: мелкий покупатель получает условия лучше крупного. '
+      +'Обычная причина — цена зафиксирована когда-то давно и с тех пор не пересматривалась.</div>';
+  }
+  h+='</div>';
+  // детализация по позициям
+  h+='<div class="card"><div class="hd"><h3>Где именно расходится цена</h3>'
+   +'<div class="sub">Позиции с наибольшим отклонением от средней цены завода. «С/с» — себестоимость единицы из iiko: '
+   +'если цена близка к ней, товар едет почти даром.</div></div>'
+   +'<div class="sel"><label for="pb">Покупатель:</label><select id="pb">'
+   +P.map(function(r,i){return '<option value="'+i+'">'+esc(nm(r.n))+'</option>';}).join("")
+   +'</select></div><div id="pitems"></div></div>';
+  return h;
+}
+function priceItems(i){
+  var r=(D.prices||[])[i]; if(!r) return;
+  var el=document.getElementById("pitems"); if(!el) return;
+  if(!r.items.length){ el.innerHTML='<div class="empty">У этого покупателя нет позиций с заметным отклонением.</div>'; return; }
+  var h='<div class="tblwrap"><table class="t"><thead><tr><th class="stub">Позиция</th><th>Штук</th>'
+   +'<th>Его цена</th><th>Средняя по заводу</th><th>С/с единицы</th><th>Разница</th><th>Деньги</th></tr></thead><tbody>';
+  r.items.forEach(function(it){
+    var d=it.avg?(it.p/it.avg-1)*100:0;
+    h+='<tr><td class="stub">'+esc(it.n)+'</td><td>'+num(it.q)+'</td>'
+      +'<td>'+num(it.p)+' ₸</td><td>'+num(it.avg)+' ₸</td>'
+      +'<td class="'+(it.c&&it.p<it.c*1.15?"neg":"")+'">'+(it.c?num(it.c)+" ₸":"—")+'</td>'
+      +'<td class="'+(d<0?"neg":"pos")+'">'+pc(d)+'</td>'
+      +'<td class="'+(it.g>0?"neg":"pos")+'">'+sg(-it.g)+'</td></tr>';
+  });
+  h+='</tbody><tr class="tot"><td class="stub">Итого разрыв</td><td colspan="5"></td><td class="'+(r.gap>0?"neg":"pos")+'">'+sg(-r.gap)+'</td></tr></table></div>';
+  el.innerHTML=h; bindTips(el);
+}
+
+/* ── 3. ассортимент ── */
+function tabAsrt(){
+  var A=D.asrt;
+  var h='<div class="card"><div class="hd"><h3>Хвост ассортимента: 80% денег делают '+A.n80+' позиций</h3>'
+   +'<div class="sub">Кривая накопленной выручки по '+num(A.n)+' позициям, проданным в 2026 году. '
+   +'Каждая позиция в хвосте — это отдельная переналадка линии, отдельная закупка сырья, отдельный остаток '
+   +'с коротким сроком годности и место на складе.</div></div><div class="svgwrap">'+paretoSvg(A)+'</div>'
+   +'<div class="stats">'
+   +st("80% выручки",A.n80+" SKU",pc(A.n80/A.n*100,0)+" ассортимента")
+   +st("95% выручки",A.n95+" SKU",pc(A.n95/A.n*100,0)+" ассортимента")
+   +st("Хвост до 1 млн",num(A.tail.cnt)+" SKU",pc(A.tail.rev/A.rev*100,1)+" выручки, "+mln(A.tail.vp)+" валовой прибыли")
+   +st("Из них разовых",num(A.tail.once)+" SKU","продавались 1–2 месяца из "+D.nmo)
+   +'</div>'
+   +'<div class="note">Хвост не режет ОПиУ напрямую — он забирает мощность. Поэтому в плане он стоит без суммы: '
+   +'эффект приходит через рост выпуска ходовых позиций и снижение списаний, а не через строку затрат.</div></div>';
+
+  if(A.neg.length){
+    h+='<div class="card"><div class="hd"><h3>Позиции, продаваемые ниже себестоимости</h3>'
+     +'<div class="sub">Валовая прибыль отрицательная: каждая проданная штука уменьшает результат. '
+     +'Суммарно '+A.negcnt+' позиций дают '+mln(A.negtot)+' валовой прибыли.</div></div>'
+     +'<div class="tblwrap"><table class="t"><thead><tr><th class="stub">Позиция</th><th>Штук</th><th>Выручка</th><th>Вал. прибыль</th><th>Маржа</th></tr></thead><tbody>';
+    A.neg.forEach(function(r){
+      h+='<tr><td class="stub">'+esc(r.n)+'</td><td>'+num(r.q)+'</td><td>'+mln(r.rev)+'</td>'
+        +'<td class="neg">'+mln(r.vp)+'</td><td class="neg">'+(r.rev>50000?pc(r.vp/r.rev*100,0):"—")+'</td></tr>';});
+    h+='</tbody></table></div></div>';
+  }
+  if(A.promocnt){
+    h+='<div class="card"><div class="hd"><h3>Акции: '+num(A.promoqty)+' штук отгружено по нулевой цене</h3>'
+     +'<div class="sub">Позиции вида «Акция N+1» уходят покупателю бесплатно. Выручки по ним нет, '
+     +'а себестоимость есть — '+mln(A.promotot)+' за '+D.nmo+' мес. В отчётности эти деньги растворяются '
+     +'в общей себестоимости, поэтому отдачу от акций никто не считает.</div></div>'
+     +'<div class="tblwrap"><table class="t"><thead><tr><th class="stub">Позиция</th><th>Штук</th><th>Себестоимость</th></tr></thead><tbody>';
+    A.promo.forEach(function(p){ h+='<tr><td class="stub">'+esc(p.n)+'</td><td>'+num(p.q)+'</td><td class="neg">'+mln(p.c)+'</td></tr>';});
+    h+='</tbody><tr class="tot"><td class="stub">Итого</td><td>'+num(A.promoqty)+'</td><td class="neg">'+mln(A.promotot)+'</td></tr></table></div></div>';
+  }
+  if(A.cats.length){
+    h+='<div class="card"><div class="hd"><h3>Категории: где маржа, а где оборот</h3>'
+     +'<div class="sub">Ширина полосы — выручка, цвет — маржа. Категории с маржой ниже средней по заводу '
+     +'дают оборот, но не деньги.</div></div><div class="bars">';
+    var mx=Math.max.apply(null,A.cats.map(function(c){return c.rev;}));
+    var avg=A.vp/A.rev*100;
+    A.cats.forEach(function(c,i){
+      h+='<div class="brow"><div class="bnm" title="'+esc(c.n)+'">'+esc(short(c.n,24))+'</div>'
+        +'<div class="btr" data-t="'+esc(tt(c.n,[["выручка",mln(c.rev)],["валовая прибыль",mln(c.vp)],
+              ["маржа",pc(c.m)],["позиций",num(c.cnt)]]))+'">'
+        +'<div class="bfill '+(c.m>=avg?"g":"r")+'" style="width:'+(c.rev/mx*100)+'%;--d:'+(i*.03)+'s"></div></div>'
+        +'<div class="bval">'+mln(c.rev)+' · '+pc(c.m)+'</div></div>';});
+    h+='</div><div class="lgd"><span><i class="ln" style="background:var(--in)"></i>маржа выше средней по заводу ('+pc(avg)+')</span>'
+      +'<span><i class="ln" style="background:var(--out)"></i>ниже средней</span></div></div>';
+  }
+  return h;
+}
+function st(l,v,s){return '<div class="st"><div class="l">'+l+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>';}
+
+function paretoSvg(A){
+  var W=980,H=290,pL=52,pR=54,pB=34,pT=12,iw=W-pL-pR,ih=H-pT-pB;
+  var pts=A.curve.map(function(p){return [pL+p[0]/A.n*iw, pT+ih-p[1]/100*ih];});
+  var d="M"+pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1);}).join("L");
+  var area=d+"L"+(pL+iw)+","+(pT+ih)+"L"+pL+","+(pT+ih)+"Z";
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Кривая накопленной выручки по позициям">';
+  [0,25,50,75,100].forEach(function(v){var y=pT+ih-v/100*ih;
+    s+='<line class="gl" x1="'+pL+'" x2="'+(pL+iw)+'" y1="'+y+'" y2="'+y+'"/>'
+      +'<text class="ax" x="'+(pL-8)+'" y="'+(y+3.5)+'" text-anchor="end">'+v+'%</text>';});
+  s+='<path d="'+area+'" fill="rgba(232,199,102,.13)"/><path d="'+d+'" fill="none" stroke="#e8c766" stroke-width="2.2"/>';
+  [[A.n80,80,"80% выручки — "+A.n80+" SKU","var(--in)"],[A.n95,95,"95% — "+A.n95+" SKU","#8798ab"]].forEach(function(m){
+    var x=pL+m[0]/A.n*iw,y=pT+ih-m[1]/100*ih;
+    s+='<line x1="'+x+'" x2="'+x+'" y1="'+y+'" y2="'+(pT+ih)+'" stroke="'+m[3]+'" stroke-width="1.4" stroke-dasharray="4 4"/>'
+      +'<circle cx="'+x+'" cy="'+y+'" r="4" fill="'+m[3]+'"/>'
+      +'<text class="ax" x="'+(x+7)+'" y="'+(y-7)+'" fill="'+m[3]+'">'+m[2]+'</text>';});
+  var lastX=pL+iw;
+  s+='<text class="ax" x="'+lastX+'" y="'+(H-10)+'" text-anchor="end">'+A.n+' позиций</text>'
+   +'<text class="ax" x="'+pL+'" y="'+(H-10)+'">1</text>'
+   +'<text class="ax" x="'+(pL+iw/2)+'" y="'+(H-10)+'" text-anchor="middle">позиции, отсортированные по выручке →</text>';
+  return s+'</svg>';
+}
+
+/* ── 4. потери ── */
+function tabLoss(){
+  var O=D.opiu;
+  if(!O) return '<div class="card"><div class="empty">Управленческий ОПиУ не прочитан.</div></div>';
+  var d=O.pl26-O.pl25, money=d/100*O.r26*(12/O.m26);
+  var h='<div class="card"><div class="hd"><h3>Потери: '+pc(O.pl26,2)+' выручки против '+pc(O.pl25,2)+' в прошлом году</h3>'
+   +'<div class="sub">Возвраты, порча, брак, недостачи и утилизация — в процентах к выручке, чтобы сравнение '
+   +'не зависело от объёма. Период: управленческий ОПиУ по закрытым месяцам, '+O.m25+' мес. 2025 против '+O.m26+' мес. 2026.</div></div>'
+   +'<div class="'+(d>0?"note warn":"note")+'">Доля потерь '+(d>0?"выросла":"снизилась")+' на '+pp(d)+' '
+   +'При нынешнем обороте возврат к прошлогоднему уровню стоит <b>'+mln(Math.abs(money))+' в год</b>.</div>'
+   +'<div class="lgd"><span><i style="background:#8798ab"></i>2025</span><span><i style="background:var(--out)"></i>2026</span></div>'
+   +'<div class="svgwrap">'+lossSvg(O)+'</div>'
+   +'<div class="tblwrap"><table class="t"><thead><tr><th class="stub">Статья</th><th>2025, ₸</th><th>% выручки</th>'
+   +'<th>2026, ₸</th><th>% выручки</th><th>Δ доли</th></tr></thead><tbody>';
+  O.loss.forEach(function(x){
+    h+='<tr><td class="stub">'+esc(x.n)+'</td><td>'+mln(x.a)+'</td><td>'+pc(x.pa,2)+'</td>'
+      +'<td>'+mln(x.b)+'</td><td>'+pc(x.pb,2)+'</td>'
+      +'<td class="'+(x.pb-x.pa>0.02?"neg":(x.pb-x.pa<-0.02?"pos":"z"))+'">'+pp(x.pb-x.pa)+'</td></tr>';});
+  h+='</tbody><tr class="tot"><td class="stub">Итого потери</td><td>'+mln(O.lt25)+'</td><td>'+pc(O.pl25,2)+'</td>'
+   +'<td>'+mln(O.lt26)+'</td><td>'+pc(O.pl26,2)+'</td><td class="'+(d>0?"neg":"pos")+'">'+pp(d)+'</td></tr></table></div>';
+  h+='<div class="hd" style="padding-top:14px"><h3>Помесячно</h3><div class="sub">доля потерь в выручке месяца</div></div>'
+   +'<div class="svgwrap">'+lossMonSvg(O)+'</div></div>';
+  return h;
+}
+function lossSvg(O){
+  var rows=O.loss.slice(0,8),W=980,H=42+rows.length*38,pL=210,pR=70,pT=8;
+  var mx=Math.max.apply(null,rows.map(function(x){return Math.max(x.pa,x.pb);}))||1;
+  var iw=W-pL-pR;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Потери в процентах к выручке">';
+  niceTicks(mx,4).forEach(function(v){var x=pL+v/mx*iw;
+    s+='<line class="gl" x1="'+x+'" x2="'+x+'" y1="'+pT+'" y2="'+(H-24)+'"/>'
+      +'<text class="ax" x="'+x+'" y="'+(H-8)+'" text-anchor="middle">'+v.toFixed(2).replace(".",",")+'%</text>';});
+  rows.forEach(function(x,i){
+    var y=pT+8+i*38;
+    s+='<text class="ax" x="'+(pL-10)+'" y="'+(y+16)+'" text-anchor="end" style="fill:#c9d4e2">'+esc(short(x.n,26))+'</text>'
+      +'<rect x="'+pL+'" y="'+y+'" width="'+(x.pa/mx*iw)+'" height="11" rx="3" fill="#8798ab"/>'
+      +'<rect x="'+pL+'" y="'+(y+14)+'" width="'+(x.pb/mx*iw)+'" height="11" rx="3" fill="'+(x.pb>x.pa?"#f43f5e":"#34d399")+'"/>'
+      +'<text class="ax" x="'+(pL+Math.max(x.pa,x.pb)/mx*iw+8)+'" y="'+(y+17)+'">'+x.pb.toFixed(2).replace(".",",")+'%</text>';});
+  return s+'</svg>';
+}
+function lossMonSvg(O){
+  var r=O.lmon,W=980,H=210,pL=46,pR=16,pB=30,pT=10,iw=W-pL-pR,ih=H-pT-pB;
+  var mx=Math.max.apply(null,r.map(function(x){return x[2];}))||1;
+  var bw=iw/r.length;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Доля потерь по месяцам">';
+  niceTicks(mx,4).forEach(function(v){var y=pT+ih-v/mx*ih;
+    s+='<line class="gl" x1="'+pL+'" x2="'+(pL+iw)+'" y1="'+y+'" y2="'+y+'"/>'
+      +'<text class="ax" x="'+(pL-8)+'" y="'+(y+3.5)+'" text-anchor="end">'+v.toFixed(1).replace(".",",")+'%</text>';});
+  r.forEach(function(x,i){
+    var hgt=x[2]/mx*ih,X=pL+i*bw+bw*0.16,w=bw*0.68;
+    s+='<rect x="'+X+'" y="'+(pT+ih-hgt)+'" width="'+w+'" height="'+Math.max(1,hgt)+'" rx="3" fill="'+(x[2]>O.pl25?"#f43f5e":"#34d399")+'" opacity=".85"/>'
+      +'<text class="ax" x="'+(X+w/2)+'" y="'+(H-9)+'" text-anchor="middle">'+MS[+x[0].slice(5)]+(x[0].slice(5)==="01"?" "+x[0].slice(2,4):"")+'</text>';});
+  var yl=pT+ih-O.pl25/mx*ih;
+  s+='<line x1="'+pL+'" x2="'+(pL+iw)+'" y1="'+yl+'" y2="'+yl+'" stroke="#e8c766" stroke-width="1.6" stroke-dasharray="5 4"/>'
+   +'<text class="ax" x="'+(pL+iw)+'" y="'+(yl-6)+'" text-anchor="end" fill="#e8c766">уровень 2025 — '+pc(O.pl25,2)+'</text>';
+  return s+'</svg>';
+}
+
+/* ── 5. ножницы ── */
+function tabScis(){
+  var O=D.opiu;
+  if(!O) return '<div class="card"><div class="empty">Управленческий ОПиУ не прочитан.</div></div>';
+  var h='<div class="card"><div class="hd"><h3>Ножницы: что не сжалось вслед за выручкой</h3>'
+   +'<div class="sub">Каждая статья в процентах к выручке: '+O.m25+' мес. 2025 → '+O.m26+' мес. 2026. '
+   +'Если точка уехала вправо — статья стала съедать больше выручки. Рядом показано, выросла ли она в тенге: '
+   +'это разные истории и разные решения.</div></div>'
+   +'<div class="lgd"><span><i style="background:#8798ab"></i>2025</span><span><i style="background:var(--out)"></i>2026 — стало хуже</span>'
+   +'<span><i style="background:var(--in)"></i>2026 — стало лучше</span></div>'
+   +'<div class="svgwrap">'+scisSvg(O)+'</div>'
+   +'<div class="tblwrap"><table class="t"><thead><tr><th class="stub">Статья</th><th>2025, % выр.</th><th>2026, % выр.</th>'
+   +'<th>Δ доли</th><th>2025, ₸/мес</th><th>2026, ₸/мес</th><th>Δ в тенге</th><th>Цена вопроса, год</th></tr></thead><tbody>';
+  O.sc.forEach(function(x){
+    var yr=x.money*(12/O.m26);
+    h+='<tr><td class="stub">'+esc(x.n)+'</td><td>'+pc(x.pa,2)+'</td><td>'+pc(x.pb,2)+'</td>'
+      +'<td class="'+(x.d>0.05?"neg":(x.d<-0.05?"pos":"z"))+'">'+pp(x.d)+'</td>'
+      +'<td>'+mln(x.am)+'</td><td>'+mln(x.bm)+'</td>'
+      +'<td class="'+(x.dmp>5?"neg":(x.dmp<-5?"pos":"z"))+'">'+pc(x.dmp,0)+'</td>'
+      +'<td class="'+(yr>0?"neg":"pos")+'">'+sg(-yr)+'</td></tr>';});
+  h+='</tbody></table></div>';
+  var grew=O.sc.filter(function(x){return x.dmp>15&&x.d>0.3;});
+  if(grew.length){
+    h+='<div class="note warn"><b>Выросли в тенге, а не только в доле:</b> '
+      +grew.map(function(x){return esc(x.n.toLowerCase())+" "+pc(x.dmp,0);}).join(", ")
+      +'. Это уже не эффект падения выручки — это самостоятельный рост затрат, и разбираться нужно со статьёй, а не с оборотом.</div>';
+  }
+  var flat=O.sc.filter(function(x){return x.d>0.5&&Math.abs(x.dmp)<=8;});
+  if(flat.length){
+    h+='<div class="note"><b>Не выросли в тенге, но съедают больше выручки:</b> '
+      +flat.map(function(x){return esc(x.n.toLowerCase());}).join(", ")
+      +'. Классические ножницы: объём упал, затрата осталась. Пока выручка не вернулась, эти статьи держат результат в минусе.</div>';
+  }
+  return h+'</div>';
+}
+function scisSvg(O){
+  var rows=O.sc.slice(),W=980,pL=210,pR=80,pT=14,rh=30,H=pT+rows.length*rh+30;
+  var iw=W-pL-pR,mx=Math.max.apply(null,rows.map(function(x){return Math.max(x.pa,x.pb);}))||1;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Статьи затрат в процентах к выручке">';
+  niceTicks(mx,5).forEach(function(v){var x=pL+v/mx*iw;
+    s+='<line class="gl" x1="'+x+'" x2="'+x+'" y1="'+pT+'" y2="'+(H-24)+'"/>'
+      +'<text class="ax" x="'+x+'" y="'+(H-8)+'" text-anchor="middle">'+v.toFixed(0)+'%</text>';});
+  rows.forEach(function(x,i){
+    var y=pT+14+i*rh, xa=pL+x.pa/mx*iw, xb=pL+x.pb/mx*iw, col=x.d>0?"#f43f5e":"#34d399";
+    s+='<text class="ax" x="'+(pL-10)+'" y="'+(y+4)+'" text-anchor="end" style="fill:#c9d4e2">'+esc(short(x.n,26))+'</text>'
+      +'<line x1="'+xa+'" x2="'+xb+'" y1="'+y+'" y2="'+y+'" stroke="'+col+'" stroke-width="2.4" opacity=".55"/>'
+      +'<circle cx="'+xa+'" cy="'+y+'" r="5" fill="#8798ab"/><circle cx="'+xb+'" cy="'+y+'" r="5.5" fill="'+col+'"/>'
+      +'<text class="ax" x="'+(Math.max(xa,xb)+9)+'" y="'+(y+4)+'" fill="'+col+'">'+(x.d>0?"+":"")+x.d.toFixed(1).replace(".",",")+' п.п.</text>';});
+  return s+'</svg>';
+}
+
+/* ── табы ── */
+var TABS=[["plan","🎯 План действий",tabPlan],["price","🏷 Цена",tabPrice],["asrt","📦 Ассортимент",tabAsrt],
+          ["loss","🩸 Потери",tabLoss],["scis","✂️ Ножницы",tabScis]];
+var CUR="plan";
+function render(){
+  document.getElementById("tabs").innerHTML=TABS.map(function(t){
+    return '<button class="tab'+(t[0]===CUR?" active":"")+'" data-k="'+t[0]+'">'+t[1]+'</button>';}).join("");
+  document.getElementById("tabs").onclick=function(e){var b=e.target.closest("[data-k]");
+    if(b){CUR=b.getAttribute("data-k");render();window.scrollTo({top:0,behavior:"smooth"});}};
+  var el=document.getElementById("body");
+  el.innerHTML=TABS.filter(function(t){return t[0]===CUR;})[0][2]();
+  bindTips(el);
+  var ps=document.getElementById("pb");
+  if(ps){ ps.onchange=function(){priceItems(+this.value);}; priceItems(0); }
+}
+kpi(); render();
+document.getElementById("live").textContent="🔄 обновлено "+D.updated;
+document.getElementById("foot").innerHTML='Источники: <b>iiko</b> — продажи и себестоимость по позициям и покупателям '
+ +'(2026 год, '+D.nmo+' мес.); <b>управленческий ОПиУ</b> — потери и структура затрат по закрытым месяцам'
+ +(D.opiu?' ('+D.opiu.first+' … '+D.opiu.last+')':'')+'. Пересобирается автоматически вместе с остальным Пульсом.';
+})();
+</script>
+</body></html>
