@@ -39,6 +39,9 @@
  @media(max-width:720px){.anlz{grid-template-columns:1fr}}
  .openb{background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.4);color:#fbbf77;border-radius:12px;padding:9px 14px;margin-bottom:14px;font-size:12.5px;font-weight:600}
  .kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+ .recon{margin:-8px 0 16px;padding:9px 13px;border:1px solid rgba(255,255,255,.07);border-radius:10px;
+   background:rgba(255,255,255,.025);font-size:12.5px;line-height:1.7;color:#b9c8c4}
+ .recon b{color:#e8f0ee}.recon .gi{color:var(--in)}.recon .go{color:var(--out)}.recon .mut{color:#8fa3a0}
  .k{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(212,175,55,.2);border-radius:14px;padding:13px 15px;transition:.2s}
  .k:hover{transform:translateY(-3px);border-color:rgba(232,199,102,.55);box-shadow:0 14px 30px -14px rgba(212,175,55,.5)}
  .k .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700}
@@ -287,7 +290,21 @@ function kpi(obj){
  const revA=arts.find(a=>/выручк/i.test(a.cat));
  const rev=((obj.revByContr||[]).filter(r=>r.net>0).reduce((s,r)=>s+r.net,0))||(revA?revA.in:0);
  if(rawPay>0&&rev>0)c.push(`<div class="k" title="Сырьё Платежи поставщикам + Упаковка + Хоз. товары к выручке"><div class="l">🌾 Сырьё</div><div class="v">${(rawPay/rev*100).toFixed(1).replace('.',',')}<span class="u">%</span></div></div>`);
- return `<div class="kpi" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">${c.join('')}</div>`;
+ /* Сходимость: остаток на начало + приход − расход почти никогда не даёт остаток на конец,
+    потому что приход/расход показаны БЕЗ внутренних переводов. Раньше это выглядело как ошибка
+    в цифрах — теперь показываем недостающее звено прямо под плитками. */
+ let rec='';
+ if(hasBal){
+   const intNet=arts.filter(a=>isInt(a.cat)).reduce((s,a)=>s+a.net,0);
+   const diff=end-start-(sIn-sOut)-intNet;
+   const scale=Math.max(Math.abs(sIn),Math.abs(sOut),1);
+   const parts=[`было <b>${MLN(start)} ₸</b>`,`приход <b class="gi">+${MLN(sIn)} ₸</b>`,`расход <b class="go">−${MLN(sOut)} ₸</b>`];
+   if(Math.abs(intNet)>scale*0.002)parts.push(`внутренние обороты <b>${intNet<0?'−':'+'}${MLN(Math.abs(intNet))} ₸</b>`);
+   let tail=`стало <b>${MLN(end)} ₸</b>`;
+   if(Math.abs(diff)>scale*0.005)tail+=` · <span class="mut">не сходится на ${MLN(Math.abs(diff))} ₸ — операции по счетам вне контура ДДС</span>`;
+   rec=`<div class="recon">🧮 ${parts.join(' · ')} · ${tail}</div>`;
+ }
+ return `<div class="kpi" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">${c.join('')}</div>`+rec;
 }
 function analytics(obj){
  const arts=obj.articles||[];
@@ -372,7 +389,7 @@ function renderRange(from,to){
  const f=d=>d.split('-').reverse().join('.');
  const bb=D.balByDay||{};
  if(bb[from])obj.startByAcc=bb[from];
- const dn=new Date(to+'T00:00:00');dn.setDate(dn.getDate()+1);const nk=dn.toISOString().slice(0,10);
+ const dn=new Date(to+'T00:00:00Z');dn.setUTCDate(dn.getUTCDate()+1);const nk=dn.toISOString().slice(0,10);
  if(bb[nk])obj.endByAcc=bb[nk];
  if(obj.startByAcc)obj.start=ACCS.reduce((s,a)=>s+(obj.startByAcc[a]||0),0);
  if(obj.endByAcc)obj.end=ACCS.reduce((s,a)=>s+(obj.endByAcc[a]||0),0);
@@ -422,8 +439,12 @@ const WD=['воскресенье','понедельник','вторник','с
 const MROD=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const dRU=k=>k.split('-').reverse().join('.');
-const dLong=k=>{const d=new Date(k+'T00:00:00');return d.getDate()+' '+MROD[d.getMonth()]+', '+WD[d.getDay()];};
-const dShift=(k,n)=>{const d=new Date(k+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+const dLong=k=>{const d=new Date(k+'T00:00:00Z');return d.getUTCDate()+' '+MROD[d.getUTCMonth()]+', '+WD[d.getUTCDay()];};
+/* Сдвиг даты строго в UTC. Раньше было new Date(k+'T00:00:00') — это ЛОКАЛЬНОЕ время,
+   а toISOString() отдаёт UTC. В Алматы (UTC+5) сутки «съедались»: dShift(k,+1) возвращал тот же день,
+   и цикл while(c<k) в dayStory() крутился вечно — вкладка «ДДС за день» намертво вешала браузер.
+   На сервере (UTC) этого не было видно. Теперь и разбор, и сдвиг, и вывод — в одной шкале. */
+const dShift=(k,n)=>{const d=new Date(k+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
 const balTot=k=>{const b=(D.balByDay||{})[k];return b?ACCS.reduce((s,a)=>s+(b[a]||0),0):null;};
 const netOf=k=>(D.byDay[k]||[]).reduce((s,e)=>s+Object.keys(e.a||{}).reduce((q,ix)=>q+e.a[ix],0),0);
 
@@ -488,8 +509,10 @@ function dayStory(obj,k){
  const outA=arts.filter(a=>a.out>0).sort((x,y)=>y.out-x.out);
  const isToday=(k===(D.today||''));
  // фон: средние за 30 дней до этого дня
- let hist=[],c=dShift(k,-30);
- while(c<k){ if(D.byDay[c]){const a=rangeData(c,c).articles.filter(x=>!isInt(x.cat));
+ let hist=[],c=dShift(k,-30),guard=0;
+ // guard — страховка: даже если сдвиг даты когда-нибудь снова начнёт возвращать тот же день,
+ // цикл оборвётся на 40-й итерации, а не повесит страницу.
+ while(c<k&&guard++<40){ if(D.byDay[c]){const a=rangeData(c,c).articles.filter(x=>!isInt(x.cat));
    hist.push({in:a.reduce((s,x)=>s+x.in,0),out:a.reduce((s,x)=>s+x.out,0)});} c=dShift(c,1); }
  const avgIn=hist.length?hist.reduce((s,x)=>s+x.in,0)/hist.length:0;
  const avgOut=hist.length?hist.reduce((s,x)=>s+x.out,0)/hist.length:0;
@@ -893,10 +916,16 @@ MK.forEach(k=>{const meta=(D.mmeta||{})[k]||{};addTab(k,(meta.ru||k).replace(' 2
 const D1K=Object.keys(Object.assign({},D.byDay||{},(D.today?{[D.today]:1}:{}))).sort();
 if(D1K.length){
  addTab('DAY1','ДДС за день');
+ const hasMove=k=>!!(D.byDay||{})[k];
  D1K.slice().reverse().forEach(k=>{const o=document.createElement('option');o.value=k;
-   o.textContent=dRU(k)+(k===(D.today||'')?'  · сегодня':'')+'  ('+SIGN(Math.round(netOf(k)))+' ₸)';
+   o.textContent=dRU(k)+(k===(D.today||'')?'  · сегодня':'')+
+     (hasMove(k)?('  ('+SIGN(Math.round(netOf(k)))+' ₸)'):'  · движений пока нет');
    d1sel.appendChild(o);});
- d1sel.value=(D.today&&D1K.indexOf(D.today)>=0)?D.today:D1K[D1K.length-1];
+ /* По умолчанию открываем последний день, где реально были движения.
+    Раньше всегда открывался сегодняшний: в выходной или до первых платежей вкладка
+    показывала сплошные нули и выглядела сломанной. Сегодня остаётся в списке — просто не по умолчанию. */
+ const lastMove=D1K.filter(hasMove).pop();
+ d1sel.value=(D.today&&hasMove(D.today))?D.today:(lastMove||D1K[D1K.length-1]);
  const pick=k=>{d1sel.value=k;CUR={type:'day1',key:k};payAll=false;renderDay1(k);};
  d1sel.onchange=()=>pick(d1sel.value);
  document.getElementById('d1prev').onclick=()=>{const i=D1K.indexOf(d1sel.value);if(i>0)pick(D1K[i-1]);};
@@ -913,7 +942,7 @@ if(D.byDay&&Object.keys(D.byDay).length){
  const keys=Object.keys(D.byDay).sort();
  const mn=D.dayMin||keys[0], mx=D.dayMax||keys[keys.length-1];
  rfrom.min=mn;rfrom.max=mx;rto.min=mn;rto.max=mx;rto.value=mx;
- const d=new Date(mx+'T00:00:00');d.setDate(d.getDate()-6);let iso=d.toISOString().slice(0,10);
+ const d=new Date(mx+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-6);let iso=d.toISOString().slice(0,10);
  rfrom.value=(iso<mn?mn:iso);
  document.getElementById('rgo').onclick=()=>{let a=rfrom.value,b=rto.value;if(!a||!b)return;if(a>b){rfrom.value=b;rto.value=a;a=rfrom.value;b=rto.value;}payAll=false;CUR={type:'range'};renderRange(a,b);};
 }
