@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#1a1035;font-family:'Inter',system-ui,sans-serif;min-height:100vh;}
+body{background:#1a1035;font-family:'Inter',system-ui,sans-serif;min-height:100vh;position:relative;}
 
 /* HEADER */
 .topbar{
@@ -34,7 +34,7 @@ body{background:#1a1035;font-family:'Inter',system-ui,sans-serif;min-height:100v
 
 
 /* MAIN */
-.main{max-width:960px;margin:0 auto;padding:36px 24px;}
+.main{max-width:1180px;margin:0 auto;padding:34px 24px;}
 .sec-label{font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.14em;margin-bottom:4px;}
 .sec-name{font-size:22px;font-weight:900;color:#fff;margin-bottom:4px;}
 .sec-sub{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:10px;}
@@ -42,44 +42,76 @@ body{background:#1a1035;font-family:'Inter',system-ui,sans-serif;min-height:100v
   letter-spacing:.06em;background:rgba(249,168,212,.15);color:#f9a8d4;
   border:1.5px solid rgba(249,168,212,.4);margin-bottom:24px;}
 
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
-.cards{align-items:stretch;}
+/* ── КАРТОЧКИ: компактная плитка «знак + название» ──────────────────────
+   Цвет карточки приходит из --c1/--c2/--cr прямо в разметке: им красятся
+   левая полоса, подложка знака и свечение при наведении. Сетка карточки:
+   [знак][название]
+   [знак][источник и время обновления]                                    */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(292px,1fr));gap:13px;align-items:stretch;}
 a.card,.card{
-  display:flex;flex-direction:column;text-decoration:none;padding:22px 22px 18px;
-  background:linear-gradient(180deg,#ffffff,#fcfdfb);border-radius:20px;min-height:208px;height:100%;
-  box-shadow:0 1px 3px rgba(31,45,26,.06),0 12px 30px rgba(31,45,26,.09);
-  border:1px solid #e9ede4;
-  transition:transform .2s cubic-bezier(.2,.7,.2,1),box-shadow .2s,border-color .2s;position:relative;overflow:hidden;
+  --c1:#64748b;--c2:#475569;--cr:100,116,139;
+  display:grid;grid-template-columns:auto 1fr;grid-auto-rows:min-content;
+  column-gap:13px;row-gap:3px;align-content:center;text-decoration:none;
+  padding:13px 34px 13px 18px;min-height:72px;height:100%;
+  background:linear-gradient(90deg,rgba(var(--cr),.11) 0,rgba(var(--cr),0) 92px),#fff;
+  border:1px solid #e4e8f0;border-radius:12px;
+  box-shadow:0 1px 2px rgba(10,18,38,.05),0 8px 20px rgba(10,18,38,.10);
+  transition:transform .16s cubic-bezier(.2,.7,.2,1),box-shadow .16s,border-color .16s;
+  position:relative;overflow:hidden;
 }
-a.card:hover{transform:translateY(-5px);box-shadow:0 22px 50px rgba(90,146,71,.24);border-color:#c3e3b6;}
-a.card::after{content:'→';position:absolute;top:20px;right:20px;font-size:16px;font-weight:800;color:#9bb98c;opacity:0;transform:translateX(-4px);transition:.2s;}
-a.card:hover::after{opacity:1;transform:translateX(0);}
-.card-accent{position:absolute;top:0;left:0;right:0;height:4px;border-radius:20px 20px 0 0;}
-.card-icon{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;
-  font-size:24px;margin-bottom:13px;background:linear-gradient(145deg,#eef5e6,#e2eed6);
-  box-shadow:inset 0 1px 0 #fff,0 3px 8px rgba(90,146,71,.14);flex-shrink:0;}
-.card-title{font-size:16px;font-weight:800;color:#1c2a19;margin-bottom:6px;letter-spacing:-.015em;line-height:1.22;}
-.card-desc{font-size:12.5px;color:#6b7280;line-height:1.5;flex:1 1 auto;
+/* левая полоса — цвет статьи, как в финансовом отчёте */
+.card-accent{position:absolute;left:0;top:0;bottom:0;width:4px;height:auto;border-radius:0;
+  background:linear-gradient(180deg,var(--c1),var(--c2));transition:width .16s;}
+a.card:hover{transform:translateY(-3px);
+  box-shadow:0 2px 4px rgba(10,18,38,.07),0 16px 34px rgba(var(--cr),.32);
+  border-color:rgba(var(--cr),.5);}
+a.card:hover .card-accent{width:7px;}
+a.card::after{content:'\2192';position:absolute;top:50%;right:14px;margin-top:-9px;
+  font-size:15px;font-weight:800;color:#cbd5e1;transition:.16s;}
+a.card:hover::after{color:var(--c1);transform:translateX(3px);}
+
+/* шапка раскрывается в сетку карточки: знак слева, текст справа */
+.card-hd{display:contents;}
+.card-icon{grid-column:1;grid-row:1/span 2;align-self:center;
+  width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  font-size:20px;margin:0;flex-shrink:0;
+  background:rgba(var(--cr),.14);border:1px solid rgba(var(--cr),.3);box-shadow:none;}
+.card-title{grid-column:2;grid-row:1;
+  font-size:14px;font-weight:800;color:#0f172a;margin:0;letter-spacing:-.01em;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.card-badge{display:inline-block;margin-top:12px;padding:5px 12px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.01em;}
+
+/* Описание в компактную плитку не влезает — оставляем в разметке, но не показываем. */
+.card-desc{display:none;}
+
+/* Из плашек оставляем одну строку-подпись: источник и время обновления. */
+.card-tags{grid-column:2;grid-row:2;display:flex;gap:7px;align-items:baseline;
+  margin:0;padding:0;border:0;min-width:0;overflow:hidden;}
+.card-badge{display:inline;background:none !important;color:#94a3b8 !important;
+  padding:0;margin:0;border-radius:0;font-size:10px;font-weight:600;letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-tags .card-badge + .card-badge::before{content:'\B7';margin-right:7px;color:#cbd5e1;}
+.card-tags .card-badge:not(:first-child):not([id]){display:none;}
+
 @media(max-width:600px){.cards{grid-template-columns:1fr;}}
 
 .girl-corner{
-  position:fixed;bottom:0;left:0;
-  height:340px;width:auto;
+  /* была fixed поверх страницы и накрывала левую колонку карточек —
+     теперь стоит внизу документа, рядом с подвалом */
+  position:absolute;bottom:0;left:10px;
+  height:300px;width:auto;
   pointer-events:none;
-  z-index:10;
+  z-index:1;
 }
 
-.fin-section{margin-bottom:44px;}
-.fin-section-hdr{display:flex;align-items:center;gap:14px;margin-bottom:20px;
-  padding:12px 18px;border-radius:10px;background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.08);}
+.fin-section{margin-bottom:32px;}
+.fin-section-hdr{display:flex;align-items:center;gap:14px;margin-bottom:14px;
+  padding:10px 16px;border-radius:8px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);border-left:3px solid #a78bfa;}
 .fin-num{font-size:11px;font-weight:800;color:#a78bfa;letter-spacing:.14em;flex-shrink:0;}
 .fin-divider{width:1px;height:18px;background:rgba(255,255,255,.15);flex-shrink:0;}
 .fin-title{font-size:13px;font-weight:800;color:#fff;letter-spacing:.1em;text-transform:uppercase;}
 .fin-sub{font-size:11px;color:rgba(255,255,255,.4);margin-left:auto;}
-.cards-2{grid-template-columns:repeat(2,1fr) !important;}
+.cards-2{grid-template-columns:repeat(auto-fill,minmax(292px,1fr)) !important;}
 .card-disabled{opacity:.65;cursor:default;pointer-events:none;}
 .card-disabled:hover{transform:none !important;box-shadow:0 1px 4px rgba(0,0,0,.15),0 8px 32px rgba(0,0,0,.2) !important;border-color:rgba(255,255,255,.1) !important;}
 
@@ -95,12 +127,12 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
   .sec-name{font-size:19px;}
   .sec-sub{font-size:12px;}
   .sub-pill{margin-bottom:16px;}
-  .cards,.cards-2{grid-template-columns:1fr !important;gap:13px;}
-  a.card,.card{min-height:0;padding:17px 17px 15px;border-radius:16px;}
-  a.card::after{display:none;}
-  .card-icon{width:42px;height:42px;font-size:21px;margin-bottom:10px;}
-  .card-title{font-size:15px;}
-  .card-desc{-webkit-line-clamp:3;font-size:12px;}
+  .cards,.cards-2{grid-template-columns:1fr !important;gap:10px;}
+  /* на телефоне в строку помещается одна подпись — оставляем источник, дату убираем */
+  .card-tags .card-badge[id]{display:none;}
+  a.card,.card{min-height:64px;padding:11px 30px 11px 14px;border-radius:11px;column-gap:11px;}
+  .card-icon{width:36px;height:36px;font-size:18px;}
+  .card-title{font-size:13.5px;}
   .fin-section{margin-bottom:28px;}
   .fin-section-hdr{flex-wrap:wrap;gap:8px;padding:10px 13px;margin-bottom:14px;}
   .fin-sub{display:none;}
@@ -128,151 +160,138 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
   <div class="sec-name">Финансы</div>
   <div class="sec-sub">Планирование, факт и аналитика</div>
 
-  <!-- БЛОК 1: ПЛАНИРОВАНИЕ -->
+  <!-- БЛОК 01: ФАКТИЧЕСКИЕ ДАННЫЕ -->
   <div class="fin-section">
     <div class="fin-section-hdr">
       <span class="fin-num">01</span>
-      <div class="fin-divider"></div>
-      <div class="fin-title">Планирование</div>
-      <div class="fin-sub">Бюджеты и плановые показатели</div>
-    </div>
-    <div class="cards cards-2">
-      <div class="card card-disabled">
-        <div class="card-accent" style="background:linear-gradient(90deg,#10b981,#059669)"></div>
-        <div class="card-icon">📋</div>
-        <div class="card-title">ОПиУ — Планирование</div>
-        <div class="card-desc">Плановый отчёт о прибылях и убытках. Бюджет по статьям на период.</div>
-        <span class="card-badge" style="background:#f0fdf4;color:#166534;">В разработке</span>
-      </div>
-      <a class="card" href="дашборд_гугл_live.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#37b0c4,#1f8a9c)"></div>
-        <div class="card-icon">⚡</div>
-        <div class="card-title">ДДС — Live</div>
-        <div class="card-desc">Автоматическое обновление каждые 60 секунд. Недельная аналитика: доходы, расходы, баланс, покрытие.</div>
-        <span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">Google Диск · Авто</span>
-      </a>
-      <a class="card" href="дашборд_ддс_июль.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#38bdf8,#0ea5e9)"></div>
-        <div class="card-icon">🎯</div>
-        <div class="card-title">ДДС · План-факт · Июль</div>
-        <div class="card-desc">План оплат против факта iiko за июль: поступления и выплаты по статьям, отклонения, исполнение плана.</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🎯 план vs факт</span>
-          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📅 июль 2026</span>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <!-- БЛОК 2: ФАКТИЧЕСКИЕ ДАННЫЕ -->
-  <div class="fin-section">
-    <div class="fin-section-hdr">
-      <span class="fin-num">02</span>
       <div class="fin-divider"></div>
       <div class="fin-title">Фактические данные</div>
       <div class="fin-sub">Реальные результаты по периодам</div>
     </div>
     <div class="cards">
-      <a class="card" href="дашборд_ддс.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#5aa15f,#2f7a44)"></div>
-        <div class="card-icon">💰</div>
-        <div class="card-title">Про деньги</div>
+      <a class="card" style="--c1:#5aa15f;--c2:#2f7a44;--cr:90,161,95" href="дашборд_ддс.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">💰</div><div class="card-title">Про деньги</div></div>
         <div class="card-desc">Где деньги сейчас — по каждому счёту и как двигались по месяцам.</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 из iiko · каждое утро</span>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждое утро</span>
           <span class="card-badge" style="background:#ecfdf3;color:#15803d;">📊 косвенный метод</span>
-          <span class="card-badge" id="dds-upd" style="background:#f0fdf4;color:#166534;">🕒 обновлено…</span>
+          <span class="card-badge" id="dds-upd" style="background:#f0fdf4;color:#166534;">🕒 …</span>
         </div>
       </a>
-      <a class="card" href="дашборд_ддс_прямой.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#2fa39a,#1f7f86)"></div>
-        <div class="card-icon">💧</div>
-        <div class="card-title">ДДС — движение денежных средств</div>
+      <a class="card" style="--c1:#2fa39a;--c2:#1f7f86;--cr:47,163,154" href="дашборд_ддс_прямой.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">💧</div><div class="card-title">ДДС — движение денежных средств</div></div>
         <div class="card-desc">Фактические поступления и платежи по статьям и счетам — год, месяц, день. Как в iiko.</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 из iiko · каждые 30 минут</span>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждые 30 минут</span>
           <span class="card-badge" style="background:#ecfeff;color:#0e7490;">💧 прямой метод · по статьям</span>
-          <span class="card-badge" id="ddsp-upd" style="background:#f0fdf4;color:#166534;">🕒 обновлено…</span>
+          <span class="card-badge" id="ddsp-upd" style="background:#f0fdf4;color:#166534;">🕒 …</span>
         </div>
       </a>
-      <a class="card" href="опиу_2025_2026.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#10b981,#059669)"></div>
-        <div class="card-icon">📈</div>
-        <div class="card-title">ОПиУ 2025–2026</div>
+      <a class="card" style="--c1:#10b981;--c2:#059669;--cr:16,185,129" href="опиу_2025_2026.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">📈</div><div class="card-title">ОПиУ 2025–2026</div></div>
         <div class="card-desc">Отчёт о прибылях и убытках. Выручка, себестоимость, валовая и чистая прибыль по месяцам. Инсайты и прогноз.</div>
-        <span class="card-badge" style="background:#f0fdf4;color:#166534;">Excel · 17 месяцев</span>
+        <div class="card-tags"><span class="card-badge" style="background:#f0fdf4;color:#166534;">Excel · 17 месяцев</span></div>
       </a>
-      <a class="card" href="дз_кз.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#e0834e,#c85a34)"></div>
-        <div class="card-icon">🧾</div>
-        <div class="card-title">Дебиторка и Кредиторка</div>
+      <a class="card" style="--c1:#e0834e;--c2:#c85a34;--cr:224,131,78" href="дз_кз.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🧾</div><div class="card-title">Дебиторка и Кредиторка</div></div>
         <div class="card-desc">ДЗ и КЗ по контрагентам: итоги, динамика, топ должников.</div>
-        <span class="card-badge" style="background:#fdf4ff;color:#7e22ce;">Google Диск · Авто</span>
+        <div class="card-tags"><span class="card-badge" style="background:#fdf4ff;color:#7e22ce;">Google Диск · Авто</span></div>
       </a>
     </div>
   </div>
 
-  <!-- БЛОК 3: АНАЛИТИКА -->
+  <!-- БЛОК 02: АНАЛИТИКА -->
   <div class="fin-section">
     <div class="fin-section-hdr">
-      <span class="fin-num">03</span>
+      <span class="fin-num">02</span>
       <div class="fin-divider"></div>
       <div class="fin-title">Аналитика</div>
       <div class="fin-sub">Углублённый анализ по направлениям</div>
     </div>
     <div class="cards">
-      <a class="card" href="дашборд_себестоимость_2025-2026.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#10b981,#059669)"></div>
-        <div class="card-icon">🧮</div>
-        <div class="card-title">Полная себестоимость</div>
+      <a class="card" style="--c1:#10b981;--c2:#059669;--cr:16,185,129" href="дашборд_себестоимость_2025-2026.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🧮</div><div class="card-title">Полная себестоимость</div></div>
         <div class="card-desc">За счёт чего прибыль и убыток: постоянные затраты, точка безубыточности, запас прочности.</div>
-        <span class="card-badge" style="background:#f0fdf4;color:#166534;">ОПиУ + iiko · автообновление</span>
+        <div class="card-tags"><span class="card-badge" style="background:#f0fdf4;color:#166534;">ОПиУ + iiko · автообновление</span></div>
       </a>
-      <a class="card" href="рычаги.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#f43f5e,#e8c766)"></div>
-        <div class="card-icon">🎯</div>
-        <div class="card-title">Рычаги прибыли</div>
+      <a class="card" style="--c1:#f43f5e;--c2:#e8c766;--cr:244,63,94" href="рычаги.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🎯</div><div class="card-title">Рычаги прибыли</div></div>
         <div class="card-desc">Где завод теряет деньги: цены ниже средней, потери, ножницы затрат, хвост ассортимента — с суммой по каждому рычагу.</div>
-        <span class="card-badge" style="background:#fef2f2;color:#9f1239;">iiko + ОПиУ · автообновление</span>
+        <div class="card-tags"><span class="card-badge" style="background:#fef2f2;color:#9f1239;">iiko + ОПиУ · автообновление</span></div>
       </a>
-      <a class="card" href="себестоимость_маржа.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#e8c766,#d4af37)"></div>
-        <div class="card-icon">💰</div>
-        <div class="card-title">Кто приносит прибыль</div>
+      <a class="card" style="--c1:#e8c766;--c2:#d4af37;--cr:232,199,102" href="себестоимость_маржа.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">💰</div><div class="card-title">Кто приносит прибыль</div></div>
         <div class="card-desc">Маржа по покупателям и товарам: кто даёт прибыль, кто только оборот, и почему.</div>
-        <span class="card-badge" style="background:#fffbeb;color:#92400e;">Ежедневно · iiko</span>
+        <div class="card-tags"><span class="card-badge" style="background:#fffbeb;color:#92400e;">Ежедневно · iiko</span></div>
       </a>
-      <a class="card" href="sku360.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#5aa15f,#2fa39a)"></div>
-        <div class="card-icon">🎯</div>
-        <div class="card-title">SKU-аналитика 360°</div>
+      <a class="card" style="--c1:#5aa15f;--c2:#2fa39a;--cr:90,161,95" href="sku360.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🎯</div><div class="card-title">SKU-аналитика 360°</div></div>
         <div class="card-desc">Живой центр по 1 943 SKU: Δ к прошлому месяцу, BCG-матрица, инсайты и рекомендации.</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 из iiko · 8:00</span>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · 8:00</span>
           <span class="card-badge" style="background:#ecfdf3;color:#15803d;">📈 5 разделов</span>
           <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📅 по месяцам</span>
         </div>
       </a>
-      <a class="card" href="продажи_2026.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#e0995a,#d97706)"></div>
-        <div class="card-icon">🛒</div>
-        <div class="card-title">Продажи 2026</div>
+      <a class="card" style="--c1:#e0995a;--c2:#d97706;--cr:224,153,90" href="продажи_2026.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🛒</div><div class="card-title">Продажи 2026</div></div>
         <div class="card-desc">Динамика продаж 2026: топ SKU, каналы сбыта, помесячно. Интерактивный дашборд.</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 из iiko · каждое утро</span>
-          <span class="card-badge" id="sales-upd" style="background:#f0fdf4;color:#166534;">🕒 обновлено…</span>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждое утро</span>
+          <span class="card-badge" id="sales-upd" style="background:#f0fdf4;color:#166534;">🕒 …</span>
         </div>
       </a>
-      <a class="card" href="закуп.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#e8c766,#d4af37)"></div>
-        <div class="card-icon">🛒</div>
-        <div class="card-title">Закуп</div>
+      <a class="card" style="--c1:#e8c766;--c2:#d4af37;--cr:232,199,102" href="закуп.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🛒</div><div class="card-title">Закуп</div></div>
         <div class="card-desc">Приход и оплата по накладным, что и у кого закупали, закупочные цены, остатки, долги, план оплат и ☪ халал-контроль сырья. Неделя · месяц · год.</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 из iiko · каждое утро</span>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждое утро</span>
           <span class="card-badge" style="background:#fffbeb;color:#b45309;">🗂 11 вкладок</span>
           <span class="card-badge" style="background:#e7f8ef;color:#0a7c52;">☪ Халал-аналитика сырья</span>
           <span class="card-badge" style="background:#fff4e6;color:#c2410c;">🛒 Рынок сырьё</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- БЛОК 03: ПЛАНИРОВАНИЕ -->
+  <div class="fin-section">
+    <div class="fin-section-hdr">
+      <span class="fin-num">03</span>
+      <div class="fin-divider"></div>
+      <div class="fin-title">Планирование</div>
+      <div class="fin-sub">Бюджеты и плановые показатели</div>
+    </div>
+    <div class="cards cards-2">
+      <div class="card card-disabled" style="--c1:#10b981;--c2:#059669;--cr:16,185,129">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">📋</div><div class="card-title">ОПиУ — Планирование</div></div>
+        <div class="card-desc">Плановый отчёт о прибылях и убытках. Бюджет по статьям на период.</div>
+        <span class="card-badge" style="background:#f0fdf4;color:#166534;">В разработке</span>
+      </div>
+      <a class="card" style="--c1:#37b0c4;--c2:#1f8a9c;--cr:55,176,196" href="дашборд_гугл_live.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">⚡</div><div class="card-title">ДДС — Live</div></div>
+        <div class="card-desc">Автоматическое обновление каждые 60 секунд. Недельная аналитика: доходы, расходы, баланс, покрытие.</div>
+        <div class="card-tags"><span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">Google Диск · Авто</span></div>
+      </a>
+      <a class="card" style="--c1:#38bdf8;--c2:#0ea5e9;--cr:56,189,248" href="дашборд_ддс_июль.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🎯</div><div class="card-title">ДДС · План-факт · Июль</div></div>
+        <div class="card-desc">План оплат против факта iiko за июль: поступления и выплаты по статьям, отклонения, исполнение плана.</div>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🎯 план vs факт</span>
+          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📅 июль 2026</span>
         </div>
       </a>
     </div>
@@ -287,19 +306,17 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
       <div class="fin-sub">Экспериментальный раздел</div>
     </div>
     <div class="cards">
-      <a class="card" href="дашборд_sku_2025-2026.html">
-        <div class="card-accent" style="background:linear-gradient(90deg,#94a3b8,#64748b)"></div>
-        <div class="card-icon">🔍</div>
-        <div class="card-title">SKU-анализ (архив)</div>
+      <a class="card" style="--c1:#94a3b8;--c2:#64748b;--cr:148,163,184" href="дашборд_sku_2025-2026.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🔍</div><div class="card-title">SKU-анализ (архив)</div></div>
         <div class="card-desc">Статичная версия за 2025–2026 (без живых данных). Заменена на «SKU-аналитика 360°».</div>
-        <span class="card-badge" style="background:#f1f5f9;color:#475569;">статичный · 17 мес.</span>
+        <div class="card-tags"><span class="card-badge" style="background:#f1f5f9;color:#475569;">статичный · 17 мес.</span></div>
       </a>
-      <a class="card" href="http://localhost:8080" target="_blank">
-        <div class="card-accent" style="background:linear-gradient(90deg,#7c3aed,#6d28d9)"></div>
-        <div class="card-icon">⚡</div>
-        <div class="card-title">SKU iiko — Live</div>
+      <a class="card" style="--c1:#7c3aed;--c2:#6d28d9;--cr:124,58,237" href="http://localhost:8080" target="_blank">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">⚡</div><div class="card-title">SKU iiko — Live</div></div>
         <div class="card-desc">Живые данные напрямую из iiko: выручка, ВП, маржа, количество. Фильтр по периоду (месяц / год / диапазон) и складу. Обновляется автоматически.</div>
-        <span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">⚡ Live · iiko API</span>
+        <div class="card-tags"><span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">⚡ Live · iiko API</span></div>
       </a>
     </div>
   </div>
@@ -334,7 +351,7 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
       var sp = document.getElementById('sales-src');
       if(sp && M.pulled) sp.title = 'обновлено ' + M.pulled + ' · данные по ' + M.through;
       var su = document.getElementById('sales-upd');
-      if(su && M.pulled){ su.textContent = '🕒 обновлено ' + M.pulled.split(' ')[0];
+      if(su && M.pulled){ su.textContent = '🕒 ' + M.pulled.split(' ')[0];
         su.title = 'данные из iiko по ' + (M.through || M.pulled.split(' ')[0]); }
     }catch(e){}
   };
@@ -350,7 +367,7 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
     try{
       var M = window.DDSP_META || {};
       var e = document.getElementById('ddsp-upd');
-      if(e && M.updated){ e.textContent = '🕒 обновлено ' + M.updated;
+      if(e && M.updated){ e.textContent = '🕒 ' + M.updated;
         e.title = 'данные из iiko по ' + (M.through || M.updated); }
     }catch(e){}
   };
@@ -366,7 +383,7 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
     try{
       var M = window.DDS_META || {};
       var e = document.getElementById('dds-upd');
-      if(e && M.updated){ e.textContent = '🕒 обновлено ' + M.updated; }
+      if(e && M.updated){ e.textContent = '🕒 ' + M.updated; }
     }catch(e){}
   };
   document.head.appendChild(sc);
@@ -382,7 +399,7 @@ a.card:hover::after{opacity:1;transform:translateX(0);}
       var M = window.SALES_META || {};
       var e = document.getElementById('sales-upd');
       var dt = M.pulled ? String(M.pulled).split(' ')[0] : (M.through || '');
-      if(e && dt){ e.textContent = '🕒 обновлено ' + dt;
+      if(e && dt){ e.textContent = '🕒 ' + dt;
         e.title = 'данные из iiko по ' + (M.through || dt); }
     }catch(e){}
   };
