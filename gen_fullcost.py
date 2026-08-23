@@ -1277,6 +1277,94 @@ SECTION = r'''
       el.innerHTML=h+'</table>';
     }
 
+
+    /* Когда контрагент выходит в плюс.
+       Считаем по предельной логике: у завода есть свободные мощности (выручка ниже
+       порога безубыточности), поэтому при росте объёма конкретного покупателя
+       общезаводские постоянные затраты НЕ растут — растут только переменные.
+       op(Δq,Δp) = (1+Δq)·[выручка·(1+Δp) − переменные] − его доля постоянных. */
+    function scenario(r){
+      function op(dq,dp){ return (1+dq)*(r.rev*(1+dp)-r.varc)-r.fix; }
+      var needP = r.rev? (r.fix + r.varc)/r.rev - 1 : 0;          // только цена
+      var needQ = (r.cm>0)? r.fix/r.cm - 1 : null;                // только объём
+      var needM = r.rev? r.fix/r.rev*100 : 0;                     // только маржинальность
+      return {op:op, needP:needP, needQ:needQ, needM:needM};
+    }
+    function scenarioBlock(r){
+      var S=scenario(r);
+      var ok = r.op>0;
+      var h='<div style="font-size:11.5px;font-weight:800;color:#c9a94e;letter-spacing:.08em;text-transform:uppercase;margin:12px 0 5px">'
+        +(ok?'Что держит его в плюсе':'Когда он выйдет в плюс')+'</div>';
+      h+='<div style="font-size:11.5px;color:#64748b;margin-bottom:7px">Считаем по предельной логике: завод недозагружен, поэтому '
+        +'дополнительный объём этого покупателя не увеличивает общезаводские постоянные затраты — растут только переменные. '
+        +'Его доля постоянных зафиксирована на уровне '+mln(r.fix)+'.</div>';
+
+      // три пути к нулю
+      var pr=r.qty?r.rev/r.qty:0, prNeed=pr*(1+S.needP);
+      var L = ok ? ["Запас по цене","Запас по объёму","Запас по маржинальности"]
+                 : ["Только цена","Только объём","Только маржинальность"];
+      var rows=[
+        [L[0], (S.needP>0?"+":"")+pc(S.needP*100),
+          (ok?"цена может опуститься до ":"средняя цена единицы ")+(r.qty?(num(prNeed)+" ₸ вместо "+num(pr)+" ₸"):(mln(r.rev*(1+S.needP))+" вместо "+mln(r.rev))),
+          S.needP<=0],
+        [L[1], (S.needQ==null?"недостижимо":((S.needQ>0?"+":"")+pc(S.needQ*100))),
+          (S.needQ==null?"маржинальная прибыль отрицательная — рост объёма только увеличит убыток"
+                        :((ok?"объём может упасть до ":"")+(r.qty?(num(r.qty*(1+S.needQ))+" единиц вместо "+num(r.qty)):("выручки "+mln(r.rev*(1+S.needQ)))))),
+          S.needQ!=null&&S.needQ<=0],
+        [L[2], pc(S.needM),
+          (ok?"порог: ниже этой маржинальности он уходит в минус, сейчас "+pc(r.cmr)+" ("+pp(r.cmr-S.needM)+" запаса)"
+             :"вместо нынешних "+pc(r.cmr)+" — это "+pp(S.needM-r.cmr)+" за счёт набора товара, закупа или цены"),
+          S.needM<=r.cmr]
+      ];
+      h+='<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px">';
+      rows.forEach(function(x){
+        h+='<tr style="border-top:1px solid #1b2636">'
+          +'<td style="padding:5px 4px;color:#cbd5e1;white-space:nowrap">'+x[0]+'</td>'
+          +'<td style="padding:5px 4px;text-align:right;font-weight:800;white-space:nowrap;color:'+(x[3]?"#22c55e":"#f59e0b")+'">'+x[1]+'</td>'
+          +'<td style="padding:5px 4px;color:#94a3b8">'+x[2]+'</td></tr>';
+      });
+      h+='</table>';
+
+      // матрица сценариев цена × объём
+      var DP=[0,.03,.05,.10], DQ=[0,.05,.10,.20];
+      h+='<div style="font-size:11.5px;color:#94a3b8;margin:8px 0 4px">Результат за период при сочетании цены и объёма, млн ₸ '
+        +'<span style="color:#64748b">— зелёные ячейки это плюс</span></div><div style="overflow-x:auto">'
+        +'<table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:420px">'
+        +'<tr><th style="text-align:left;padding:5px 4px;color:#64748b;font-size:10px;text-transform:uppercase">Цена \\ Объём</th>'
+        + DQ.map(function(q){ return '<th style="padding:5px 4px;text-align:right;color:#64748b;font-size:10px">'+(q?"+"+Math.round(q*100)+"%":"как сейчас")+'</th>'; }).join("")
+        +'</tr>';
+      DP.forEach(function(dp){
+        h+='<tr style="border-top:1px solid #1b2636"><td style="padding:5px 4px;color:#cbd5e1;white-space:nowrap">'+(dp?"+"+Math.round(dp*100)+"%":"как сейчас")+'</td>';
+        DQ.forEach(function(dq){
+          var v=S.op(dq,dp), pos=v>0;
+          h+='<td style="padding:5px 4px;text-align:right;font-weight:700;white-space:nowrap;'
+            +'background:'+(pos?"rgba(34,197,94,.13)":"rgba(239,68,68,.10)")+';color:'+(pos?"#7ff0c0":"#fda4b4")+'">'
+            +mlnS(v)+'</td>';
+        });
+        h+='</tr>';
+      });
+      h+='</table></div>';
+
+      // возвраты как отдельный рычаг
+      if(r.ret>50000&&r.rets>1){
+        var half=r.ret*0.5;
+        h+='<div style="font-size:12px;color:#cbd5e1;line-height:1.6;margin-top:8px">Отдельный рычаг — возвраты: '
+          +'сейчас '+mln(r.ret)+' ('+pc(r.rets)+' отгрузки). Сокращение вдвое вернуло бы в выручку около '+mln(half)
+          +', и результат стал бы '+mlnS(r.op+half)+' — '+(r.op+half>0?'этого уже достаточно для плюса.':'этого мало, нужен ещё один рычаг.')+'</div>';
+      }
+
+      // вывод одной строкой
+      var best;
+      if(ok) best='Он уже в плюсе. Запас: выручка может упасть на '+pc((r.rev-r.bep)/r.rev*100)+' до нуля.';
+      else if(S.needQ!=null&&S.needQ>0&&S.needQ<0.25) best='Самый дешёвый путь — объём: ему не хватает '+pc(S.needQ*100)+' загрузки, цену трогать не обязательно.';
+      else if(S.needP>0&&S.needP<0.08) best='Самый дешёвый путь — цена: +'+pc(S.needP*100)+' к прайсу закрывает разрыв целиком.';
+      else if(S.needQ==null) best='Ни объём, ни скидка не помогут: у него отрицательная маржинальная прибыль, каждая новая отгрузка увеличивает убыток. Сначала цена или набор товара.';
+      else best='Одним рычагом не закрыть: нужно сочетание — например '+pc(0.05*100)+' к цене и '+pc(20)+' к объёму даёт '+mlnS(S.op(0.20,0.05))+'.';
+      h+='<div style="background:rgba(232,199,102,.10);border:1px solid rgba(232,199,102,.32);border-radius:10px;'
+        +'padding:9px 12px;margin-top:9px;font-size:12.5px;color:#f2dd9e;line-height:1.6"><b>Вывод.</b> '+best+'</div>';
+      return h;
+    }
+
     function itemsTable(r){
       var it=r.items||[]; if(!it.length) return '';
       var tot=it.reduce(function(s,x){ return s+x.r; },0);
@@ -1398,6 +1486,7 @@ SECTION = r'''
           +' · результат <b style="color:'+(ok?"#22c55e":"#ef4444")+'">'+mln(r.op)+'</b></span></summary>'
           +'<div style="padding:2px 14px 13px">'
           + verdict(r,ctx).map(function(t){ return '<p style="margin:0 0 7px;font-size:12.5px;line-height:1.65;color:#cbd5e1">'+t+'</p>'; }).join("")
+          + scenarioBlock(r)
           + itemsTable(r)
           +'</div></details>';
       });
