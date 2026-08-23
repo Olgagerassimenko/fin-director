@@ -698,6 +698,15 @@ SECTION = r'''
         <div style="font-size:11.5px;color:#64748b;margin-bottom:8px">Формулировки посчитаны из его собственных цифр: что именно делает его прибыльным или убыточным и на сколько нужно сдвинуть цену, объём или маржинальность.</div>
         <div id="fc-prof-cards"></div>
       </div>
+
+      <div id="fc-cut-card" style="background:#111827;border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px">
+        <div style="font-size:13.5px;font-weight:700;color:#f1f5f9;margin-bottom:2px">&#9986;&#65039; Кого можно отключить — и что будет с заводом</div>
+        <div style="font-size:11.5px;color:#64748b;margin-bottom:8px">Решение «отключать или держать» принимается не по строке «результат», а по маржинальной прибыли. Ниже — правило, ранжирование и симулятор: отметьте, кого хотите отключить, и посмотрите, что станет с результатом завода.</div>
+        <div id="fc-cut-rule"></div>
+        <div id="fc-cut-tbl" style="overflow-x:auto;margin-top:10px"></div>
+        <div style="font-size:12.5px;font-weight:700;color:#f1f5f9;margin:16px 0 6px">&#129518; Симулятор отключения</div>
+        <div id="fc-cut-sim"></div>
+      </div>
       <div style="background:#111827;border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px">
         <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
           <div style="font-size:13.5px;font-weight:700;color:#f1f5f9">&#128197; Месяц к месяцу</div>
@@ -1599,6 +1608,150 @@ SECTION = r'''
           PSORT,function(v){ PSORT=v; profitability(); });
       baseNote(rows); profKpi(rows); profSum(rows); profTable(rows); unitTable(rows); profNote(rows); profCards(rows);
       if(window.Chart){ ch7(rows); ch6(rows); }
+      cutBlock();
+    }
+
+
+    /* ── Кого можно отключить ───────────────────────────────────────────────
+       Ключевая развилка всей вкладки. Строка «результат» считается ПОСЛЕ
+       разнесения постоянных затрат — но при отключении покупателя эти затраты
+       никуда не денутся, они просто лягут на остальных. Поэтому решение
+       принимается по маржинальной прибыли: пока она положительная, покупатель
+       оплачивает часть общезаводских затрат, и отключать его — значит терять
+       ровно этот вклад. */
+    var CUTSEL={}, CUTFIX=0, CUTMOVE=0;
+    function cutRows(){ return psort(groupRows(buyerRows())); }
+    function cutVerdict(r){
+      if(r.cm<=0) return ["cut","отключать или срочно поднимать цену"];
+      if(r.op<0)  return ["fix","держать, но пересматривать цену"];
+      return ["keep","держать"];
+    }
+    function cutRule(rows){
+      var el=document.getElementById("fc-cut-rule"); if(!el) return;
+      var neg=rows.filter(function(r){ return r.cm<=0; });
+      var tot=rows.reduce(function(s2,r){ return s2+r.cm; },0);
+      var loss=rows.filter(function(r){ return r.op<0; });
+      var lossCm=loss.reduce(function(s2,r){ return s2+r.cm; },0);
+      el.innerHTML='<div style="background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.32);border-radius:12px;'
+        +'padding:11px 14px;font-size:12.5px;color:#cbd5e1;line-height:1.7">'
+        +'<b style="color:#f1f5f9">Главное, прежде чем кого-то отключать.</b> В таблице выше '+loss.length+' контрагентов с минусом — '
+        +'но этот минус получился ПОСЛЕ того, как на них разнесли общезаводские постоянные затраты. '
+        +'Если их отключить, затраты останутся на заводе, а вместе с покупателями уйдёт их маржинальная прибыль '
+        +'<b style="color:#f1f5f9">'+mln(lossCm)+'</b> — и результат завода станет хуже, а не лучше.'
+        +'<div style="margin-top:6px">Правило простое: <b style="color:#7ff0c0">пока маржинальная прибыль положительная</b> — покупатель '
+        +'оплачивает часть постоянных затрат, и держать его выгоднее, чем не иметь вовсе. '
+        +'<b style="color:#fda4b4">Отключать имеет смысл только тех, у кого она отрицательная</b> — там каждая отгрузка увеличивает убыток.</div>'
+        +'<div style="margin-top:6px;color:#94a3b8;font-size:11.5px">Сейчас с отрицательной маржинальной прибылью: '
+        + (neg.length? '<b style="color:#fda4b4">'+neg.map(function(r){ return esc(r.n)+" ("+mlnS(r.cm)+")"; }).join(", ")+'</b>. Это весь список — '
+             +'вместе они дают '+mlnS(neg.reduce(function(s2,r){return s2+r.cm;},0))+', то есть отключение вообще никого не спасёт.'
+          : 'таких нет. Отключение любого покупателя ухудшит результат завода.')
+        +' Общий вклад всех контрагентов в покрытие постоянных — <b style="color:#f1f5f9">'+mln(tot)+'</b>.</div>'
+        +'<div style="margin-top:6px;color:#94a3b8;font-size:11.5px">Отключение оправдано в трёх случаях: (1) отрицательный вклад; '
+        +'(2) вместе с покупателем реально уходит затрата — маршрут доставки, смена, склад; '
+        +'(3) цех загружен под завязку и его объём можно заменить более выгодным. Для третьего случая смотрите колонку '
+        +'«вклад на 1 ₸ загрузки цеха» — она показывает, кто занимает мощность зря.</div></div>';
+    }
+    function cutTable(rows){
+      var el=document.getElementById("fc-cut-tbl"); if(!el) return;
+      var a=rows.slice().sort(function(x,y){ return (x.cost?x.cm/x.cost:9)-(y.cost?y.cm/y.cost:9); });
+      var h='<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:880px">'
+        +'<tr style="color:#64748b;font-size:10.5px;font-weight:800;text-align:right;text-transform:uppercase;letter-spacing:.04em">'
+        +'<th style="width:26px"></th><th style="text-align:left;padding:6px 4px">Контрагент</th><th style="padding:6px 4px">Выручка</th>'
+        +'<th style="padding:6px 4px">Маржин. прибыль</th><th style="padding:6px 4px">Вклад на 1 ₸ загрузки цеха</th>'
+        +'<th style="padding:6px 4px">Если отключить</th><th style="text-align:left;padding:6px 4px">Что делать</th></tr>';
+      a.forEach(function(r){
+        var v=cutVerdict(r), dens=r.cost?r.cm/r.cost:0;
+        var col=v[0]==="cut"?"#fda4b4":(v[0]==="fix"?"#fdba74":"#7ff0c0");
+        var bg=v[0]==="cut"?"rgba(239,68,68,.14)":(v[0]==="fix"?"rgba(251,146,60,.13)":"rgba(34,197,94,.13)");
+        h+='<tr style="border-top:1px solid #1b2636">'
+          +'<td style="padding:6px 2px;text-align:center"><input type="checkbox" data-cut="'+esc(r.n)+'"'+(CUTSEL[r.n]?" checked":"")+'></td>'
+          +'<td style="padding:6px 4px;color:#e2e8f0;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.n)+'</td>'
+          +'<td style="padding:6px 4px;text-align:right;color:#cbd5e1">'+mln(r.rev)+'</td>'
+          +'<td style="padding:6px 4px;text-align:right;font-weight:700;color:'+(r.cm>0?"#22d3ee":"#ef4444")+'">'+mlnS(r.cm)+'</td>'
+          +'<td style="padding:6px 4px;text-align:right;color:'+(dens<0.5?"#fb923c":"#94a3b8")+'">'+dens.toFixed(2).replace(".",",")+'</td>'
+          +'<td style="padding:6px 4px;text-align:right;font-weight:700;color:'+(r.cm>0?"#ef4444":"#22c55e")+'">'+mlnS(-r.cm)+'</td>'
+          +'<td style="padding:6px 4px"><span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:'+bg+';color:'+col+'">'+v[1]+'</span></td></tr>';
+      });
+      el.innerHTML=h+'</table>';
+      [].forEach.call(el.querySelectorAll("input[data-cut]"),function(inp){
+        inp.onchange=function(){ var k=inp.getAttribute("data-cut");
+          if(inp.checked) CUTSEL[k]=1; else delete CUTSEL[k];
+          cutSim(cutRows()); };
+      });
+    }
+    function cutSim(rows){
+      var el=document.getElementById("fc-cut-sim"); if(!el) return;
+      var sel=rows.filter(function(r){ return CUTSEL[r.n]; });
+      var rest=rows.filter(function(r){ return !CUTSEL[r.n]; });
+      var totCm=rows.reduce(function(s2,r){ return s2+r.cm; },0);
+      var totFix=rows.reduce(function(s2,r){ return s2+r.fix; },0);
+      var totRev=rows.reduce(function(s2,r){ return s2+r.rev; },0);
+      var base=totCm-totFix;
+      var loseCm=sel.reduce(function(s2,r){ return s2+r.cm; },0);
+      var freeFix=sel.reduce(function(s2,r){ return s2+r.fix; },0)*CUTFIX;
+      var moveRev=sel.reduce(function(s2,r){ return s2+r.rev; },0)*CUTMOVE;
+      var restRev=rest.reduce(function(s2,r){ return s2+r.rev; },0);
+      var restCm=rest.reduce(function(s2,r){ return s2+r.cm; },0);
+      var restCmr=restRev?restCm/restRev:0;
+      var gainMove=moveRev*restCmr;
+      var after=base-loseCm+freeFix+gainMove;
+      var d=after-base;
+      var beFix=freeFix+gainMove>0?0:0;
+      var needFix=sel.length?(loseCm-gainMove)/Math.max(1,sel.reduce(function(s2,r){ return s2+r.fix; },0)):0;
+      var slider=function(id,val,label,hint){
+        return '<div style="flex:1;min-width:230px"><div style="font-size:11.5px;color:#94a3b8;margin-bottom:3px">'+label
+          +' <b style="color:#f1f5f9">'+Math.round(val*100)+'%</b></div>'
+          +'<input type="range" id="'+id+'" min="0" max="100" step="5" value="'+Math.round(val*100)+'" style="width:100%">'
+          +'<div style="font-size:10.5px;color:#64748b;margin-top:2px">'+hint+'</div></div>';
+      };
+      var h='<div style="background:#0f172a;border:1px solid #1f2937;border-radius:12px;padding:12px 14px">'
+        +'<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px">'
+        + slider("fc-cut-f",CUTFIX,"Какую долю его постоянных реально удастся срезать",
+                 "по умолчанию 0: аренда, ФОТ и амортизация от ухода покупателя не исчезают")
+        + slider("fc-cut-m",CUTMOVE,"Какая доля его объёма перейдёт к оставшимся",
+                 "по умолчанию 0: свободные мощности сами по себе выручку не приносят")
+        +'</div>';
+      if(!sel.length){
+        h+='<div style="font-size:12.5px;color:#94a3b8">Отметьте галочками тех, кого рассматриваете к отключению — покажу, что станет с результатом завода.</div>';
+      } else {
+        var rowsHtml=[
+          ["Результат завода сейчас",mln(base),"#e2e8f0"],
+          ["Уходит маржинальная прибыль","−"+mln(loseCm).replace("−",""),"#ef4444"],
+          ["Экономия постоянных затрат",(freeFix?("+"+mln(freeFix)):"0"),freeFix?"#22c55e":"#64748b"],
+          ["Объём перешёл к оставшимся",(gainMove?("+"+mln(gainMove)):"0"),gainMove?"#22c55e":"#64748b"],
+          ["Результат завода после",mln(after),after>base?"#22c55e":"#ef4444"]
+        ];
+        h+='<table style="width:100%;border-collapse:collapse;font-size:12.5px">';
+        rowsHtml.forEach(function(x,i){
+          h+='<tr style="'+(i===4?"border-top:1px solid #334155":"border-top:1px solid #1b2636")+'">'
+            +'<td style="padding:6px 4px;color:#94a3b8">'+x[0]+'</td>'
+            +'<td style="padding:6px 4px;text-align:right;font-weight:'+(i===0||i===4?"800":"700")+';color:'+x[2]+'">'+x[1]+'</td></tr>';
+        });
+        h+='</table>';
+        h+='<div style="margin-top:10px;background:'+(d>=0?"rgba(34,197,94,.10)":"rgba(239,68,68,.10)")
+          +';border:1px solid '+(d>=0?"rgba(34,197,94,.32)":"rgba(239,68,68,.32)")+';border-radius:10px;padding:10px 13px;'
+          +'font-size:12.5px;color:#cbd5e1;line-height:1.65">'
+          +'<b style="color:#f1f5f9">Итог: результат завода '+(d>=0?"улучшится":"ухудшится")+' на '+mln(Math.abs(d))+'.</b> '
+          + (d>=0
+              ? "При заданных условиях отключение оправдано. Проверьте только, что срезать постоянные вы действительно сможете — это решение, а не следствие."
+              : ("Отключение при этих условиях невыгодно. Чтобы выйти хотя бы в ноль, нужно либо срезать "
+                 + pc(Math.max(0,Math.min(1,needFix))*100,0) + " их доли постоянных затрат, либо передать оставшимся "
+                 + pc(Math.max(0,Math.min(1,(loseCm-freeFix)/Math.max(1,sel.reduce(function(s2,r){return s2+r.rev;},0)*restCmr)))*100,0)
+                 + " их объёма."))
+          +'</div>';
+      }
+      h+='</div>';
+      el.innerHTML=h;
+      var f=document.getElementById("fc-cut-f"), m=document.getElementById("fc-cut-m");
+      if(f) f.oninput=function(){ CUTFIX=(+f.value)/100; cutSim(rows); };
+      if(m) m.oninput=function(){ CUTMOVE=(+m.value)/100; cutSim(rows); };
+    }
+    function cutBlock(){
+      var card=document.getElementById("fc-cut-card"); if(!card) return;
+      var rows=cutRows();
+      if(!rows.length){ card.style.display="none"; return; }
+      card.style.display="";
+      cutRule(rows); cutTable(rows); cutSim(rows);
     }
 
     function momTable(){
