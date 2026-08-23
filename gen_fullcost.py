@@ -508,7 +508,8 @@ def build():
                              "bep": round(fix / cmr) if cmr > 0 else 0,
                              "safety": round((rev - (fix / cmr if cmr > 0 else 0)) / rev * 100, 1) if rev else 0,
                              "gross": 0, "net": 0, "layers": layers,
-                             "src": "iiko+оценка" if gaps else "iiko", "est": bool(gaps)}
+                             "src": "iiko+оценка" if gaps else "iiko", "est": bool(gaps),
+                             "gaps": [g for g in gaps if g in m2l]}
                     months.append(m)
                     added += 1
                 months = sorted(set(months))
@@ -644,6 +645,7 @@ SECTION = r'''
         <button id="fc-open" type="button" style="margin-left:auto;background:#c9a94e;color:#111827;border:0;border-radius:10px;padding:9px 16px;font-size:12.5px;font-weight:800;cursor:pointer">&#128203; Полный разбор</button>
       </div>
 
+      <div id="fc-gapnote"></div>
       <div id="fc-bnote"></div>
       <div id="fc-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:9px"></div>
       <div id="fc-alert" style="margin-top:12px"></div>
@@ -674,7 +676,8 @@ SECTION = r'''
       <div id="fc-prof-card" style="background:#111827;border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px">
         <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:2px">
           <div style="font-size:13.5px;font-weight:700;color:#f1f5f9">&#128176; Прибыльность контрагентов: кто окупает свою долю завода</div>
-          <div id="fc-prof-base" style="margin-left:auto;display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:3px"></div>
+          <div id="fc-prof-grp" style="margin-left:auto;display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:3px"></div>
+          <div id="fc-prof-base" style="display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:3px"></div>
           <div id="fc-prof-sort" style="display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:3px"></div>
         </div>
         <div id="fc-prof-base-note"></div>
@@ -788,6 +791,25 @@ SECTION = r'''
         return '<button type="button" data-v="'+it[0]+'" style="border:0;background:'+(on?"#c9a94e":"transparent")+';color:'+(on?"#111827":"#cbd5e1")+';font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer">'+it[1]+'</button>';
       }).join("");
       el.onclick=function(e){ var b=e.target.closest("button"); if(b) cb(b.getAttribute("data-v")); };
+    }
+
+
+    var GAPRU={fot:"ФОТ производства",adm:"АУП",food:"продуктовая себестоимость",prod:"производственные",ar:"аренда",com:"реализация"};
+    function gapNames(p){
+      var g=(p&&p.gaps)||[];
+      if(!g.length) return "часть затрат";
+      return g.map(function(k){ return GAPRU[k]||k; }).join(" и ");
+    }
+    function gapNote(){
+      var el=document.getElementById("fc-gapnote"); if(!el) return;
+      var p=PL()[st.month];
+      if(!p||!p.est){ el.innerHTML=""; return; }
+      el.innerHTML='<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.35);border-radius:11px;'
+        +'padding:9px 13px;margin:0 0 10px;font-size:12px;color:#fde68a;line-height:1.6">'
+        +'<b>'+MN[+st.month.slice(5)]+' '+st.month.slice(0,4)+' — из iiko, кроме одной статьи.</b> Выручка и все затраты взяты из iiko, '
+        +'но <b>'+gapNames(p)+'</b> там ещё не начислен: бухгалтерия проводит его после закрытия месяца. '
+        +'Если оставить как есть, месяц покажет прибыль, которой нет, поэтому эта статья подставлена по средней доле '
+        +'закрытых месяцев. Как только начисление пройдёт в iiko, цифра станет фактической сама — пересобирать ничего не нужно.</div>';
     }
 
     function bnote(){
@@ -1105,7 +1127,7 @@ SECTION = r'''
        себестоимость — фактические из iiko, прочие переменные и постоянные затраты
        разнесены: переменные по выручке, постоянные по производству. Возвраты — из расходных накладных iiko,
        сгруппированы по номеру контрагента. */
-    var PSORT="op", PBASE="prod";
+    var PSORT="op", PBASE="prod", PGRP="grp";
     function prodRatio(ms){
       var num=0,den=0;
       ms.forEach(function(m){ var p=D.pl[m]; if(!p)return; den+=p.rev;
@@ -1133,6 +1155,56 @@ SECTION = r'''
       });
       return out;
     }
+
+    /* Группировка по номерам: в iiko номер контрагента — это, по сути, точка сети.
+       Одна сеть может идти под несколькими номерами (Базилик 1, 2, 5), и по отдельности
+       каждая точка выглядит мелочью. Собираем их в группу по названию, номера показываем. */
+    function brandOf(n){
+      var s=String(n).replace(/^\s*\d+\s*[-–—]?\s*/,'').split('(')[0];
+      s=s.replace(/\s*№?\s*\d+\s*$/,'').replace(/^(ТОО|ИП|АО|ЧЛ)\s+/i,'').trim();
+      return s||String(n);
+    }
+    function numOf(n){ var m=String(n).match(/^\s*(\d+)/); return m?m[1]:null; }
+    function groupRows(rows){
+      if(PGRP!=="grp") return rows;
+      var by={}, order=[];
+      rows.forEach(function(r){
+        var b=brandOf(r.n), k=b.toLowerCase().replace(/[^0-9a-zа-яё]+/gi,'');
+        if(!by[k]){ by[k]={n:b,rev:0,varc:0,fix:0,cm:0,op:0,ret:0,qty:0,cost:0,mm:[],items:[],nums:[],members:[]}; order.push(k); }
+        var g=by[k];
+        g.rev+=r.rev; g.varc+=r.varc; g.fix+=r.fix; g.cm+=r.cm; g.op+=r.op; g.ret+=r.ret;
+        g.qty+=r.qty; g.cost+=r.cost;
+        r.mm.forEach(function(m){ if(g.mm.indexOf(m)<0) g.mm.push(m); });
+        (r.items||[]).forEach(function(it){ g.items.push(it); });
+        var nu=numOf(r.n); if(nu&&g.nums.indexOf(nu)<0) g.nums.push(nu);
+        g.members.push(r);
+      });
+      return order.map(function(k){
+        var g=by[k];
+        g.cmr=g.rev?g.cm/g.rev*100:0;
+        g.bep=(g.cm>0&&g.rev)?g.fix/(g.cm/g.rev):0;
+        var gg=g.members.reduce(function(s2,m){ return s2+(m.ret?m.rev+m.ret:0); },0);
+        g.rets=gg?g.ret/gg*100:0;
+        g.mm.sort();
+        if(g.nums.length) g.n=g.n+" ["+g.nums.sort(function(a,b){return +a-+b;}).join("+")+"]";
+        // товарный разрез склеиваем по названию позиции
+        if(g.members.length>1){
+          var agg={};
+          g.items.forEach(function(it){
+            if(it.rest) return;
+            var e=agg[it.n]||(agg[it.n]={n:it.n,cat:it.cat,q:0,r:0,c:0,cok:true});
+            e.q+=it.q; e.r+=it.r; if(it.c==null) e.cok=false; else e.c+=it.c;
+          });
+          g.items=Object.keys(agg).map(function(nm){ var e=agg[nm];
+            return {n:e.n,cat:e.cat,q:e.q,r:e.r,c:(e.cok?e.c:null),
+                    p:(e.q?Math.round(e.r/e.q):null),
+                    u:(e.cok&&e.q?Math.round(e.c/e.q):null)}; })
+            .sort(function(a,b){ return b.r-a.r; }).slice(0,30);
+        }
+        return g;
+      });
+    }
+
     function psort(rows){
       var a=rows.slice();
       if(PSORT==="rev") a.sort(function(x,y){ return y.rev-x.rev; });
@@ -1195,7 +1267,7 @@ SECTION = r'''
       var a=rows.slice().sort(function(x,y){ return y.op-x.op; });
       document.getElementById("fc-prof-wrap2").style.height=Math.max(280,a.length*21+70)+"px";
       var mx=Math.max.apply(null,a.map(function(r){ return Math.abs(r.op); }))/1e6||1;
-      mx=Math.ceil(mx*1.25/10)*10 || 10;   // круглые границы оси, иначе подпись вида −87,712…
+      mx=Math.ceil(mx*1.35/10)*10 || 10;   // круглые границы + место под подпись суммы
       // Подписи сумм рисуем сами: плагин datalabels на этой странице может быть не подключён.
       var VAL={id:"vlab"+a.length,afterDatasetsDraw:function(ch){
         var m=ch.getDatasetMeta(0), cx=ch.ctx; if(!m||!m.data) return;
@@ -1215,7 +1287,7 @@ SECTION = r'''
            backgroundColor:a.map(function(r){ return r.op>0?"#22c55e":"#ef4444"; }),borderRadius:4}
         ]},
         options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
-          layout:{padding:{left:8,right:64}},
+          layout:{padding:{left:8,right:8}},
           plugins:{legend:{display:false},
             tooltip:{callbacks:{label:function(c){ var r=a[c.dataIndex];
               return "Результат "+mln(r.op)+" · выручка "+mln(r.rev)+" · маржинальная прибыль "+mln(r.cm)+" · доля постоянных "+mln(r.fix); }}},
@@ -1485,6 +1557,11 @@ SECTION = r'''
           +'<span style="margin-left:auto;font-size:12px;color:#94a3b8">выручка '+mln(r.rev)+' · маржа '+pc(r.cmr)
           +' · результат <b style="color:'+(ok?"#22c55e":"#ef4444")+'">'+mln(r.op)+'</b></span></summary>'
           +'<div style="padding:2px 14px 13px">'
+          + ((r.members&&r.members.length>1)
+              ? '<div style="font-size:11.5px;color:#94a3b8;line-height:1.6;margin:0 0 8px">В группе '+r.members.length+' контрагента: '
+                + r.members.slice().sort(function(x,y){return y.rev-x.rev;}).map(function(m){
+                    return esc(m.n)+' — '+mln(m.rev)+' выручки, результат <b style="color:'+(m.op<0?"#ef4444":"#22c55e")+'">'+mlnS(m.op)+'</b>'; }).join('; ')
+                + '.</div>' : '')
           + verdict(r,ctx).map(function(t){ return '<p style="margin:0 0 7px;font-size:12.5px;line-height:1.65;color:#cbd5e1">'+t+'</p>'; }).join("")
           + scenarioBlock(r)
           + itemsTable(r)
@@ -1511,9 +1588,11 @@ SECTION = r'''
 
     function profitability(){
       if(!D.buyers||!(D.border||[]).length){ var c=document.getElementById("fc-prof-card"); if(c) c.style.display="none"; return; }
-      var rows=buyerRows();
+      var rows=groupRows(buyerRows());
       if(!rows.length){ var c2=document.getElementById("fc-prof-card"); if(c2) c2.style.display="none"; return; }
       var cc=document.getElementById("fc-prof-card"); if(cc) cc.style.display="";
+      seg("fc-prof-grp",[["grp","группы по номерам"],["all","каждый контрагент"]],PGRP,
+          function(v){ PGRP=v; profitability(); });
       seg("fc-prof-base",[["prod","постоянные: по производству"],["rev","по выручке"]],PBASE,
           function(v){ PBASE=v; profitability(); });
       seg("fc-prof-sort",[["op","по результату"],["rev","по выручке"],["cmr","по маржинальности"],["ret","по возвратам"]],
@@ -1643,9 +1722,11 @@ SECTION = r'''
         };
       }
       var sel=document.getElementById("fc-month");
-      sel.innerHTML=months().map(function(m){ return '<option value="'+m+'"'+(m===st.month?" selected":"")+'>'+MN[+m.slice(5)]+" "+m.slice(0,4)+(PL()[m].est?" · оценка":(PL()[m].src==="iiko"?" · iiko":""))+'</option>'; }).join("");
+      sel.innerHTML=months().map(function(m){ var p=PL()[m];
+        return '<option value="'+m+'"'+(m===st.month?" selected":"")+'>'+MN[+m.slice(5)]+" "+m.slice(0,4)
+          +(p.est?(" · iiko, "+gapNames(p)+" оценкой"):(p.src==="iiko"?" · iiko":""))+'</option>'; }).join("");
       sel.onchange=function(){ st.month=this.value; render(); };
-      bnote(); kpi(); alertBox(); profitability(); momTable(); linesTable(); chanTable(); observations();
+      gapNote(); bnote(); kpi(); alertBox(); profitability(); momTable(); linesTable(); chanTable(); observations();
       if(window.Chart){ ch1(); ch2(); ch3(); ch4(); ch5(); }
     }
 
