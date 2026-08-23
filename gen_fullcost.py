@@ -1175,7 +1175,7 @@ SECTION = r'''
          data:a.map(function(r,i){ return {x:+(r.bep/1e6).toFixed(2), y:labels[i]}; }),
          backgroundColor:"#c9a94e",borderColor:"#c9a94e",pointStyle:"rectRot",radius:6,order:1},
         {type:"scatter",label:"Возвраты",showLine:false,
-         data:a.map(function(r,i){ return r.ret>0?{x:+(r.ret/1e6).toFixed(2), y:labels[i]}:null; }).filter(Boolean),
+         data:a.map(function(r,i){ return r.ret>50000?{x:+(r.ret/1e6).toFixed(2), y:labels[i]}:null; }).filter(Boolean),
          backgroundColor:"#fb923c",borderColor:"#fb923c",pointStyle:"triangle",radius:5,order:2}
       ]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:"#cbd5e1",font:{size:11},boxWidth:11,usePointStyle:true}},datalabels:{display:false},
@@ -1334,7 +1334,7 @@ SECTION = r'''
           +'<td style="padding:6px 4px;text-align:right;font-weight:800;color:'+(r.op<0?"#ef4444":"#22c55e")+'">'+mln(r.op)+'</td>'
           +'<td style="padding:6px 4px;text-align:right;color:#a78bfa">'+mln(r.bep)+'</td>'
           +'<td style="padding:6px 4px;text-align:right;color:'+(zap<0?"#ef4444":"#22c55e")+'">'+pc(zap,0)+'</td>'
-          +'<td style="padding:6px 4px;text-align:right;color:'+(r.ret>0?"#fb923c":"#475569")+'">'+(r.ret>0?(mln(r.ret)+" · "+pc(r.rets,1)):"—")+'</td></tr>';
+          +'<td style="padding:6px 4px;text-align:right;color:'+(r.ret>50000?"#fb923c":"#475569")+'">'+(r.ret>50000?(mln(r.ret)+" · "+pc(r.rets,1)):"—")+'</td></tr>';
       });
       document.getElementById("fc-prof-tbl").innerHTML=h+'</table>';
     }
@@ -1362,7 +1362,7 @@ SECTION = r'''
           +(dm<0?". Он берёт товар с более дешёвой наценкой или по более низкой цене, поэтому каждый тенге его выручки доходит до покрытия постоянных затрат хуже среднего."
                 :". Его набор товара выгоднее среднего по заводу — каждый тенге выручки работает лучше."));
       }
-      if(r.ret>0){
+      if(r.ret>50000){
         var rc=r.ret*ctx.prodR;
         out.push("Возвраты "+b(mln(r.ret))+" — "+b(pc(r.rets))+" от отгрузки. В выручке они уже вычтены, но произвести и "
           +"привезти этот объём завод оплатил: около "+b(mln(rc))+" осело в затратах"
@@ -1393,7 +1393,7 @@ SECTION = r'''
           +'<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:'
           +(ok?"rgba(34,197,94,.14);color:#7ff0c0":"rgba(239,68,68,.14);color:#fda4b4")+'">'
           +(ok?"окупает себя":"не окупает")+'</span>'
-          +(r.ret>0?'<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:rgba(251,146,60,.14);color:#fdba74">возвраты '+pc(r.rets)+'</span>':'')
+          +(r.ret>50000?'<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:rgba(251,146,60,.14);color:#fdba74">возвраты '+pc(r.rets)+'</span>':'')
           +'<span style="margin-left:auto;font-size:12px;color:#94a3b8">выручка '+mln(r.rev)+' · маржа '+pc(r.cmr)
           +' · результат <b style="color:'+(ok?"#22c55e":"#ef4444")+'">'+mln(r.op)+'</b></span></summary>'
           +'<div style="padding:2px 14px 13px">'
