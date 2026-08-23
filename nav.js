@@ -31,7 +31,14 @@
   var h='';
   for(var i=0;i<pages.length;i++){var p=pages[i];var a=(p.href===cur)?' active':'';h+='<a href="'+p.href+'"class="'+a+'"><span class="ni">'+p.icon+'</span><span class="nl">'+p.label+'</span></a>';}
   var n=document.createElement('nav');n.id='pnav';n.innerHTML=h;
-  document.body.insertBefore(n,document.body.firstChild);
+  // Скрипт может стоять в <head> — тогда document.body ещё не существует.
+  function mountNav(){
+    if(document.getElementById('pnav'))return;
+    document.body.insertBefore(n,document.body.firstChild);
+    positionNav(); stickTabs();
+  }
+  if(document.body){ document.body.insertBefore(n,document.body.firstChild); }
+  else { document.addEventListener('DOMContentLoaded',mountNav); }
   // Position sidebar below topbar after load
   function positionNav(){
     var tb=document.querySelector('.topbar,.topbar-new');
@@ -42,8 +49,31 @@
       nav.style.height='calc(100vh - '+h+'px)';
     }
   }
-  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',positionNav);}
-  else{positionNav();}
+  // Строка вкладок прилипает сразу под шапкой. Без этого при прокрутке она
+  // уходит под .topbar (z-index 10000) и кнопки перестают нажиматься.
+  function stickTabs(){
+    var tb=document.querySelector('.topbar,.topbar-new'); if(!tb)return;
+    var h=Math.round(tb.getBoundingClientRect().height);
+    var bg=(getComputedStyle(document.body).backgroundColor)||'#0b1220';
+    if(bg==='rgba(0, 0, 0, 0)'||bg==='transparent')bg='#0b1220';
+    var list=document.querySelectorAll('.tabs');
+    for(var i=0;i<list.length;i++){
+      var t=list[i];
+      if(t.getAttribute('data-pnav-stick')!=='1'){
+        if(getComputedStyle(t).position!=='static')continue;   // страница уже сама решила, как их держать
+        t.style.position='sticky'; t.style.zIndex='9998';
+        t.style.background=bg; t.style.paddingTop='9px'; t.style.paddingBottom='9px';
+        t.style.marginBottom='6px';
+        t.setAttribute('data-pnav-stick','1');
+      }
+      t.style.top=h+'px';
+    }
+  }
+  function fitAll(){ positionNav(); stickTabs(); }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',fitAll);}
+  else{fitAll();}
+  window.addEventListener('load',fitAll);
+  window.addEventListener('resize',fitAll);
 
   // ── Подпись / автор внизу страницы (на всех дашбордах) ──
   function addSig(){
