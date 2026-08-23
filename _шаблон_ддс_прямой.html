@@ -419,7 +419,10 @@ function periodTo(obj){
  return D.dayMax||'';
 }
 function renderPeriod(obj,label,ru,closed){
- LAST={obj:obj,label:label,from:(obj.from||periodFrom(obj)),to:(obj.to||periodTo(obj))};
+ /* Только через periodFrom/periodTo: у годовой карточки obj.from='2026-01' — это МЕСЯЦ, а не дата.
+    Если подставить его в фильтр по дням напрямую, сравнение '2026-07-15' > '2026-07' отрезает
+    весь июль, и выгрузка за год теряла целый месяц (1502,9 млн вместо 1739,2 млн). */
+ LAST={obj:obj,label:label,from:periodFrom(obj),to:periodTo(obj)};
  let h=kpi(obj);
  h+=expScheme(obj);
  h+=payHTML(obj.revByContr);
@@ -826,12 +829,35 @@ function exportXls(){
  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
  const from=LAST.from||'', to=LAST.to||'';
 
- /* ── 1. Приход и расход с расшифровкой по контрагентам ── */
+ /* ── 1. Приход и расход с расшифровкой по контрагентам ──
+    Внутренние обороты (переводы между своими счетами) из разделов ИСКЛЮЧЕНЫ — иначе итог
+    в файле (426 млн) не сходился с итогом на экране (199,6 млн). Отдельной строкой они
+    остаются в шапке-сводке, чтобы остаток всё равно сходился. */
  let money='';
- const acc=ctrRows(from,to);
- if(acc){
+ const accAll=ctrRows(from,to);
+ if(accAll){
+   const acc={}, accInt={};
+   Object.keys(accAll).forEach(function(c){ (isInt(c)?accInt:acc)[c]=accAll[c]; });
    const IN=xlsSection(acc,'in'), OUT=xlsSection(acc,'out');
-   money='<table border="1" cellspacing="0"><tr><th>Статья ДДС</th><th>Контрагент</th><th>Сумма, ₸</th></tr>';
+   const II=xlsSection(accInt,'in'), IO=xlsSection(accInt,'out');
+   const intNet=II.total-IO.total;
+   const arts=obj.articles||[];
+   const rev=arts.filter(a=>/выручк/i.test(a.cat)).reduce((s,a)=>s+a.in,0);
+   const st=obj.startByAcc?(obj.start||0):null, en=obj.endByAcc?(obj.end||0):null;
+   const f=d=>d?d.split('-').reverse().join('.'):'';
+   /* Шапка: то, что нужно увидеть первым — сколько пришло, сколько ушло, что осталось. */
+   money='<table border="1" cellspacing="0"><tr><td colspan="2" style="font-weight:bold;font-size:14px">ДДС · '+esc(label)+'</td></tr>'
+     +(from?'<tr><td>Период</td><td>'+f(from)+(to&&to!==from?(' — '+f(to)):'')+'</td></tr>':'')
+     +(st!=null?'<tr><td>Остаток на начало</td><td>'+xnum(st)+'</td></tr>':'')
+     +'<tr><td style="font-weight:bold">Приход</td><td style="font-weight:bold">'+xnum(IN.total)+'</td></tr>'
+     +(rev?'<tr><td>   в т.ч. выручка от покупателей</td><td>'+xnum(rev)+'</td></tr>':'')
+     +'<tr><td style="font-weight:bold">Расход</td><td style="font-weight:bold">'+xnum(-OUT.total)+'</td></tr>'
+     +'<tr><td style="font-weight:bold">Чистый поток</td><td style="font-weight:bold">'+xnum(IN.total-OUT.total)+'</td></tr>'
+     +(Math.abs(intNet)>=1?'<tr><td>Внутренние обороты (переводы между счетами)</td><td>'+xnum(intNet)+'</td></tr>':'')
+     +(en!=null?'<tr><td>Остаток на конец</td><td>'+xnum(en)+'</td></tr>':'')
+     +'<tr><td>Источник</td><td>iiko · прямой метод · собрано '+esc(D.updatedFull||D.updated||'')+'</td></tr>'
+     +'</table><br>';
+   money+='<table border="1" cellspacing="0"><tr><th>Статья ДДС</th><th>Контрагент</th><th>Сумма, ₸</th></tr>';
    if(IN.html){
      money+='<tr><td colspan="3" style="background:#dff0d8;font-weight:bold">ПРИХОД — кто оплатил</td></tr>'+IN.html
        +'<tr><td colspan="2" style="font-weight:bold">Итого приход</td><td style="font-weight:bold">'+xnum(IN.total)+'</td></tr>';
@@ -840,7 +866,13 @@ function exportXls(){
      money+='<tr><td colspan="3" style="background:#f2dede;font-weight:bold">РАСХОД — куда ушли деньги</td></tr>'+OUT.html
        +'<tr><td colspan="2" style="font-weight:bold">Итого расход</td><td style="font-weight:bold">'+xnum(-OUT.total)+'</td></tr>';
    }
-   money+='<tr><td colspan="2" style="font-weight:bold">ЧИСТЫЙ ПОТОК</td><td style="font-weight:bold">'+xnum(IN.total-OUT.total)+'</td></tr></table>';
+   money+='<tr><td colspan="2" style="font-weight:bold">ЧИСТЫЙ ПОТОК</td><td style="font-weight:bold">'+xnum(IN.total-OUT.total)+'</td></tr>';
+   if(II.html||IO.html){
+     money+='<tr><td colspan="3" style="background:#eee;font-weight:bold">Внутренние обороты — переводы между своими счетами (в приход и расход выше не входят)</td></tr>'
+       +II.html+IO.html
+       +'<tr><td colspan="2" style="font-weight:bold">Итого внутренние обороты</td><td style="font-weight:bold">'+xnum(intNet)+'</td></tr>';
+   }
+   money+='</table>';
  }
 
  /* ── 2. По дням: статья × контрагент внутри каждого дня ── */
@@ -848,17 +880,27 @@ function exportXls(){
  if(D.flowCtr&&D.flowCtr.days&&from&&to&&from!==to){
    const cats=D.flowCtr.cats||[], ctrs=D.flowCtr.ctrs||[];
    const ds=Object.keys(D.flowCtr.days).filter(d=>d>=from&&d<=to).sort();
+   /* Длинный период (год) с разрезом по контрагентам давал файл на полмегабайта и десятки тысяч
+      строк — Excel такое открывает мучительно. До 62 дней даём полную детализацию с контрагентами,
+      дальше — свод по дням и статьям без контрагентов. */
+   const detail=ds.length<=62;
    if(ds.length){
-     byday='<br><h3>По дням</h3><table border="1" cellspacing="0"><tr><th>Дата</th><th>Статья ДДС</th><th>Контрагент</th><th>Приход, ₸</th><th>Расход, ₸</th></tr>';
+     byday='<br><h3>По дням'+(detail?' — статья и контрагент':' — свод по статьям (период длиннее двух месяцев)')+'</h3>'
+       +'<table border="1" cellspacing="0"><tr><th>Дата</th><th>Статья ДДС</th>'+(detail?'<th>Контрагент</th>':'')+'<th>Приход, ₸</th><th>Расход, ₸</th></tr>';
      ds.forEach(function(d){
-       const rows=D.flowCtr.days[d].slice().sort((a,b)=>(b[2]-b[3])-(a[2]-a[3]));
+       const src=D.flowCtr.days[d].filter(r=>!isInt(cats[r[0]]||''));
+       let rows;
+       if(detail){ rows=src.slice().sort((a,b)=>(b[2]-b[3])-(a[2]-a[3])); }
+       else{ const m={}; src.forEach(function(r){ const e=m[r[0]]||(m[r[0]]=[r[0],0,0,0]); e[2]+=r[2]; e[3]+=r[3]; });
+             rows=Object.keys(m).map(k=>m[k]).sort((a,b)=>(b[2]-b[3])-(a[2]-a[3])); }
        let di=0,doo=0;
        rows.forEach(function(r){
          di+=r[2]; doo+=r[3];
-         byday+='<tr><td>'+d.split('-').reverse().join('.')+'</td><td>'+esc(cats[r[0]]||'—')+'</td><td>'+esc(ctrs[r[1]]||'—')+'</td>'
+         byday+='<tr><td>'+d.split('-').reverse().join('.')+'</td><td>'+esc(cats[r[0]]||'—')+'</td>'
+           +(detail?('<td>'+esc(ctrs[r[1]]||'—')+'</td>'):'')
            +'<td>'+(r[2]?xnum(r[2]):'')+'</td><td>'+(r[3]?xnum(-r[3]):'')+'</td></tr>';
        });
-       byday+='<tr><td colspan="3" style="font-weight:bold">Итого '+d.split('-').reverse().join('.')+'</td>'
+       byday+='<tr><td colspan="'+(detail?3:2)+'" style="font-weight:bold">Итого '+d.split('-').reverse().join('.')+'</td>'
          +'<td style="font-weight:bold">'+xnum(di)+'</td><td style="font-weight:bold">'+xnum(-doo)+'</td></tr>';
      });
      byday+='</table>';
@@ -879,9 +921,9 @@ function exportXls(){
    t+='<tr><td>Остаток на конец</td>'+ACCS.map(a=>'<td>'+xnum(obj.endByAcc[a])+'</td>').join('')+'<td>'+xnum(obj.end)+'</td></tr>';}
  t+='</table>';
 
- const head='<h3>ДДС · '+esc(label)+'</h3>'
+ const head=accAll?'':('<h3>ДДС · '+esc(label)+'</h3>'
    +'<div>Источник: iiko · прямой метод · собрано '+esc(D.updatedFull||D.updated||'')+'</div>'
-   +(acc?'':'<div>Разрез по контрагентам недоступен — пересоберите данные.</div>');
+   +'<div>Разрез по контрагентам недоступен — пересоберите данные.</div>');
  const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>'
    +head+money+byday+t+'</body></html>';
  const blob=new Blob(['﻿'+html],{type:'application/vnd.ms-excel'});
