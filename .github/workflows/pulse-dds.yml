@@ -1,0 +1,77 @@
+name: Пульс — ДДС каждые 30 минут
+
+# Лёгкое расписание: тянем из iiko только денежные потоки и пересобираем
+# страницу ДДС. Полный конвейер (продажи, SKU, себестоимость) остаётся
+# в pulse-daily.yml — гонять его каждые полчаса незачем.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Та же группа, что у полного прогона: два деплоя одновременно опубликовали бы
+# половину свежих файлов и половину старых.
+concurrency:
+  group: pulse-daily
+  cancel-in-progress: false
+
+jobs:
+  dds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Получить репозиторий
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Зависимости
+        run: pip install -r requirements.txt
+
+      - name: "ДДС прямой метод из iiko"
+        run: python dds_pryamoy.py
+
+      - name: "Сборка страницы ДДС"
+        run: python gen_ddsp.py
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Публикация (Cloudflare Workers)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@3 deploy
+
+      - name: Сохранить страницу ДДС в репозиторий
+        if: always()
+        run: |
+          git config user.name "pulse-ci"
+          git config user.email "ci@local"
+          git add -f дашборд_ддс_прямой.html ddsp_meta.js 2>/dev/null || true
+          git commit -m "ДДС: свежие данные [skip ci]" || echo "нет изменений"
+          git pull --rebase --autostash origin main || true
+          git push origin HEAD:main || echo "push не удался"
+
+      - name: "Проверка: данные за сегодня"
+        if: always()
+        run: |
+          python - <<'PY'
+          import datetime, json, re, sys
+          TZ = datetime.timezone(datetime.timedelta(hours=5))
+          today = datetime.datetime.now(TZ).strftime("%d.%m.%Y")
+          txt = open("ddsp_meta.js", encoding="utf-8").read()
+          m = re.search(r'"updated":\s*"(\d{2}\.\d{2}\.\d{4})', txt)
+          got = m.group(1) if m else "?"
+          print("сегодня:", today, "| в данных:", got)
+          if got != today:
+              sys.exit("ДДС не собрался: данные за %s" % got)
+          print("ОК")
+          PY
