@@ -676,7 +676,8 @@ SECTION = r'''
       <div id="fc-prof-card" style="background:#111827;border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px">
         <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:2px">
           <div style="font-size:13.5px;font-weight:700;color:#f1f5f9">&#128176; Прибыльность контрагентов: кто окупает свою долю завода</div>
-          <div id="fc-prof-grp" style="margin-left:auto;display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:3px"></div>
+          <div id="fc-prof-per" style="margin-left:auto;display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:3px"></div>
+          <div id="fc-prof-grp" style="display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:3px"></div>
           <div id="fc-prof-base" style="display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:3px"></div>
           <div id="fc-prof-sort" style="display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:3px"></div>
         </div>
@@ -706,6 +707,9 @@ SECTION = r'''
         <div id="fc-cut-tbl" style="overflow-x:auto;margin-top:10px"></div>
         <div style="font-size:12.5px;font-weight:700;color:#f1f5f9;margin:16px 0 6px">&#129518; Симулятор отключения</div>
         <div id="fc-cut-sim"></div>
+        <div style="font-size:12.5px;font-weight:700;color:#f1f5f9;margin:18px 0 2px">&#128465;&#65039; Что убрать из продаж, не теряя клиента</div>
+        <div style="font-size:11.5px;color:#64748b;margin-bottom:8px">Убирать надо не покупателя, а конкретные позиции в его матрице. Здесь связки «покупатель × товар», где цена не покрывает даже переменные затраты: каждая отгруженная штука уменьшает результат завода. Расчёт по 2026 году целиком — на одном месяце слишком мало штук, чтобы принимать решение.</div>
+        <div id="fc-kill"></div>
       </div>
       <div style="background:#111827;border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px">
         <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
@@ -1150,6 +1154,8 @@ SECTION = r'''
         var mm=b.months.filter(function(m){ return ms.indexOf(m)>=0; });
         if(!mm.length) return;
         var rev=0,varc=0,fix=0,cm=0,qty=0,cost=0;
+        mm=mm.filter(function(m){ return perMonths().indexOf(m)>=0; });
+        if(!mm.length) return;
         mm.forEach(function(m){ var p=b.pl[m]; rev+=p.rev; varc+=p.var; cm+=p.cm;
           fix+=(PBASE==="rev"?(p.fixr||0):(p.fix||0)); qty+=(p.qty||0); cost+=(p.cost||0); });
         if(rev<=0) return;
@@ -1600,6 +1606,9 @@ SECTION = r'''
       var rows=groupRows(buyerRows());
       if(!rows.length){ var c2=document.getElementById("fc-prof-card"); if(c2) c2.style.display="none"; return; }
       var cc=document.getElementById("fc-prof-card"); if(cc) cc.style.display="";
+      var mlbl=st.month?(MN[+st.month.slice(5)]+" "+st.month.slice(0,4)):"месяц";
+      seg("fc-prof-per",[["all","весь период"],["l3","последние 3 мес"],["m",mlbl]],PPER,
+          function(v){ PPER=v; profitability(); });
       seg("fc-prof-grp",[["grp","группы по номерам"],["all","каждый контрагент"]],PGRP,
           function(v){ PGRP=v; profitability(); });
       seg("fc-prof-base",[["prod","постоянные: по производству"],["rev","по выручке"]],PBASE,
@@ -1746,12 +1755,84 @@ SECTION = r'''
       if(f) f.oninput=function(){ CUTFIX=(+f.value)/100; cutSim(rows); };
       if(m) m.oninput=function(){ CUTMOVE=(+m.value)/100; cutSim(rows); };
     }
+
+    var PPER="all";
+    function perMonths(){
+      var ms=months();
+      if(PPER==="l3") return ms.slice(-3);
+      if(PPER==="m") return ms.filter(function(m){ return m===st.month; });
+      return ms;
+    }
+
+    /* Позиции, которые не окупают даже переменные затраты.
+       Переменные на единицу = продуктовая себестоимость × k, где
+       k = все переменные затраты ОПиУ / продуктовая себестоимость. Так учитываются
+       логистика, электроэнергия, расходники и потери, а не только сырьё. */
+    function killRows(){
+      var ms=months(), rev=0,varc=0,food=0,fix=0;
+      ms.forEach(function(m){ var p=D.pl[m]; if(!p) return;
+        rev+=p.rev; varc+=p.var; fix+=p.fix; food+=(p.layers||{}).food||0; });
+      if(!food||!rev) return null;
+      var k=varc/food, need=fix/rev*100;
+      var rows=groupRows(buyerRows()), neg=[], low=0, lowRev=0, lowGap=0;
+      rows.forEach(function(r){
+        (r.items||[]).forEach(function(it){
+          if(it.rest||!it.q||!it.r||it.c==null) return;
+          var p=it.r/it.q, vu=(it.c/it.q)*k, cm=(p-vu)*it.q, mr=p?(p-vu)/p*100:0;
+          if(cm<0) neg.push({b:r.n,n:it.n,q:it.q,r:it.r,p:p,vu:vu,cm:cm,mr:mr});
+          else if(mr<need){ low++; lowRev+=it.r; lowGap+=(need/100*it.r)-cm; }
+        });
+      });
+      neg.sort(function(a,b2){ return a.cm-b2.cm; });
+      return {k:k,need:need,neg:neg,low:low,lowRev:lowRev,lowGap:lowGap};
+    }
+    function killBlock(){
+      var el=document.getElementById("fc-kill"); if(!el) return;
+      var K=killRows();
+      if(!K){ el.innerHTML=""; return; }
+      var totCm=K.neg.reduce(function(s2,r){ return s2+r.cm; },0);
+      var totRev=K.neg.reduce(function(s2,r){ return s2+r.r; },0);
+      var h='<div style="background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.32);border-radius:12px;padding:11px 14px;'
+        +'font-size:12.5px;color:#cbd5e1;line-height:1.7;margin-bottom:10px">'
+        +'<b style="color:#f1f5f9">Вот это и есть «убрать невыгодные продажи».</b> Нашлось <b style="color:#f1f5f9">'+K.neg.length+'</b> связок '
+        +'покупатель × товар, где цена ниже переменных затрат: выручка '+mln(totRev)+', вклад <b style="color:#fda4b4">'+mlnS(totCm)+'</b>. '
+        +'Убрать их из матрицы или поднять по ним цену — единственное сокращение продаж, которое улучшает результат, а не ухудшает.'
+        +'<div style="margin-top:5px;color:#94a3b8;font-size:11.5px">Переменные на единицу = продуктовая себестоимость × '
+        +K.k.toFixed(2).replace(".",",")+' — коэффициент переводит сырьё в полные переменные затраты (логистика, электроэнергия, расходники, потери). '
+        +'Ещё <b>'+K.low+'</b> связок на '+mln(K.lowRev)+' выручки дают положительный вклад, но ниже порога '+pc(K.need)+', '
+        +'который нужен, чтобы нести свою долю постоянных: недобор '+mln(K.lowGap)+'. Их убирать нельзя — только поднимать цену.</div></div>';
+      if(!K.neg.length){ el.innerHTML=h; return; }
+      h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:840px">'
+        +'<tr style="color:#64748b;font-size:10.5px;font-weight:800;text-align:right;text-transform:uppercase;letter-spacing:.04em">'
+        +'<th style="text-align:left;padding:6px 4px">Покупатель</th><th style="text-align:left;padding:6px 4px">Позиция</th>'
+        +'<th style="padding:6px 4px">Штук</th><th style="padding:6px 4px">Цена</th><th style="padding:6px 4px">Переменные на ед.</th>'
+        +'<th style="padding:6px 4px">Теряем на штуке</th><th style="padding:6px 4px">Всего</th>'
+        +'<th style="padding:6px 4px">Минимальная цена</th></tr>';
+      K.neg.slice(0,25).forEach(function(r){
+        var minp=r.vu/(1-K.need/100);
+        h+='<tr style="border-top:1px solid #1b2636">'
+          +'<td style="padding:6px 4px;color:#cbd5e1;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.b)+'</td>'
+          +'<td style="padding:6px 4px;color:#e2e8f0;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.n)+'</td>'
+          +'<td style="padding:6px 4px;text-align:right;color:#94a3b8">'+num(r.q)+'</td>'
+          +'<td style="padding:6px 4px;text-align:right;color:#e2e8f0">'+num(r.p)+' ₸</td>'
+          +'<td style="padding:6px 4px;text-align:right;color:#fb923c">'+num(r.vu)+' ₸</td>'
+          +'<td style="padding:6px 4px;text-align:right;color:#ef4444;font-weight:700">−'+num(r.vu-r.p)+' ₸</td>'
+          +'<td style="padding:6px 4px;text-align:right;color:#ef4444;font-weight:800">'+mlnS(r.cm)+'</td>'
+          +'<td style="padding:6px 4px;text-align:right;color:#7ff0c0">'+num(minp)+' ₸</td></tr>';
+      });
+      h+='</table></div>';
+      if(K.neg.length>25) h+='<div style="font-size:11.5px;color:#64748b;margin-top:6px">Показаны 25 самых дорогих из '+K.neg.length+'.</div>';
+      h+='<div style="font-size:11.5px;color:#94a3b8;margin-top:8px;line-height:1.6">«Минимальная цена» — при которой позиция покрывает '
+        +'переменные затраты и свою долю постоянных ('+pc(K.need)+' маржинальности). Ниже неё отгружать нет смысла ни при каком объёме.</div>';
+      el.innerHTML=h;
+    }
+
     function cutBlock(){
       var card=document.getElementById("fc-cut-card"); if(!card) return;
       var rows=cutRows();
       if(!rows.length){ card.style.display="none"; return; }
       card.style.display="";
-      cutRule(rows); cutTable(rows); cutSim(rows);
+      cutRule(rows); cutTable(rows); cutSim(rows); killBlock();
     }
 
     function momTable(){
