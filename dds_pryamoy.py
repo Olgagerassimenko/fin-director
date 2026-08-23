@@ -87,6 +87,32 @@ def revenue_by_contr(d1,d2):
     out.sort(key=lambda x:-x["net"])
     return out
 
+
+# ---- день × статья × контрагент: «кто оплатил» и «кому заплатили» ----
+def daily_contr(d1,d2):
+    """Для выгрузки в Excel: по каждому дню — статья ДДС и контрагент, приход и расход.
+    Раньше контрагент тянулся только по выручке, поэтому в выгрузке было видно,
+    кто заплатил заводу, но не видно, кому платил завод."""
+    body={"reportType":"TRANSACTIONS","buildSummary":"true",
+          "groupByRowFields":["DateTime.DateTyped","CashFlowCategory","Counteragent.Name"],
+          "aggregateFields":["Sum.Incoming","Sum.Outgoing"],
+          "filters":{"DateTime.DateTyped":{"filterType":"DateRange","periodType":"CUSTOM","from":d1.isoformat(),"to":d2.isoformat(),"includeLow":True,"includeHigh":False},
+                     "Department":{"filterType":"IncludeValues","values":["Фуд завод"]},
+                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE}}}
+    cats=[]; ctrs=[]; ci={}; ki={}
+    byDay={}
+    for row in _olap(body):
+        dt=str(row.get("DateTime.DateTyped") or "")[:10]
+        if len(dt)!=10: continue
+        inc=round(row.get("Sum.Incoming") or 0); o=round(row.get("Sum.Outgoing") or 0)
+        if inc==0 and o==0: continue
+        cat=row.get("CashFlowCategory") or "— без статьи ДДС"
+        nm=row.get("Counteragent.Name") or "— без контрагента"
+        if cat not in ci: ci[cat]=len(cats); cats.append(cat)
+        if nm not in ki: ki[nm]=len(ctrs); ctrs.append(nm)
+        byDay.setdefault(dt,[]).append([ci[cat],ki[nm],inc,o])
+    return {"cats":cats,"ctrs":ctrs,"days":byDay}
+
 # ---- дневная детализация за весь период (для произвольного выбора дат) ----
 def daily_all(d1,d2):
     body={"reportType":"TRANSACTIONS","buildSummary":"true",
@@ -227,9 +253,12 @@ if ymonths:
 log("  дневная детализация для произвольного периода...")
 # дневной разрез тянем ВКЛЮЧАЯ сегодня — вкладка «ДДС за день» должна показывать текущий день
 allD1=datetime.date(YEAR,1,1); allD2=today+datetime.timedelta(days=1)
-with _cf.ThreadPoolExecutor(max_workers=2) as _ex:
+with _cf.ThreadPoolExecutor(max_workers=3) as _ex:
     _fa=_ex.submit(daily_all,allD1,allD2); _fr=_ex.submit(daily_rev,allD1,allD2)
-    byDay=_fa.result(); byDayRev=_fr.result()
+    _fc=_ex.submit(daily_contr,allD1,allD2)
+    byDay=_fa.result(); byDayRev=_fr.result(); flowCtr=_fc.result()
+log("  разрез по контрагентам: статей %d, контрагентов %d, дней %d"
+    %(len(flowCtr["cats"]),len(flowCtr["ctrs"]),len(flowCtr["days"])))
 log("  дней с движением: %d"%len(byDay))
 # дневные остатки по счетам — ТОЧНЫЕ снимки баланса (balance на каждый день с движением)
 balByDay={}; cur=datetime.date(YEAR,1,1); endcur=today+datetime.timedelta(days=1)
@@ -268,7 +297,7 @@ data={"updated":today.strftime("%d.%m.%Y"),"updatedFull":now_alm.strftime("%d.%m
       "through":last_full.strftime("%d.%m.%Y"),
       "today":today.isoformat(),"todayRu":today.strftime("%d.%m.%Y"),
       "accounts":ACTIVE,"short":SHORT,"months":months,"mmeta":mmeta,"days":days,"year":year,"cogs_auto":cogs_auto,
-      "byDay":byDay,"byDayRev":byDayRev,"balByDay":balByDay,
+      "byDay":byDay,"byDayRev":byDayRev,"balByDay":balByDay,"flowCtr":flowCtr,
       "dayMin":(min(byDay) if byDay else ""),"dayMax":(max(byDay) if byDay else "")}
 json.dump(data,open(os.path.join(HERE,"ддс_прямой.json"),"w",encoding="utf-8"),ensure_ascii=False,indent=1)
 log("ГОТОВО -> ддс_прямой.json  (месяцев %d, дней %d)"%(len(months),len(days)))
