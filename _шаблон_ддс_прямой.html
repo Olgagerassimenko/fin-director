@@ -377,7 +377,7 @@ function renderRange(from,to){
  if(obj.startByAcc)obj.start=ACCS.reduce((s,a)=>s+(obj.startByAcc[a]||0),0);
  if(obj.endByAcc)obj.end=ACCS.reduce((s,a)=>s+(obj.endByAcc[a]||0),0);
  const label='период '+f(from)+' — '+f(to);
- LAST={obj:obj,label:label};
+ LAST={obj:obj,label:label,from:from,to:to};
  let h=kpi(obj);
  h+=expScheme(obj);
  h+=payHTML(obj.revByContr);
@@ -388,8 +388,21 @@ function renderRange(from,to){
  document.getElementById('openbadge').innerHTML='';
  bindFold();
 }
+
+/* Границы выбранного периода — нужны выгрузке, чтобы собрать разрез по контрагентам. */
+function periodFrom(obj){
+ if(obj&&obj.from&&/^\d{4}-\d{2}$/.test(obj.from)) return obj.from+'-01';
+ if(CUR&&CUR.type==='month'&&CUR.key) return CUR.key+'-01';
+ return D.dayMin||'';
+}
+function periodTo(obj){
+ function eom(ym){const y=+ym.slice(0,4),m=+ym.slice(5,7);const d=new Date(Date.UTC(y,m,0));return d.toISOString().slice(0,10);}
+ if(obj&&obj.to&&/^\d{4}-\d{2}$/.test(obj.to)) return eom(obj.to);
+ if(CUR&&CUR.type==='month'&&CUR.key) return eom(CUR.key);
+ return D.dayMax||'';
+}
 function renderPeriod(obj,label,ru,closed){
- LAST={obj:obj,label:label};
+ LAST={obj:obj,label:label,from:(obj.from||periodFrom(obj)),to:(obj.to||periodTo(obj))};
  let h=kpi(obj);
  h+=expScheme(obj);
  h+=payHTML(obj.revByContr);
@@ -704,7 +717,7 @@ function table30(k){
 function renderDay1(k){
  if(!k)return;
  const obj=dayObj(k), dt=dRU(k), label='день '+dt;
- LAST={obj:obj,label:label};
+ LAST={obj:obj,label:label,from:k,to:k};
  let h=kpi(obj);
  h+=dayStory(obj,k);
  h+=chartWaterfall(obj,k);
@@ -725,7 +738,7 @@ function renderDay1(k){
 function renderDay(k){
  const dd=D.days[k]; if(!dd)return;
  const dt=k.split('-').reverse().join('.');
- LAST={obj:{articles:dd.articles},label:'день '+dt};
+ LAST={obj:{articles:dd.articles},label:'день '+dt,from:k,to:k};
  let h=kpi({articles:dd.articles,net:dd.net});
  h+=analytics({articles:dd.articles});
  h+=ddsTable({articles:dd.articles},{label:dt});
@@ -742,10 +755,95 @@ function bindFold(){
  });
 }
 function xnum(v){v=Math.round(v||0);return v?String(v):'';}
+function ctrRows(from,to){
+ /* Сводка по контрагентам за период: [статья][контрагент] = {in,out}.
+    Данные из iiko: день × статья ДДС × контрагент. */
+ const F=D.flowCtr; if(!F||!F.days) return null;
+ const cats=F.cats||[], ctrs=F.ctrs||[], acc={};
+ Object.keys(F.days).forEach(function(d){
+   if(from&&d<from) return; if(to&&d>to) return;
+   F.days[d].forEach(function(r){
+     const cat=cats[r[0]]||'—', nm=ctrs[r[1]]||'—';
+     const a=acc[cat]||(acc[cat]={});
+     const e=a[nm]||(a[nm]={in:0,out:0});
+     e.in+=r[2]; e.out+=r[3];
+   });
+ });
+ return acc;
+}
+function xlsSection(acc,dir){
+ /* dir: 'in' — приход (кто оплатил), 'out' — расход (куда ушли деньги) */
+ const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ const arts=[];
+ Object.keys(acc).forEach(function(cat){
+   let tot=0; const list=[];
+   Object.keys(acc[cat]).forEach(function(nm){
+     const v=acc[cat][nm][dir]; if(Math.abs(v)<1) return;
+     tot+=v; list.push({n:nm,v:v});
+   });
+   if(Math.abs(tot)<1) return;
+   list.sort((a,b)=>b.v-a.v);
+   arts.push({cat:cat,tot:tot,list:list});
+ });
+ if(!arts.length) return {html:'',total:0};
+ arts.sort((a,b)=>b.tot-a.tot);
+ const sign=dir==='out'?-1:1;
+ let t='', total=0;
+ arts.forEach(function(a){
+   total+=a.tot;
+   t+='<tr><td style="font-weight:bold">'+esc(a.cat)+'</td><td></td><td style="font-weight:bold">'+xnum(sign*a.tot)+'</td></tr>';
+   a.list.forEach(function(r){
+     t+='<tr><td></td><td>'+esc(r.n)+'</td><td>'+xnum(sign*r.v)+'</td></tr>';
+   });
+ });
+ return {html:t,total:total};
+}
 function exportXls(){
  if(!LAST){return;} const obj=LAST.obj,label=LAST.label||'';
  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
- let t='<table border="1"><tr><th>Статья ДДС</th>'+ACCS.map(a=>'<th>'+esc(SH[a]||a)+'</th>').join('')+'<th>Итого</th></tr>';
+ const from=LAST.from||'', to=LAST.to||'';
+
+ /* ── 1. Приход и расход с расшифровкой по контрагентам ── */
+ let money='';
+ const acc=ctrRows(from,to);
+ if(acc){
+   const IN=xlsSection(acc,'in'), OUT=xlsSection(acc,'out');
+   money='<table border="1" cellspacing="0"><tr><th>Статья ДДС</th><th>Контрагент</th><th>Сумма, ₸</th></tr>';
+   if(IN.html){
+     money+='<tr><td colspan="3" style="background:#dff0d8;font-weight:bold">ПРИХОД — кто оплатил</td></tr>'+IN.html
+       +'<tr><td colspan="2" style="font-weight:bold">Итого приход</td><td style="font-weight:bold">'+xnum(IN.total)+'</td></tr>';
+   }
+   if(OUT.html){
+     money+='<tr><td colspan="3" style="background:#f2dede;font-weight:bold">РАСХОД — куда ушли деньги</td></tr>'+OUT.html
+       +'<tr><td colspan="2" style="font-weight:bold">Итого расход</td><td style="font-weight:bold">'+xnum(-OUT.total)+'</td></tr>';
+   }
+   money+='<tr><td colspan="2" style="font-weight:bold">ЧИСТЫЙ ПОТОК</td><td style="font-weight:bold">'+xnum(IN.total-OUT.total)+'</td></tr></table>';
+ }
+
+ /* ── 2. По дням: статья × контрагент внутри каждого дня ── */
+ let byday='';
+ if(D.flowCtr&&D.flowCtr.days&&from&&to&&from!==to){
+   const cats=D.flowCtr.cats||[], ctrs=D.flowCtr.ctrs||[];
+   const ds=Object.keys(D.flowCtr.days).filter(d=>d>=from&&d<=to).sort();
+   if(ds.length){
+     byday='<br><h3>По дням</h3><table border="1" cellspacing="0"><tr><th>Дата</th><th>Статья ДДС</th><th>Контрагент</th><th>Приход, ₸</th><th>Расход, ₸</th></tr>';
+     ds.forEach(function(d){
+       const rows=D.flowCtr.days[d].slice().sort((a,b)=>(b[2]-b[3])-(a[2]-a[3]));
+       let di=0,doo=0;
+       rows.forEach(function(r){
+         di+=r[2]; doo+=r[3];
+         byday+='<tr><td>'+d.split('-').reverse().join('.')+'</td><td>'+esc(cats[r[0]]||'—')+'</td><td>'+esc(ctrs[r[1]]||'—')+'</td>'
+           +'<td>'+(r[2]?xnum(r[2]):'')+'</td><td>'+(r[3]?xnum(-r[3]):'')+'</td></tr>';
+       });
+       byday+='<tr><td colspan="3" style="font-weight:bold">Итого '+d.split('-').reverse().join('.')+'</td>'
+         +'<td style="font-weight:bold">'+xnum(di)+'</td><td style="font-weight:bold">'+xnum(-doo)+'</td></tr>';
+     });
+     byday+='</table>';
+   }
+ }
+
+ /* ── 3. Прежняя таблица по счетам — оставляем, она нужна для сверки остатков ── */
+ let t='<br><h3>По счетам</h3><table border="1" cellspacing="0"><tr><th>Статья ДДС</th>'+ACCS.map(a=>'<th>'+esc(SH[a]||a)+'</th>').join('')+'<th>Итого</th></tr>';
  if(obj.startByAcc)t+='<tr><td>Остаток на начало</td>'+ACCS.map(a=>'<td>'+xnum(obj.startByAcc[a])+'</td>').join('')+'<td>'+xnum(obj.start)+'</td></tr>';
  const bk={op:[],inv:[],fin:[],int:[]};(obj.articles||[]).forEach(a=>bk[grp(a)].push(a));
  GROUPS.forEach(([key,title])=>{const list=bk[key];if(!list.length)return;list.sort((x,y)=>Math.abs(y.net)-Math.abs(x.net));
@@ -757,9 +855,12 @@ function exportXls(){
    if(Math.abs(ot)>1)t+='<tr><td>Прочее / без статьи</td>'+ACCS.map(a=>'<td>'+xnum(oth[a])+'</td>').join('')+'<td>'+xnum(ot)+'</td></tr>';
    t+='<tr><td>Остаток на конец</td>'+ACCS.map(a=>'<td>'+xnum(obj.endByAcc[a])+'</td>').join('')+'<td>'+xnum(obj.end)+'</td></tr>';}
  t+='</table>';
- let p='';const rev=(obj.revByContr||[]).filter(r=>r.net>0);
- if(rev.length)p='<br><table border="1"><tr><th>Кто нам оплатил</th><th>Сумма, тг</th></tr>'+rev.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+xnum(r.net)+'</td></tr>').join('')+'<tr><td>Итого</td><td>'+xnum(rev.reduce((s,r)=>s+r.net,0))+'</td></tr></table>';
- const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><h3>ДДС · '+esc(label)+'</h3>'+t+p+'</body></html>';
+
+ const head='<h3>ДДС · '+esc(label)+'</h3>'
+   +'<div>Источник: iiko · прямой метод · собрано '+esc(D.updatedFull||D.updated||'')+'</div>'
+   +(acc?'':'<div>Разрез по контрагентам недоступен — пересоберите данные.</div>');
+ const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>'
+   +head+money+byday+t+'</body></html>';
  const blob=new Blob(['﻿'+html],{type:'application/vnd.ms-excel'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
  a.download='ДДС_'+label.replace(/[^0-9A-Za-zА-Яа-яЁё]+/g,'_')+'.xls';
