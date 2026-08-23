@@ -4,6 +4,9 @@
 а если его нет локально — вытаскиваем те же данные из уже собранного дашборд_ддс.html.
 Данные вшиваются в _шаблон_склады.html вместо /*__DATA__*/."""
 import os, json, re, datetime
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -41,7 +44,7 @@ def load_from_html():
 
 data = load_from_json() or load_from_html()
 if not data.get("updatedFull"):
-    data["updatedFull"] = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
+    data["updatedFull"] = almaty.now().strftime("%d.%m.%Y %H:%M")
 
 tpl = open(os.path.join(HERE, "_шаблон_склады.html"), encoding="utf-8").read()
 out = tpl.replace("/*__DATA__*/", "const DATA=" + json.dumps(data, ensure_ascii=False) + ";")

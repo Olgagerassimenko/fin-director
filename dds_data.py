@@ -8,6 +8,9 @@
 import sys,os,re,json,hashlib,warnings,calendar,datetime
 warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
 import requests
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
 HERE=os.path.dirname(os.path.abspath(__file__))
 src=open(os.path.join(HERE,"iiko_export.py"),encoding="utf-8").read()
 URL=re.search(r'URL\s*=\s*"([^"]+)"',src).group(1); LOGIN=re.search(r'LOGIN\s*=\s*"([^"]+)"',src).group(1); PASS=re.search(r'PASS\s*=\s*"([^"]+)"',src).group(1)
@@ -24,7 +27,7 @@ ACC={a["id"]:(a.get("name") or "",a.get("type") or "") for a in get("/resto/api/
 
 PL={"INCOME","COST_OF_GOODS_SOLD","EXPENSES","OTHER_EXPENSES"}
 
-today=datetime.date.today(); last_full=today-datetime.timedelta(days=1); lastm=last_full.month
+today=almaty.today(); last_full=today-datetime.timedelta(days=1); lastm=last_full.month
 # timestamp конца месяца mi (0=дек2025..lastm). конец месяца = 00:00 первого дня следующего.
 def ts_of(mi):
     if mi==0: return datetime.date(YEAR,1,1)

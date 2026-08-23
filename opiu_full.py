@@ -15,6 +15,9 @@ import os, re, json, time, hashlib, calendar, warnings
 from datetime import date, timedelta
 warnings.filterwarnings("ignore")
 import requests
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(HERE, "iiko_export.py"), encoding="utf-8").read()
@@ -218,11 +221,11 @@ def turnover(mi, last_full):
 def main():
     global TOK
     TOK = auth()
-    last_full = date.today() - timedelta(days=1)
+    last_full = almaty.today() - timedelta(days=1)
     print("iiko ok, структура затрат по %s" % last_full.strftime("%d.%m.%Y"))
 
     months, unknown, types = {}, {}, {}
-    today = date.today()
+    today = almaty.today()
     for mi in range(1, 13):
         if date(YEAR, mi, 1) > last_full:
             break
@@ -321,7 +324,7 @@ def main():
                                        "tolerance": TOLERANCE},
            "unknown": {n: round(v) for n, v in sorted(unknown.items(), key=lambda x: -abs(x[1]))[:20]},
            "types": types,
-           "_pulled": date.today().strftime("%d.%m.%Y"), "_through": last_full.isoformat()}
+           "_pulled": almaty.today().strftime("%d.%m.%Y"), "_through": last_full.isoformat()}
     with open(os.path.join(HERE, "opiu_full.json"), "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
     print("записан opiu_full.json (%d мес.)" % len(months))

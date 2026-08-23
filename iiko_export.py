@@ -24,6 +24,9 @@ warnings.filterwarnings("ignore")
 sys.stdout.reconfigure(encoding="utf-8")
 import requests
 from openpyxl import Workbook
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
 
 URL = "https://fudzavod.iiko.it"
 LOGIN = "GerassimenkoO"
@@ -103,7 +106,7 @@ def write_xlsx(path, d1, d2, rows):
 
 
 def main():
-    today = date.today()
+    today = almaty.today()
     last_full = today - timedelta(days=1)          # последний полный день
     s, H = auth()
     log(f"айко: авторизация ok   сегодня {today:%d.%m.%Y}, "
@@ -173,8 +176,7 @@ def main():
     log(f"{'ИТОГО':7} {'':24} {'':>7} {grand:>18,.0f}")
 
     # отметка об обновлении для страницы продаж
-    from datetime import datetime
-    meta = {"pulled": datetime.now().strftime("%d.%m.%Y %H:%M"),
+    meta = {"pulled": almaty.now().strftime("%d.%m.%Y %H:%M"),
             "through": last_full.strftime("%d.%m.%Y"),
             "source": "iiko",
             "report": "выручка расходных накладных за вычетом возвратов",

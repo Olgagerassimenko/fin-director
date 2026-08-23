@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Собирает дашборд_ддс.html из ддс_данные.json (живые данные iiko) + прибыль из ОПиУ + ДЗ/КЗ с Google Диска."""
 import os,json,datetime
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
 HERE=os.path.dirname(os.path.abspath(__file__))
 D=json.load(open(os.path.join(HERE,"ддс_данные.json"),encoding="utf-8"))
 # чистая прибыль из управленческого ОПиУ (данные iiko); обновляется при обновлении ОПиУ
@@ -29,7 +32,7 @@ for idx,k in enumerate(MKS):
     m["interimOp"]=m["prof"]+m["dInv"]+m["dRec"]+m["dPay"]
     m["nonCash"]=m["op"]-m["interimOp"]
     mi=int(k.split("-")[1]); m["ru"]=f"{RUM[mi]} 2026"
-    tod=datetime.date.today()
+    tod=almaty.today()
     close_day=datetime.date(2026 if mi<12 else 2027, mi+1 if mi<12 else 1, 18)
     m["closed"]=tod>=close_day
     m["closeNote"]="" if m["closed"] else ("период не закрыт — данные предварительные, обновятся после 18 "+RUM[(mi%12)+1])

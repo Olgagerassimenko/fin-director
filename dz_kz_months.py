@@ -4,6 +4,9 @@
 import sys,csv,io,json,re,datetime,requests,warnings
 warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
 import os
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
 HERE=os.path.dirname(os.path.abspath(__file__))
 SHEET="13iFd16Hah1Yi5y2QptmyUrw51rSFfAmtnzhf0U2g_wc"; KZ_GID="2005257911"; DZ_GID="597090672"
 LOG=open(os.path.join(HERE,"дз_кз_месяцы_LOG.txt"),"w",encoding="utf-8")
@@ -78,7 +81,7 @@ def main():
             v=num(row[i]) if i<len(row) else None
             if v and v>0: s+=v
         out.setdefault(k,{})["dz"]=round(s); out[k]["dz_date"]=dt.strftime("%d.%m.%Y")
-    out["updated"]=datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
+    out["updated"]=almaty.now().strftime("%d.%m.%Y %H:%M")
     json.dump(out,open(os.path.join(HERE,"дз_кз_месяцы.json"),"w",encoding="utf-8"),ensure_ascii=False,indent=1)
     log("\nПОМЕСЯЧНО:")
     for k in sorted(out):

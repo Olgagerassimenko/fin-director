@@ -17,6 +17,9 @@
 """
 import io, json, os, re, datetime
 from collections import defaultdict
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PL_FILE = "Отчет о прибылях и убытках 2025-2026.xlsx"
@@ -623,7 +626,7 @@ def build():
         "layers": [{"k": k, "t": t} for k, t, _ in LAYERS],
         "chan": chan_out, "cmonths": cmonths, "ctr": top_ctr,
         "cats": cats[:16], "years": y,
-        "built": datetime.datetime.now().strftime("%d.%m.%Y %H:%M"),
+        "built": almaty.now().strftime("%d.%m.%Y %H:%M"),
     }
 
 
@@ -2164,7 +2167,10 @@ def inject(html, data):
     i = html.find('<div id="fullcost-analytics"')
     if i >= 0:
         j = _match_div(html, i)
-        html = html[:i] + (html[j:] if j > 0 else "")
+        rest = html[j:] if j > 0 else ""
+        # Пустоту по краям разреза раньше не подчищали: каждый прогон оставлял три пустые
+        # строки, а сборка идёт 4 раза в сутки — их накопилось под сотню. Срезаем с обеих сторон.
+        html = html[:i].rstrip(" \t\n") + "\n" + rest.lstrip(" \t\n")
     # вставляем сразу после шапки
     a = html.find('<div class="topbar"')
     if a >= 0:
