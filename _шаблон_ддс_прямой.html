@@ -176,7 +176,7 @@
 <body>
 <div class="topbar"><a href="index.html" class="backbtn">← На главную</a>
  <div><h1>💧 ДДС — движение денежных средств</h1><p id="sub">Мастерская Сегодня · прямой метод · по счетам · источник: iiko</p></div>
- <span class="live" id="live">🔄 из iiko · каждое утро</span></div>
+ <span class="live" id="live">🔄 из iiko · каждые 30 минут</span></div>
 <div class="wrap">
  <div class="tabs" id="tabs"></div>
  <div class="daypick" id="daypick"><label for="daysel">День:</label><select id="daysel"></select></div>
@@ -524,7 +524,7 @@ function dayStory(obj,k){
      (cov>=100?' — день закрыли с запасом.':' — разницу добрали из остатка на счетах.')+'</p>');
  }
  p.push('<div class="note">'+(isToday
-   ? 'День ещё идёт: данные на '+esc(D.updatedFull||D.updated||'')+', сборка из iiko каждый день в 18:00.'
+   ? 'День ещё идёт: данные на '+esc(D.updatedFull||D.updated||'')+', обновление из iiko каждые 30 минут.'
    : 'Данные закрытого дня, прямой метод, источник — iiko.')+
    ' Внутренние переводы между своими счетами в приход и расход не входят.</div>');
  return '<div class="card"><div class="hd"><h3>📅 Что было '+dLong(k)+'</h3><div class="sub">Коротко и по-человечески: откуда пришли и куда ушли деньги</div></div>'+
@@ -732,7 +732,7 @@ function renderDay1(k){
  body.innerHTML=h;
  document.getElementById('sub').textContent='Мастерская Сегодня · '+label+' · прямой метод · по счетам · источник: iiko';
  document.getElementById('openbadge').innerHTML=(k===(D.today||''))
-   ? '<div class="openb">⏱ день ещё идёт — данные на '+esc(D.updatedFull||D.updated||'')+' · сборка из iiko каждый день в 18:00</div>' : '';
+   ? '<div class="openb">⏱ день ещё идёт — данные на '+esc(D.updatedFull||D.updated||'')+' · обновление из iiko каждые 30 минут</div>' : '';
  bindFold(); tipHide(); bindTips(body); fitDvg(body);
 }
 function renderDay(k){
