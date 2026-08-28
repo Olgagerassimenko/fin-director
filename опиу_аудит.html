@@ -302,7 +302,11 @@ BUILD.svod=function(){
   YEARS.sort();
   var RQ=['I','II','III','IV'];
   var OPEN={};
-  YEARS.forEach(function(y){ OPEN['Y'+y]=true; });          // по умолчанию: год по кварталам
+  /* По умолчанию прошлые годы свёрнуты в одну колонку — они уже закрыты
+     и нужны как база сравнения, а не для разглядывания. Текущий год открыт
+     до кварталов: с ним и работаем. Любой год разворачивается кликом. */
+  var CURY=String(new Date(Date.now()+5*3600*1000).getUTCFullYear());
+  YEARS.forEach(function(y){ OPEN['Y'+y]=(y===CURY); });
 
   function qOf(m){ return Math.floor((+m.slice(5,7)-1)/3); }
 
