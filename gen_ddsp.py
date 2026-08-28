@@ -17,4 +17,22 @@ open(os.path.join(HERE,"дашборд_ддс_прямой.html"),"w",encoding="
 # мета-дата для плашки ДДС на главной (обновляется каждое утро)
 meta={"updated":D.get("updated",""),"through":D.get("through","")}
 open(os.path.join(HERE,"ddsp_meta.js"),"w",encoding="utf-8").write("window.DDSP_META="+json.dumps(meta,ensure_ascii=False)+";")
+# Дневной ритм ДДС для страницы «ДДС август»: сколько денег реально приходило и уходило
+# в каждый день. Внутренние обороты (переводы между своими счетами) исключены — они
+# не движение денег компании, а перекладывание из кармана в карман.
+import re as _re
+_isint=lambda c: bool(_re.search(r"внутрен|внутригрупп", (c or ""), _re.I))
+_days={}
+for _d, _arts in (D.get("byDay") or {}).items():
+    _i=_o=0
+    for _a in _arts:
+        if _isint(_a.get("c")): continue
+        for _v in (_a.get("a") or {}).values():
+            if _v>0: _i+=_v
+            else: _o+=-_v
+    if _i or _o: _days[_d]={"in":round(_i),"out":round(_o)}
+open(os.path.join(HERE,"ddsp_days.js"),"w",encoding="utf-8").write(
+    "window.DDSP_DAYS="+json.dumps({"updated":D.get("updated",""),"updatedFull":D.get("updatedFull",""),
+        "through":D.get("through",""),"today":D.get("today",""),"days":_days},ensure_ascii=False)+";")
+print("ddsp_days.js: дней с движением", len(_days))
 print("дашборд_ддс_прямой.html собран, месяцев:",len(D.get("months",{})),"дней:",len(D.get("days",{})))
