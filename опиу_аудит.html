@@ -508,9 +508,9 @@ BUILD.cmp=function(){
   var opts=L.map(function(x,i){return '<option value="'+i+'">'+x+
     (isLate(i)?' — не закрыт':'')+'</option>';}).join('');
   el.innerHTML='<div class="card"><div class="card-t">Выберите два месяца</div>'+
-    '<div class="card-n">Любая пара, не обязательно соседние. Считается три разницы: '+
-    'в тенге, в процентах и в <b>долях выручки (п.п.)</b> — последняя показывает, стало ли '+
-    'дороже <i>по сути</i>, а не просто из-за другого объёма продаж.</div>'+
+    '<div class="card-n">Любая пара, не обязательно соседние. Разница показана в тенге '+
+    'и в <b>пунктах доли выручки</b>: вторая отвечает на вопрос, стало ли дороже '+
+    '<i>по сути</i>, или статья просто шла за объёмом продаж.</div>'+
     '<div class="ctl"><span class="lbl">База:</span><select id="ca">'+opts+'</select>'+
     '<span class="lbl">Сравнить с:</span><select id="cb">'+opts+'</select>'+
     '<button class="chip" id="cprev">← предыдущий месяц</button>'+
@@ -555,7 +555,7 @@ BUILD.cmp=function(){
     arr.sort(function(x,y){return Math.abs(y.d)-Math.abs(x.d);});
 
     var t='<table><thead><tr><th>Статья</th><th>'+L[i]+'</th><th>'+L[j]+'</th>'+
-      '<th>Разница, ₸</th><th>%</th><th>Доля '+L[i]+'</th><th>Доля '+L[j]+'</th><th>Δ п.п.</th>'+
+      '<th>Разница, ₸</th><th>Δ п.п. доли</th>'+
       '<th style="text-align:left">Что это значит</th></tr></thead><tbody>';
     arr.forEach(function(r){
       /* для расхода рост = минус прибыли, для дохода наоборот */
@@ -569,9 +569,6 @@ BUILD.cmp=function(){
                   : '<span class="pos">дешевле на '+fm(-r.pp*rb)+' ₸ относительно выручки</span>');
       t+='<tr><td>'+esc(r.n)+'</td><td class="n">'+f0(r.a)+'</td><td class="n">'+f0(r.b)+'</td>'+
          '<td class="n"><span class="'+(r.d===0?'mut':worse?'neg':'pos')+'">'+(r.d>0?'+':'')+f0(r.d)+'</span></td>'+
-         '<td class="n mut">'+(r.p===null?'новая':(r.p*100).toFixed(0)+'%')+'</td>'+
-         '<td class="n mut">'+(ra?(r.a/ra*100).toFixed(2)+'%':'—')+'</td>'+
-         '<td class="n mut">'+(rb?(r.b/rb*100).toFixed(2)+'%':'—')+'</td>'+
          '<td class="n">'+sgn(r.pp*100,function(x){return x.toFixed(2);})+'</td>'+
          '<td style="text-align:left;white-space:normal;min-width:230px">'+why+'</td></tr>';
     });
