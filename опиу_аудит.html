@@ -110,6 +110,8 @@ select:focus,input:focus{outline:none;border-color:#7c3aed}
     <button class="tab" data-s="god">📈 Год</button>
   </div>
 
+  <div id="src-note"></div>
+
   <div class="sec active" id="s-svod"></div>
   <div class="sec" id="s-stat"></div>
   <div class="sec" id="s-cmp"></div>
@@ -136,6 +138,21 @@ function fm(x){ var a=Math.abs(x);
 function pc(x){ return (x*100).toFixed(1)+'%'; }
 function sgn(x,fn){ var s=(x>0?'+':'')+ (fn||f0)(x); return '<span class="'+(x>0?'pos':x<0?'neg':'mut')+'">'+s+'</span>'; }
 function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+/* источник и отставание отчёта — говорим об этом сразу, до любых цифр */
+(function(){
+  var w=D.lag>0;
+  document.getElementById('src-note').innerHTML=
+    '<div class="note" style="border-left:4px solid '+(w?'#fbbf24':'#34d399')+'">'+
+    'Источник — <b>бухгалтерский ОПиУ</b> («'+D.src+'»'+(D.srcDate?', файл от '+D.srcDate:'')+'). '+
+    'Последний месяц в отчёте — <b>'+D.lastLabel+'</b>.'+
+    (w? ' <span style="color:#fbbf24">С тех пор прошло '+D.lag+' закрытых '+
+        (D.lag===1?'месяц':D.lag<5?'месяца':'месяцев')+
+        ' — их здесь ещё нет.</span> Свежую выручку и деньги смотрите на «ДДС» и «Продажах»; '+
+        'сюда цифры попадают после того, как бухгалтерия закроет месяц.'
+      : ' Отчёт закрыт по текущий месяц.')+
+    '</div>';
+})();
 
 var LINES=R.filter(function(r){return r.kind==='line';});
 var byName={}; R.forEach(function(r){byName[r.n]=r;});
@@ -173,8 +190,9 @@ BUILD.svod=function(){
         sgn(d('rev'),fm)+' ₸ к 2025 · '+sgn(d('rev')/a.rev*100,function(x){return x.toFixed(1);})+'%');
     h+=kpi('Валовая прибыль','#34d399',fm(b.gross)+' ₸',
         pc(marg(b))+' выручки (было '+pc(marg(a))+') · '+sgn(d('gross'),fm)+' ₸');
-    h+=kpi('Себестоимость','#fbbf24',pc(b.cogs/b.rev)+' выручки',
-        'было '+pc(a.cogs/a.rev)+' · '+sgn((b.cogs/b.rev-a.cogs/a.rev)*100,function(x){return x.toFixed(1);})+' п.п.');
+    h+=kpi('Себестоимость','#fbbf24',fm(b.cogs)+' ₸',
+        pc(b.cogs/b.rev)+' выручки (было '+pc(a.cogs/a.rev)+') · '+
+        sgn((b.cogs/b.rev-a.cogs/a.rev)*100,function(x){return x.toFixed(1);})+' п.п.');
     h+=kpi('Расходы периода','#f472b6',fm(b.opex)+' ₸',
         pc(b.opex/b.rev)+' выручки (было '+pc(a.opex/a.rev)+') · '+sgn(d('opex'),fm)+' ₸');
     h+=kpi('Операционная прибыль',b.oper>=0?'#34d399':'#f87171',fm(b.oper)+' ₸',
@@ -188,7 +206,8 @@ BUILD.svod=function(){
     h+='<div class="card"><div class="card-t">Что произошло с прибылью</div>'+
        '<div class="card-n">Разложение изменения операционной прибыли на две причины: '+
        'сколько дала валовая прибыль и сколько забрали расходы периода.</div>'+
-       '<table><thead><tr><th>Причина</th><th>Сумма, ₸</th><th>Комментарий</th></tr></thead><tbody>'+
+       '<table><thead><tr><th>Причина</th><th>Сумма, ₸</th>'+
+       '<th style="text-align:left">Комментарий</th></tr></thead><tbody>'+
        '<tr><td>Валовая прибыль</td><td class="n">'+sgn(dg)+'</td><td style="text-align:left;white-space:normal">'+
        (dg>=0?'выручка и себестоимость сработали в плюс':'выручка выросла слабее себестоимости')+'</td></tr>'+
        '<tr><td>Расходы периода (коммерческие + АУП)</td><td class="n">'+sgn(-dop)+'</td>'+
@@ -397,6 +416,19 @@ var TYPE={shift:'перенос периода',zero:'пропуск месяц�
   round:'ровная сумма',stopped:'статья прекратилась',started:'статья появилась',
   drift:'дрейф доли',mirror:'зеркальная пара',foot:'итог не сходится',class:'классификация'};
 
+var ACT={
+  spike:'Поднять первичку за этот месяц: один крупный документ или начисление сразу за несколько месяцев?',
+  shift:'Сверить даты документов: расход соседнего месяца мог быть проведён этим числом.',
+  zero:'Найти документ за пропущенный месяц — он либо не проведён, либо ушёл на другой счёт.',
+  sign:'Найти сторно: за какой период его сделали и почему оно попало сюда.',
+  round:'Заменить оценочное начисление фактом по декларации.',
+  stopped:'Выяснить, куда переехал расход: он вряд ли исчез вместе со строкой.',
+  started:'Понять, из какой статьи выделили новую, иначе год к году не сравнивается.',
+  drift:'Сопоставить с объёмом производства: рост доли без роста объёма — это перерасход.',
+  mirror:'Открыть проводки обеих статей за месяц и убедиться, что это не перекидка между счетами.',
+  foot:'Проверить, все ли строки группы попали в итог.',
+  class:'Решить с бухгалтерией, где статье место, и зафиксировать это в учётной политике.'};
+
 BUILD.audit=function(){
   var el=document.getElementById('s-audit'),F=D.findings;
   var cnt={}; F.forEach(function(f){cnt[f.t]=(cnt[f.t]||0)+1;});
@@ -419,6 +451,25 @@ BUILD.audit=function(){
       'совокупный размер отклонений по красным замечаниям');
   h+='</div>';
 
+  /* с чего начать: три крупнейших красных замечания, по одному на статью */
+  var seen={}, top=[];
+  F.forEach(function(f){ if(f.sev===2 && !seen[f.a] && f.t!=='class'){ seen[f.a]=1; top.push(f); } });
+  if(top.length){
+    h+='<div class="card"><div class="card-t">С чего начать</div>'+
+       '<div class="card-n">Три самых крупных отклонения, каждое по своей статье. '+
+       'По каждому нужен один и тот же шаг: открыть проводки статьи за указанный месяц '+
+       'и посмотреть первичный документ.</div><table><thead><tr>'+
+       '<th style="text-align:left">Статья</th><th>Месяц</th><th>Размер</th>'+
+       '<th style="text-align:left">Что проверить</th></tr></thead><tbody>';
+    top.slice(0,3).forEach(function(f){
+      h+='<tr><td>'+esc(f.a)+'</td><td class="n">'+(L[M.indexOf(f.m)]||f.m)+'</td>'+
+         '<td class="n" style="color:#fbbf24;font-weight:700">'+fm(f.s)+' ₸</td>'+
+         '<td style="text-align:left;white-space:normal;min-width:340px">'+
+         esc(f.h)+'. '+esc(ACT[f.t]||'')+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  }
+
   h+='<div class="card"><div class="ctl"><span class="lbl">Фильтр:</span>'+
      '<button class="chip on" data-f="">все ('+F.length+')</button>'+
      '<button class="chip" data-f="!2">только красные ('+s2+')</button>'+
@@ -436,6 +487,8 @@ BUILD.audit=function(){
         '<span class="find-m">'+(L[M.indexOf(f.m)]||f.m)+'</span></div>'+
         '<div class="find-ti">'+esc(f.h)+'</div>'+
         '<div class="find-d">'+esc(f.d)+'</div>'+
+        (ACT[f.t]? '<div class="find-d" style="margin-top:5px;color:#8fa2bd">'+
+          '<b style="color:#c4b5fd">Что сделать:</b> '+esc(ACT[f.t])+'</div>':'')+
         (f.s? '<div class="find-s">Величина отклонения: '+fm(f.s)+' ₸</div>':'')+'</div>';
     }).join('') : '<div class="empty">Замечаний этого типа нет</div>';
   }

@@ -22,7 +22,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 42
     steps:
       - name: Получить репозиторий
         uses: actions/checkout@v4
@@ -37,21 +37,26 @@ jobs:
 
       - name: "1. Продажи из iiko"
         continue-on-error: true
+        timeout-minutes: 9
         run: python iiko_export.py
       - name: "2. Пересборка дашборда продаж"
         continue-on-error: true
         run: python rebuild_sales.py
       - name: "2b. ОПиУ из iiko (для сверки на дашборде продаж)"
         continue-on-error: true
+        timeout-minutes: 7
         run: python opiu_iiko.py
       - name: "3. Контрагенты — что купили"
         continue-on-error: true
+        timeout-minutes: 6
         run: python gen_contractor_items.py
       - name: "4. ДДС — остатки из iiko"
         continue-on-error: true
+        timeout-minutes: 7
         run: python dds_data.py
       - name: "5. ДЗ/КЗ из Google"
         continue-on-error: true
+        timeout-minutes: 5
         run: python dz_kz_months.py
       - name: "6. Сборка дашборда ДДС"
         continue-on-error: true
@@ -62,15 +67,18 @@ jobs:
 
       - name: "7. ДДС прямой метод"
         continue-on-error: true
+        timeout-minutes: 7
         run: python dds_pryamoy.py
       - name: "8. Сборка ДДС прямого"
         continue-on-error: true
         run: python gen_ddsp.py
       - name: "9. SKU-аналитика 360"
         continue-on-error: true
+        timeout-minutes: 9
         run: python SKU_iiko/generate.py
       - name: "10. Закуп из iiko"
         continue-on-error: true
+        timeout-minutes: 9
         run: python zakup_data.py
       - name: "11. Сборка дашборда закупа"
         continue-on-error: true
@@ -86,6 +94,7 @@ jobs:
 
       - name: "11b. Структура затрат ОПиУ из iiko (свежие месяцы)"
         continue-on-error: true
+        timeout-minutes: 7
         run: python opiu_full.py
 
       - name: "12. Аналитика возвратов Маймарт (полная себестоимость по ОПиУ)"
@@ -101,11 +110,16 @@ jobs:
         run: python gen_levers.py
 
       - name: Node
+        if: always()
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
+      # Публикуем всегда: если какой-то источник отвалился по таймауту,
+      # сайт всё равно должен обновиться остальными свежими данными.
       - name: Публикация (Cloudflare Workers)
+        if: always()
+        timeout-minutes: 6
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npx --yes wrangler@3 deploy

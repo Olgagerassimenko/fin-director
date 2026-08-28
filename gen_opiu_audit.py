@@ -15,6 +15,7 @@
 
 Только чтение xlsx. Запускается в GitHub Actions после остальных сборок.
 """
+import datetime as _dt
 import json, os, re, statistics
 import os as _os, sys as _sys
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -268,17 +269,20 @@ def build():
                         "а в %s — ноль. Либо документ не провели, либо расход "
                         "ушёл на другую статью." % (fmt(med), labels[i]), med)
 
-        # 2. всплеск
+        # 2. всплеск — не больше двух самых крупных на статью, иначе список не читается
         if med >= 150000:
-            for i, x in enumerate(v):
-                if abs(x) > med * 2.5 and abs(x) - med > 1000000:
-                    add(2 if abs(x) - med > 5000000 else 1, "spike", name, months[i],
-                        "Разовый всплеск",
-                        "%s: %s против обычных %s — в %.1f раза больше нормы. "
-                        "Проверьте первичку: разовый расход, начисление за несколько "
-                        "месяцев сразу или ошибка счёта." % (
-                            labels[i], fmt(x), fmt(med), abs(x) / med if med else 0),
-                        abs(x) - med)
+            sp = [(i, x) for i, x in enumerate(v)
+                  if abs(x) > med * 2.5 and abs(x) - med > 1000000]
+            sp.sort(key=lambda p: -(abs(p[1]) - med))
+            for i, x in sp[:2]:
+                add(2 if abs(x) - med > 5000000 else 1, "spike", name, months[i],
+                    "Разовый всплеск",
+                    "%s: %s против обычных %s — в %.1f раза больше нормы%s. "
+                    "Проверьте первичку: разовый расход, начисление за несколько "
+                    "месяцев сразу или ошибка счёта." % (
+                        labels[i], fmt(x), fmt(med), abs(x) / med if med else 0,
+                        "" if len(sp) <= 2 else " (всего таких месяцев %d)" % len(sp)),
+                    abs(x) - med)
 
         # 3. знак (только для расходных статей: у доходных минус — это возврат, норма)
         if name not in CONTRA and not r["inc"]:
@@ -433,8 +437,19 @@ def build():
                         (("rev", rev), ("cogs", cogs), ("gross", gross),
                          ("opex", opex), ("oper", oper), ("net", net))}}
 
+    # ── насколько бухгалтерский отчёт отстаёт от календаря
+    t = almaty.today()
+    ly, lm = int(months[-1][:4]), int(months[-1][5:])
+    lag = (t.year - ly) * 12 + (t.month - lm) - 1   # сколько месяцев закрыто, но не в отчёте
+    src = os.path.basename(XLSX)
+    try:
+        mt = _dt.datetime.fromtimestamp(os.path.getmtime(XLSX)).strftime("%d.%m.%Y")
+    except Exception:
+        mt = ""
+
     return {
         "updated": almaty.now().strftime("%d.%m.%Y %H:%M"),
+        "src": src, "srcDate": mt, "lag": max(0, lag), "lastLabel": labels[-1],
         "months": months, "labels": labels,
         "rows": rows,
         "kpi": {"rev": rev, "cogs": cogs, "gross": gross,
