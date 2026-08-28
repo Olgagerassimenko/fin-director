@@ -419,6 +419,10 @@ function rhythm(){
           days:keys.length, from:keys[0]||'', to:keys[keys.length-1]||''};
 }
 
+/* Дни недели, на которые план не ставится: вс, ср, сб.
+   0 — воскресенье, 3 — среда, 6 — суббота. */
+const SKIP_DOW=[0,3,6];
+
 /* Раскладка недельного плана по дням. Остаток от округления отдаём самому крупному дню,
    поэтому сумма по неделе совпадает с планом до тенге. */
 function planByDay(wks){
@@ -426,7 +430,12 @@ function planByDay(wks){
   for(let w=1;w<=5;w++){
     const ds=weekDays(w); if(!ds.length) continue;
     const wi=Math.round(wks[w].incTotal), we=Math.round(wks[w].expTotal);
-    const bd=k=>{const w2=dow(k);return w2!==0&&w2!==6;};   // только будни
+    /* Дни, на которые вообще раскладываем план: будни без среды.
+       Выходные — понятно, а среда исключена по решению финдиректора:
+       по факту на неё приходится около 5 % недельного прихода против 25–30 %
+       во вторник и четверг, то есть день нерабочий по платежам.
+       Сумма недели не меняется — она перераспределяется на пн, вт, чт, пт. */
+    const bd=k=>{const w2=dow(k);return SKIP_DOW.indexOf(w2)<0;};
     const use=ds.filter(bd).length?ds.filter(bd):ds;
     let si=0, so=0; use.forEach(k=>{ si+=R.inS[dow(k)]; so+=R.outS[dow(k)]; });
     const part=ds.map(k=>{
@@ -504,7 +513,7 @@ function buildPlanDays(P){
    +'<div class="card" style="margin-bottom:16px">'+cardHdr('#6366f1','Что видно')
      +'<ul class="nlist">'+notes.map(n=>'<li>'+n+'</li>').join('')+'</ul></div>'
    +'<div class="card">'+cardHdr(INC_COL,'Календарь платежей')
-     +'<div class="sub2">План разложен по дням ритмом фактических платежей из iiko. Сумма недели не меняется — меняется только распределение внутри неё. Факт — реальные движения из iiko по '+FACT_THROUGH+'.</div>'
+     +'<div class="sub2">План разложен по дням ритмом фактических платежей из iiko. План ставится только на <b>пн, вт, чт и пт</b>: по субботам и воскресеньям движения денег нет, среда исключена отдельно — по факту на неё приходится около 5 % недельного прихода. Сумма недели не меняется — меняется только распределение внутри неё. Факт — реальные движения из iiko по '+FACT_THROUGH+'.</div>'
      +'<div class="tscroll"><table class="dtbl"><thead><tr>'
      +'<th>Дата</th><th>День</th><th class="num">Ожидаем</th><th class="num">Платим</th><th class="num">Сальдо дня</th><th class="num">Нарастающим</th>'
      +'<th class="num">Факт приход</th><th class="num">Факт расход</th><th class="num">Откл. по сальдо</th>'
@@ -581,7 +590,7 @@ function buildRhythm(P){
    +'<li>Деньги приходят в основном <b>'+WDP[topI]+'</b> — '+(R.inS[topI]*100).toFixed(0)+'% недельных поступлений.</li>'
    +'<li>Платим больше всего <b>'+WDP[topO]+'</b> — '+(R.outS[topO]*100).toFixed(0)+'% недельных выплат.</li>'
    +'<li>Самый спокойный по выплатам будний день — <b>'+WDL[lowO].toLowerCase()+'</b> ('+(R.outS[lowO]*100).toFixed(0)+'%). Это резерв: платежи можно двигать сюда, если в пиковый день не хватает денег.</li>'
-   +'<li>По выходным движения денег практически нет, поэтому план на субботу и воскресенье не ставится вовсе — недельная сумма делится только между буднями.</li>'
+   +'<li>По выходным движения денег практически нет, а среда по факту даёт лишь '+(R.inS[3]*100).toFixed(0)+'% недельного прихода. Поэтому план не ставится на <b>субботу, воскресенье и среду</b> — недельная сумма целиком раскладывается на понедельник, вторник, четверг и пятницу.</li>'
    +'</ul></div></div>';
 }
 
@@ -617,7 +626,13 @@ function renderDashboard({wks,cats,clients,totalInc,totalExp}){
   se.innerHTML+=buildRhythm(P);
   addTab(te,'Обзор','ov',false,false);
   se.innerHTML+=buildOverview(wks);
-  for(let w=1;w<=5;w++){addTab(te,'Неделя '+w,'wk-'+w,false,false);}
+  /* В названии вкладки сразу видно, какие это числа: «Неделя 2 · 08–14.09» */
+  for(let w=1;w<=5;w++){
+    const d=weekDays(w);
+    const lbl=d.length? 'Неделя '+w+' · '+d[0].slice(8)+'–'+d[d.length-1].slice(8)+'.'+d[0].slice(5,7)
+                      : 'Неделя '+w;
+    addTab(te,lbl,'wk-'+w,false,false);
+  }
   for(let w=1;w<=5;w++){se.innerHTML+=buildWeek(w,wks[w]);}
   addTab(te,'За месяц','month',false,true);
   se.innerHTML+=buildMonth(cats,clients,totalInc,totalExp);
@@ -626,7 +641,11 @@ function renderDashboard({wks,cats,clients,totalInc,totalExp}){
 function addTab(c,lbl,id,active,mt){
   const b=document.createElement('button');
   b.className='wtab'+(mt?' mtab':'')+(active?' active':'');
-  b.textContent=lbl;b.onclick=()=>show(id);c.appendChild(b);
+  const dot=lbl.indexOf(' · ');
+  if(dot>0){ b.innerHTML=lbl.slice(0,dot)+
+      '<span style="opacity:.55;font-weight:700"> · '+lbl.slice(dot+3)+'</span>'; }
+  else b.textContent=lbl;
+  b.onclick=()=>show(id);c.appendChild(b);
 }
 function show(id){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
