@@ -202,29 +202,59 @@ function monthOf(title){
   const now=new Date(Date.now()+5*3600*1000);
   return {m:m, y: y? +y : now.getUTCFullYear()};
 }
-function pickSheet(sheets){
-  const withM=sheets.map(s=>({t:s.properties.title, id:s.properties.sheetId, d:monthOf(s.properties.title)}))
-                    .filter(x=>x.d);
-  withM.sort((a,b)=> (b.d.y-a.d.y) || (b.d.m-a.d.m));
+/* Какой месяц выбран по умолчанию.
+   Планируют вперёд: после 20-го числа рабочий месяц — уже следующий. */
+function defaultKey(){
+  try{ const s=localStorage.getItem('dds_plan_month');
+       if(s && /^\d{4}-\d{2}$/.test(s)) return s; }catch(e){}
+  const n=new Date(Date.now()+5*3600*1000);
+  let y=n.getUTCFullYear(), m=n.getUTCMonth();
+  if(n.getUTCDate()>=20){ m++; if(m>11){ m=0; y++; } }
+  return y+'-'+String(m+1).padStart(2,'0');
+}
+let PLAN_KEY=defaultKey();
 
-  /* выпадающий список месяцев — можно вернуться к прошлому месяцу и сверить план с фактом */
-  const sel=document.getElementById('month-pick');
-  if(sel && withM.length>1){
-    if(sel.options.length!==withM.length){
-      sel.innerHTML=withM.map(x=>'<option value="'+x.t.replace(/"/g,'&quot;')+'">'+
-        MONN[x.d.m][0].toUpperCase()+MONN[x.d.m].slice(1)+' '+x.d.y+'</option>').join('');
-      document.getElementById('month-pick-wrap').style.display='';
-      sel.onchange=function(){ SHEET_PICK=sel.value; loadData(); };
-    }
-  }
-  if(SHEET_PICK && sheets.some(s=>s.properties.title===SHEET_PICK)){
-    if(sel) sel.value=SHEET_PICK;
-    return SHEET_PICK;
-  }
-  if(withM.length){ if(sel) sel.value=withM[0].t; return withM[0].t; }
+/* Откуда брать данные за выбранный месяц.
+   Есть отложенная копия с этим месяцем в названии — читаем её,
+   нет — читаем рабочий лист «Неделя ОПЛАТ», в нём всегда текущий план. */
+function sheetFor(sheets,key){
+  const y=+key.slice(0,4), m=+key.slice(5,7)-1;
+  const arc=sheets.find(s=>{ const d=monthOf(s.properties.title);
+    return d && d.m===m && d.y===y; });
+  if(arc) return arc.properties.title;
   return (sheets.find(s=>s.properties.sheetId===TARGET_GID)
        || sheets.find(s=>s.properties.title.toLowerCase().includes('оплат'))
        || sheets[0])?.properties.title;
+}
+
+function pickSheet(sheets){
+  /* Список месяцев: полгода назад — три вперёд, плюс всё, что отложено копиями. */
+  const n=new Date(Date.now()+5*3600*1000);
+  const keys=[];
+  for(let i=-6;i<=3;i++){
+    const d=new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth()+i, 1));
+    keys.push(d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0'));
+  }
+  sheets.forEach(s=>{ const d=monthOf(s.properties.title);
+    if(d){ const k=d.y+'-'+String(d.m+1).padStart(2,'0'); if(keys.indexOf(k)<0) keys.push(k); } });
+  keys.sort().reverse();
+
+  const sel=document.getElementById('month-pick');
+  if(sel){
+    if(sel.options.length!==keys.length){
+      sel.innerHTML=keys.map(k=>{ const m=+k.slice(5,7)-1;
+        return '<option value="'+k+'">'+MONN[m][0].toUpperCase()+MONN[m].slice(1)+' '+k.slice(0,4)+'</option>';
+      }).join('');
+      document.getElementById('month-pick-wrap').style.display='';
+      sel.onchange=function(){
+        PLAN_KEY=sel.value;
+        try{ localStorage.setItem('dds_plan_month',PLAN_KEY); }catch(e){}
+        loadData();
+      };
+    }
+    sel.value=PLAN_KEY;
+  }
+  return sheetFor(sheets,PLAN_KEY);
 }
 
 async function loadData(){
@@ -236,12 +266,12 @@ async function loadData(){
     if(!name) throw new Error('Лист не найден');
     const dr=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent("'"+name+"'!A1:F2000")}?key=${API_KEY}`);
     const j=await dr.json();if(j.error) throw new Error(j.error.message);
-    setPlanMonth(name);
+    setPlanMonth();
     const data=parseRows(j.values||[]);
     renderDashboard(data);
     checkAlerts(data.totalInc, data.totalExp, data.wks);
     document.getElementById('upd-time').textContent=new Date().toLocaleTimeString('ru-RU');
-    document.getElementById('hdr-sub').textContent='План из Google-таблицы · факт из iiko по '+FACT_THROUGH+' · обновление каждые 60 с';
+    document.getElementById('hdr-sub').textContent='Лист «'+name+'» · факт из iiko по '+FACT_THROUGH+' · обновление каждые 60 с';
     document.getElementById('loading').style.display='none';
     document.getElementById('dashboard').style.display='block';
     clearTimeout(window.__ddsTimer);
@@ -339,12 +369,10 @@ function dow(k){ return new Date(k+'T00:00:00Z').getUTCDay(); }
 function dRU(k){ const p=k.split('-'); return p[2]+'.'+p[1]; }
 function todayISO(){ const d=new Date(Date.now()+5*3600*1000); return d.toISOString().slice(0,10); }
 
-function setPlanMonth(sheetName){
-  const t=(sheetName||'').toLowerCase();
-  const now=new Date(Date.now()+5*3600*1000);
-  PLAN_Y=now.getUTCFullYear(); PLAN_M=now.getUTCMonth();
-  for(let i=0;i<12;i++){ if(t.includes(MONN[i].slice(0,4))){ PLAN_M=i; break; } }
-  const y=(t.match(/20\d\d/)||[])[0]; if(y) PLAN_Y=+y;
+function setPlanMonth(){
+  /* Месяц берём из выбора, а не из названия листа: рабочий лист «Неделя ОПЛАТ»
+     месяц в названии не несёт, а в его шапке может стоять чужая дата. */
+  PLAN_Y=+PLAN_KEY.slice(0,4); PLAN_M=+PLAN_KEY.slice(5,7)-1;
   const nm='ДДС '+MONN[PLAN_M]+' '+PLAN_Y;
   const h=document.getElementById('hdr-title');
   if(h) h.textContent=nm;

@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="opiu_audit.js?v=1" onerror="window.OPIU_AUDIT=null"></script>
 <script src="opiu_rev.js" onerror="window.OPIU_REV=null"></script>
+<script src="opiu_late.js" onerror="window.OPIU_LATE=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh;font-size:13px}
@@ -38,7 +39,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#18233d;c
 .card-t{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:#9db0c9;margin-bottom:4px}
 .card-n{font-size:11.5px;color:#7e91ad;margin-bottom:13px;line-height:1.5}
 
-.tw{overflow-x:auto;max-height:74vh;overflow-y:auto;border-radius:9px}
+.tw{overflow-x:auto;border-radius:9px}   /* только горизонтальная прокрутка: внутренних вертикальных движков нет */
 table{border-collapse:collapse;width:100%;font-size:11.5px}
 th{background:#182342;padding:7px 8px;text-align:right;font-weight:700;color:#9db0c9;white-space:nowrap;
   position:sticky;top:0;z-index:3;border-bottom:1px solid #2b3757;font-size:10.5px}
@@ -128,6 +129,62 @@ if(!D){document.querySelector('.wrap').innerHTML='<div class="empty">⚠ Нет 
 var M=D.months,L=D.labels,R=D.rows,K=D.kpi,N=M.length;
 document.getElementById('upd').textContent='обновлено '+D.updated;
 
+/* ── месяцы, которых ещё нет в бухгалтерском ОПиУ ────────────────
+   Бухгалтерия закрывает месяц с задержкой, поэтому июнь–август берём
+   напрямую из iiko. Это НЕ закрытые месяцы: зарплата, налоги и часть
+   административных начислений проходят в конце месяца и в начале
+   следующего, поэтому расходы в них занижены. Помечаем такие колонки
+   и нигде не смешиваем их с закрытыми в проверках аудита. */
+var LATEN=0, LATE_INFO={};
+(function(){
+  var LT=window.OPIU_LATE;
+  if(!LT||!LT.months) return;
+  var keys=Object.keys(LT.months).sort().filter(function(k){ return M.indexOf(k)<0; });
+  if(!keys.length) return;
+  var MONN=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  keys.forEach(function(k){
+    var mm=LT.months[k];
+    M.push(k);
+    L.push(MONN[+k.slice(5,7)-1]+' '+k.slice(0,4));
+    LATE_INFO[k]=mm;
+    R.forEach(function(r){ r.v.push(r.kind==='sub'?0:(mm.v[r.n]||0)); });
+    LATEN++;
+  });
+  N=M.length;
+
+  /* итоги пересчитываем сами: в незакрытом месяце «Итого» из xlsx нет */
+  function put(name,fn){ var r=null; R.forEach(function(x){ if(x.n===name) r=x; }); if(r) fn(r); }
+  function sumOf(names,i){ var s=0; R.forEach(function(x){ if(names.indexOf(x.n)>=0) s+=x.v[i]; }); return s; }
+  var G={'Итого Выручка':['Торговая выручка','Выручка'],
+         'Итого 1.С/с реализованной продукции':null,'Итого 2.ФОТ Производство':null,
+         'Итого 3.Арендная плата':null};
+  /* дети группы = строки между её заголовком и «Итого», как в самом отчёте */
+  R.forEach(function(t,j){
+    if(t.kind!=='total') return;
+    var h=-1;
+    for(var i=j-1;i>=0;i--){ if(R[i].ind<t.ind) break;
+      if(R[i].ind===t.ind && R[i].kind==='sub'){ h=i; break; } }
+    if(h<0) return;
+    var kids=[]; for(var i=h+1;i<j;i++) if(R[i].ind===t.ind+3 && R[i].kind!=='sub') kids.push(R[i]);
+    if(kids.length<2) return;
+    for(var q=N-LATEN;q<N;q++){ var s=0; kids.forEach(function(x){ s+=x.v[q]; }); t.v[q]=s; }
+  });
+  function get(n){ var r=null; R.forEach(function(x){ if(x.n===n) r=x; }); return r; }
+  var rev=get('Итого Выручка'), cogs=get('Итого Себестоимость'), gross=get('Валовая прибыль'),
+      opex=get('Итого Расходы'), oper=get('Итого Прибыль от основной деятельности'),
+      oi=get('Итого Прочие доходы'), oe=get('Итого Прочие расходы'), net=get('ИТОГО ЧИСТАЯ ПРИБЫЛЬ');
+  for(var q=N-LATEN;q<N;q++){
+    if(gross&&rev&&cogs) gross.v[q]=rev.v[q]-cogs.v[q];
+    if(oper&&gross&&opex) oper.v[q]=gross.v[q]-opex.v[q];
+    if(net&&oper) net.v[q]=oper.v[q]+(oi?oi.v[q]:0)-(oe?oe.v[q]:0);
+  }
+  ['rev','cogs','gross','opex','oper','net'].forEach(function(k){
+    var src={rev:rev,cogs:cogs,gross:gross,opex:opex,oper:oper,net:net}[k];
+    for(var q=N-LATEN;q<N;q++) K[k].push(src?src.v[q]:0);
+  });
+})();
+function isLate(i){ return i>=N-LATEN; }
+
 /* ── форматирование ───────────────────────────────────────────── */
 function f0(x){ if(x===null||x===undefined) return '—';
   return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
@@ -147,7 +204,13 @@ function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp
     '<div class="note" style="border-left:4px solid '+(w?'#fbbf24':'#34d399')+'">'+
     'Источник — <b>бухгалтерский ОПиУ</b> («'+D.src+'»'+(D.srcDate?', файл от '+D.srcDate:'')+'). '+
     'Последний месяц в отчёте — <b>'+D.lastLabel+'</b>.'+
-    (w? ' <span style="color:#fbbf24">С тех пор прошло '+D.lag+' закрытых '+
+    (LATEN
+      ? ' Дальше — <span style="color:#fbbf24"><b>'+LATEN+' мес. из iiko</b> ('+
+        L.slice(N-LATEN).join(', ')+'), бухгалтерией ещё не закрыты</span>: '+
+        'зарплата, налоги и часть административных начислений проходят в конце месяца, '+
+        'поэтому расходы в них занижены, а прибыль выглядит лучше реальной. '+
+        'Такие колонки помечены жёлтым и в проверки аудита не входят.'
+      : w? ' <span style="color:#fbbf24">С тех пор прошло '+D.lag+' закрытых '+
         (D.lag===1?'месяц':D.lag<5?'месяца':'месяцев')+
         ' — их здесь ещё нет.</span> Свежую выручку и деньги смотрите на «ДДС» и «Продажах»; '+
         'сюда цифры попадают после того, как бухгалтерия закроет месяц.'
@@ -176,16 +239,30 @@ document.querySelectorAll('.tab').forEach(function(b){
 var BUILD={};
 BUILD.svod=function(){
   var el=document.getElementById('s-svod'),h='';
-  var lp=D.lp, y=D.years;
+  var lp=D.lp;
+  /* годы считаем сами: в D.years только закрытые месяцы из xlsx,
+     а на странице есть ещё добранные из iiko */
+  var y=[];
+  ['2025','2026'].forEach(function(yy){
+    var idx=[]; M.forEach(function(m,i){ if(m.slice(0,4)===yy) idx.push(i); });
+    if(!idx.length) return;
+    var o={y:yy,n:idx.length,late:idx.filter(isLate).length};
+    ['rev','cogs','gross','opex','oper','net'].forEach(function(k){
+      o[k]=idx.reduce(function(s,i){ return s+K[k][i]; },0); });
+    y.push(o);
+  });
 
   /* KPI: сопоставимый период */
   if(lp){
     var a=lp.a,b=lp.b;
     function d(k){ return b[k]-a[k]; }
     function marg(o){ return o.rev? o.gross/o.rev : 0; }
+    var lpLast=L[M.indexOf('2026-'+String(lp.mm).padStart(2,'0'))]||'';
     h+='<div class="note">Сравниваются <b>одинаковые '+lp.mm+' мес.</b>: январь–'+
-       L[M.indexOf(y[1].to)].split(' ')[0]+' 2026 против тех же месяцев 2025. '+
-       'Так период к периоду сопоставим — неполный год не занижает цифры.</div>';
+       (lpLast.split(' ')[0]||'')+' 2026 против тех же месяцев 2025. '+
+       'Так период к периоду сопоставим — неполный год не занижает цифры. '+
+       'Считаются только <b>закрытые</b> месяцы из бухгалтерского ОПиУ; '+
+       'добранные из iiko в это сравнение не входят.</div>';
     h+='<div class="kpis">';
     h+=kpi('Выручка','#38bdf8',fm(b.rev)+' ₸',
         sgn(d('rev'),fm)+' ₸ к 2025 · '+sgn(d('rev')/a.rev*100,function(x){return x.toFixed(1);})+'%');
@@ -220,8 +297,11 @@ BUILD.svod=function(){
   /* итоги по годам */
   h+='<div class="card"><div class="card-t">Годы целиком</div>'+
      '<div class="card-n">2026 — неполный год, поэтому сравнивать его итог с 2025 напрямую нельзя. '+
-     'Сопоставимое сравнение — в карточках выше.</div><table><thead><tr>'+
-     '<th>Показатель</th>'+y.map(function(o){return '<th>'+o.y+' ('+o.n+' мес.)</th><th>% выручки</th>';}).join('')+
+     'Сопоставимое сравнение — в карточках выше.'+
+     (LATEN? ' В 2026 входят '+LATEN+' незакрытых месяца из iiko — расходы в них занижены.':'')+
+     '</div><table><thead><tr>'+
+     '<th>Показатель</th>'+y.map(function(o){return '<th>'+o.y+' ('+o.n+' мес.'+
+        (o.late?', из них '+o.late+' не закрыт'+(o.late>1?'ы':'')+'':'')+')</th><th>% выручки</th>';}).join('')+
      '</tr></thead><tbody>';
   [['Выручка','rev'],['Себестоимость','cogs'],['Валовая прибыль','gross'],
    ['Расходы периода','opex'],['Операционная прибыль','oper'],['Чистая прибыль','net']].forEach(function(p,i){
@@ -233,44 +313,129 @@ BUILD.svod=function(){
   /* сверка выручки с iiko — два независимых источника должны сходиться */
   h+=reconcile();
 
-  /* полная таблица ОПиУ */
-  h+='<div class="card"><div class="card-t">ОПиУ помесячно</div>'+
-     '<div class="card-n">Все статьи как в бухгалтерском отчёте. '+
-     'Переключатель показывает либо тенге, либо долю в выручке месяца — второе честнее '+
-     'сравнивает месяцы с разной выручкой.</div>'+
+  /* полная таблица ОПиУ — сворачивается до кварталов и разворачивается до месяцев */
+  h+='<div class="card"><div class="card-t">ОПиУ по периодам</div>'+
+     '<div class="card-n">Открывается свёрнуто — год по кварталам. '+
+     'Клик по заголовку квартала раскрывает его месяцы, повторный клик сворачивает; '+
+     'клик по году сворачивает весь год в одну колонку. '+
+     'Переключатель показывает либо тенге, либо долю в выручке периода — второе честнее '+
+     'сравнивает периоды с разной выручкой.</div>'+
      '<div class="ctl"><span class="lbl">Показать:</span>'+
      '<button class="chip on" id="m-abs">₸</button><button class="chip" id="m-sh">% выручки</button>'+
      '<span class="lbl" style="margin-left:12px">Строки:</span>'+
-     '<button class="chip on" id="m-all">все</button><button class="chip" id="m-top">только итоги</button></div>'+
+     '<button class="chip on" id="m-top">свёрнуто</button><button class="chip" id="m-all">все статьи</button>'+
+     '</div>'+
      '<div class="tw" id="pnl"></div></div>';
 
   el.innerHTML=h;
 
-  var mode='abs',only=false;
-  function pnl(){
-    var t='<table><thead><tr><th>Статья</th>'+L.map(function(x){return '<th>'+x+'</th>';}).join('')+
-          '<th style="background:#2a2350;color:#e9d5ff">Итого</th></tr></thead><tbody>';
-    R.forEach(function(r){
-      if(only && r.kind==='line') return;
-      var cls=r.kind==='grand'?'grand':r.kind==='total'?'tot':r.kind==='sub'?'sub':'';
-      t+='<tr class="'+cls+'"><td>'+esc(r.n)+'</td>';
-      if(r.kind==='sub'){ t+='<td colspan="'+(N+1)+'"></td></tr>'; return; }
-      for(var i=0;i<N;i++){
-        var v=r.v[i];
-        t+='<td class="n">'+(mode==='abs'? (v?f0(v):'<span class="mut">—</span>')
-            : (K.rev[i]? (v/K.rev[i]*100).toFixed(1)+'%':'—'))+'</td>';
+  var mode='abs',only=true;      // по умолчанию свёрнуто: только итоги групп
+
+  /* Какие статьи входят в каждый «Итого» — чтобы группу можно было раскрыть. */
+  var KIDS={};
+  R.forEach(function(t,j){
+    if(t.kind!=='total') return;
+    var hh=-1;
+    for(var i=j-1;i>=0;i--){ if(R[i].ind<t.ind) break;
+      if(R[i].ind===t.ind && R[i].kind==='sub'){ hh=i; break; } }
+    if(hh<0) return;
+    var kids=[]; for(var i=hh+1;i<j;i++) if(R[i].ind===t.ind+3 && R[i].kind==='line') kids.push(R[i].n);
+    if(kids.length) KIDS[t.n]=kids;
+  });
+  var OPENR={};                  // раскрытые группы строк
+
+  /* Дерево периодов. OPEN['Y2025'] — год раскрыт до кварталов,
+     OPEN['Q2025-3'] — квартал раскрыт до месяцев. */
+  var YEARS=[]; M.forEach(function(m){ var y=m.slice(0,4); if(YEARS.indexOf(y)<0) YEARS.push(y); });
+  YEARS.sort();
+  var RQ=['I','II','III','IV'];
+  var OPEN={};
+  YEARS.forEach(function(y){ OPEN['Y'+y]=true; });          // по умолчанию: год по кварталам
+
+  function qOf(m){ return Math.floor((+m.slice(5,7)-1)/3); }
+
+  function cols(){
+    var out=[];
+    YEARS.forEach(function(y){
+      var mi=[]; M.forEach(function(m,i){ if(m.slice(0,4)===y) mi.push(i); });
+      if(!mi.length) return;
+      var yk='Y'+y;
+      out.push({k:yk,lab:y,sub:OPEN[yk]?'свернуть год':mi.length+' мес.',idx:mi,lvl:0,open:!!OPEN[yk]});
+      if(!OPEN[yk]) return;
+      for(var q=0;q<4;q++){
+        var qi=mi.filter(function(i){ return qOf(M[i])===q; });
+        if(!qi.length) continue;
+        var qk='Q'+y+'-'+q;
+        var lateN=qi.filter(isLate).length;
+        out.push({k:qk,lab:RQ[q]+' кв '+y,
+                  sub:OPEN[qk]?'свернуть':(qi.length+' мес.'+(lateN?' · '+lateN+' не закрыт':'')),
+                  late:lateN>0, idx:qi,lvl:1,open:!!OPEN[qk]});
+        if(!OPEN[qk]) continue;
+        qi.forEach(function(i){ out.push({k:'M'+M[i],lab:L[i],
+          sub:isLate(i)?'не закрыт':'',late:isLate(i),idx:[i],lvl:2}); });
       }
-      var s=sum(r.v);
-      t+='<td class="n" style="background:#242e4e;font-weight:700">'+
-         (mode==='abs'? f0(s) : (sum(K.rev)? (s/sum(K.rev)*100).toFixed(1)+'%':'—'))+'</td></tr>';
     });
-    document.getElementById('pnl').innerHTML=t+'</tbody></table>';
+    return out;
+  }
+
+  function cellVal(v,idx){
+    var s=0; idx.forEach(function(i){ s+=v[i]; });
+    if(mode==='abs') return s? f0(s) : '<span class="mut">—</span>';
+    var r=0; idx.forEach(function(i){ r+=K.rev[i]; });
+    return r? (s/r*100).toFixed(1)+'%' : '—';
+  }
+
+  function pnl(){
+    var C=cols();
+    var bg=['#2a2350','#20294a','#182342'], fg=['#e9d5ff','#c7d2fe','#9db0c9'];
+    var t='<table><thead><tr><th>Статья</th>'+C.map(function(c){
+      var clickable=c.lvl<2;
+      return '<th data-k="'+c.k+'" style="background:'+bg[c.lvl]+';color:'+(c.late?'#fbbf24':fg[c.lvl])+
+        (clickable?';cursor:pointer':'')+'" title="'+(clickable?(c.open?'свернуть':'раскрыть'):
+          (c.late?'месяц не закрыт бухгалтерией: данные из iiko, начисления конца месяца ещё не прошли':''))+'">'+
+        (clickable?(c.open?'▾ ':'▸ '):'')+c.lab+
+        (c.sub?'<br><span style="font-weight:600;opacity:'+(c.late?'.9':'.6')+';font-size:9.5px">'+c.sub+'</span>':'')+'</th>';
+    }).join('')+'</tr></thead><tbody>';
+
+    /* какие строки-статьи показывать: всё, либо только раскрытые группы */
+    var shown={};
+    if(!only) R.forEach(function(r){ shown[r.n]=1; });
+    else Object.keys(OPENR).forEach(function(g){
+      if(OPENR[g]) (KIDS[g]||[]).forEach(function(n){ shown[n]=1; }); });
+
+    R.forEach(function(r){
+      if(r.kind==='line' && !shown[r.n]) return;
+      var cls=r.kind==='grand'?'grand':r.kind==='total'?'tot':r.kind==='sub'?'sub':'';
+      var can = only && r.kind==='total' && KIDS[r.n];
+      t+='<tr class="'+cls+'"><td'+(can?' data-g="'+esc(r.n)+'" style="cursor:pointer"':'')+'>'+
+         (can?(OPENR[r.n]?'▾ ':'▸ '):(r.kind==='line'?'<span style="opacity:.35">— </span>':''))+
+         esc(r.n)+
+         (can&&!OPENR[r.n]?' <span style="opacity:.45;font-weight:600">('+KIDS[r.n].length+')</span>':'')+
+         '</td>';
+      if(r.kind==='sub'){ t+='<td colspan="'+C.length+'"></td></tr>'; return; }
+      C.forEach(function(c){
+        t+='<td class="n"'+(c.lvl===0?' style="background:#242e4e;font-weight:700"':
+                            c.lvl===1?' style="background:#1e2745"':'')+'>'+cellVal(r.v,c.idx)+'</td>';
+      });
+      t+='</tr>';
+    });
+    var box=document.getElementById('pnl');
+    box.innerHTML=t+'</tbody></table>';
+    box.querySelectorAll('th[data-k]').forEach(function(th){
+      var k=th.dataset.k;
+      if(k.charAt(0)==='M') return;
+      th.onclick=function(){ OPEN[k]=!OPEN[k]; pnl(); };
+    });
+    box.querySelectorAll('td[data-g]').forEach(function(td){
+      td.onclick=function(){ var g=td.dataset.g; OPENR[g]=!OPENR[g]; pnl(); };
+    });
   }
   pnl();
+
   function tog(a,b,fn){ document.getElementById(a).onclick=function(){
       document.getElementById(a).classList.add('on');document.getElementById(b).classList.remove('on');fn();pnl(); }; }
   tog('m-abs','m-sh',function(){mode='abs';}); tog('m-sh','m-abs',function(){mode='sh';});
-  tog('m-all','m-top',function(){only=false;}); tog('m-top','m-all',function(){only=true;});
+  tog('m-top','m-all',function(){only=true;}); tog('m-all','m-top',function(){only=false;});
 };
 
 /* Сверка выручки бухгалтерского ОПиУ с выручкой, которую iiko отдаёт напрямую.
@@ -283,6 +448,7 @@ function reconcile(){
   if(!tr||!it) return '';
   var rows=[];
   for(var i=0;i<N;i++){
+    if(isLate(i)) continue;          // эти месяцы сами взяты из iiko — сверять не с чем
     var r=REV[M[i]];
     if(!r||!r.trade) continue;
     if(r.through && r.through < M[i]+'-28') continue;   // месяц ещё не добран
