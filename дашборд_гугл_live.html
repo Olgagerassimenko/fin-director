@@ -205,7 +205,9 @@ function monthOf(title){
 /* Какой месяц выбран по умолчанию.
    Планируют вперёд: после 20-го числа рабочий месяц — уже следующий. */
 function defaultKey(){
-  try{ const s=localStorage.getItem('dds_plan_month');
+  /* Выбор храним только на время вкладки (sessionStorage), а не навсегда:
+     иначе в октябре страница молча продолжала бы показывать сентябрь. */
+  try{ const s=sessionStorage.getItem('dds_plan_month');
        if(s && /^\d{4}-\d{2}$/.test(s)) return s; }catch(e){}
   const n=new Date(Date.now()+5*3600*1000);
   let y=n.getUTCFullYear(), m=n.getUTCMonth();
@@ -217,9 +219,18 @@ let PLAN_KEY=defaultKey();
 /* Откуда брать данные за выбранный месяц.
    Есть отложенная копия с этим месяцем в названии — читаем её,
    нет — читаем рабочий лист «Неделя ОПЛАТ», в нём всегда текущий план. */
+/* Копией недельного плана считаем только лист, который и по названию недельный план:
+   в таблице есть «ДДС МЕСЯЦ ИЮНЬ», «ОБУ МАЙ», «ДДС ФАКТ Апрель» — в них месяц
+   в названии есть, но структура совсем другая, читать их сюда нельзя. */
+function isPlanSheet(title){
+  const t=(title||'').toLowerCase();
+  return t.indexOf('недел')>=0 && t.indexOf('оплат')>=0;
+}
+
 function sheetFor(sheets,key){
   const y=+key.slice(0,4), m=+key.slice(5,7)-1;
-  const arc=sheets.find(s=>{ const d=monthOf(s.properties.title);
+  const arc=sheets.find(s=>{ if(!isPlanSheet(s.properties.title)) return false;
+    const d=monthOf(s.properties.title);
     return d && d.m===m && d.y===y; });
   if(arc) return arc.properties.title;
   return (sheets.find(s=>s.properties.sheetId===TARGET_GID)
@@ -235,7 +246,8 @@ function pickSheet(sheets){
     const d=new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth()+i, 1));
     keys.push(d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0'));
   }
-  sheets.forEach(s=>{ const d=monthOf(s.properties.title);
+  sheets.forEach(s=>{ if(!isPlanSheet(s.properties.title)) return;
+    const d=monthOf(s.properties.title);
     if(d){ const k=d.y+'-'+String(d.m+1).padStart(2,'0'); if(keys.indexOf(k)<0) keys.push(k); } });
   keys.sort().reverse();
 
@@ -248,7 +260,7 @@ function pickSheet(sheets){
       document.getElementById('month-pick-wrap').style.display='';
       sel.onchange=function(){
         PLAN_KEY=sel.value;
-        try{ localStorage.setItem('dds_plan_month',PLAN_KEY); }catch(e){}
+        try{ sessionStorage.setItem('dds_plan_month',PLAN_KEY); }catch(e){}
         loadData();
       };
     }

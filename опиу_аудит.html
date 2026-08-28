@@ -165,8 +165,11 @@ var LATEN=0, LATE_INFO={};
     for(var i=j-1;i>=0;i--){ if(R[i].ind<t.ind) break;
       if(R[i].ind===t.ind && R[i].kind==='sub'){ h=i; break; } }
     if(h<0) return;
+    /* хватает и одного ребёнка: у «Итого Прочие расходы» он один — «Расходы по КПН».
+       Раньше стояло <2, и этот итог в незакрытых месяцах оставался нулём,
+       из-за чего чистая прибыль за июнь–август получалась завышенной. */
     var kids=[]; for(var i=h+1;i<j;i++) if(R[i].ind===t.ind+3 && R[i].kind!=='sub') kids.push(R[i]);
-    if(kids.length<2) return;
+    if(!kids.length) return;
     for(var q=N-LATEN;q<N;q++){ var s=0; kids.forEach(function(x){ s+=x.v[q]; }); t.v[q]=s; }
   });
   function get(n){ var r=null; R.forEach(function(x){ if(x.n===n) r=x; }); return r; }
@@ -519,7 +522,9 @@ BUILD.stat=function(){
       :function(x,y){return (by==='vol'? y.vol-x.vol : Math.abs(y.s)-Math.abs(x.s));});
     var t='<table><thead><tr><th>Статья</th><th>Динамика</th><th>Итого, ₸</th><th>% выручки</th>'+
           '<th>Медиана</th><th>Пик</th><th>Разброс</th><th>Мес.</th>'+
-          '<th>'+L[N-1]+'</th><th>к пред. мес.</th></tr></thead><tbody>';
+          '<th'+(isLate(N-1)?' style="color:#fbbf24"':'')+'>'+L[N-1]+
+          (isLate(N-1)?'<br><span style="font-weight:600;opacity:.9;font-size:9.5px">не закрыт</span>':'')+
+          '</th><th>к пред. мес.</th></tr></thead><tbody>';
     a.forEach(function(r){
       var mx=Math.max.apply(null,r.v.map(Math.abs))||1;
       var bars='<div class="bars">'+r.v.map(function(x,ix){
@@ -547,7 +552,8 @@ BUILD.stat=function(){
 /* ══ 3. СРАВНЕНИЕ МЕСЯЦЕВ ════════════════════════════════════════ */
 BUILD.cmp=function(){
   var el=document.getElementById('s-cmp');
-  var opts=L.map(function(x,i){return '<option value="'+i+'">'+x+'</option>';}).join('');
+  var opts=L.map(function(x,i){return '<option value="'+i+'">'+x+
+    (isLate(i)?' — не закрыт':'')+'</option>';}).join('');
   el.innerHTML='<div class="card"><div class="card-t">Выберите два месяца</div>'+
     '<div class="card-n">Любая пара, не обязательно соседние. Считается три разницы: '+
     'в тенге, в процентах и в <b>долях выручки (п.п.)</b> — последняя показывает, стало ли '+
@@ -576,6 +582,14 @@ BUILD.cmp=function(){
       h+=kpi(p[0],p[2],fm(b)+' ₸',
         sgn(b-a,fm)+' ₸ · доля '+(rb?pc(b/rb):'—')+' ('+sgn(dpp*100,function(x){return x.toFixed(1);})+' п.п.)');
     });
+    if(isLate(i)||isLate(j)){
+      h+='<div class="note" style="border-left:4px solid #fbbf24;margin-top:2px">'+
+         '⚠ В сравнении участвует незакрытый месяц ('+
+         [i,j].filter(isLate).map(function(x){return L[x];}).join(' и ')+
+         '): данные взяты из iiko, зарплата, налоги и часть административных начислений '+
+         'ещё не проведены. Расходы занижены, прибыль выглядит лучше реальной — '+
+         'выводы по этим колонкам делайте с поправкой.</div>';
+    }
     h+='</div>';
     document.getElementById('ckpi').innerHTML=h;
 
