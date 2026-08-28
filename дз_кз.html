@@ -6,6 +6,7 @@
 <title>ДЗ / КЗ — Фуд завод</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="dz_kz.js" onerror="window.DZ_KZ=null"></script>
+<script src="kz_ana.js?v=1" onerror="window.KZ_ANA=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh}
@@ -107,6 +108,19 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
   .hero,.charts-grid,.coverage,.tables{margin-left:16px;margin-right:16px}
   .tables{padding-left:16px;padding-right:16px}
 }
+
+/* аналитика кредиторки */
+.kz-note{font-size:11.5px;color:#8ea3bd;line-height:1.6;margin:-2px 0 12px}
+.kz-sec{margin-top:20px}
+.kz-sec:first-child{margin-top:0}
+.kz-h{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.kz-h b{font-size:13px;color:#e2e8f0;font-weight:800}
+.kz-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.kz-scroll{overflow-x:auto}
+.a-table td.pos{color:#4ade80}.a-table td.neg{color:#f87171}
+.a-table tfoot td{border-top:1px solid #1e293b;font-weight:800;color:#e2e8f0;padding:8px 10px}
+.a-table tfoot td.r{text-align:right;font-variant-numeric:tabular-nums}
+.kz-mut{color:#64748b;font-size:11px}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
 </head>
@@ -202,6 +216,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
       <div class="atab active" onclick="showAtab('mismatch',this)">⚠️ Нестыковки</div>
       <div class="atab" onclick="showAtab('consign',this)">📅 Консигнация</div>
       <div class="atab" onclick="showAtab('shares',this)">🥧 Доли</div>
+      <div class="atab" onclick="showAtab('kzana',this)">🧾 Аналитика КЗ</div>
     </div>
 
     <!-- НЕСТЫКОВКИ -->
@@ -242,6 +257,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
         <thead><tr><th>Контрагент</th><th class="r">Отгрузка</th><th class="r">Доля %</th><th class="r">Оплата</th><th class="r">Доля %</th><th>Перекос</th></tr></thead>
         <tbody id="a-shares-body"></tbody>
       </table>
+    </div>
+
+    <!-- АНАЛИТИКА КРЕДИТОРСКОЙ ЗАДОЛЖЕННОСТИ -->
+    <div id="atab-kzana" class="apanel">
+      <div id="kzana-body"><p class="kz-note">Данные закупа не загрузились — обновите страницу после утренней сборки.</p></div>
     </div>
   </div>
 </div>
@@ -530,6 +550,111 @@ function buildConsign(){
   const op=document.getElementById('c-overpct');
   if(op){const pct=sDz>0?(sOver/sDz*100):0;op.textContent=pct.toFixed(1)+'%';op.className='a-card-val '+(pct<5?'green':pct<20?'yellow':'red');}
 }
+
+/* ═══════════ АНАЛИТИКА КРЕДИТОРСКОЙ ЗАДОЛЖЕННОСТИ ═══════════
+   Данные из закупа: что поступило на склад и что оплачено, понедельно.
+   Разрыв между этими двумя потоками и есть кредиторка — она растёт, когда
+   товара приняли больше, чем заплатили, и падает, когда платим вперёд. */
+(function buildKzAna(){
+  var A=window.KZ_ANA; var box=document.getElementById('kzana-body');
+  if(!A||!box) return;
+  function num(v){ return (v<0?'−':'')+Math.round(Math.abs(v)).toLocaleString('ru-RU'); }
+  function sgn(v){ return (v>0?'+':v<0?'−':'')+Math.round(Math.abs(v)).toLocaleString('ru-RU'); }
+  function sec(color,title,sub,inner){
+    return '<div class="kz-sec"><div class="kz-h"><span class="kz-dot" style="background:'+color+'"></span><b>'+title+'</b></div>'
+      +(sub?'<p class="kz-note">'+sub+'</p>':'')+inner+'</div>';
+  }
+  var W=A.weeks||[], last=W[W.length-1]||{};
+  var tp=W.reduce(function(s,w){return s+w.prihod;},0), to=W.reduce(function(s,w){return s+w.oplata;},0);
+
+  /* 1. Понедельно: поступило ↔ оплачено */
+  var rows=W.map(function(w){
+    return '<tr><td>'+w.label+'</td>'
+      +'<td class="r">'+num(w.prihod)+'</td>'
+      +'<td class="r">'+num(w.oplata)+'</td>'
+      +'<td class="r '+(w.delta>=0?'pos':'neg')+'">'+sgn(w.delta)+'</td>'
+      +'<td class="r '+(w.cum>=0?'pos':'neg')+'">'+sgn(w.cum)+'</td>'
+      +'<td class="r">'+(w.spN==null?'—':w.spN+' <span class="kz-mut">('+num(w.spS)+')</span>')+'</td>'
+      +'<td class="r">'+(w.gpN==null?'—':w.gpN+' <span class="kz-mut">('+num(w.gpS)+')</span>')+'</td></tr>';
+  }).join('');
+  var t1='<div class="kz-scroll"><table class="a-table"><thead><tr><th>Неделя</th><th class="r">Поступило на склад</th>'
+    +'<th class="r">Оплачено</th><th class="r">Разрыв недели</th><th class="r">Накопленный разрыв</th>'
+    +'<th class="r">Взяли сверх нормы</th><th class="r">Пропустили</th></tr></thead><tbody>'+rows+'</tbody>'
+    +'<tfoot><tr><td>ИТОГО</td><td class="r">'+num(tp)+'</td><td class="r">'+num(to)+'</td>'
+    +'<td class="r '+((to-tp)>=0?'pos':'neg')+'">'+sgn(to-tp)+'</td><td class="r '+((to-tp)>=0?'pos':'neg')+'">'+sgn(to-tp)+'</td>'
+    +'<td class="r"></td><td class="r"></td></tr></tfoot></table></div>';
+  var v1=(to-tp)<0
+    ? 'За '+W.length+' недель приняли товара на '+num(tp-to)+' ₸ больше, чем оплатили — ровно на столько выросла кредиторка.'
+    : 'За '+W.length+' недель оплатили на '+num(to-tp)+' ₸ больше, чем приняли товара — долг гасится, часть денег ушла авансом.';
+
+  /* 2. Перекос по поставщикам */
+  var sup=(A.sup||[]).slice(0,15).map(function(r){
+    return '<tr><td>'+r.name+'</td><td class="r">'+num(r.prihod)+'</td><td class="r">'+num(r.oplata)+'</td>'
+      +'<td class="r '+(r.delta>=0?'pos':'neg')+'">'+sgn(r.delta)+'</td><td class="r">'+num(r.debt)+'</td></tr>';
+  }).join('');
+  var t2='<div class="kz-scroll"><table class="a-table"><thead><tr><th>Поставщик</th><th class="r">Поступило</th>'
+    +'<th class="r">Оплачено</th><th class="r">Перекос</th><th class="r">Долг сейчас</th></tr></thead><tbody>'+sup+'</tbody></table></div>';
+
+  /* 3. Кому платим вперёд */
+  var adv=(A.advance||[]).slice(0,12).map(function(r){
+    return '<tr><td>'+r.name+'</td><td class="r">'+num(r.prihod)+'</td><td class="r">'+num(r.oplata)+'</td>'
+      +'<td class="r pos">'+sgn(r.delta)+'</td><td class="r">'+num(r.debt)+'</td></tr>';
+  }).join('');
+  var advSum=(A.advance||[]).reduce(function(s,r){return s+r.delta;},0);
+  var t3=adv? '<div class="kz-scroll"><table class="a-table"><thead><tr><th>Поставщик</th><th class="r">Поступило</th>'
+    +'<th class="r">Оплачено</th><th class="r">Заплачено вперёд</th><th class="r">Долг</th></tr></thead><tbody>'+adv+'</tbody></table></div>'
+    : '<p class="kz-note">Таких поставщиков нет.</p>';
+
+  /* 4. Заказано выше среднего за 6 месяцев */
+  var ov=(A.over6||[]).map(function(r){
+    return '<tr><td>'+r.n+'<div class="kz-mut">'+(r.sup||'')+'</div></td><td class="r">'+num(r.cur)+'</td>'
+      +'<td class="r">'+num(r.avg)+'</td><td class="r">'+r.x+'×</td><td class="r neg">'+num(r.extra)+'</td></tr>';
+  }).join('');
+  var ovSum=(A.over6||[]).reduce(function(s,r){return s+r.extra;},0);
+  var t4=ov? '<div class="kz-scroll"><table class="a-table"><thead><tr><th>Позиция</th><th class="r">'+A.curMonth+'</th>'
+    +'<th class="r">Обычно в месяц</th><th class="r">Во сколько раз</th><th class="r">Сверх обычного</th></tr></thead><tbody>'+ov+'</tbody></table></div>'
+    : '<p class="kz-note">Позиций выше среднего нет.</p>';
+
+  /* 5–6. Последняя полная неделя: всплески и пропуски */
+  var sp=(A.spikes||[]).map(function(r){
+    return '<tr><td>'+r.n+'<div class="kz-mut">'+(r.sup||'')+'</div></td><td class="r">'+num(r.cur)+'</td>'
+      +'<td class="r">'+num(r.med)+'</td><td class="r">'+r.x+'×</td><td class="r neg">'+num(r.extra)+'</td></tr>';
+  }).join('');
+  var t5=sp? '<div class="kz-scroll"><table class="a-table"><thead><tr><th>Позиция</th><th class="r">На неделе</th>'
+    +'<th class="r">Обычно</th><th class="r">Во сколько раз</th><th class="r">Лишку</th></tr></thead><tbody>'+sp+'</tbody></table></div>'
+    : '<p class="kz-note">На этой неделе резких закупок не было.</p>';
+  var gp=(A.gaps||[]).map(function(r){
+    return '<tr><td>'+r.n+'<div class="kz-mut">'+(r.sup||'')+'</div></td><td class="r">'+num(r.med)+'</td>'
+      +'<td class="r">'+r.wk+' из 8</td><td class="r '+(r.stock>0?'':'neg')+'">'+(r.stock>0?num(r.stock):'нет на складе')+'</td></tr>';
+  }).join('');
+  var t6=gp? '<div class="kz-scroll"><table class="a-table"><thead><tr><th>Позиция</th><th class="r">Обычно за неделю</th>'
+    +'<th class="r">Как часто берут</th><th class="r">Остаток сырья</th></tr></thead><tbody>'+gp+'</tbody></table></div>'
+    : '<p class="kz-note">Пропусков нет.</p>';
+
+  /* 7. Замороженный остаток */
+  var fr=(A.frozen||[]).map(function(r){
+    return '<tr><td>'+r.n+'</td><td class="r">'+num(r.sum)+'</td><td class="r">'+r.cov+' нед</td><td class="r">'+r.aq+'</td></tr>';
+  }).join('');
+  var frSum=(A.frozen||[]).reduce(function(s,r){return s+r.sum;},0);
+  var t7=fr? '<div class="kz-scroll"><table class="a-table"><thead><tr><th>Позиция</th><th class="r">Лежит на складе</th>'
+    +'<th class="r">Хватит на</th><th class="r">Берут в неделю</th></tr></thead><tbody>'+fr+'</tbody></table></div>'
+    : '<p class="kz-note">Излишков нет.</p>';
+
+  box.innerHTML =
+    '<p class="kz-note">Источник — закуп из iiko по '+A.through+'. Поступление на склад берётся по накладным, оплата — по платежам поставщикам. Собрано '+A.updated+'.</p>'
+   + sec('#f87171','Понедельно: поступило на склад ↔ оплачено', v1, t1)
+   + sec('#fbbf24','Перекос по поставщикам — кому недоплатили, кому переплатили',
+         'Перекос со знаком плюс — заплатили больше, чем приняли товара. Со знаком минус — приняли товара больше, чем заплатили: это и есть накопленный долг.', t2)
+   + sec('#60a5fa','Неоправданно много оплачено — платим вперёд',
+         'Деньги ушли, товара на эту сумму не поступило, и долга за поставщиком тоже нет. Всего авансом: <b>'+num(advSum)+' ₸</b>.', t3)
+   + sec('#a78bfa','Заказано выше среднего за 6 месяцев',
+         'Сравниваем '+A.curMonth+' со средним за '+(A.baseMonths[0]||'')+' – '+(A.baseMonths[1]||'')+'. Месяц ещё не закрыт, поэтому превышение занижено — реальный перебор больше. Всего сверх обычного: <b>'+num(ovSum)+' ₸</b>.', t4)
+   + sec('#fb923c','Взяли сверх обычного за неделю '+A.lastWeek, 'Сравнение с медианой предыдущих 8 недель по каждой позиции.', t5)
+   + sec('#22d3ee','Пропустили за неделю '+A.lastWeek,
+         'Позиции, которые берут почти каждую неделю, но на этой не купили вовсе. Если остатка нет — цех встанет или будет докупать срочно и дороже.', t6)
+   + sec('#34d399','Замороженные остатки сырья', 'Хватит больше чем на 3 недели вперёд. Всего лежит: <b>'+num(frSum)+' ₸</b>.', t7);
+})();
+
 </script>
 </body>
 </html>
