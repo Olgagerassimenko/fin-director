@@ -6,6 +6,7 @@
 <title>Аудит ОПиУ 2025–2026 — Фуд завод</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="opiu_audit.js?v=1" onerror="window.OPIU_AUDIT=null"></script>
+<script src="opiu_rev.js" onerror="window.OPIU_REV=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh;font-size:13px}
@@ -229,6 +230,9 @@ BUILD.svod=function(){
   });
   h+='</tbody></table></div>';
 
+  /* сверка выручки с iiko — два независимых источника должны сходиться */
+  h+=reconcile();
+
   /* полная таблица ОПиУ */
   h+='<div class="card"><div class="card-t">ОПиУ помесячно</div>'+
      '<div class="card-n">Все статьи как в бухгалтерском отчёте. '+
@@ -268,6 +272,44 @@ BUILD.svod=function(){
   tog('m-abs','m-sh',function(){mode='abs';}); tog('m-sh','m-abs',function(){mode='sh';});
   tog('m-all','m-top',function(){only=false;}); tog('m-top','m-all',function(){only=true;});
 };
+
+/* Сверка выручки бухгалтерского ОПиУ с выручкой, которую iiko отдаёт напрямую.
+   Два независимых источника: если они расходятся — либо после закрытия месяца
+   делали корректировку, либо часть выручки в бухучёте лежит не на том счёте. */
+function reconcile(){
+  var REV=window.OPIU_REV;
+  if(!REV) return '';
+  var tr=byName['Торговая выручка'], it=byName['Итого Выручка'];
+  if(!tr||!it) return '';
+  var rows=[];
+  for(var i=0;i<N;i++){
+    var r=REV[M[i]];
+    if(!r||!r.trade) continue;
+    if(r.through && r.through < M[i]+'-28') continue;   // месяц ещё не добран
+    rows.push({m:M[i],l:L[i],x:tr.v[i],k:r.trade,d:tr.v[i]-r.trade});
+  }
+  if(!rows.length) return '';
+  var bad=rows.filter(function(r){return Math.abs(r.d)>50000;});
+  var t='<div class="card"><div class="card-t">Сверка выручки: бухгалтерия против iiko</div>'+
+    '<div class="card-n">Слева — «Торговая выручка» из бухгалтерского ОПиУ, справа — то же самое, '+
+    'посчитанное напрямую в iiko. Источники независимы, поэтому расхождение — это либо корректировка '+
+    'после закрытия месяца, либо выручка, ушедшая не на тот счёт. '+
+    (bad.length? '<b style="color:#fbbf24">Расходятся '+bad.length+' из '+rows.length+' месяцев.</b>'
+               : '<b class="ok">Все '+rows.length+' месяцев сходятся.</b>')+'</div>'+
+    '<div class="tw"><table><thead><tr><th>Месяц</th><th>ОПиУ (бухгалтерия)</th><th>iiko</th>'+
+    '<th>Разница, ₸</th><th>Разница, %</th><th style="text-align:left">Вывод</th>'+
+    '</tr></thead><tbody>';
+  rows.forEach(function(r){
+    var big=Math.abs(r.d)>50000;
+    t+='<tr><td>'+r.l+'</td><td class="n">'+f0(r.x)+'</td><td class="n">'+f0(r.k)+'</td>'+
+       '<td class="n"><span class="'+(big?'neg':'mut')+'">'+(r.d>0?'+':'')+f0(r.d)+'</span></td>'+
+       '<td class="n mut">'+(r.k?(r.d/r.k*100).toFixed(2)+'%':'—')+'</td>'+
+       '<td style="text-align:left;white-space:normal">'+
+       (big? '<span class="neg">разошлись на '+fm(Math.abs(r.d))+' ₸ — поднять корректировки за месяц</span>'
+           : '<span class="ok">сходится</span>')+'</td></tr>';
+  });
+  return t+'</tbody></table></div></div>';
+}
 
 function kpi(l,c,v,s){
   return '<div class="kpi" style="--k:'+c+'"><div class="kpi-l">'+l+'</div>'+
