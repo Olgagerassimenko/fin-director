@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Аудит ОПиУ 2025–2026 — Фуд завод</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="opiu_audit.js?v=1" onerror="window.OPIU_AUDIT=null"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh;font-size:13px}
+
+.hdr{display:flex;align-items:center;gap:10px;padding:14px 28px;border-bottom:1px solid #24304d;flex-wrap:wrap}
+.back{font-size:12px;color:#9db0c9;text-decoration:none;padding:5px 10px;border:1px solid #24304d;border-radius:8px;transition:all .15s}
+.back:hover{color:#a78bfa;border-color:#7c3aed}
+.hdr-title{font-size:16px;font-weight:800;margin-left:6px}
+.hdr-sub{font-size:11px;color:#7e91ad}
+.hdr-badge{margin-left:auto;font-size:12px;font-weight:700;color:#04160e;background:#22e08a;border-radius:20px;padding:6px 14px}
+
+.wrap{max-width:1500px;margin:0 auto;padding:18px 22px 60px}
+
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}
+.tab{padding:8px 16px;border-radius:9px;border:1px solid #2b3757;background:#1f2b47;color:#9db0c9;
+  cursor:pointer;font-weight:700;font-size:12px;font-family:inherit;transition:all .15s}
+.tab:hover{color:#c4b5fd;border-color:#5b4a9e}
+.tab.active{background:#7c3aed;color:#fff;border-color:#7c3aed}
+.sec{display:none}.sec.active{display:block}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px;margin-bottom:16px}
+.kpi{background:#1f2b47;border:1px solid #2b3757;border-radius:12px;padding:13px 15px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--k,#7c3aed)}
+.kpi-l{font-size:10px;font-weight:700;color:#7e91ad;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.kpi-v{font-size:20px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}
+.kpi-s{font-size:10.5px;color:#8fa2bd;margin-top:4px;line-height:1.4}
+
+.card{background:#1f2b47;border:1px solid #2b3757;border-radius:13px;padding:16px 18px;margin-bottom:14px}
+.card-t{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:#9db0c9;margin-bottom:4px}
+.card-n{font-size:11.5px;color:#7e91ad;margin-bottom:13px;line-height:1.5}
+
+.tw{overflow-x:auto;max-height:74vh;overflow-y:auto;border-radius:9px}
+table{border-collapse:collapse;width:100%;font-size:11.5px}
+th{background:#182342;padding:7px 8px;text-align:right;font-weight:700;color:#9db0c9;white-space:nowrap;
+  position:sticky;top:0;z-index:3;border-bottom:1px solid #2b3757;font-size:10.5px}
+th:first-child{text-align:left;position:sticky;left:0;z-index:4;min-width:250px}
+td{padding:5px 8px;border-bottom:1px solid #223052;color:#cbd5e1;white-space:nowrap}
+td:first-child{text-align:left;position:sticky;left:0;background:#1f2b47;z-index:1;white-space:normal;min-width:250px}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+tr:hover td{background:#243254}
+tr:hover td:first-child{background:#243254}
+tr.sub td{font-weight:700;color:#a5b4cd;background:#1b2540;font-size:11px}
+tr.sub td:first-child{background:#1b2540}
+tr.tot td{font-weight:800;color:#e9d5ff;background:#2a2350;border-top:1px solid #4c3d8f}
+tr.tot td:first-child{background:#2a2350}
+tr.grand td{font-weight:900;color:#fff;background:#3b2f6e;font-size:12.5px}
+tr.grand td:first-child{background:#3b2f6e}
+.pos{color:#34d399}.neg{color:#f87171}.mut{color:#64748b}
+
+.ctl{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+select,input[type=search]{background:#182342;color:#e2e8f0;border:1px solid #2b3757;border-radius:8px;
+  padding:7px 11px;font-size:12px;font-family:inherit;font-weight:600}
+select:focus,input:focus{outline:none;border-color:#7c3aed}
+.lbl{font-size:11px;color:#7e91ad;font-weight:700}
+.chip{padding:5px 11px;border-radius:16px;border:1px solid #2b3757;background:#1f2b47;color:#9db0c9;
+  cursor:pointer;font-size:11px;font-weight:700;font-family:inherit}
+.chip:hover{border-color:#5b4a9e;color:#c4b5fd}
+.chip.on{background:#7c3aed;color:#fff;border-color:#7c3aed}
+
+.chart{position:relative;height:270px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:1000px){.g2{grid-template-columns:1fr}}
+
+.find{border:1px solid #2b3757;border-left-width:4px;border-radius:11px;padding:13px 15px;margin-bottom:9px;background:#1f2b47}
+.find.s2{border-left-color:#f87171}
+.find.s1{border-left-color:#fbbf24}
+.find-h{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;margin-bottom:5px}
+.find-a{font-weight:800;font-size:12.5px;color:#f1f5f9}
+.find-t{font-size:10px;font-weight:700;padding:2px 8px;border-radius:11px;background:#2b3757;color:#a5b4cd;text-transform:uppercase;letter-spacing:.05em}
+.find-m{font-size:10.5px;color:#7e91ad;margin-left:auto;font-weight:700}
+.find-ti{font-size:12px;font-weight:700;color:#c4b5fd;margin-bottom:4px}
+.find-d{font-size:12px;color:#b6c4d8;line-height:1.6}
+.find-s{font-size:11px;color:#fbbf24;font-weight:700;margin-top:5px}
+
+.bars{display:flex;gap:1.5px;align-items:flex-end;height:26px}
+.bar{flex:1;background:#4c3d8f;border-radius:1px 1px 0 0;min-height:1px}
+.bar.hi{background:#f87171}
+
+.note{background:#182342;border:1px solid #2b3757;border-radius:10px;padding:11px 14px;font-size:11.5px;
+  color:#9db0c9;line-height:1.6;margin-bottom:13px}
+.ok{color:#34d399;font-weight:700}
+.empty{padding:34px;text-align:center;color:#64748b;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <a class="back" href="index.html">← Назад</a>
+  <div>
+    <div class="hdr-title">🔍 Аудит ОПиУ 2025–2026</div>
+    <div class="hdr-sub">постатейно · сравнение месяцев · проверка разносок</div>
+  </div>
+  <div class="hdr-badge" id="upd">—</div>
+</div>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab active" data-s="svod">📊 Свод</button>
+    <button class="tab" data-s="stat">🧾 Постатейно</button>
+    <button class="tab" data-s="cmp">⚖️ Сравнение месяцев</button>
+    <button class="tab" data-s="audit">🔍 Аудит разносок</button>
+    <button class="tab" data-s="god">📈 Год</button>
+  </div>
+
+  <div class="sec active" id="s-svod"></div>
+  <div class="sec" id="s-stat"></div>
+  <div class="sec" id="s-cmp"></div>
+  <div class="sec" id="s-audit"></div>
+  <div class="sec" id="s-god"></div>
+</div>
+
+<script>
+(function(){
+var D=window.OPIU_AUDIT;
+if(!D){document.querySelector('.wrap').innerHTML='<div class="empty">⚠ Нет данных: не загрузился opiu_audit.js</div>';return;}
+
+var M=D.months,L=D.labels,R=D.rows,K=D.kpi,N=M.length;
+document.getElementById('upd').textContent='обновлено '+D.updated;
+
+/* ── форматирование ───────────────────────────────────────────── */
+function f0(x){ if(x===null||x===undefined) return '—';
+  return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+function fm(x){ var a=Math.abs(x);
+  if(a>=1e9) return (x/1e9).toFixed(2)+' млрд';
+  if(a>=1e6) return (x/1e6).toFixed(1)+' млн';
+  if(a>=1e3) return (x/1e3).toFixed(0)+' тыс';
+  return Math.round(x).toString(); }
+function pc(x){ return (x*100).toFixed(1)+'%'; }
+function sgn(x,fn){ var s=(x>0?'+':'')+ (fn||f0)(x); return '<span class="'+(x>0?'pos':x<0?'neg':'mut')+'">'+s+'</span>'; }
+function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+var LINES=R.filter(function(r){return r.kind==='line';});
+var byName={}; R.forEach(function(r){byName[r.n]=r;});
+function sum(a){ return a.reduce(function(s,x){return s+x;},0); }
+
+/* ── вкладки ──────────────────────────────────────────────────── */
+var built={};
+document.querySelectorAll('.tab').forEach(function(b){
+  b.onclick=function(){
+    document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});
+    document.querySelectorAll('.sec').forEach(function(x){x.classList.remove('active');});
+    b.classList.add('active');
+    var id=b.dataset.s;
+    document.getElementById('s-'+id).classList.add('active');
+    if(!built[id]){ built[id]=1; BUILD[id](); }
+  };
+});
+
+/* ══ 1. СВОД ═════════════════════════════════════════════════════ */
+var BUILD={};
+BUILD.svod=function(){
+  var el=document.getElementById('s-svod'),h='';
+  var lp=D.lp, y=D.years;
+
+  /* KPI: сопоставимый период */
+  if(lp){
+    var a=lp.a,b=lp.b;
+    function d(k){ return b[k]-a[k]; }
+    function marg(o){ return o.rev? o.gross/o.rev : 0; }
+    h+='<div class="note">Сравниваются <b>одинаковые '+lp.mm+' мес.</b>: январь–'+
+       L[M.indexOf(y[1].to)].split(' ')[0]+' 2026 против тех же месяцев 2025. '+
+       'Так период к периоду сопоставим — неполный год не занижает цифры.</div>';
+    h+='<div class="kpis">';
+    h+=kpi('Выручка','#38bdf8',fm(b.rev)+' ₸',
+        sgn(d('rev'),fm)+' ₸ к 2025 · '+sgn(d('rev')/a.rev*100,function(x){return x.toFixed(1);})+'%');
+    h+=kpi('Валовая прибыль','#34d399',fm(b.gross)+' ₸',
+        pc(marg(b))+' выручки (было '+pc(marg(a))+') · '+sgn(d('gross'),fm)+' ₸');
+    h+=kpi('Себестоимость','#fbbf24',pc(b.cogs/b.rev)+' выручки',
+        'было '+pc(a.cogs/a.rev)+' · '+sgn((b.cogs/b.rev-a.cogs/a.rev)*100,function(x){return x.toFixed(1);})+' п.п.');
+    h+=kpi('Расходы периода','#f472b6',fm(b.opex)+' ₸',
+        pc(b.opex/b.rev)+' выручки (было '+pc(a.opex/a.rev)+') · '+sgn(d('opex'),fm)+' ₸');
+    h+=kpi('Операционная прибыль',b.oper>=0?'#34d399':'#f87171',fm(b.oper)+' ₸',
+        'было '+fm(a.oper)+' ₸ · '+sgn(d('oper'),fm)+' ₸');
+    h+=kpi('Чистая прибыль',b.net>=0?'#34d399':'#f87171',fm(b.net)+' ₸',
+        'было '+fm(a.net)+' ₸ · '+sgn(d('net'),fm)+' ₸');
+    h+='</div>';
+
+    /* где именно потеряли */
+    var dg=d('gross'), dop=d('opex');
+    h+='<div class="card"><div class="card-t">Что произошло с прибылью</div>'+
+       '<div class="card-n">Разложение изменения операционной прибыли на две причины: '+
+       'сколько дала валовая прибыль и сколько забрали расходы периода.</div>'+
+       '<table><thead><tr><th>Причина</th><th>Сумма, ₸</th><th>Комментарий</th></tr></thead><tbody>'+
+       '<tr><td>Валовая прибыль</td><td class="n">'+sgn(dg)+'</td><td style="text-align:left;white-space:normal">'+
+       (dg>=0?'выручка и себестоимость сработали в плюс':'выручка выросла слабее себестоимости')+'</td></tr>'+
+       '<tr><td>Расходы периода (коммерческие + АУП)</td><td class="n">'+sgn(-dop)+'</td>'+
+       '<td style="text-align:left;white-space:normal">расходы '+(dop>0?'выросли на '+fm(dop)+' ₸ — это прямой минус прибыли':'снизились')+'</td></tr>'+
+       '<tr class="grand"><td>Итого изменение операционной прибыли</td><td class="n">'+sgn(d('oper'))+'</td><td></td></tr>'+
+       '</tbody></table></div>';
+  }
+
+  /* итоги по годам */
+  h+='<div class="card"><div class="card-t">Годы целиком</div>'+
+     '<div class="card-n">2026 — неполный год, поэтому сравнивать его итог с 2025 напрямую нельзя. '+
+     'Сопоставимое сравнение — в карточках выше.</div><table><thead><tr>'+
+     '<th>Показатель</th>'+y.map(function(o){return '<th>'+o.y+' ('+o.n+' мес.)</th><th>% выручки</th>';}).join('')+
+     '</tr></thead><tbody>';
+  [['Выручка','rev'],['Себестоимость','cogs'],['Валовая прибыль','gross'],
+   ['Расходы периода','opex'],['Операционная прибыль','oper'],['Чистая прибыль','net']].forEach(function(p,i){
+    h+='<tr'+(p[1]==='net'?' class="grand"':(p[1]==='gross'||p[1]==='oper')?' class="tot"':'')+'><td>'+p[0]+'</td>'+
+       y.map(function(o){ return '<td class="n">'+f0(o[p[1]])+'</td><td class="n mut">'+pc(o[p[1]]/o.rev)+'</td>';}).join('')+'</tr>';
+  });
+  h+='</tbody></table></div>';
+
+  /* полная таблица ОПиУ */
+  h+='<div class="card"><div class="card-t">ОПиУ помесячно</div>'+
+     '<div class="card-n">Все статьи как в бухгалтерском отчёте. '+
+     'Переключатель показывает либо тенге, либо долю в выручке месяца — второе честнее '+
+     'сравнивает месяцы с разной выручкой.</div>'+
+     '<div class="ctl"><span class="lbl">Показать:</span>'+
+     '<button class="chip on" id="m-abs">₸</button><button class="chip" id="m-sh">% выручки</button>'+
+     '<span class="lbl" style="margin-left:12px">Строки:</span>'+
+     '<button class="chip on" id="m-all">все</button><button class="chip" id="m-top">только итоги</button></div>'+
+     '<div class="tw" id="pnl"></div></div>';
+
+  el.innerHTML=h;
+
+  var mode='abs',only=false;
+  function pnl(){
+    var t='<table><thead><tr><th>Статья</th>'+L.map(function(x){return '<th>'+x+'</th>';}).join('')+
+          '<th style="background:#2a2350;color:#e9d5ff">Итого</th></tr></thead><tbody>';
+    R.forEach(function(r){
+      if(only && r.kind==='line') return;
+      var cls=r.kind==='grand'?'grand':r.kind==='total'?'tot':r.kind==='sub'?'sub':'';
+      t+='<tr class="'+cls+'"><td>'+esc(r.n)+'</td>';
+      if(r.kind==='sub'){ t+='<td colspan="'+(N+1)+'"></td></tr>'; return; }
+      for(var i=0;i<N;i++){
+        var v=r.v[i];
+        t+='<td class="n">'+(mode==='abs'? (v?f0(v):'<span class="mut">—</span>')
+            : (K.rev[i]? (v/K.rev[i]*100).toFixed(1)+'%':'—'))+'</td>';
+      }
+      var s=sum(r.v);
+      t+='<td class="n" style="background:#242e4e;font-weight:700">'+
+         (mode==='abs'? f0(s) : (sum(K.rev)? (s/sum(K.rev)*100).toFixed(1)+'%':'—'))+'</td></tr>';
+    });
+    document.getElementById('pnl').innerHTML=t+'</tbody></table>';
+  }
+  pnl();
+  function tog(a,b,fn){ document.getElementById(a).onclick=function(){
+      document.getElementById(a).classList.add('on');document.getElementById(b).classList.remove('on');fn();pnl(); }; }
+  tog('m-abs','m-sh',function(){mode='abs';}); tog('m-sh','m-abs',function(){mode='sh';});
+  tog('m-all','m-top',function(){only=false;}); tog('m-top','m-all',function(){only=true;});
+};
+
+function kpi(l,c,v,s){
+  return '<div class="kpi" style="--k:'+c+'"><div class="kpi-l">'+l+'</div>'+
+         '<div class="kpi-v" style="color:'+c+'">'+v+'</div><div class="kpi-s">'+s+'</div></div>';
+}
+
+/* ══ 2. ПОСТАТЕЙНО ═══════════════════════════════════════════════ */
+BUILD.stat=function(){
+  var el=document.getElementById('s-stat');
+  var rows=LINES.filter(function(r){return r.n!=='Торговая выручка'&&r.n!=='Выручка';}).map(function(r){
+    var s=sum(r.v), nz=r.v.filter(function(x){return x;});
+    var av=nz.length? s/nz.length : 0;
+    var srt=nz.slice().sort(function(a,b){return a-b;});
+    var med=srt.length? (srt.length%2? srt[(srt.length-1)/2] : (srt[srt.length/2-1]+srt[srt.length/2])/2) : 0;
+    var mx=Math.max.apply(null,r.v), mn=Math.min.apply(null,r.v);
+    var peak=r.v.reduce(function(p,x){return Math.abs(x)>Math.abs(p)?x:p;},0);
+    var last=r.v[N-1], prev=r.v[N-2];
+    return {n:r.n,v:r.v,s:s,av:av,med:med,peak:peak,inc:r.inc,fill:nz.length,
+            sh:sum(K.rev)? s/sum(K.rev):0,
+            vol: med? (mx-mn)/Math.abs(med) : 0,
+            last:last, dm: last-prev};
+  });
+
+  el.innerHTML='<div class="note">Каждая статья за все '+N+' месяцев. '+
+    '<b>Разброс</b> = (максимум − минимум) ÷ медиана: чем он выше, тем менее предсказуема статья '+
+    'и тем вероятнее, что внутри неё сидят разовые проводки. '+
+    '<b>Мес.</b> — в скольких месяцах из '+N+' статья вообще была.</div>'+
+    '<div class="card"><div class="ctl">'+
+    '<input type="search" id="q" placeholder="поиск по статье…" style="min-width:230px">'+
+    '<span class="lbl">Сортировка:</span><select id="srt">'+
+    '<option value="s">по сумме</option><option value="vol">по разбросу</option>'+
+    '<option value="dm">по изменению за последний месяц</option><option value="n">по названию</option>'+
+    '</select></div><div class="tw" id="stbl"></div></div>';
+
+  function draw(){
+    var q=document.getElementById('q').value.trim().toLowerCase();
+    var by=document.getElementById('srt').value;
+    var a=rows.filter(function(r){return !q||r.n.toLowerCase().indexOf(q)>=0;});
+    a.sort(by==='n'?function(x,y){return x.n.localeCompare(y.n);}
+      :by==='dm'?function(x,y){return Math.abs(y.dm)-Math.abs(x.dm);}
+      :function(x,y){return (by==='vol'? y.vol-x.vol : Math.abs(y.s)-Math.abs(x.s));});
+    var t='<table><thead><tr><th>Статья</th><th>Динамика</th><th>Итого, ₸</th><th>% выручки</th>'+
+          '<th>Медиана</th><th>Пик</th><th>Разброс</th><th>Мес.</th>'+
+          '<th>'+L[N-1]+'</th><th>к пред. мес.</th></tr></thead><tbody>';
+    a.forEach(function(r){
+      var mx=Math.max.apply(null,r.v.map(Math.abs))||1;
+      var bars='<div class="bars">'+r.v.map(function(x,ix){
+        var hh=Math.max(1,Math.round(Math.abs(x)/mx*26));
+        return '<div class="bar'+(Math.abs(x)>=mx*0.999?' hi':'')+'" style="height:'+hh+'px" title="'+
+               L[ix]+': '+f0(x)+'"></div>';}).join('')+'</div>';
+      /* для расхода снижение — хорошо, для дохода наоборот */
+      var good = r.dm===0? 0 : (r.inc ? r.dm>0 : r.dm<0);
+      t+='<tr><td>'+esc(r.n)+'</td><td style="min-width:130px">'+bars+'</td>'+
+         '<td class="n">'+f0(r.s)+'</td><td class="n">'+pc(r.sh)+'</td>'+
+         '<td class="n mut">'+f0(r.med)+'</td><td class="n">'+f0(r.peak)+'</td>'+
+         '<td class="n '+(r.vol>3?'neg':r.vol>1.5?'':'mut')+'">'+(r.vol?r.vol.toFixed(1)+'×':'—')+'</td>'+
+         '<td class="n mut">'+r.fill+'/'+N+'</td>'+
+         '<td class="n">'+f0(r.last)+'</td>'+
+         '<td class="n"><span class="'+(r.dm===0?'mut':good?'pos':'neg')+'">'+
+         (r.dm>0?'+':'')+f0(r.dm)+'</span></td></tr>';
+    });
+    document.getElementById('stbl').innerHTML=t+'</tbody></table>';
+  }
+  document.getElementById('q').oninput=draw;
+  document.getElementById('srt').onchange=draw;
+  draw();
+};
+
+/* ══ 3. СРАВНЕНИЕ МЕСЯЦЕВ ════════════════════════════════════════ */
+BUILD.cmp=function(){
+  var el=document.getElementById('s-cmp');
+  var opts=L.map(function(x,i){return '<option value="'+i+'">'+x+'</option>';}).join('');
+  el.innerHTML='<div class="card"><div class="card-t">Выберите два месяца</div>'+
+    '<div class="card-n">Любая пара, не обязательно соседние. Считается три разницы: '+
+    'в тенге, в процентах и в <b>долях выручки (п.п.)</b> — последняя показывает, стало ли '+
+    'дороже <i>по сути</i>, а не просто из-за другого объёма продаж.</div>'+
+    '<div class="ctl"><span class="lbl">База:</span><select id="ca">'+opts+'</select>'+
+    '<span class="lbl">Сравнить с:</span><select id="cb">'+opts+'</select>'+
+    '<button class="chip" id="cprev">← предыдущий месяц</button>'+
+    '<button class="chip" id="cyoy">↔ тот же месяц год назад</button></div>'+
+    '<div id="ckpi"></div></div>'+
+    '<div class="card"><div class="card-t">Постатейно: кто дал разницу</div>'+
+    '<div class="card-n">Отсортировано по влиянию на прибыль. Красное — стало хуже, зелёное — лучше.</div>'+
+    '<div class="tw" id="ctbl"></div></div>';
+
+  var A=document.getElementById('ca'),B=document.getElementById('cb');
+  A.value=N-2; B.value=N-1;
+
+  function draw(){
+    var i=+A.value,j=+B.value;
+    var ra=K.rev[i],rb=K.rev[j];
+    var h='<div class="kpis">';
+    h+=kpi('Выручка','#38bdf8',fm(rb)+' ₸',L[i]+': '+fm(ra)+' ₸ · '+sgn(rb-ra,fm)+' ₸');
+    [['Себестоимость','cogs','#fbbf24'],['Валовая прибыль','gross','#34d399'],
+     ['Расходы периода','opex','#f472b6'],['Чистая прибыль','net','#a78bfa']].forEach(function(p){
+      var a=K[p[1]][i],b=K[p[1]][j];
+      var dpp=(rb?b/rb:0)-(ra?a/ra:0);
+      h+=kpi(p[0],p[2],fm(b)+' ₸',
+        sgn(b-a,fm)+' ₸ · доля '+(rb?pc(b/rb):'—')+' ('+sgn(dpp*100,function(x){return x.toFixed(1);})+' п.п.)');
+    });
+    h+='</div>';
+    document.getElementById('ckpi').innerHTML=h;
+
+    var arr=LINES.filter(function(r){return r.n!=='Торговая выручка'&&r.n!=='Выручка';}).map(function(r){
+      var a=r.v[i],b=r.v[j];
+      return {n:r.n,a:a,b:b,d:b-a,inc:r.inc,
+              p: a? (b-a)/Math.abs(a) : (b?null:0),
+              pp: (rb?b/rb:0)-(ra?a/ra:0)};
+    }).filter(function(r){return r.a||r.b;});
+    arr.sort(function(x,y){return Math.abs(y.d)-Math.abs(x.d);});
+
+    var t='<table><thead><tr><th>Статья</th><th>'+L[i]+'</th><th>'+L[j]+'</th>'+
+      '<th>Разница, ₸</th><th>%</th><th>Доля '+L[i]+'</th><th>Доля '+L[j]+'</th><th>Δ п.п.</th>'+
+      '<th style="text-align:left">Что это значит</th></tr></thead><tbody>';
+    arr.forEach(function(r){
+      /* для расхода рост = минус прибыли, для дохода наоборот */
+      var worse = r.inc ? r.d<0 : r.d>0;
+      var why = (!r.a&&r.b) ? '<span class="'+(r.inc?'pos':'neg')+'">статьи не было — появилась на '+fm(r.b)+' ₸</span>'
+        : (r.a&&!r.b) ? '<span class="'+(r.inc?'neg':'mut')+'">была '+fm(r.a)+' ₸ — стала ноль; проверьте, не переехала ли на другой счёт</span>'
+        : Math.abs(r.pp)<0.002 ? '<span class="mut">двигалась вместе с выручкой</span>'
+        : r.inc ? (r.pp>0 ? '<span class="pos">доход вырос на '+fm(r.pp*rb)+' ₸ сверх роста выручки</span>'
+                          : '<span class="neg">доход просел на '+fm(-r.pp*rb)+' ₸ относительно выручки</span>')
+        : (r.pp>0 ? '<span class="neg">дороже на '+fm(r.pp*rb)+' ₸ сверх роста выручки</span>'
+                  : '<span class="pos">дешевле на '+fm(-r.pp*rb)+' ₸ относительно выручки</span>');
+      t+='<tr><td>'+esc(r.n)+'</td><td class="n">'+f0(r.a)+'</td><td class="n">'+f0(r.b)+'</td>'+
+         '<td class="n"><span class="'+(r.d===0?'mut':worse?'neg':'pos')+'">'+(r.d>0?'+':'')+f0(r.d)+'</span></td>'+
+         '<td class="n mut">'+(r.p===null?'новая':(r.p*100).toFixed(0)+'%')+'</td>'+
+         '<td class="n mut">'+(ra?(r.a/ra*100).toFixed(2)+'%':'—')+'</td>'+
+         '<td class="n mut">'+(rb?(r.b/rb*100).toFixed(2)+'%':'—')+'</td>'+
+         '<td class="n">'+sgn(r.pp*100,function(x){return x.toFixed(2);})+'</td>'+
+         '<td style="text-align:left;white-space:normal;min-width:230px">'+why+'</td></tr>';
+    });
+    document.getElementById('ctbl').innerHTML=t+'</tbody></table>';
+  }
+  A.onchange=draw; B.onchange=draw;
+  document.getElementById('cprev').onclick=function(){
+    var j=+B.value; if(j>0){A.value=j-1;draw();} };
+  document.getElementById('cyoy').onclick=function(){
+    var j=+B.value, mm=M[j].slice(5), y=+M[j].slice(0,4)-1;
+    var k=M.indexOf(y+'-'+mm); if(k>=0){A.value=k;draw();} };
+  draw();
+};
+
+/* ══ 4. АУДИТ РАЗНОСОК ═══════════════════════════════════════════ */
+var TYPE={shift:'перенос периода',zero:'пропуск месяца',spike:'всплеск',sign:'знак',
+  round:'ровная сумма',stopped:'статья прекратилась',started:'статья появилась',
+  drift:'дрейф доли',mirror:'зеркальная пара',foot:'итог не сходится',class:'классификация'};
+
+BUILD.audit=function(){
+  var el=document.getElementById('s-audit'),F=D.findings;
+  var cnt={}; F.forEach(function(f){cnt[f.t]=(cnt[f.t]||0)+1;});
+  var s2=F.filter(function(f){return f.sev===2;}).length;
+
+  var h='<div class="note">Проверка сделана по бухгалтерскому ОПиУ за '+N+' месяцев '+
+    '(с '+L[0]+' по '+L[N-1]+'). Ищутся типовые следы неверной разноски: расход, попавший не в свой месяц; '+
+    'разовые всплески; минусы в расходных статьях; ровные «оценочные» суммы; статьи, которые начались '+
+    'или закончились посреди периода. <b>Это не приговор, а список того, что стоит открыть в первичке.</b></div>';
+
+  h+='<div class="kpis">';
+  h+=kpi('Замечаний всего','#a78bfa',F.length,'из них '+s2+' требуют проверки в первую очередь');
+  h+=kpi('Свод сходится',D.foot.ok===D.foot.all?'#34d399':'#f87171',
+      D.foot.ok+' / '+D.foot.all,
+      D.foot.ok===D.foot.all
+        ? 'все итоги равны сумме своих строк — арифметика отчёта чистая'
+        : 'есть итоги, не равные сумме строк — смотрите замечания «итог не сходится»');
+  h+=kpi('Сумма под вопросом','#fbbf24',
+      fm(F.filter(function(f){return f.sev===2;}).reduce(function(s,f){return s+f.s;},0))+' ₸',
+      'совокупный размер отклонений по красным замечаниям');
+  h+='</div>';
+
+  h+='<div class="card"><div class="ctl"><span class="lbl">Фильтр:</span>'+
+     '<button class="chip on" data-f="">все ('+F.length+')</button>'+
+     '<button class="chip" data-f="!2">только красные ('+s2+')</button>'+
+     Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a];}).map(function(k){
+       return '<button class="chip" data-f="'+k+'">'+TYPE[k]+' ('+cnt[k]+')</button>';}).join('')+
+     '</div><div id="flist"></div></div>';
+  el.innerHTML=h;
+
+  function list(fl){
+    var a=F.filter(function(f){return !fl? true : fl==='!2'? f.sev===2 : f.t===fl;});
+    document.getElementById('flist').innerHTML = a.length? a.map(function(f){
+      return '<div class="find s'+f.sev+'"><div class="find-h">'+
+        '<span class="find-a">'+esc(f.a)+'</span>'+
+        '<span class="find-t">'+(TYPE[f.t]||f.t)+'</span>'+
+        '<span class="find-m">'+(L[M.indexOf(f.m)]||f.m)+'</span></div>'+
+        '<div class="find-ti">'+esc(f.h)+'</div>'+
+        '<div class="find-d">'+esc(f.d)+'</div>'+
+        (f.s? '<div class="find-s">Величина отклонения: '+fm(f.s)+' ₸</div>':'')+'</div>';
+    }).join('') : '<div class="empty">Замечаний этого типа нет</div>';
+  }
+  list('');
+  el.querySelectorAll('.chip').forEach(function(c){
+    c.onclick=function(){ el.querySelectorAll('.chip').forEach(function(x){x.classList.remove('on');});
+      c.classList.add('on'); list(c.dataset.f); };
+  });
+};
+
+/* ══ 5. ГОД ══════════════════════════════════════════════════════ */
+BUILD.god=function(){
+  var el=document.getElementById('s-god');
+  el.innerHTML='<div class="note">Весь доступный период одним взглядом: '+L[0]+' — '+L[N-1]+'. '+
+    'Верхний график — деньги, нижний — структура: сколько процентов выручки съедает каждый блок.</div>'+
+    '<div class="card"><div class="card-t">Выручка, валовая и чистая прибыль</div><div class="chart"><canvas id="c1"></canvas></div></div>'+
+    '<div class="g2">'+
+    '<div class="card"><div class="card-t">Структура, % выручки</div>'+
+    '<div class="card-n">Белая черта — 100 % выручки. Всё, что выше неё, месяц отработал в убыток.</div>'+
+    '<div class="chart"><canvas id="c2"></canvas></div></div>'+
+    '<div class="card"><div class="card-t">Рентабельность по месяцам</div><div class="chart"><canvas id="c3"></canvas></div></div>'+
+    '</div>';
+  if(typeof Chart==='undefined') return;
+  Chart.defaults.color='#8fa2bd'; Chart.defaults.font.family='Inter,system-ui,sans-serif';
+  var grid={color:'#26324f'};
+
+  new Chart(document.getElementById('c1'),{type:'bar',data:{labels:L,datasets:[
+    {label:'Выручка',data:K.rev,backgroundColor:'#38bdf8aa',order:3},
+    {label:'Валовая прибыль',data:K.gross,backgroundColor:'#34d399aa',order:2},
+    {type:'line',label:'Чистая прибыль',data:K.net,borderColor:'#f472b6',backgroundColor:'#f472b6',
+     borderWidth:2,pointRadius:3,tension:.25,order:1}
+  ]},options:{maintainAspectRatio:false,responsive:true,
+    plugins:{legend:{labels:{boxWidth:12,font:{size:11}}},
+      tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+fm(c.parsed.y)+' ₸';}}}},
+    scales:{y:{grid:grid,ticks:{callback:function(v){return fm(v);}}},x:{grid:{display:false}}}}});
+
+  var mk=function(name,color){ var r=byName[name];
+    return {label:name.replace('Итого ',''),data:r? r.v.map(function(x,i){return K.rev[i]? x/K.rev[i]*100:0;}):[],
+            backgroundColor:color}; };
+  new Chart(document.getElementById('c2'),{type:'bar',data:{labels:L,datasets:[
+    mk('Итого 1.С/с реализованной продукции','#fbbf24cc'),
+    mk('Итого 2.ФОТ Производство','#38bdf8cc'),
+    mk('Итого 3.Арендная плата','#a78bfacc'),
+    mk('Итого 2.Расходы по реализации(папка)','#f472b6cc'),
+    mk('Итого 3.Расходы АДМ','#94a3b8cc')
+  ]},options:{maintainAspectRatio:false,responsive:true,
+    plugins:{legend:{labels:{boxWidth:11,font:{size:10}}},
+      tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y.toFixed(1)+'%';}}}},
+    scales:{x:{stacked:true,grid:{display:false}},
+      y:{stacked:true,grid:grid,ticks:{callback:function(v){return v+'%';}}}}},
+   plugins:[{id:'break-even',afterDatasetsDraw:function(ch){
+      var y=ch.scales.y, a=ch.chartArea, p=y.getPixelForValue(100);
+      if(p<a.top||p>a.bottom) return;
+      var x=ch.ctx; x.save(); x.strokeStyle='#e2e8f0'; x.lineWidth=1.5; x.setLineDash([5,4]);
+      x.beginPath(); x.moveTo(a.left,p); x.lineTo(a.right,p); x.stroke(); x.restore(); }}]});
+
+  new Chart(document.getElementById('c3'),{type:'line',data:{labels:L,datasets:[
+    {label:'Валовая маржа',data:K.gross.map(function(x,i){return K.rev[i]?x/K.rev[i]*100:0;}),
+     borderColor:'#34d399',backgroundColor:'#34d39922',borderWidth:2,fill:true,tension:.25,pointRadius:2},
+    {label:'Чистая маржа',data:K.net.map(function(x,i){return K.rev[i]?x/K.rev[i]*100:0;}),
+     borderColor:'#f472b6',backgroundColor:'#f472b622',borderWidth:2,fill:true,tension:.25,pointRadius:2}
+  ]},options:{maintainAspectRatio:false,responsive:true,
+    plugins:{legend:{labels:{boxWidth:12,font:{size:11}}},
+      tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y.toFixed(1)+'%';}}}},
+    scales:{y:{grid:grid,ticks:{callback:function(v){return v+'%';}}},x:{grid:{display:false}}}}});
+};
+
+built.svod=1; BUILD.svod();
+})();
+</script>
+</body>
+</html>
