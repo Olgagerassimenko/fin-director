@@ -478,15 +478,18 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
   ];
   var box=document.getElementById('quote'),t=document.getElementById('quote-t'),a=document.getElementById('quote-a');
   if(!box||!t||!a)return;
-  /* порядок перемешиваем один раз, дальше идём по кругу — подряд одна и та же не выпадет */
-  for(var i=Q.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var v=Q[i];Q[i]=Q[j];Q[j]=v;}
-  var n=0;
-  function put(){ t.textContent=Q[n][0]; a.textContent='— '+Q[n][1]; n=(n+1)%Q.length; }
+  /* Одна цитата в час. Номер считаем от часа, а не от загрузки страницы:
+     в течение часа цитата одна и та же, меняется ровно в начале следующего часа.
+     Шаг 47 взаимно прост со 135 — список обходится целиком, без повторов и по порядку. */
+  function idx(){ return (Math.floor(Date.now()/3600000)*47) % Q.length; }
+  function put(){ var q=Q[idx()]; t.textContent=q[0]; a.textContent='— '+q[1]; }
   put();
-  setInterval(function(){
+  function swap(){
     box.classList.add('fade');
     setTimeout(function(){ put(); box.classList.remove('fade'); },450);
-  },11000);
+  }
+  /* первый переход — в начале следующего часа, дальше раз в час */
+  setTimeout(function(){ swap(); setInterval(swap,3600000); }, 3600000-(Date.now()%3600000)+500);
 })();
 </script>
 <script src="nav.js"></script>
