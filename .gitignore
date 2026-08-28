@@ -23,3 +23,4 @@ iiko_june_api*.json
 tail_p*.json
 core_temp*.json
 anchor_*.json
+__pycache__/
