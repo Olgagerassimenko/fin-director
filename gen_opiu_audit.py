@@ -15,6 +15,7 @@
 
 Только чтение xlsx. Запускается в GitHub Actions после остальных сборок.
 """
+import copy
 import datetime as _dt
 import json, os, re, statistics
 import os as _os, sys as _sys
@@ -205,6 +206,106 @@ def checksums(rows):
     return out
 
 
+def apply_iiko(months, labels, rows):
+    """Подменяем значения из xlsx на обороты из iiko.
+
+    Аудит должен идти по iiko: бухгалтерский файл обновляется руками и отстаёт,
+    а iiko всегда свежий. xlsx остаётся структурой (порядок и иерархия строк)
+    и эталоном — расхождения между ним и iiko становятся отдельной проверкой.
+
+    Возвращает (months, labels, rows, meta, obu), где obu — постатейные
+    расхождения «бухгалтерия против iiko» по месяцам, которые есть в обоих.
+    """
+    path = os.path.join(HERE, "opiu_iiko.js")
+    if not os.path.exists(path):
+        print("opiu_iiko.js нет — работаю на xlsx")
+        return months, labels, rows, None, []
+    try:
+        s = open(path, encoding="utf-8").read()
+        D = json.loads(s[s.index("=") + 1:].rstrip().rstrip(";"))
+    except Exception as e:
+        print("opiu_iiko.js не прочитался (%s) — работаю на xlsx" % e)
+        return months, labels, rows, None, []
+    IM = D.get("months") or {}
+    if not IM:
+        return months, labels, rows, None, []
+
+    xv = {r["n"]: dict(zip(months, r["v"])) for r in rows}
+    keys = sorted(IM)
+
+    # расхождения считаем до подмены, пока видны оба источника
+    obu = []
+    for k in keys:
+        if k not in months or not IM[k].get("closed"):
+            continue
+        for r in rows:
+            if r["kind"] != "line":
+                continue
+            a = xv[r["n"]].get(k, 0)
+            b = IM[k]["v"].get(r["n"], 0)
+            if abs(a - b) >= 300000:
+                obu.append({"m": k, "n": r["n"], "x": a, "i": b, "d": b - a})
+    obu.sort(key=lambda r: -abs(r["d"]))
+
+    new_labels = ["%s %s" % (MON[int(k[5:7]) - 1], k[:4]) for k in keys]
+    for r in rows:
+        if r["kind"] == "sub":
+            r["v"] = [0] * len(keys)
+            continue
+        src = "est" if r["kind"] == "line" else None
+        r["v"] = [round(IM[k].get("est" if r["kind"] == "line" else "v", {}).get(r["n"], 0))
+                  for k in keys]
+
+    meta = {k: {"closed": bool(IM[k].get("closed")),
+                "full": bool(IM[k].get("fullMonth")),
+                "through": IM[k].get("through", ""),
+                "share": IM[k].get("share", 1),
+                "gaps": IM[k].get("gaps", []),
+                "estAdd": IM[k].get("estAdd", 0),
+                "estOf": IM[k].get("estOf", [])} for k in keys}
+    print("значения взяты из iiko: %d мес. (%s … %s), закрытых %d"
+          % (len(keys), keys[0], keys[-1], sum(1 for k in keys if meta[k]["closed"])))
+    return keys, new_labels, rows, meta, obu
+
+
+def recompute_totals(rows, n):
+    """Пересчитываем «Итого» по строкам: в выгрузке iiko готовых итогов нет."""
+    idx = {r["n"]: r for r in rows}
+    for j, t in enumerate(rows):
+        if t["kind"] != "total" or t["n"] in COMPUTED or t["n"] in SUBTRACT:
+            continue
+        h = -1
+        for i in range(j - 1, -1, -1):
+            if rows[i]["ind"] < t["ind"]:
+                break
+            if rows[i]["ind"] == t["ind"] and rows[i]["kind"] == "sub":
+                h = i
+                break
+        if h < 0:
+            continue
+        kids = [rows[i] for i in range(h + 1, j)
+                if rows[i]["ind"] == t["ind"] + 3 and rows[i]["kind"] in ("line", "total")]
+        if not kids:
+            continue
+        t["v"] = [sum(k["v"][m] for k in kids) for m in range(n)]
+
+    def g(name):
+        return idx.get(name)
+
+    rev, cogs = g("Итого Выручка"), g("Итого Себестоимость")
+    gross, opex = g("Валовая прибыль"), g("Итого Расходы")
+    oper = g("Итого Прибыль от основной деятельности")
+    oi, oe = g("Итого Прочие доходы"), g("Итого Прочие расходы")
+    net = g("ИТОГО ЧИСТАЯ ПРИБЫЛЬ")
+    for m in range(n):
+        if gross and rev and cogs:
+            gross["v"][m] = rev["v"][m] - cogs["v"][m]
+        if oper and gross and opex:
+            oper["v"][m] = gross["v"][m] - opex["v"][m]
+        if net and oper:
+            net["v"][m] = oper["v"][m] + (oi["v"][m] if oi else 0) - (oe["v"][m] if oe else 0)
+
+
 def pick(rows, name):
     for r in rows:
         if r["n"] == name:
@@ -214,7 +315,14 @@ def pick(rows, name):
 
 def build():
     months, labels, rows = load()
+    xlsx_months, xlsx_rows = list(months), copy.deepcopy(rows)
+    months, labels, rows, meta, obu = apply_iiko(months, labels, rows)
     n = len(months)
+    if meta:
+        recompute_totals(rows, n)
+    # Незакрытые месяцы в проверки не берём: в них не проведены начисления
+    # конца месяца, любой всплеск и пропуск там — артефакт, а не находка.
+    CLOSED = [i for i in range(n) if not meta or meta[months[i]]["closed"]]
 
     rev = pick(rows, "Итого Выручка") or [0] * n
     gross = pick(rows, "Валовая прибыль") or [0] * n
@@ -225,7 +333,16 @@ def build():
 
     lines = [r for r in rows if r["kind"] == "line"]
 
-    # ── проверки
+    # ── проверки идут ТОЛЬКО по закрытым месяцам.
+    # В незакрытом месяце не проведены зарплата, налоги и аренда, поэтому
+    # любой «пропуск» и «провал доли» там — артефакт закрытия, а не находка.
+    # Внутри проверок работаем на сокращённых списках, чтобы не переписывать
+    # каждую из них: cmonths/clabels/cn/crev — те же данные без незакрытых месяцев.
+    cmonths = [months[i] for i in CLOSED]
+    clabels = [labels[i] for i in CLOSED]
+    cn = len(CLOSED)
+    crev = [rev[i] for i in CLOSED]
+
     F = []
 
     def add(sev, typ, art, mon, title, txt, amt=0):
@@ -233,14 +350,14 @@ def build():
                   "h": title, "d": txt, "s": round(amt)})
 
     for r in lines:
-        name, v = r["n"], r["v"]
+        name, v = r["n"], [r["v"][i] for i in CLOSED]
         if name in ("Торговая выручка", "Выручка", "Итого Выручка"):
             continue
         nz = [x for x in v if x]
         if not nz:
             continue
         med = statistics.median([abs(x) for x in nz])
-        fill = len(nz) / float(n)
+        fill = len(nz) / float(cn)
 
         # 1. перенос между периодами: ноль в регулярной статье + удвоение рядом
         if fill >= 0.7 and med >= 200000:
@@ -250,24 +367,24 @@ def build():
                 nb = []
                 if i > 0:
                     nb.append((i - 1, v[i - 1]))
-                if i < n - 1:
+                if i < cn - 1:
                     nb.append((i + 1, v[i + 1]))
                 big = [(j, y) for j, y in nb if abs(y) >= med * 1.6]
                 if big:
                     j, y = max(big, key=lambda p: abs(p[1]))
-                    add(2, "shift", name, months[i],
+                    add(2, "shift", name, cmonths[i],
                         "Пропуск месяца и удвоение в соседнем",
                         "В %s по статье ноль, а в %s — %s при обычных %s. "
                         "Похоже, документ провели не тем месяцем: расход одного месяца "
                         "лёг на другой и исказил оба." % (
-                            labels[i], labels[j], fmt(y), fmt(med)),
+                            clabels[i], clabels[j], fmt(y), fmt(med)),
                         abs(y) - med)
                 elif fill >= 0.85:
-                    add(1, "zero", name, months[i],
+                    add(1, "zero", name, cmonths[i],
                         "Регулярная статья обнулилась",
                         "Статья платится почти каждый месяц (обычно %s), "
                         "а в %s — ноль. Либо документ не провели, либо расход "
-                        "ушёл на другую статью." % (fmt(med), labels[i]), med)
+                        "ушёл на другую статью." % (fmt(med), clabels[i]), med)
 
         # 2. всплеск — не больше двух самых крупных на статью, иначе список не читается
         if med >= 150000:
@@ -275,12 +392,12 @@ def build():
                   if abs(x) > med * 2.5 and abs(x) - med > 1000000]
             sp.sort(key=lambda p: -(abs(p[1]) - med))
             for i, x in sp[:2]:
-                add(2 if abs(x) - med > 5000000 else 1, "spike", name, months[i],
+                add(2 if abs(x) - med > 5000000 else 1, "spike", name, cmonths[i],
                     "Разовый всплеск",
                     "%s: %s против обычных %s — в %.1f раза больше нормы%s. "
                     "Проверьте первичку: разовый расход, начисление за несколько "
                     "месяцев сразу или ошибка счёта." % (
-                        labels[i], fmt(x), fmt(med), abs(x) / med if med else 0,
+                        clabels[i], fmt(x), fmt(med), abs(x) / med if med else 0,
                         "" if len(sp) <= 2 else " (всего таких месяцев %d)" % len(sp)),
                     abs(x) - med)
 
@@ -290,11 +407,11 @@ def build():
             pos = [x for x in v if x > 0]
             if neg and pos:
                 i, x = min(neg, key=lambda p: p[1])
-                add(2, "sign", name, months[i],
+                add(2, "sign", name, cmonths[i],
                     "Отрицательная сумма в расходной статье",
                     "В %s статья ушла в минус (%s), хотя в остальные месяцы это расход. "
                     "Обычно это сторно прошлого периода — прибыль этого месяца "
-                    "приукрашена на эту сумму." % (labels[i], fmt(x)), abs(x))
+                    "приукрашена на эту сумму." % (clabels[i], fmt(x)), abs(x))
 
         # 4. ровные суммы — ручное начисление
         rnd = [(i, x) for i, x in enumerate(v)
@@ -305,7 +422,7 @@ def build():
                 "В %d месяцах сумма кратна 500 тыс. (%s). Так выглядит оценочное "
                 "начисление, а не факт по документу. Расхождение с фактом накопится "
                 "и вылезет при закрытии года." % (
-                    len(rnd), ", ".join("%s %s" % (labels[i], fmt(x)) for i, x in rnd[-3:])),
+                    len(rnd), ", ".join("%s %s" % (clabels[i], fmt(x)) for i, x in rnd[-3:])),
                 sum(x for _, x in rnd) / len(rnd))
 
         # 5. статья прекратилась
@@ -313,7 +430,7 @@ def build():
         head = v[:-3]
         if not any(tail) and head and statistics.median([abs(x) for x in head if x] or [0]) >= 200000:
             hm = statistics.median([abs(x) for x in head if x])
-            add(1, "stopped", name, months[-1],
+            add(1, "stopped", name, cmonths[-1],
                 "Статья прекратилась",
                 "Последние 3 месяца по статье ноль, до этого регулярно %s в месяц. "
                 "Если расход никуда не делся — он теперь сидит в другой строке, "
@@ -322,26 +439,26 @@ def build():
         # 6. статья появилась
         first_nz = next((i for i, x in enumerate(v) if x), None)
         if first_nz is not None and first_nz >= 5 and med >= 500000:
-            add(1, "started", name, months[first_nz],
+            add(1, "started", name, cmonths[first_nz],
                 "Статья появилась в середине периода",
                 "До %s статьи не было, дальше — регулярно %s в месяц. "
                 "Сравнение «год к году» по этой строке некорректно, "
                 "и стоит проверить, из какой статьи она выделилась." % (
-                    labels[first_nz], fmt(med)), med)
+                    clabels[first_nz], fmt(med)), med)
 
         # 7. дрейф доли в выручке
-        sh = [x / rev[i] if rev[i] else 0 for i, x in enumerate(v)]
+        sh = [x / crev[i] if crev[i] else 0 for i, x in enumerate(v)]
         if med >= 1000000:
             msh = statistics.median(sh)
             for i, s in enumerate(sh):
                 if abs(s - msh) > 0.015 and abs(v[i]) > 3000000:
-                    add(1, "drift", name, months[i],
+                    add(1, "drift", name, cmonths[i],
                         "Доля в выручке скакнула",
                         "%s: %.1f%% выручки против обычных %.1f%% — "
                         "%+.1f п.п. Это %s в деньгах." % (
-                            labels[i], s * 100, msh * 100, (s - msh) * 100,
-                            fmt((s - msh) * rev[i])),
-                        abs((s - msh) * rev[i]))
+                            clabels[i], s * 100, msh * 100, (s - msh) * 100,
+                            fmt((s - msh) * crev[i])),
+                        abs((s - msh) * crev[i]))
                     break
 
     # 8. зеркальные пары — перекинули между счетами.
@@ -349,7 +466,7 @@ def build():
     #    расходные статьи, требуем совпадение лучше 1,5 % и не больше одной пары
     #    на статью за месяц. Помечаем как «гипотеза», а не как факт.
     seen, used = set(), set()
-    for i in range(1, n):
+    for i in range(1, cn):
         d = []
         for r in lines:
             if r["n"] in REVENUE:
@@ -373,33 +490,50 @@ def build():
             seen.add(key)
             used.add((i, na))
             used.add((i, nb))
-            add(1, "mirror", na, months[i],
+            add(1, "mirror", na, cmonths[i],
                 "Зеркальное движение двух статей",
                 "В %s «%s» выросла на %s, и почти ровно на столько же упала «%s» "
                 "(совпадение %.1f%%). Это гипотеза, а не приговор: суммы могли совпасть "
                 "случайно. Стоит открыть проводки обеих статей за месяц — если это "
                 "перенос с одного счёта на другой, расход не изменился, "
                 "изменилось только место." % (
-                    labels[i], na, fmt(da), nb,
+                    clabels[i], na, fmt(da), nb,
                     100 - abs(da + db) / abs(da) * 100),
                 da)
 
     # 10. свод не сходится: «Итого» против суммы своих строк
-    CHK = checksums(rows)
+    CHK = checksums(xlsx_rows)
     foot_ok = sum(1 for t in CHK if not any(abs(d) >= 1 for d in t["diff"]))
     for t in CHK:
-        bad = [(i, t["diff"][i]) for i in range(n) if abs(t["diff"][i]) >= 1]
+        bad = [(i, t["diff"][i]) for i in range(len(t["diff"])) if abs(t["diff"][i]) >= 1]
         if not bad:
             continue
         i, dv = max(bad, key=lambda p: abs(p[1]))
-        add(2, "foot", t["name"], months[i],
+        add(2, "foot", t["name"], xlsx_months[i],
             "Итог не сходится со своими строками",
             "«%s» в %s = %s, а сумма входящих строк = %s. Разница %s%s. "
             "Либо в отчёт не попала строка, либо итог считается по другой формуле — "
             "любая аналитика по этой группе поедет." % (
                 t["name"], labels[i], fmt(t["tot"][i]), fmt(t["sum"][i]), fmt(dv),
-                "" if len(bad) == 1 else " (расходится в %d месяцах из %d)" % (len(bad), n)),
+                "" if len(bad) == 1 else " (расходится в %d месяцах из %d)" % (len(bad), len(t["diff"]))),
             abs(dv))
+
+    # 11. бухгалтерия против iiko: одна и та же статья, один и тот же месяц
+    by_art = {}
+    for d in obu:
+        by_art.setdefault(d["n"], []).append(d)
+    for art, ds in sorted(by_art.items(), key=lambda kv: -max(abs(x["d"]) for x in kv[1])):
+        top = max(ds, key=lambda x: abs(x["d"]))
+        lab = MON[int(top["m"][5:7]) - 1] + " " + top["m"][:4]
+        add(2 if abs(top["d"]) >= 3000000 else 1, "obu", art, top["m"],
+            "Бухгалтерия и iiko расходятся",
+            "%s: в ОПиУ %s, в iiko %s — разница %s%s. "
+            "Либо проводку в бухгалтерии поставили на другую статью или в другой месяц, "
+            "либо в iiko документ не проведён. Пока источники расходятся, "
+            "решения по этой статье опираются на разные цифры." % (
+                lab, fmt(top["x"]), fmt(top["i"]), fmt(top["d"]),
+                "" if len(ds) == 1 else " (расходится в %d месяцах)" % len(ds)),
+            abs(top["d"]))
 
     # 9. экспертная классификация
     for r in lines:
@@ -456,6 +590,9 @@ def build():
                 "opex": opex, "oper": oper, "net": net},
         "years": years, "lp": lp,
         "foot": {"ok": foot_ok, "all": len(CHK)},
+        "src": "iiko" if meta else "xlsx",
+        "meta": meta or {},
+        "obu": obu[:200],
         "findings": F[:220],
         "fstat": {k: sum(1 for f in F if f["t"] == k) for k in
                   {f["t"] for f in F}},

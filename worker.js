@@ -16,7 +16,7 @@ const CACHE_TTL = 3600; // секунд
 // имя не меняется, а содержимое меняется по нескольку раз в день.
 // (*_meta.js ловится отдельно регулярным выражением.)
 const DATA_FILES = new Set([
-  "/zakup_data.js", "/dz_kz.js", "/kz_ana.js", "/opiu_audit.js", "/opiu_late.js", "/ddsp_days.js",
+  "/zakup_data.js", "/dz_kz.js", "/kz_ana.js", "/opiu_audit.js", "/opiu_iiko.js", "/ddsp_days.js",
   "/sku_live.js", "/sku_analytics.js", "/contractor_items.js", "/contractors.js",
   "/sales_live.js", "/opiu_rev.js",
 ]);

@@ -7,7 +7,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="opiu_audit.js?v=1" onerror="window.OPIU_AUDIT=null"></script>
 <script src="opiu_rev.js" onerror="window.OPIU_REV=null"></script>
-<script src="opiu_late.js" onerror="window.OPIU_LATE=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh;font-size:13px}
@@ -129,64 +128,16 @@ if(!D){document.querySelector('.wrap').innerHTML='<div class="empty">⚠ Нет 
 var M=D.months,L=D.labels,R=D.rows,K=D.kpi,N=M.length;
 document.getElementById('upd').textContent='обновлено '+D.updated;
 
-/* ── месяцы, которых ещё нет в бухгалтерском ОПиУ ────────────────
-   Бухгалтерия закрывает месяц с задержкой, поэтому июнь–август берём
-   напрямую из iiko. Это НЕ закрытые месяцы: зарплата, налоги и часть
-   административных начислений проходят в конце месяца и в начале
-   следующего, поэтому расходы в них занижены. Помечаем такие колонки
-   и нигде не смешиваем их с закрытыми в проверках аудита. */
-var LATEN=0, LATE_INFO={};
-(function(){
-  var LT=window.OPIU_LATE;
-  if(!LT||!LT.months) return;
-  var keys=Object.keys(LT.months).sort().filter(function(k){ return M.indexOf(k)<0; });
-  if(!keys.length) return;
-  var MONN=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-  keys.forEach(function(k){
-    var mm=LT.months[k];
-    M.push(k);
-    L.push(MONN[+k.slice(5,7)-1]+' '+k.slice(0,4));
-    LATE_INFO[k]=mm;
-    R.forEach(function(r){ r.v.push(r.kind==='sub'?0:(mm.v[r.n]||0)); });
-    LATEN++;
-  });
-  N=M.length;
-
-  /* итоги пересчитываем сами: в незакрытом месяце «Итого» из xlsx нет */
-  function put(name,fn){ var r=null; R.forEach(function(x){ if(x.n===name) r=x; }); if(r) fn(r); }
-  function sumOf(names,i){ var s=0; R.forEach(function(x){ if(names.indexOf(x.n)>=0) s+=x.v[i]; }); return s; }
-  var G={'Итого Выручка':['Торговая выручка','Выручка'],
-         'Итого 1.С/с реализованной продукции':null,'Итого 2.ФОТ Производство':null,
-         'Итого 3.Арендная плата':null};
-  /* дети группы = строки между её заголовком и «Итого», как в самом отчёте */
-  R.forEach(function(t,j){
-    if(t.kind!=='total') return;
-    var h=-1;
-    for(var i=j-1;i>=0;i--){ if(R[i].ind<t.ind) break;
-      if(R[i].ind===t.ind && R[i].kind==='sub'){ h=i; break; } }
-    if(h<0) return;
-    /* хватает и одного ребёнка: у «Итого Прочие расходы» он один — «Расходы по КПН».
-       Раньше стояло <2, и этот итог в незакрытых месяцах оставался нулём,
-       из-за чего чистая прибыль за июнь–август получалась завышенной. */
-    var kids=[]; for(var i=h+1;i<j;i++) if(R[i].ind===t.ind+3 && R[i].kind!=='sub') kids.push(R[i]);
-    if(!kids.length) return;
-    for(var q=N-LATEN;q<N;q++){ var s=0; kids.forEach(function(x){ s+=x.v[q]; }); t.v[q]=s; }
-  });
-  function get(n){ var r=null; R.forEach(function(x){ if(x.n===n) r=x; }); return r; }
-  var rev=get('Итого Выручка'), cogs=get('Итого Себестоимость'), gross=get('Валовая прибыль'),
-      opex=get('Итого Расходы'), oper=get('Итого Прибыль от основной деятельности'),
-      oi=get('Итого Прочие доходы'), oe=get('Итого Прочие расходы'), net=get('ИТОГО ЧИСТАЯ ПРИБЫЛЬ');
-  for(var q=N-LATEN;q<N;q++){
-    if(gross&&rev&&cogs) gross.v[q]=rev.v[q]-cogs.v[q];
-    if(oper&&gross&&opex) oper.v[q]=gross.v[q]-opex.v[q];
-    if(net&&oper) net.v[q]=oper.v[q]+(oi?oi.v[q]:0)-(oe?oe.v[q]:0);
-  }
-  ['rev','cogs','gross','opex','oper','net'].forEach(function(k){
-    var src={rev:rev,cogs:cogs,gross:gross,opex:opex,oper:oper,net:net}[k];
-    for(var q=N-LATEN;q<N;q++) K[k].push(src?src.v[q]:0);
-  });
-})();
-function isLate(i){ return i>=N-LATEN; }
+/* ── откуда цифры ───────────────────────────────────────────────
+   Значения приходят из iiko (gen_opiu_iiko.py), бухгалтерский xlsx служит
+   структурой и эталоном. Месяц, который бухгалтерия ещё не закрыла, помечен:
+   в нём могут быть не проведены зарплата, налоги и аренда, поэтому по таким
+   месяцам считается досчёт, а проверки аудита их не трогают. */
+var META=D.meta||{}, SRC=D.src||'xlsx';
+function mm(i){ return META[M[i]]||{}; }
+function isLate(i){ return META[M[i]] ? !META[M[i]].closed : false; }
+function isPart(i){ var m=mm(i); return m.full===false; }
+var LATEN=0; for(var _i=0;_i<N;_i++) if(isLate(_i)) LATEN++;
 
 /* ── форматирование ───────────────────────────────────────────── */
 function f0(x){ if(x===null||x===undefined) return '—';
@@ -200,24 +151,22 @@ function pc(x){ return (x*100).toFixed(1)+'%'; }
 function sgn(x,fn){ var s=(x>0?'+':'')+ (fn||f0)(x); return '<span class="'+(x>0?'pos':x<0?'neg':'mut')+'">'+s+'</span>'; }
 function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
 
-/* источник и отставание отчёта — говорим об этом сразу, до любых цифр */
+/* источник — говорим о нём сразу, до любых цифр */
 (function(){
-  var w=D.lag>0;
+  var late=[]; for(var i=0;i<N;i++) if(isLate(i)) late.push(L[i]+(isPart(i)?' (по '+
+      (mm(i).through||'').slice(8,10)+'.'+(mm(i).through||'').slice(5,7)+')':''));
+  var gaps=[]; for(var i=0;i<N;i++){ var g=mm(i).gaps||[]; if(g.length) gaps.push(L[i]+': '+g.join('; ')); }
   document.getElementById('src-note').innerHTML=
-    '<div class="note" style="border-left:4px solid '+(w?'#fbbf24':'#34d399')+'">'+
-    'Источник — <b>бухгалтерский ОПиУ</b> («'+D.src+'»'+(D.srcDate?', файл от '+D.srcDate:'')+'). '+
-    'Последний месяц в отчёте — <b>'+D.lastLabel+'</b>.'+
-    (LATEN
-      ? ' Дальше — <span style="color:#fbbf24"><b>'+LATEN+' мес. из iiko</b> ('+
-        L.slice(N-LATEN).join(', ')+'), бухгалтерией ещё не закрыты</span>: '+
-        'зарплата, налоги и часть административных начислений проходят в конце месяца, '+
-        'поэтому расходы в них занижены, а прибыль выглядит лучше реальной. '+
-        'Такие колонки помечены жёлтым и в проверки аудита не входят.'
-      : w? ' <span style="color:#fbbf24">С тех пор прошло '+D.lag+' закрытых '+
-        (D.lag===1?'месяц':D.lag<5?'месяца':'месяцев')+
-        ' — их здесь ещё нет.</span> Свежую выручку и деньги смотрите на «ДДС» и «Продажах»; '+
-        'сюда цифры попадают после того, как бухгалтерия закроет месяц.'
-      : ' Отчёт закрыт по текущий месяц.')+
+    '<div class="note" style="border-left:4px solid '+(late.length?'#fbbf24':'#34d399')+'">'+
+    (SRC==='iiko'
+      ? '<b>Источник — iiko</b>, обороты по счетам помесячно. Бухгалтерский файл «'+esc(D.src2||D.srcName||'Отчет о прибылях и убытках')+
+        '» задаёт структуру строк и служит эталоном: расхождения между ним и iiko вынесены в аудит отдельной проверкой.'
+      : '<b>Источник — бухгалтерский ОПиУ</b> из xlsx.')+
+    ' Период: '+L[0]+' — '+L[N-1]+'.'+
+    (late.length? ' <span style="color:#fbbf24">Не закрыты бухгалтерией: <b>'+late.join(', ')+
+        '</b></span> — по ним показан досчёт до полного месяца (регулярные статьи дополнены медианой закрытых месяцев). '+
+        'Проверки аудита такие месяцы не трогают.' : ' Все месяцы закрыты.')+
+    (gaps.length? '<br><span style="opacity:.8">Не проведено на момент выгрузки — '+esc(gaps.join(' · '))+'</span>':'')+
     '</div>';
 })();
 
@@ -636,7 +585,7 @@ BUILD.cmp=function(){
 /* ══ 4. АУДИТ РАЗНОСОК ═══════════════════════════════════════════ */
 var TYPE={shift:'перенос периода',zero:'пропуск месяца',spike:'всплеск',sign:'знак',
   round:'ровная сумма',stopped:'статья прекратилась',started:'статья появилась',
-  drift:'дрейф доли',mirror:'зеркальная пара',foot:'итог не сходится',class:'классификация'};
+  drift:'дрейф доли',mirror:'зеркальная пара',foot:'итог не сходится',class:'классификация',obu:'бухгалтерия vs iiko'};
 
 var ACT={
   spike:'Поднять первичку за этот месяц: один крупный документ или начисление сразу за несколько месяцев?',
@@ -649,7 +598,8 @@ var ACT={
   drift:'Сопоставить с объёмом производства: рост доли без роста объёма — это перерасход.',
   mirror:'Открыть проводки обеих статей за месяц и убедиться, что это не перекидка между счетами.',
   foot:'Проверить, все ли строки группы попали в итог.',
-  class:'Решить с бухгалтерией, где статье место, и зафиксировать это в учётной политике.'};
+  class:'Решить с бухгалтерией, где статье место, и зафиксировать это в учётной политике.',
+  obu:'Открыть проводку в обеих системах за этот месяц и понять, где она стоит правильно.'};
 
 BUILD.audit=function(){
   var el=document.getElementById('s-audit'),F=D.findings;
