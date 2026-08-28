@@ -12,6 +12,15 @@ const DZ_GID = "597090672";
 const CACHE_KEY = "https://internal.cache/dz_kz.js?v=2";
 const CACHE_TTL = 3600; // секунд
 
+// Файлы данных, которые пересобирает ежедневный прогон. Их нельзя кэшировать:
+// имя не меняется, а содержимое меняется по нескольку раз в день.
+// (*_meta.js ловится отдельно регулярным выражением.)
+const DATA_FILES = new Set([
+  "/zakup_data.js", "/dz_kz.js", "/kz_ana.js", "/opiu_audit.js", "/ddsp_days.js",
+  "/sku_live.js", "/sku_analytics.js", "/contractor_items.js", "/contractors.js",
+  "/sales_live.js", "/opiu_rev.js",
+]);
+
 // ── Метрики посещений («что смотрят») ──
 const M_KEY = "metrics:v1";
 // SHA-256 пароля вкладки «Метрики» (сам пароль в репозиторий не попадает)
@@ -167,9 +176,12 @@ export default {
     // отдаём статику, а в HTML тихо вставляем счётчик просмотров
     const _res = await env.ASSETS.fetch(request);
     const _ct = _res.headers.get("content-type") || "";
-    // Свежесть: страницы (HTML) и файл данных закупа не кэшируем на edge,
-    // иначе Cloudflare может «залипнуть» на старой версии после деплоя.
-    const _noStore = _ct.includes("text/html") || url.pathname === "/zakup_data.js";
+    // Свежесть: страницы (HTML) и все файлы данных не кэшируем на edge,
+    // иначе Cloudflare может «залипнуть» на старой версии после деплоя,
+    // а дашборд будет рисовать вчерашние цифры со свежей датой обновления.
+    const _noStore = _ct.includes("text/html")
+      || DATA_FILES.has(url.pathname)
+      || /_meta\.js$/.test(url.pathname);
     if (_ct.includes("text/html")) {
       const _t = new HTMLRewriter()
         .on("head", { element(e) { e.append(METRICS_BEACON, { html: true }); } })
