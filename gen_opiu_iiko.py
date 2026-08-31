@@ -41,6 +41,17 @@ REFRESH_TAIL = 3           # сколько последних месяцев п
 # поля, без которых запись кэша считается устаревшей и тянется заново
 CACHE_FIELDS = ("rev", "through", "closed", "fullMonth", "share", "v", "est")
 
+# ── Счета, обороты по которым НЕ равны строке ОПиУ ───────────────────────
+# «Зарплата» в iiko — расчётный счёт с персоналом: на нём и начисления,
+# и их закрытие/выплата. Оборот по такому счёту не равен строке отчёта:
+# сверка с самим ОПиУ iiko за 2026 год дала расхождение ровно на эту строку —
+# в июне оборот показал +32.4 млн ₸, а отчёт по той же строке −0.7 млн ₸,
+# и «Итого Расходы» разъезжались ровно на эту разницу (33.1 млн ₸).
+# В бухгалтерском xlsx строка «Зарплата» тоже стоит нулём во всех месяцах.
+# Поэтому счёт из подмешивания исключаем: строка остаётся такой, какой её
+# даёт бухгалтерия, а фантомные 33 млн ₸ расходов в июне исчезают.
+SKIP_ACCOUNTS = {"Зарплата"}
+
 # группы, по которым видно, что начисления конца месяца ещё не прошли
 GAP_GROUPS = (
     ("ФОТ производства", ["2.1.ЗП Производство", "2.5.Налоги Производство"]),
@@ -103,7 +114,16 @@ def load_cache():
         s = open(OUT, encoding="utf-8").read()
         got = json.loads(s[s.index("=") + 1:].rstrip().rstrip(";")).get("months", {})
         # записи старого формата перетягиваем: набор полей менялся
-        return {k: v for k, v in got.items() if all(f in v for f in CACHE_FIELDS)}
+        got = {k: v for k, v in got.items() if all(f in v for f in CACHE_FIELDS)}
+        # из уже сохранённых месяцев вычищаем исключённые счета, иначе закрытые
+        # месяцы так и остались бы с ошибкой: заново тянутся только последние
+        for rec in got.values():
+            for nm in SKIP_ACCOUNTS:
+                if isinstance(rec.get("v"), dict):
+                    rec["v"].pop(nm, None)
+                if isinstance(rec.get("est"), dict):
+                    rec["est"].pop(nm, None)
+        return got
     except Exception as e:
         print("кэш не прочитался (%s) — тяну заново" % e)
         return {}
@@ -140,6 +160,8 @@ def main():
         vals = {}
         for nm, r in rows.items():
             key = by_norm.get(OF.norm(nm))
+            if key in SKIP_ACCOUNTS:      # оборот по расчётному счёту ≠ строка ОПиУ
+                continue
             if key is None:
                 if abs(r["debit"]) >= 1:
                     unknown[nm] = unknown.get(nm, 0.0) + r["debit"]
@@ -170,7 +192,7 @@ def main():
         if not closed:
             for r in lines:
                 n = r["n"]
-                if n in ("Торговая выручка", "Выручка") or is_inc[n]:
+                if n in ("Торговая выручка", "Выручка") or is_inc[n] or n in SKIP_ACCOUNTS:
                     continue
                 nz = [x for x in r["v"][-6:] if x]
                 if len(nz) < 5:                   # досчитываем только регулярные статьи
