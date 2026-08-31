@@ -67,7 +67,16 @@ body::before{ /* мягкое неоновое свечение фона — ч�
 .dot{width:7px;height:7px;border-radius:50%;background:var(--em);box-shadow:0 0 10px var(--em);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.82)}}
 
+/* панель под шапкой: режим показа слева, оглавление справа */
+.hero-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px}
+.mode{display:inline-flex;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:3px}
+.mode a{font-size:11px;font-weight:700;color:#a9b8d4;text-decoration:none;padding:6px 12px;border-radius:8px;white-space:nowrap}
+.mode a.on{background:linear-gradient(135deg,var(--vio2),var(--vio));color:#fff;box-shadow:0 0 16px rgba(168,85,247,.45)}
+.toc{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.toc a{font-size:11px;color:var(--mut);text-decoration:none;padding:6px 10px;border-radius:8px;border:1px solid transparent}
+.toc a:hover{color:#fff;border-color:var(--line);background:rgba(255,255,255,.04)}
 .wrap{max-width:1640px;margin:0 auto;padding:20px 30px 70px}
+[id^="s-"]{scroll-margin-top:16px}
 
 /* ── общие блоки ─────────────────────────────────────────────── */
 .note{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;
@@ -125,6 +134,10 @@ body::before{ /* мягкое неоновое свечение фона — ч�
 .find-h{font-size:12px;font-weight:800;margin-bottom:5px;color:#fff;display:flex;align-items:center;gap:7px}
 .find-d{font-size:11.5px;color:#b9c7df;line-height:1.65}
 .find-d b{color:#fff}
+.todo{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);font-size:11px;color:#9fb0cd;line-height:1.6}
+.todo b{color:var(--am)}
+.todo a{color:var(--cy);text-decoration:none;font-weight:700;white-space:nowrap}
+.todo a:hover{text-decoration:underline}
 
 /* ── топ-движения ────────────────────────────────────────────── */
 .mv{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed rgba(36,50,87,.7)}
@@ -139,11 +152,11 @@ body::before{ /* мягкое неоновое свечение фона — ч�
    overflow-x оставлен страховкой для узких экранов. */
 .tw{overflow-x:auto;overflow-y:visible;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
 table{border-collapse:separate;border-spacing:0;width:100%;font-size:11.5px}
-th,td{padding:6px 8px;text-align:right;white-space:nowrap}
+th,td{padding:6px 7px;text-align:right;white-space:nowrap}
 thead th{position:sticky;top:0;background:#1b2748;color:#9fb0cd;font-size:10.5px;font-weight:800;
   text-transform:uppercase;letter-spacing:.4px;z-index:3;border-bottom:1px solid var(--line)}
 th.nm,td.nm{text-align:left;position:sticky;left:0;background:var(--panel);z-index:2;
-  min-width:190px;width:23%;white-space:normal}
+  min-width:150px;width:20%;white-space:normal}
 thead th.nm{background:#1b2748;z-index:4}
 tbody td{border-bottom:1px solid rgba(36,50,87,.45)}
 tbody tr:hover td{background:rgba(168,85,247,.10)!important}
@@ -225,6 +238,13 @@ tbody tr:hover td{box-shadow:inset 0 0 0 9999px rgba(168,85,247,.06)}
     </div>
     <div class="live"><span class="dot"></span><span id="upd">—</span></div>
   </div>
+  <div class="hero-bar">
+    <span class="mode" id="mode-sw"></span>
+    <nav class="toc">
+      <a href="#s-charts">Графики</a><a href="#s-find">Выводы</a><a href="#s-moves">Движения</a>
+      <a href="#s-cmp">Сравнение месяцев</a><a href="#s-tab">Постатейно</a><a href="#s-note">Оговорки</a>
+    </nav>
+  </div>
 </div>
 
 <div class="wrap" id="wrap"><div class="empty">Загрузка…</div></div>
@@ -261,9 +281,17 @@ document.getElementById('upd').textContent='обновлено '+(A.updated||'�
 var i26=[], i25=[];
 for(var i=0;i<M.length;i++) if(M[i].indexOf('2026-')===0) i26.push(i);
 for(var i=0;i<M.length;i++) if(M[i].indexOf('2025-')===0) i25.push(i);
-i25=i25.slice(0,i26.length);
+
+/* Режим показа. Смешивать закрытые месяцы с незакрытыми в одном итоге —
+   значит выдавать оценку за факт, поэтому есть переключатель:
+   «факт» оставляет только месяцы, закрытые бухгалтерией и полные,
+   «все месяцы» показывает и текущие, но с честной пометкой досчёта.
+   Режим живёт в адресе страницы, поэтому переключение — это просто
+   переход по ссылке, и ничего не нужно пересобирать вручную. */
+var FACT_ONLY = location.search.indexOf('fact=1')>=0;
+var i25all=i25.slice();
+/* сам отбор месяцев — ниже, сразу после mstat: ей нужны признаки месяца */
 if(!i26.length){W.innerHTML='<div class="empty">⚠ В данных ещё нет ни одного месяца 2026 года</div>';return;}
-var N=i26.length;
 
 /* Признаки месяца: сначала смотрим в opiu_iiko.js (он свежее),
    потом в meta из аудита, и только потом считаем месяц закрытым. */
@@ -276,6 +304,15 @@ function mstat(ym){
           estAdd:a.estAdd||b.estAdd||0, gaps:a.gaps||b.gaps||[],
           estOf:a.estOf||b.estOf||[], through:a.through||b.through||''};
 }
+/* Отбор месяцев по режиму. В «факте» остаются только те, что бухгалтерия
+   закрыла и которые прошли целиком; прошлый год берём тем же числом месяцев,
+   иначе сравнение год к году сравнивает разные периоды. */
+if(FACT_ONLY){
+  var fact=i26.filter(function(k){ var st=mstat(M[k]); return st.closed && st.full; });
+  if(fact.length) i26=fact;
+}
+i25=i25all.slice(0,i26.length);
+var N=i26.length;
 var ST=i26.map(function(k){return mstat(M[k]);});
 
 /* ============================================================
@@ -293,6 +330,14 @@ function fbig(x){ x=nz(x); var a=Math.abs(x);
 function pc(x,d){ return (x*100).toFixed(d===undefined?1:d)+'%'; }
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function mlab(ym){ var k=M.indexOf(ym); return k>=0?L[k]:(ym||'—'); }
+/* «3.3.15.Видеонаблюдение…» и «Итого 2.5.Итог РазныеРасходы…» читаются плохо:
+   номер плана счетов убираем с экрана, полное имя оставляем в подсказке. */
+function nice(n){
+  var t=String(n).replace(/^(итого\s+|ИТОГО\s+)/i,function(m){return m;});
+  t=t.replace(/(^|\s)[\d]+(\.[\d]+)*\.?\s*/,'$1');
+  t=t.replace(/\s{2,}/g,' ').trim();
+  return t||String(n);
+}
 function ru(d){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d||'')); return m?(m[3]+'.'+m[2]+'.'+m[1]):(d||'—'); }
 function sum(v,idx){ var s=0; for(var j=0;j<idx.length;j++) s+=nz(v[idx[j]]); return s; }
 function short(ym){ return (L[M.indexOf(ym)]||ym).replace(/\s2026$/,''); }
@@ -362,12 +407,24 @@ var mUp=moves.slice(0,6), mDn=moves.slice(-6).reverse();
    ============================================================ */
 var H='';
 
+/* переключатель режима: ссылка меняет адрес, страница пересобирается сама */
+(function(){
+  var el=document.getElementById('mode-sw'); if(!el) return;
+  var base=location.pathname;
+  el.innerHTML='<a href="'+base+'" class="'+(FACT_ONLY?'':'on')+'">Все месяцы · с досчётом</a>'
+             + '<a href="'+base+'?fact=1" class="'+(FACT_ONLY?'on':'')+'">Только факт · закрытые месяцы</a>';
+})();
+
 /* — плашка «откуда цифры» — */
 var lateN=0; for(var j=0;j<N;j++) if(!ST[j].closed) lateN++;
 H+='<div class="note">Цифры собраны <b>напрямую из iiko</b> по оборотам счетов — те же счета, что строки бухгалтерского ОПиУ. '
  + 'Бухгалтерия закрыла период по <b>'+esc(mlab(A.xlsxThrough||(I&&I.xlsxThrough)))+'</b> включительно'
  + (lateN?', остальные '+lateN+' мес. идут из iiko с досчётом регулярных начислений — зарплата, налоги и аренда проводятся в конце месяца, поэтому такие ячейки помечены <span class="tag tag-est">досчёт</span> и знаком «~»':'')
- + '. Последний охваченный день — <b>'+esc(ru((I&&I.through)||A.srcDate))+'</b>, данные обновляются автоматически три раза в день.</div>';
+ + '. Последний охваченный день — <b>'+esc(ru((I&&I.through)||A.srcDate))+'</b>, данные обновляются автоматически три раза в день.'
+ + (FACT_ONLY
+     ? ' <b style="color:var(--em)">Сейчас показан только факт:</b> незакрытые месяцы из всех итогов исключены, период — '+esc(per26)+'.'
+     : (lateN?' <b style="color:var(--am)">Внимание:</b> в итоги 2026 года входят '+lateN+' мес. с оценкой, поэтому цифры ниже — не окончательный факт. Чтобы увидеть только закрытые месяцы, переключите режим вверху страницы.':''))
+ + '</div>';
 
 /* — KPI-карточки. У каждой: значение, чип с изменением к прошлому году,
      спарклайн по месяцам и короткий человеческий комментарий. — */
@@ -403,7 +460,7 @@ H+='<div class="kpis">'
  + '</div>';
 
 /* — мост прибыли: от выручки до чистой, по шагам — */
-H+='<div class="grid g2">'
+H+='<div id="s-charts"></div><div class="grid g2">'
  + '<div class="card"><div class="card-t">🟡 Выручка и себестоимость, млн ₸</div><div class="card-s">помесячно за 2025–2026 · всё из iiko</div><div class="cv tall"><canvas id="cRS"></canvas></div></div>'
  + '<div class="card"><div class="card-t">🟣 Чистая прибыль / убыток, млн ₸</div><div class="card-s">зелёный столбец — месяц в плюс, красный — в минус</div><div class="cv tall"><canvas id="cNP"></canvas></div></div>'
  + '</div>';
@@ -415,51 +472,74 @@ H+='<div class="grid g3" style="margin-top:14px">'
  + '</div>';
 
 H+='<div class="grid g2" style="margin-top:14px">'
- + '<div class="card"><div class="card-t">📈 Куда уходит каждые 100 ₸ выручки</div><div class="card-s">зелёная линия — сколько остаётся после себестоимости, жёлтая — сколько съедают расходы. Бледные линии — 2025 год</div><div class="cv"><canvas id="c3"></canvas></div></div>'
- + '<div class="card"><div class="card-t">🆚 Что изменилось к 2025</div><div class="card-s">разница за тот же период: зелёное — в плюс результату, красное — в минус, млн ₸</div><div class="cv"><canvas id="c4"></canvas></div></div>'
+ + '<div class="card" style="grid-column:1 / -1"><div class="card-t">📈 Куда уходит каждые 100 ₸ выручки</div><div class="card-s">зелёная линия — сколько остаётся после себестоимости, жёлтая — сколько съедают расходы. Бледные линии — 2025 год</div><div class="cv"><canvas id="c3"></canvas></div></div>'
  + '</div>';
 
 /* — авто-выводы: короткие человеческие фразы по цифрам — */
-function find(c,icon,h,d){ return '<div class="find" style="--ac:'+c+'"><div class="find-h">'+icon+' '+h+'</div><div class="find-d">'+d+'</div></div>'; }
+/* Вывод без рекомендации — это просто констатация. К каждому выводу
+   добавляем шаг и ссылку на отчёт, где видно причину. */
+function find(c,icon,h,d,todo,href,link){
+  return '<div class="find" style="--ac:'+c+'"><div class="find-h">'+icon+' '+h+'</div>'
+   + '<div class="find-d">'+d+'</div>'
+   + (todo?('<div class="todo"><b>Что делать:</b> '+todo
+        +(href?' <a href="'+href+'">'+(link||'открыть отчёт')+' →</a>':'')+'</div>'):'')
+   + '</div>';
+}
 var topUp=mUp[0], topDn=mDn[0];
-H+='<div class="sec-t" style="--sc:linear-gradient(180deg,#22d3ee,#34d399);--sg:rgba(34,211,238,.8)">🔍 Что видно в цифрах <span class="sub">автоматические выводы по данным периода</span></div><div class="finds">';
+H+='<div id="s-find"></div><div class="sec-t" style="--sc:linear-gradient(180deg,#22d3ee,#34d399);--sg:rgba(34,211,238,.8)">🔍 Что видно в цифрах <span class="sub">автоматические выводы по данным периода</span></div><div class="finds">';
 H+=find(Y.rev>=Y5.rev?'var(--em)':'var(--ro)','📉','Выручка',
     'За '+esc(per26)+' — <b>'+fbig(Y.rev)+'</b>, это '+(Y.rev>=Y5.rev?'на '+fbig(Y.rev-Y5.rev)+' больше':'на '+fbig(Y5.rev-Y.rev)+' меньше')
-    +', чем за тот же период 2025 ('+fbig(Y5.rev)+'). В среднем <b>'+fbig(Y.rev/N)+'</b> в месяц.');
+    +', чем за тот же период 2025 ('+fbig(Y5.rev)+'). В среднем <b>'+fbig(Y.rev/N)+'</b> в месяц.',
+    'посмотреть, какие товары и каналы просели против прошлого года, и с них начать разбор',
+    'продажи_2026.html','Продажи 2026');
 H+=find(gm26>=gm25?'var(--em)':'var(--am)','🧱','Себестоимость съедает '+pc(Y.rev?Y.cogs/Y.rev:0)+' выручки',
     'Валовая маржа <b>'+pc(gm26)+'</b> против <b>'+pc(gm25)+'</b> год назад. '
     +(gm26<gm25?'Возврат к прошлогодней марже дал бы <b>'+fbig((gm25-gm26)*Y.rev)+'</b> дополнительной валовой прибыли на текущем объёме.'
-              :'Маржа выше прошлогодней — на текущем объёме это <b>'+fbig((gm26-gm25)*Y.rev)+'</b>.'));
+              :'Маржа выше прошлогодней — на текущем объёме это <b>'+fbig((gm26-gm25)*Y.rev)+'</b>.'),
+    'сверить закупочные цены и потери на производстве: где ушла маржа — в цене сырья, в браке или в скидках',
+    'рычаги.html','Рычаги прибыли');
 H+=find(Y.opex>Y5.opex?'var(--ro)':'var(--em)','🏢','Расходы '+(Y.opex>Y5.opex?'выросли':'снизились')+' на '+fbig(Math.abs(Y.opex-Y5.opex)),
     'Сейчас <b>'+fbig(Y.opex)+'</b> ('+pc(Y.rev?Y.opex/Y.rev:0)+' выручки) против <b>'+fbig(Y5.opex)+'</b> ('+pc(Y5.rev?Y5.opex/Y5.rev:0)+') год назад. '
-    +'Именно этот блок, а не выручка, определяет итог года.');
+    +'Именно этот блок, а не выручка, определяет итог года.',
+    'разобрать три статьи с самым большим приростом (список ниже) и по каждой решить: разовый расход, рост объёма или новая постоянная нагрузка',
+    'дашборд_себестоимость_2025-2026.html','Полная себестоимость');
 H+=find(Y.oper<0?'var(--ro)':'var(--em)','⚙️',(Y.oper<0?'Операционный убыток ':'Операционная прибыль ')+fbig(Math.abs(Y.oper)),
     'Год назад за те же месяцы было <b>'+fbig(Y5.oper)+'</b>. Разница — <b>'+fbig(Y.oper-Y5.oper)+'</b>. '
-    +'Лучший месяц <b>'+esc(L[best])+'</b>, худший <b>'+esc(L[worst])+'</b>.');
-if(topUp) H+=find('var(--ro)','⬆️','Сильнее всего выросла статья «'+esc(topUp.n)+'»',
+    +'Лучший месяц <b>'+esc(L[best])+'</b>, худший <b>'+esc(L[worst])+'</b>.',
+    'сравнить лучший и худший месяц постатейно в блоке «Сравнение месяцев» ниже — там видно, чем именно они отличаются');
+if(topUp) H+=find('var(--ro)','⬆️','Сильнее всего выросла статья «'+esc(nice(topUp.n))+'»',
     '<b>+'+fbig(topUp.d)+'</b> к прошлому году: '+fbig(topUp.b)+' → <b>'+fbig(topUp.a)+'</b>. '
-    +'Это '+pc(Y.rev?topUp.d/Y.rev:0)+' выручки периода.');
-if(topDn) H+=find('var(--em)','⬇️','Сильнее всего снизилась статья «'+esc(topDn.n)+'»',
-    '<b>'+fbig(topDn.d)+'</b> к прошлому году: '+fbig(topDn.b)+' → <b>'+fbig(topDn.a)+'</b>.');
+    +'Это '+pc(Y.rev?topUp.d/Y.rev:0)+' выручки периода.',
+    'запросить расшифровку по этой статье за последние месяцы и назначить ответственного за её сокращение',
+    'закуп.html','Закуп');
+if(topDn) H+=find('var(--em)','⬇️','Сильнее всего снизилась статья «'+esc(nice(topDn.n))+'»',
+    '<b>'+fbig(topDn.d)+'</b> к прошлому году: '+fbig(topDn.b)+' → <b>'+fbig(topDn.a)+'</b>.',
+    'проверить, что снижение реальное, а не следствие переноса расходов на другую статью',
+    'опиу_аудит.html','Аудит ОПиУ');
 if(lateN) H+=find('var(--am)','⚠️','В цифрах есть оценка',
     lateN+' мес. ещё не закрыты бухгалтерией. Регулярные начисления в них дочитаны по медиане закрытых месяцев — '
-    +'итог по этим месяцам может измениться. Подробности внизу страницы.');
+    +'итог по этим месяцам может измениться. Подробности внизу страницы.',
+    'для разговора с цифрами-фактами переключите режим вверху страницы на «Только факт»',
+    location.pathname+'?fact=1','Показать только факт');
 H+='</div>';
 
 /* — топ-движения статей — */
-function mvlist(arr,color){
+/* Цвет строки — по смыслу, а не по колонке: упавшая выручка это плохо,
+   даже если она стоит в списке «Снизилось». */
+function mvlist(arr){
   var mx=Math.max.apply(null,arr.map(function(m){return Math.abs(m.d);}))||1, h='';
   arr.forEach(function(m){
-    h+='<div class="mv"><div class="mv-n" title="'+esc(m.n)+'">'+esc(m.n)+'</div>'
+    var good=(m.d>0)===m.inc, color=good?'#34d399':'#fb7185';
+    h+='<div class="mv"><div class="mv-n" title="'+esc(m.n)+'">'+esc(nice(m.n))+'</div>'
      + '<div class="mv-b"><i style="width:'+(Math.abs(m.d)/mx*100).toFixed(0)+'%;background:'+color+';box-shadow:0 0 10px '+color+'"></i></div>'
      + '<div class="mv-v" style="color:'+color+'">'+(m.d>0?'+':'')+fbig(m.d)+'</div></div>';
   });
   return h;
 }
-H+='<div class="sec-t" style="--sc:linear-gradient(180deg,#fbbf24,#fb7185);--sg:rgba(251,191,36,.8)">🏆 Что изменилось сильнее всего <span class="sub">конечные статьи, '+esc(per26)+' против '+esc(per25)+'</span></div>'
+H+='<div id="s-moves"></div><div class="sec-t" style="--sc:linear-gradient(180deg,#fbbf24,#fb7185);--sg:rgba(251,191,36,.8)">🏆 Что изменилось сильнее всего <span class="sub">конечные статьи, '+esc(per26)+' против '+esc(per25)+'</span></div>'
  + '<div class="grid g2">'
- + '<div class="card"><div class="card-t">⬆️ Выросло</div><div class="card-s">в деньгах, к тому же периоду 2025</div>'+mvlist(mUp,'#fb7185')+'</div>'
- + '<div class="card"><div class="card-t">⬇️ Снизилось</div><div class="card-s">в деньгах, к тому же периоду 2025</div>'+mvlist(mDn,'#34d399')+'</div>'
+ + '<div class="card"><div class="card-t">⬆️ Выросло</div><div class="card-s">в деньгах, к тому же периоду 2025 · красное — хуже для результата</div>'+mvlist(mUp)+'</div>'
+ + '<div class="card"><div class="card-t">⬇️ Снизилось</div><div class="card-s">в деньгах, к тому же периоду 2025 · красное — хуже для результата</div>'+mvlist(mDn)+'</div>'
  + '</div>';
 
 /* — сравнение месяц к месяцу: селекторы + место под результат — */
@@ -469,7 +549,7 @@ function opts(sel){
   return h;
 }
 var defB=i26[N-1], defA=(N>1?i26[N-2]:i25[i25.length-1]);   /* по умолчанию: последний месяц против предыдущего */
-H+='<div class="sec-t" style="--sc:linear-gradient(180deg,#a855f7,#60a5fa);--sg:rgba(168,85,247,.85)">⚖️ Сравнение месяцев <span class="sub">что именно изменилось между двумя месяцами и как это повлияло на прибыль</span>'
+H+='<div id="s-cmp"></div><div class="sec-t" style="--sc:linear-gradient(180deg,#a855f7,#60a5fa);--sg:rgba(168,85,247,.85)">⚖️ Сравнение месяцев <span class="sub">что именно изменилось между двумя месяцами и как это повлияло на прибыль</span>'
  + '<span class="tools">'
  + '<select class="inp" id="mA">'+opts(defA)+'</select>'
  + '<span class="mut" style="align-self:center">→</span>'
@@ -504,11 +584,13 @@ function tagFor(j){ var s=ST[j];
 function thead(){
   var h='<thead><tr><th class="nm">Статья</th>';
   for(var j=0;j<N;j++) h+='<th>'+esc(short(M[i26[j]]))+tagFor(j)+'</th>';
-  h+='<th class="sep">Итого 2026</th><th>'+esc(per25)+'</th><th>Δ</th><th>% выр.</th><th>тренд</th></tr></thead>';
+  h+='<th class="sep">Итого '+(FACT_ONLY?'факт':'2026')+'</th><th>'+esc(per25)+'</th>'
+   + '<th title="Изменение к тому же периоду 2025: в процентах, а для строк, где знак меняется — в млн ₸">Δ к 2025</th>'
+   + '<th>% выр.</th></tr></thead>';
   return h;
 }
 
-H+='<div class="sec-t" style="--sc:linear-gradient(180deg,#34d399,#22d3ee);--sg:rgba(52,211,153,.8)">🧾 Постатейно'
+H+='<div id="s-tab"></div><div class="sec-t" style="--sc:linear-gradient(180deg,#34d399,#22d3ee);--sg:rgba(52,211,153,.8)">🧾 Постатейно'
  + '<span class="sub">'+esc(per26)+'</span>'
  + '<span class="tools">'
  + '<input class="inp" id="q" placeholder="поиск по статье…">'
@@ -532,20 +614,20 @@ for(var r=0;r<R.length;r++){
   var good=/прибыл/i.test(row.n)?1:(row.inc?1:-1); /* для строк прибыли рост — это хорошо */
   var pad=8+nz(row.ind)*1.7;
   H+='<tr class="'+cls+' rowbtn" data-k="'+row.kind+'" data-i="'+r+'" data-n="'+esc(row.n).toLowerCase()+'">'
-   + '<td class="nm" style="padding-left:'+pad+'px">'+esc(row.n)+'</td>';
+   + '<td class="nm" style="padding-left:'+pad+'px" title="'+esc(row.n)+'">'+esc(nice(row.n))+'</td>';
   for(var j=0;j<N;j++){ var x=nz(v[i26[j]]);
     H+='<td class="cell'+((!ST[j].closed&&x)?' est':'')+'" data-h="'+heat(x,avg,row.inc)+'" data-v="'+x+'">'+fu(x)+'</td>'; }
   H+='<td class="sep num" data-v="'+t26+'"><b>'+fu(t26)+'</b></td>'
    + '<td class="num" data-v="'+t25+'">'+fu(t25)+'</td>'
    + '<td>'+dtxt(t26,t25,good)+'</td>'
-   + '<td>'+(Y.rev?pc(t26/Y.rev):'')+'</td>'
-   + '<td>'+spark(i26.map(function(k){return nz(v[k]);}),row.inc?'#34d399':'#a855f7',80,20)+'</td></tr>';
+   + '<td>'+(Y.rev?pc(t26/Y.rev):'')+'</td></tr>';
   visRows.push(row);
 }
 H+='</tbody></table></div>'
  + '<div class="leg"><span><i style="background:rgba(251,113,133,.45)"></i>месяц заметно хуже среднего по статье</span>'
  + '<span><i style="background:rgba(52,211,153,.45)"></i>месяц заметно лучше среднего</span>'
  + '<span><i style="background:rgba(251,191,36,.5)"></i>~ значение с досчётом (месяц не закрыт)</span>'
+ + '<span>Δ в процентах; там, где прибыль меняет знак — в млн ₸</span>'
  + '<span>клик по строке — график по месяцам</span></div>';
 
 /* — что ещё не окончательно — */
@@ -561,7 +643,7 @@ for(var j=0;j<N;j++){ var s=ST[j];
   gh+='<div class="gap"><div class="gap-h">'+esc(L[i26[j]])+'</div><ul><li>'+items.join('</li><li>')+'</li></ul></div>';
 }
 if(gh){
-  H+='<div class="sec-t" style="--sc:linear-gradient(180deg,#fb7185,#fbbf24);--sg:rgba(251,113,133,.85)">⚠️ Что в цифрах ещё не окончательно</div>'
+  H+='<div id="s-note"></div><div class="sec-t" style="--sc:linear-gradient(180deg,#fb7185,#fbbf24);--sg:rgba(251,113,133,.85)">⚠️ Что в цифрах ещё не окончательно</div>'
    + '<div class="note warn">Незакрытые месяцы нельзя сравнивать с закрытыми напрямую: зарплата, налоги, аренда и НДС проводятся в конце месяца и в начале следующего. Ниже — что именно дочитано оценкой, чтобы месяц не выглядел сказочно прибыльным.</div>'
    + '<div class="gaps">'+gh+'</div>';
 }
@@ -617,7 +699,7 @@ T.addEventListener('click',function(e){
   var opened=T.querySelectorAll('tr.open'); for(var i=0;i<opened.length;i++) opened[i].classList.remove('open');
   var row=R[+tr.getAttribute('data-i')], v=row.v||[];
   var det=document.createElement('tr'); det.className='det';
-  det.innerHTML='<td colspan="'+(N+6)+'"><div class="box"><canvas id="cRow"></canvas></div></td>';
+  det.innerHTML='<td colspan="'+(N+5)+'"><div class="box"><canvas id="cRow"></canvas></div></td>';
   tr.parentNode.insertBefore(det,tr.nextSibling); tr.classList.add('open');
   if(window.Chart){
     if(openChart) openChart.destroy();
@@ -635,7 +717,7 @@ T.addEventListener('click',function(e){
 function csv(){
   var out=[], hdr=['Статья'];
   for(var j=0;j<N;j++) hdr.push(short(M[i26[j]]));
-  hdr.push('Итого 2026',per25,'Δ, ₸','% выручки'); out.push(hdr);
+  hdr.push(FACT_ONLY?'Итого факт':'Итого 2026',per25,'Δ, ₸','% выручки'); out.push(hdr);
   var rows=T.querySelectorAll('tbody tr:not(.det)');
   for(var i=0;i<rows.length;i++){
     if(rows[i].style.display==='none') continue;
@@ -715,7 +797,7 @@ function renderCmp(a,b){
   parts.push('расходы '+(dOpex>0?'забрали ':'вернули +')+fbig(Math.abs(dOpex)));
   h+='<div class="note"><b>'+esc(La)+' → '+esc(Lb)+'.</b> Прибыль от основной деятельности '
    + (dOper>=0?'выросла на <b>':'упала на <b>')+fbig(Math.abs(dOper))+'</b>: '+parts.join(', ')+'. '
-   + 'Сильнее всего сдвинулась статья <b>'+esc(top.length?top[0].n:'—')+'</b> ('+(top.length&&top[0].d>0?'+':'')+fbig(top.length?top[0].d:0)+').'
+   + 'Сильнее всего сдвинулась статья <b>'+esc(top.length?nice(top[0].n):'—')+'</b> ('+(top.length&&top[0].d>0?'+':'')+fbig(top.length?top[0].d:0)+').'
    + ((!sa.closed||!sb.closed)?' <span class="mut">Внимание: один из месяцев ещё не закрыт бухгалтерией, часть начислений в нём — оценка.</span>':'')
    + '</div>';
 
@@ -726,7 +808,7 @@ function renderCmp(a,b){
    + '<table style="width:100%"><thead><tr><th class="nm" style="min-width:150px">Статья</th><th>'+esc(La)+'</th><th>'+esc(Lb)+'</th><th>Δ</th></tr></thead><tbody>';
   diff.slice(0,20).forEach(function(m){
     var good=(m.d>0)===m.inc;
-    h+='<tr><td class="nm" style="padding-left:8px">'+esc(m.n)+'</td><td>'+fu(m.a)+'</td><td>'+fu(m.b)+'</td>'
+    h+='<tr><td class="nm" style="padding-left:8px" title="'+esc(m.n)+'">'+esc(nice(m.n))+'</td><td>'+fu(m.a)+'</td><td>'+fu(m.b)+'</td>'
      + '<td class="'+(Math.abs(m.d)<1e4?'mut':(good?'pos':'neg'))+'">'+(m.d>0?'+':'')+fu(m.d)+'</td></tr>';
   });
   h+='</tbody></table></div></div>';
@@ -871,21 +953,6 @@ if(window.Chart){
     scales:{x:{ticks:{color:'#8698b8',font:{size:10}},grid:{display:false}},
             y:{ticks:{color:'#8698b8',font:{size:10},callback:function(v){return v+'%';}},
                grid:{color:'rgba(148,163,184,.10)'}}}})});
-
-  /* 7.7 «Что изменилось к 2025»: сразу разница, а не два столбика рядом —
-     иначе выручка в 2 млрд прячет убыток в 159 млн. */
-  var YY=[['Выручка',Y.rev,Y5.rev,1],['Себестоимость',Y.cogs,Y5.cogs,-1],
-          ['Валовая прибыль',Y.gross,Y5.gross,1],['Расходы',Y.opex,Y5.opex,-1],
-          ['Операционная',Y.oper,Y5.oper,1],['Чистая прибыль',Y.net,Y5.net,1]];
-  new Chart(document.getElementById('c4'),{type:'bar',
-    data:{labels:YY.map(function(r){return r[0];}),
-      datasets:[{label:'разница, млн ₸',data:YY.map(function(r){return (r[1]-r[2])/1e6;}),borderRadius:6,
-        backgroundColor:YY.map(function(r){ return ((r[1]-r[2])>0)===(r[3]>0)?'rgba(52,211,153,.9)':'rgba(251,113,133,.9)'; })}]},
-    options:chartOpts({indexAxis:'y',plugins:{datalabels:{display:false},legend:{display:false},
-      tooltip:{callbacks:{label:function(c){ var r=YY[c.dataIndex];
-        return 'было '+fbig(r[2])+' → стало '+fbig(r[1])+'  ('+(c.parsed.x>0?'+':'')+c.parsed.x.toFixed(1)+' млн ₸)'; }}}},
-      scales:{x:{ticks:{color:'#8698b8',font:{size:10}},grid:{color:'rgba(148,163,184,.10)'}},
-              y:{ticks:{color:'#cfdaef',font:{size:11}},grid:{display:false}}}})});
 }
 })();
 </script>
