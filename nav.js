@@ -3,12 +3,13 @@
   try{ fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true}); }catch(e){}
   var pages=[
     {href:'index.html',icon:'🏠',label:'Главная'},
-    {href:'дашборд_ддс_прямой.html',icon:'💧',label:'ДДС · деньги'},
-    {href:'дз_кз.html',icon:'🧾',label:'ДЗ / КЗ'},
+    {href:'дашборд_ддс_прямой.html',icon:'💸',label:'ДДС · деньги'},
+    {href:'дз_кз.html',icon:'⚖️',label:'ДЗ / КЗ'},
     {href:'продажи_2026.html',icon:'🛒',label:'Продажи'},
-    {href:'дашборд_sku_iiko.html',icon:'🔍',label:'SKU 360'},
-    {href:'себестоимость_маржа.html',icon:'💰',label:'Себестоимость · маржа'},
-    {href:'рычаги.html',icon:'🎯',label:'Рычаги прибыли'},
+    {href:'дашборд_sku_iiko.html',icon:'🧩',label:'SKU 360'},
+    {href:'себестоимость_маржа.html',icon:'👥',label:'Себестоимость · маржа'},
+    {href:'рычаги.html',icon:'⚙️',label:'Рычаги прибыли'},
+    {href:'опиу_2026.html',icon:'📊',label:'ОПиУ 2026'},
     {href:'опиу_аудит.html',icon:'🔎',label:'Аудит ОПиУ'},
     {href:'metrics.html',icon:'🔒',label:'Метрики'}
   ];
