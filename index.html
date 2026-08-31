@@ -151,6 +151,27 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
   /* девушка — маленькая, вверху у шапки; absolute → уезжает при прокрутке, не перекрывает контент */
   .girl-corner{position:absolute;top:2px;right:8px;left:auto;bottom:auto;height:78px;width:auto;z-index:10001;pointer-events:none;}
 }
+
+/* ── ПУЛЬС: строка ключевых цифр над разделами ──────────────────
+   Тёмное «стекло» на фиолетовом фоне: цифры читаются сразу, а сами
+   плитки кликабельны и ведут в отчёт, откуда взята цифра. */
+.pulse{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;padding:16px 18px;margin:4px 0 28px;}
+.pulse-hdr{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.pulse-t{font-size:11px;font-weight:800;color:#fff;letter-spacing:.14em;text-transform:uppercase;}
+.pulse-s{font-size:11px;color:rgba(255,255,255,.45);}
+.pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:11px;}
+.pt{display:block;text-decoration:none;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px 14px;transition:.18s;}
+.pt:hover{transform:translateY(-2px);border-color:rgba(167,139,250,.65);
+  background:rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(0,0,0,.35);}
+.pt-l{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:rgba(255,255,255,.5);min-height:12px;}
+.pt-v{font-size:21px;font-weight:900;color:#fff;margin-top:7px;letter-spacing:-.5px;}
+.pt-d{font-size:11px;margin-top:4px;color:rgba(255,255,255,.45);}
+.pt .up{color:#34d399;font-weight:800;}
+.pt .down{color:#fb7185;font-weight:800;}
+@media(max-width:640px){.pulse-grid{grid-template-columns:repeat(2,1fr);}.pt-v{font-size:18px;}}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
 </head>
@@ -173,13 +194,53 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
   <div class="sec-name">Финансы</div>
   <div class="sec-sub">Планирование, факт и аналитика</div>
 
-  <!-- БЛОК 01: ФАКТИЧЕСКИЕ ДАННЫЕ -->
+  <!-- ── ПУЛЬС: ключевые цифры на сегодня ───────────────────────────
+       Плитки заполняются из тех же файлов данных, что и дашборды:
+       opiu_audit.js — прибыль, dz_kz.js — долги, ddsp_days.js — деньги.
+       Файл не загрузился — плитка остаётся с прочерком, страница цела. -->
+  <div class="pulse">
+    <div class="pulse-hdr"><span class="pulse-t">Пульс на сегодня</span><span class="pulse-s" id="pulse-upd">—</span></div>
+    <div class="pulse-grid">
+      <a class="pt" href="опиу_2026.html" title="Выручка с начала года, к тому же периоду 2025">
+        <div class="pt-l">Выручка 2026</div>
+        <div class="pt-v" id="p-rev-v">—</div>
+        <div class="pt-d" id="p-rev-d">загрузка…</div>
+      </a>
+      <a class="pt" href="опиу_2026.html" title="Валовая прибыль к выручке">
+        <div class="pt-l">Валовая маржа</div>
+        <div class="pt-v" id="p-mrg-v">—</div>
+        <div class="pt-d" id="p-mrg-d">загрузка…</div>
+      </a>
+      <a class="pt" href="опиу_2026.html" title="Прибыль от основной деятельности с начала года">
+        <div class="pt-l">Опер. прибыль</div>
+        <div class="pt-v" id="p-opr-v">—</div>
+        <div class="pt-d" id="p-opr-d">загрузка…</div>
+      </a>
+      <a class="pt" href="дашборд_ддс_прямой.html" title="Поступления минус платежи за последний месяц">
+        <div class="pt-l">Денежный поток</div>
+        <div class="pt-v" id="p-cf-v">—</div>
+        <div class="pt-d" id="p-cf-d">загрузка…</div>
+      </a>
+      <a class="pt" href="дз_кз.html" title="Нам должны">
+        <div class="pt-l">Дебиторка</div>
+        <div class="pt-v" id="p-dz-v">—</div>
+        <div class="pt-d" id="p-dz-d">загрузка…</div>
+      </a>
+      <a class="pt" href="дз_кз.html" title="Мы должны">
+        <div class="pt-l">Кредиторка</div>
+        <div class="pt-v" id="p-kz-v">—</div>
+        <div class="pt-d" id="p-kz-d">загрузка…</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- БЛОК 01: ДЕНЬГИ -->
   <div class="fin-section">
     <div class="fin-section-hdr">
       <span class="fin-num">01</span>
       <div class="fin-divider"></div>
-      <div class="fin-title">Фактические данные</div>
-      <div class="fin-sub">Реальные результаты по периодам</div>
+      <div class="fin-title">Деньги</div>
+      <div class="fin-sub">Хватит ли денег и кто кому должен</div>
     </div>
     <div class="cards">
       <a class="card" style="--c1:#5aa15f;--c2:#2f7a44;--cr:90,161,95" href="дашборд_ддс.html">
@@ -202,12 +263,41 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
           <span class="card-badge" id="ddsp-upd" style="background:#f0fdf4;color:#166534;">🕒 …</span>
         </div>
       </a>
+      <a class="card" style="--c1:#37b0c4;--c2:#1f8a9c;--cr:55,176,196" href="дашборд_гугл_live.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">⚡</div><div class="card-title">ДДС — планирование месяца</div></div>
+        <div class="card-desc">План оплат по дням и неделям: что ожидаем и что платим. Месяц берётся сам — самый поздний лист Google-таблицы; дневной ритм — из фактического ДДС iiko.</div>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">Google Диск · Авто</span>
+          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📅 месяц выбирается сам</span>
+        </div>
+      </a>
+      <a class="card" style="--c1:#38bdf8;--c2:#0ea5e9;--cr:56,189,248" href="дашборд_ддс_июль.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🎯</div><div class="card-title">ДДС · План-факт · Июль</div></div>
+        <div class="card-desc">План оплат против факта iiko за июль: поступления и выплаты по статьям, отклонения, исполнение плана.</div>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🎯 план vs факт</span>
+          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📅 июль 2026</span>
+        </div>
+      </a>
       <a class="card" style="--c1:#e0834e;--c2:#c85a34;--cr:224,131,78" href="дз_кз.html">
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">🧾</div><div class="card-title">Дебиторка и Кредиторка</div></div>
         <div class="card-desc">ДЗ и КЗ по контрагентам: итоги, динамика, топ должников.</div>
         <div class="card-tags"><span class="card-badge" style="background:#fdf4ff;color:#7e22ce;">Google Диск · Авто</span></div>
       </a>
+    </div>
+  </div>
+  <!-- БЛОК 02: ПРИБЫЛЬ -->
+  <div class="fin-section">
+    <div class="fin-section-hdr">
+      <span class="fin-num">02</span>
+      <div class="fin-divider"></div>
+      <div class="fin-title">Прибыль</div>
+      <div class="fin-sub">Сколько заработали и на чём</div>
+    </div>
+    <div class="cards">
       <a class="card" style="--c1:#4f7ce0;--c2:#2b4c9b;--cr:79,124,224" href="опиу_2026.html">
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">📊</div><div class="card-title">ОПиУ 2026</div></div>
@@ -217,33 +307,29 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
           <span class="card-badge" style="background:#eef2ff;color:#3730a3;">📅 2026 · помесячно</span>
         </div>
       </a>
-    </div>
-  </div>
-
-  <!-- БЛОК 02: АНАЛИТИКА -->
-  <div class="fin-section">
-    <div class="fin-section-hdr">
-      <span class="fin-num">02</span>
-      <div class="fin-divider"></div>
-      <div class="fin-title">Аналитика</div>
-      <div class="fin-sub">Углублённый анализ по направлениям</div>
-    </div>
-    <div class="cards">
-      <a class="card" style="--c1:#8b6ad6;--c2:#5b3fa8;--cr:139,106,214" href="опиу_аудит.html">
+      <div class="card card-disabled" style="--c1:#10b981;--c2:#059669;--cr:16,185,129">
         <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🔎</div><div class="card-title">Аудит ОПиУ 2025–2026</div></div>
-        <div class="card-desc">Постатейно за 17 месяцев: сравнение любых двух месяцев и проверка разносок — что могли отнести не туда.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">📒 бухгалтерский ОПиУ</span>
-          <span class="card-badge" style="background:#fef2f2;color:#b91c1c;">🔍 проверка разносок</span>
-        </div>
-      </a>
+        <div class="card-hd"><div class="card-icon">📋</div><div class="card-title">ОПиУ — Планирование</div></div>
+        <div class="card-desc">Плановый отчёт о прибылях и убытках. Бюджет по статьям на период.</div>
+        <span class="card-badge" style="background:#f0fdf4;color:#166534;">В разработке</span>
+      </div>
       <a class="card" style="--c1:#10b981;--c2:#059669;--cr:16,185,129" href="дашборд_себестоимость_2025-2026.html">
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">🧮</div><div class="card-title">Полная себестоимость</div></div>
         <div class="card-desc">За счёт чего прибыль и убыток: постоянные затраты, точка безубыточности, запас прочности.</div>
         <div class="card-tags"><span class="card-badge" style="background:#f0fdf4;color:#166534;">ОПиУ + iiko · автообновление</span></div>
       </a>
+    </div>
+  </div>
+  <!-- БЛОК 03: ДРАЙВЕРЫ -->
+  <div class="fin-section">
+    <div class="fin-section-hdr">
+      <span class="fin-num">03</span>
+      <div class="fin-divider"></div>
+      <div class="fin-title">Драйверы</div>
+      <div class="fin-sub">Почему прибыль такая — где зарабатываем и где теряем</div>
+    </div>
+    <div class="cards">
       <a class="card" style="--c1:#f43f5e;--c2:#e8c766;--cr:244,63,94" href="рычаги.html">
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">🎯</div><div class="card-title">Рычаги прибыли</div></div>
@@ -288,50 +374,33 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
       </a>
     </div>
   </div>
-
-  <!-- БЛОК 03: ПЛАНИРОВАНИЕ -->
-  <div class="fin-section">
-    <div class="fin-section-hdr">
-      <span class="fin-num">03</span>
-      <div class="fin-divider"></div>
-      <div class="fin-title">Планирование</div>
-      <div class="fin-sub">Бюджеты и плановые показатели</div>
-    </div>
-    <div class="cards cards-2">
-      <div class="card card-disabled" style="--c1:#10b981;--c2:#059669;--cr:16,185,129">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">📋</div><div class="card-title">ОПиУ — Планирование</div></div>
-        <div class="card-desc">Плановый отчёт о прибылях и убытках. Бюджет по статьям на период.</div>
-        <span class="card-badge" style="background:#f0fdf4;color:#166534;">В разработке</span>
-      </div>
-      <a class="card" style="--c1:#37b0c4;--c2:#1f8a9c;--cr:55,176,196" href="дашборд_гугл_live.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">⚡</div><div class="card-title">ДДС — планирование месяца</div></div>
-        <div class="card-desc">План оплат по дням и неделям: что ожидаем и что платим. Месяц берётся сам — самый поздний лист Google-таблицы; дневной ритм — из фактического ДДС iiko.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">Google Диск · Авто</span>
-          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📅 месяц выбирается сам</span>
-        </div>
-      </a>
-      <a class="card" style="--c1:#38bdf8;--c2:#0ea5e9;--cr:56,189,248" href="дашборд_ддс_июль.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🎯</div><div class="card-title">ДДС · План-факт · Июль</div></div>
-        <div class="card-desc">План оплат против факта iiko за июль: поступления и выплаты по статьям, отклонения, исполнение плана.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🎯 план vs факт</span>
-          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📅 июль 2026</span>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <!-- БЛОК 04: ПРОБА -->
+  <!-- БЛОК 04: КОНТРОЛЬ -->
   <div class="fin-section">
     <div class="fin-section-hdr">
       <span class="fin-num">04</span>
       <div class="fin-divider"></div>
-      <div class="fin-title">ПРОБА</div>
-      <div class="fin-sub">Экспериментальный раздел</div>
+      <div class="fin-title">Контроль</div>
+      <div class="fin-sub">Можно ли верить цифрам</div>
+    </div>
+    <div class="cards">
+      <a class="card" style="--c1:#8b6ad6;--c2:#5b3fa8;--cr:139,106,214" href="опиу_аудит.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🔎</div><div class="card-title">Аудит ОПиУ 2025–2026</div></div>
+        <div class="card-desc">Постатейно за 17 месяцев: сравнение любых двух месяцев и проверка разносок — что могли отнести не туда.</div>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">📒 бухгалтерский ОПиУ</span>
+          <span class="card-badge" style="background:#fef2f2;color:#b91c1c;">🔍 проверка разносок</span>
+        </div>
+      </a>
+    </div>
+  </div>
+  <!-- БЛОК 05: АРХИВ -->
+  <div class="fin-section">
+    <div class="fin-section-hdr">
+      <span class="fin-num">05</span>
+      <div class="fin-divider"></div>
+      <div class="fin-title">Архив</div>
+      <div class="fin-sub">Прежние версии отчётов — чтобы не мешались</div>
     </div>
     <div class="cards">
       <a class="card" style="--c1:#10b981;--c2:#059669;--cr:16,185,129" href="опиу_2025_2026.html">
@@ -350,7 +419,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">⚡</div><div class="card-title">SKU iiko — Live</div></div>
         <div class="card-desc">Живые данные напрямую из iiko: выручка, ВП, маржа, количество. Фильтр по периоду (месяц / год / диапазон) и складу. Обновляется автоматически.</div>
-        <div class="card-tags"><span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">⚡ Live · iiko API</span></div>
+        <div class="card-tags"><span class="card-badge" style="background:#fef2f2;color:#b91c1c;">💻 открывается только на рабочем компьютере</span></div>
       </a>
     </div>
   </div>
@@ -609,5 +678,80 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
   <div>Система «Пульс» — панель управления «Мастерская Сегодня»</div>
   <div style="margin-top:2px">Автор и разработчик: <b style="color:#cbd5e1">Ольга Герасименко</b> · © 2026 · Все права защищены</div>
 </footer>
+
+<script>
+/* ── ПУЛЬС НА СЕГОДНЯ ─────────────────────────────────────────────
+   Шесть ключевых цифр над разделами. Берём их из тех же файлов,
+   которые CI пересобирает три раза в день, поэтому плашка всегда
+   совпадает с дашбордами и не требует отдельного расчёта:
+     opiu_audit.js — выручка, маржа, операционная прибыль (из iiko);
+     ddsp_days.js  — поступления и платежи по дням (прямой ДДС);
+     dz_kz.js      — дебиторка и кредиторка из Google-таблицы.
+   Любой файл может не загрузиться — тогда его плитка остаётся
+   с прочерком, а остальная страница работает как обычно.        */
+(function(){
+  function load(src,cb){ var sc=document.createElement('script');
+    sc.src=src; sc.onload=cb; sc.onerror=cb; document.head.appendChild(sc); }
+  function set(id,v,d){ var a=document.getElementById(id+'-v'), b=document.getElementById(id+'-d');
+    if(a) a.innerHTML=v; if(b) b.innerHTML=d; }
+  function money(x){ var a=Math.abs(x);
+    if(a>=1e9) return (x/1e9).toFixed(2).replace('.',',')+' млрд ₸';
+    if(a>=1e6) return Math.round(x/1e6)+' млн ₸';
+    if(a>=1e3) return Math.round(x/1e3)+' тыс ₸';
+    return Math.round(x)+' ₸'; }
+  /* good=+1 — рост это хорошо, good=-1 — наоборот. Если база
+     отрицательная или знак поменялся, процент врёт: показываем деньги. */
+  function chg(now,was,good){
+    if(!was && !now) return '';
+    var d=now-was, cls=(d>0)===(good>0)?'up':'down';
+    var t=(was<=0||now<0)?((d>0?'+':'')+money(d)):((d>0?'+':'')+(d/was*100).toFixed(1)+'%');
+    return '<span class="'+cls+'">'+t+'</span> ';
+  }
+
+  load('/opiu_audit.js?v=1',function(){
+    var A=window.OPIU_AUDIT; if(!A||!A.months) return;
+    var M=A.months,K=A.kpi,i26=[],i25=[];
+    for(var i=0;i<M.length;i++){ if(M[i].indexOf('2026-')===0) i26.push(i); }
+    for(var i=0;i<M.length;i++){ if(M[i].indexOf('2025-')===0) i25.push(i); }
+    i25=i25.slice(0,i26.length);
+    if(!i26.length) return;
+    function S(k,idx){ var s=0; for(var j=0;j<idx.length;j++) s+=(K[k][idx[j]]||0); return s; }
+    var rev=S('rev',i26), rev5=S('rev',i25),
+        gr =S('gross',i26), gr5=S('gross',i25),
+        op =S('oper',i26), op5=S('oper',i25);
+    var per=A.labels[i26[0]]+' — '+A.labels[i26[i26.length-1]];
+    set('p-rev', money(rev), chg(rev,rev5,1)+'к 2025 · '+per);
+    var m=rev?gr/rev*100:0, m5=rev5?gr5/rev5*100:0;
+    set('p-mrg', m.toFixed(1)+'%',
+        '<span class="'+(m>=m5?'up':'down')+'">'+(m-m5>0?'+':'')+(m-m5).toFixed(1)+' п.п.</span> к 2025 ('+m5.toFixed(1)+'%)');
+    set('p-opr', money(op), chg(op,op5,1)+'к 2025 · '+(op<0?'убыток':'прибыль'));
+    var u=document.getElementById('pulse-upd');
+    if(u&&A.updated) u.textContent='данные из iiko · обновлено '+A.updated;
+  });
+
+  load('/ddsp_days.js?v=1',function(){
+    var D=window.DDSP_DAYS; if(!D||!D.days) return;
+    var ks=Object.keys(D.days).sort(); if(!ks.length) return;
+    var ym=ks[ks.length-1].slice(0,7), inn=0, out=0;
+    ks.forEach(function(k){ if(k.slice(0,7)===ym){ inn+=D.days[k]['in']||0; out+=D.days[k].out||0; } });
+    var net=inn-out;
+    var nm=['','январь','февраль','март','апрель','май','июнь','июль','август',
+            'сентябрь','октябрь','ноябрь','декабрь'][+ym.slice(5)];
+    set('p-cf','<span class="'+(net>=0?'up':'down')+'">'+(net>0?'+':'')+money(net)+'</span>',
+        'за '+nm+' · пришло '+money(inn)+', ушло '+money(out));
+  });
+
+  load('/dz_kz.js?v=1',function(){
+    var Z=window.DZ_KZ; if(!Z) return;
+    function trend(o,good){
+      var d=o&&o.dynamics; if(!d||d.length<2) return '';
+      return chg(d[d.length-1].total,d[d.length-2].total,good)+'за неделю · ';
+    }
+    /* рост дебиторки — это деньги, которые до нас не дошли, поэтому «вверх» здесь красное */
+    if(Z.dz) set('p-dz', money(Z.dz.total), trend(Z.dz,-1)+'на '+(Z.dz.date||'—'));
+    if(Z.kz) set('p-kz', money(Z.kz.total), trend(Z.kz,-1)+'на '+(Z.kz.date||'—'));
+  });
+})();
+</script>
 </body>
 </html>
