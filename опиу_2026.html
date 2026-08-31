@@ -263,50 +263,15 @@ tbody tr:hover td{box-shadow:inset 0 0 0 9999px rgba(168,85,247,.06)}
 .need-v{font-size:17px;font-weight:900;color:var(--am);min-width:120px}
 .need-d{flex:1;min-width:170px;font-size:11px;color:#93a5c4;line-height:1.5}
 
-/* ── СХЕМЫ вместо абзацев ────────────────────────────────────── */
-.trk{margin-top:14px}
-.trk-l{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
-.trk-row{display:flex;align-items:center;gap:9px;margin-bottom:5px}
-.trk-cap{width:64px;font-size:10.5px;color:var(--mut);text-align:right;flex-shrink:0}
-.trk-bar{flex:1;display:flex;height:22px;border-radius:7px;overflow:hidden;background:rgba(134,152,184,.10)}
-.trk-bar i{display:flex;align-items:center;justify-content:center;font-style:normal;
-  font-size:10.5px;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);min-width:0;overflow:hidden}
-.t-rev{background:linear-gradient(90deg,#a855f7,#7c3aed)}
-.t-cogs{background:linear-gradient(90deg,#60a5fa,#3b82f6)}
-.t-opex{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
-.trk-res{margin-top:5px;margin-left:73px;font-size:12px;font-weight:800}
-.sch-note{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line);font-size:11.5px;color:#b9c7df;line-height:1.6}
-.sch-note b{color:#fff}
-.sch-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:10.5px;color:var(--mut)}
-.sch-legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-.sch-legend i.ob{border:1.5px solid var(--am)}
-.sch-legend i.eb{border:1.5px dashed rgba(134,152,184,.5)}
-
-.mgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-top:6px}
-@media(max-width:520px){.mgrid{grid-template-columns:repeat(4,1fr)}}
-.mcell{border-radius:10px;padding:9px 6px;text-align:center;border:1px solid transparent;transition:.15s}
-.mcell b{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.75)}
-.mcell span{display:block;font-size:15px;font-weight:900;color:#fff;margin-top:3px}
-.mcell.open{border-color:var(--am);box-shadow:0 0 14px rgba(251,191,36,.3)}
-.mcell.empty{background:transparent!important;border:1px dashed rgba(134,152,184,.28)}
-.mcell.empty b,.mcell.empty span{color:var(--mut)}
-.mcell:hover{transform:translateY(-2px)}
-
-.idx{display:flex;align-items:center;gap:10px;margin-top:12px}
-.idx-n{width:112px;font-size:11.5px;color:#cfdaef;flex-shrink:0}
-.idx-track{flex:1;position:relative;height:18px;border-radius:6px;background:rgba(134,152,184,.10);overflow:hidden}
-.idx-bar{display:block;height:100%;border-radius:6px}
-.idx-bar.g{background:linear-gradient(90deg,#34d399,#22d3ee)}
-.idx-bar.b{background:linear-gradient(90deg,#fb7185,#f472b6)}
-.idx-base{position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.55);z-index:2;box-shadow:0 0 8px rgba(255,255,255,.5)}
-.idx-v{width:52px;text-align:right;font-size:12px;font-weight:800;flex-shrink:0}
-
-.acts{display:flex;flex-direction:column;gap:9px;margin-top:6px}
-.act{display:block;text-decoration:none;background:rgba(255,255,255,.03);border:1px solid var(--line);
-  border-radius:11px;padding:10px 13px;transition:.15s}
-.act:hover{border-color:var(--vio2);background:rgba(168,85,247,.10);transform:translateX(3px)}
-.act b{display:block;font-size:12px;color:#fff}
-.act span{display:block;font-size:11px;color:#93a5c4;margin-top:3px}
+/* ── Три фразы вместо схем ───────────────────────────────────── */
+.lns{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);
+  border-radius:18px;padding:6px 20px;box-shadow:0 18px 44px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)}
+.ln{font-size:14px;line-height:1.75;color:#cfdaef;padding:14px 0;border-bottom:1px dashed rgba(36,50,87,.75)}
+.ln:last-child{border-bottom:none}
+.ln b{color:#fff;font-weight:800}
+.ln a{color:var(--cy);text-decoration:none;font-weight:700;white-space:nowrap}
+.ln a:hover{text-decoration:underline}
+@media(max-width:640px){.ln{font-size:13px}}
 </style>
 </head>
 <body>
@@ -523,101 +488,27 @@ H+='<div class="grid g3" style="margin-top:14px">'
  + '<div class="card"><div class="card-t">🟢 Валовая прибыль, млн ₸</div><div class="card-s">выручка минус себестоимость, помесячно</div><div class="cv"><canvas id="cGP"></canvas></div></div>'
  + '</div>';
 
-/* — СХЕМЫ: то же самое, но картинками, а не абзацами —
-     Три схемы отвечают на три вопроса: куда девается каждый тенге,
-     как прошёл год по месяцам и кто из блоков растёт быстрее выручки. */
-
-H+='<div id="s-find"></div><div class="sec-t" style="--sc:linear-gradient(180deg,#22d3ee,#34d399);--sg:rgba(34,211,238,.8)">🔍 Что видно в цифрах <span class="sub">три схемы вместо абзацев</span></div>';
-
-/* ── СХЕМА 1: путь 100 ₸ выручки ─────────────────────────────
-   Одна дорожка — выручка, вторая — затраты в том же масштабе.
-   Если дорожка затрат длиннее — виден убыток, и ровно на сколько. */
-function track(rev,cogs,opex,label,scale){
-  var c=cogs/rev*100, o=opex/rev*100, tot=c+o;
-  var res=100-tot;
-  var w=function(x){ return (x/scale*100).toFixed(2); };
-  var h='<div class="trk"><div class="trk-l">'+esc(label)+'</div>'
-   + '<div class="trk-rows">'
-   +   '<div class="trk-row"><span class="trk-cap">выручка</span>'
-   +     '<div class="trk-bar"><i class="t-rev" style="width:'+w(100)+'%">100 ₸</i></div></div>'
-   +   '<div class="trk-row"><span class="trk-cap">затраты</span>'
-   +     '<div class="trk-bar">'
-   +       '<i class="t-cogs" style="width:'+w(c)+'%">'+c.toFixed(1)+'</i>'
-   +       '<i class="t-opex" style="width:'+w(o)+'%">'+o.toFixed(1)+'</i>'
-   +     '</div></div>'
-   + '</div>'
-   + '<div class="trk-res '+(res>=0?'pos':'neg')+'">'+(res>=0?'остаётся ':'не хватает ')
-   +   Math.abs(res).toFixed(1)+' ₸ из 100</div></div>';
-  return h;
+/* — Три фразы. Никаких схем: цифра, сравнение с прошлым годом
+     и ссылка на отчёт, где видно причину. — */
+H+='<div id="s-find"></div><div class="sec-t" style="--sc:linear-gradient(180deg,#22d3ee,#34d399);--sg:rgba(34,211,238,.8)">🔍 Что видно в цифрах</div>';
+function line(txt,href,link){
+  return '<div class="ln">'+txt+(href?' <a href="'+href+'">'+link+' →</a>':'')+'</div>';
 }
-var sc26=Y.rev?(Y.cogs+Y.opex)/Y.rev*100:0, sc25=Y5.rev?(Y5.cogs+Y5.opex)/Y5.rev*100:0;
-var SCALE=Math.max(100,sc26,sc25)*1.02;
-H+='<div class="grid g2b">'
- + '<div class="card"><div class="card-t">🧭 Куда уходит каждые 100 ₸ выручки</div>'
- + '<div class="card-s">синее — себестоимость, жёлтое — расходы. Если полоса затрат длиннее полосы выручки, месяц отработан в минус</div>'
- + track(Y.rev,Y.cogs,Y.opex,esc(per26),SCALE)
- + track(Y5.rev,Y5.cogs,Y5.opex,esc(per25),SCALE)
- + '<div class="sch-note">За год картина сдвинулась: себестоимость '
- +   ((Y.cogs/Y.rev)>(Y5.cogs/Y5.rev)?'подорожала':'подешевела')+' на '
- +   Math.abs(Y.cogs/Y.rev*100-Y5.cogs/Y5.rev*100).toFixed(1)+' ₸, расходы '
- +   ((Y.opex/Y.rev)>(Y5.opex/Y5.rev)?'выросли':'снизились')+' на '
- +   Math.abs(Y.opex/Y.rev*100-Y5.opex/Y5.rev*100).toFixed(1)+' ₸ с каждой сотни.</div>'
+var c26=Y.rev?Y.cogs/Y.rev*100:0, c25=Y5.rev?Y5.cogs/Y5.rev*100:0;
+H+='<div class="lns">'
+ + line('Выручка за '+esc(per26)+' — <b>'+fbig(Y.rev)+'</b>, это на <b>'+fbig(Math.abs(Y.rev-Y5.rev))+'</b> '
+        +(Y.rev>=Y5.rev?'больше':'меньше')+', чем за тот же период прошлого года.',
+        'продажи_2026.html','Продажи 2026')
+ + line('Из каждых 100 ₸ выручки на себестоимость уходит <b>'+c26.toFixed(1)+' ₸</b> против <b>'+c25.toFixed(1)+' ₸</b> год назад — '
+        +'на текущем обороте эта разница стоит <b>'+fbig(Math.abs((gm25-gm26)*Y.rev))+'</b> валовой прибыли.',
+        'рычаги.html','Рычаги прибыли')
+ + line('Расходы '+(Y.opex>Y5.opex?'выросли на <b>':'снизились на <b>')+fbig(Math.abs(Y.opex-Y5.opex))+'</b> и забирают <b>'
+        +pc(Y.rev?Y.opex/Y.rev:0)+'</b> выручки против <b>'+pc(Y5.rev?Y5.opex/Y5.rev:0)+'</b> год назад — '
+        +(Y.oper<0?'именно они дают убыток <b>'+fbig(Math.abs(Y.oper))+'</b>.':'это главный резерв результата.'),
+        'дашборд_себестоимость_2025-2026.html','Полная себестоимость')
+ + (lateN?line('В итоги входит <b>'+lateN+' мес.</b> с оценкой — незакрытый месяц дочитан по медиане закрытых.',
+        location.pathname+'?fact=1','Показать только факт'):'')
  + '</div>';
-
-/* ── СХЕМА 2: год по месяцам плитками ────────────────────────
-   Двенадцать клеток: зелёная — месяц в плюс, красная — в минус,
-   янтарная рамка — ещё не закрыт, пустая — впереди. */
-var MN=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-var cells='', maxAbs=1;
-for(var q=0;q<12;q++){ var k=M.indexOf('2026-'+(q<9?'0':'')+(q+1)); if(k>=0) maxAbs=Math.max(maxAbs,Math.abs(nz(K.net[k]))); }
-for(var q=0;q<12;q++){
-  var key='2026-'+(q<9?'0':'')+(q+1), k=M.indexOf(key);
-  if(k<0){ cells+='<div class="mcell empty"><b>'+MN[q]+'</b><span>—</span></div>'; continue; }
-  var v=nz(K.net[k]), st=mstat(key), a=(0.18+Math.abs(v)/maxAbs*0.55).toFixed(2);
-  cells+='<div class="mcell'+(st.closed&&st.full?'':' open')+'" title="'+esc(L[k])+': '+fbig(v)+(st.closed?'':' · месяц не закрыт')+'"'
-   + ' style="background:rgba('+(v<0?'251,113,133':'52,211,153')+','+a+')">'
-   + '<b>'+MN[q]+'</b><span>'+(v/1e6).toFixed(0)+'</span></div>';
-}
-H+='<div class="card"><div class="card-t">🗓️ Год по месяцам</div>'
- + '<div class="card-s">чистая прибыль, млн ₸ · насыщенность — величина, янтарная рамка — месяц ещё не закрыт</div>'
- + '<div class="mgrid">'+cells+'</div>'
- + '<div class="sch-legend"><span><i style="background:rgba(52,211,153,.6)"></i>месяц в плюс</span>'
- +   '<span><i style="background:rgba(251,113,133,.6)"></i>месяц в минус</span>'
- +   '<span><i class="ob"></i>не закрыт</span><span><i class="eb"></i>впереди</span></div>'
- + '<div class="sch-note">Лучший месяц — <b>'+esc(L[best])+'</b>, худший — <b>'+esc(L[worst])+'</b>.</div>'
- + '</div></div>';
-
-/* ── СХЕМА 3: кто растёт быстрее выручки ─────────────────────
-   Индекс к прошлому году: 100% — прошлогодний уровень. Всё, что
-   правее выручки, растёт быстрее её и съедает рентабельность. */
-function idxRow(name,now,was,good){
-  var v=was?now/was*100:100;
-  var lim=Math.max(140, v*1.05);
-  return '<div class="idx"><div class="idx-n">'+esc(name)+'</div>'
-   + '<div class="idx-track"><i class="idx-base" style="left:'+(100/lim*100).toFixed(1)+'%"></i>'
-   +   '<i class="idx-bar '+((v>100)===(good>0)?'g':'b')+'" style="width:'+(v/lim*100).toFixed(1)+'%"></i></div>'
-   + '<div class="idx-v '+((v>100)===(good>0)?'pos':'neg')+'">'+v.toFixed(0)+'%</div></div>';
-}
-H+='<div class="grid g2b" style="margin-top:14px">'
- + '<div class="card"><div class="card-t">📊 Кто растёт быстрее выручки</div>'
- + '<div class="card-s">индекс к тому же периоду 2025 · вертикаль — прошлогодний уровень 100%</div>'
- + idxRow('Выручка',Y.rev,Y5.rev,1)
- + idxRow('Себестоимость',Y.cogs,Y5.cogs,-1)
- + idxRow('Расходы',Y.opex,Y5.opex,-1)
- + '<div class="sch-note">Всё, что заходит правее выручки, растёт быстрее оборота и съедает рентабельность. '
- +   'Сейчас так ведут себя <b>'+((Y.opex/Math.max(Y5.opex,1))>(Y.rev/Math.max(Y5.rev,1))?'расходы':'—')+'</b>.</div>'
- + '</div>';
-
-/* — короткая строка действий вместо абзацев в каждой карточке — */
-H+='<div class="card"><div class="card-t">🧭 С чего начать разбор</div>'
- + '<div class="card-s">каждая ссылка ведёт в отчёт, где видно причину</div>'
- + '<div class="acts">'
- + '<a class="act" href="рычаги.html"><b>Маржа просела на '+Math.abs((gm25-gm26)*100).toFixed(1)+' п.п.</b><span>цены, потери, брак → Рычаги прибыли</span></a>'
- + '<a class="act" href="дашборд_себестоимость_2025-2026.html"><b>Расходы '+(Y.opex>Y5.opex?'+':'−')+fbig(Math.abs(Y.opex-Y5.opex))+' к 2025</b><span>разобрать статьи прироста → Полная себестоимость</span></a>'
- + '<a class="act" href="продажи_2026.html"><b>Выручка '+(Y.rev>=Y5.rev?'+':'−')+fbig(Math.abs(Y.rev-Y5.rev))+' к 2025</b><span>какие товары и каналы просели → Продажи 2026</span></a>'
- + '<a class="act" href="опиу_аудит.html"><b>Проверить разноски</b><span>не перенесены ли расходы между статьями → Аудит ОПиУ</span></a>'
- + (lateN?'<a class="act" href="'+location.pathname+'?fact=1"><b>В цифрах есть оценка</b><span>'+lateN+' мес. не закрыт → показать только факт</span></a>':'')
- + '</div></div></div>';
 
 /* ============================================================
    РАЗБОР: ПОЧЕМУ ПРИБЫЛЬ ИЗМЕНИЛАСЬ
