@@ -468,39 +468,6 @@ H+='<div class="note">Цифры собраны <b>напрямую из iiko</b
      : (lateN?' <b style="color:var(--am)">Внимание:</b> в итоги 2026 года входят '+lateN+' мес. с оценкой, поэтому цифры ниже — не окончательный факт. Чтобы увидеть только закрытые месяцы, переключите режим вверху страницы.':''))
  + '</div>';
 
-/* — KPI-карточки. У каждой: значение, чип с изменением к прошлому году,
-     спарклайн по месяцам и короткий человеческий комментарий. — */
-function kpi(o){
-  return '<div class="kpi" style="--ac:'+o.c+'">'
-   + '<div class="kpi-l">'+o.icon+' '+o.l+'</div>'
-   + '<div class="kpi-v">'+o.v+'</div>'
-   + '<div class="kpi-d">'+(o.chip||'')+'<span class="mut">'+o.d+'</span></div>'
-   + '<div class="kpi-spark">'+o.sp+'</div>'
-   + '<div class="kpi-note">'+o.note+'</div></div>';
-}
-function sp(key,color){ return spark(i26.map(function(k){return nz(K[key][k]);}),color,200,26); }
-
-H+='<div class="kpis">'
- + kpi({icon:'💜',l:'Выручка',c:'var(--vio)',v:fbig(Y.rev),chip:dchip(Y.rev,Y5.rev,1),
-        d:'за '+per25+': '+fbig(Y5.rev), sp:sp('rev','#a855f7'),
-        note:'В среднем <b>'+fbig(Y.rev/N)+'</b> в месяц. '+(Y.rev>=Y5.rev?'Держим уровень прошлого года.':'Ниже прошлогоднего темпа — рост идёт не из выручки.')})
- + kpi({icon:'🧱',l:'Себестоимость',c:'var(--bl)',v:fbig(Y.cogs),chip:dchip(Y.cogs,Y5.cogs,-1),
-        d:'доля в выручке '+pc(Y.rev?Y.cogs/Y.rev:0), sp:sp('cogs','#60a5fa'),
-        note:'Каждые 100 ₸ выручки стоят <b>'+(Y.rev?(Y.cogs/Y.rev*100).toFixed(1):'—')+' ₸</b> прямых затрат (год назад — '+(Y5.rev?(Y5.cogs/Y5.rev*100).toFixed(1):'—')+' ₸).'})
- + kpi({icon:'💚',l:'Валовая прибыль',c:Y.gross<0?'var(--ro)':'var(--em)',v:fbig(Y.gross),chip:dchip(Y.gross,Y5.gross,1),
-        d:'маржа '+pc(gm26)+' против '+pc(gm25), sp:sp('gross','#34d399'),
-        note:(gm26>=gm25?'Маржа не просела: ':'Маржа ниже прошлогодней на <b>'+((gm25-gm26)*100).toFixed(1)+' п.п.</b> — ')+'это <b>'+fbig(Math.abs((gm26-gm25)*Y.rev))+'</b> на текущем объёме.'})
- + kpi({icon:'🏢',l:'Расходы',c:'var(--am)',v:fbig(Y.opex),chip:dchip(Y.opex,Y5.opex,-1),
-        d:'доля в выручке '+pc(Y.rev?Y.opex/Y.rev:0), sp:sp('opex','#fbbf24'),
-        note:'Год назад расходы съедали '+pc(Y5.rev?Y5.opex/Y5.rev:0)+' выручки. Разница — <b>'+fbig(Y.opex-Y5.opex)+'</b>.'})
- + kpi({icon:'⚙️',l:'Прибыль от осн. деятельности',c:Y.oper<0?'var(--ro)':'var(--em)',v:fbig(Y.oper),chip:dchip(Y.oper,Y5.oper,1),
-        d:'за '+per25+': '+fbig(Y5.oper), sp:sp('oper','#fb7185'),
-        note:'Лучший месяц — <b>'+esc(L[best])+'</b> ('+fbig(nz(K.oper[best]))+'), худший — <b>'+esc(L[worst])+'</b> ('+fbig(nz(K.oper[worst]))+').'})
- + kpi({icon:'🎯',l:'Чистая прибыль',c:Y.net<0?'var(--ro)':'var(--em)',v:fbig(Y.net),chip:dchip(Y.net,Y5.net,1),
-        d:'за '+per25+': '+fbig(Y5.net), sp:sp('net','#22d3ee'),
-        note:'Рентабельность по чистой прибыли <b>'+pc(Y.rev?Y.net/Y.rev:0)+'</b> (год назад '+pc(Y5.rev?Y5.net/Y5.rev:0)+').'})
- + '</div>';
-
 /* — мост прибыли: от выручки до чистой, по шагам — */
 H+='<div id="s-charts"></div><div class="grid g2">'
  + '<div class="card"><div class="card-t">🟡 Выручка и себестоимость, млн ₸</div><div class="card-s">помесячно за 2025–2026 · всё из iiko</div><div class="cv tall"><canvas id="cRS"></canvas></div></div>'
