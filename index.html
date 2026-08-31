@@ -182,6 +182,14 @@ a.card.key .card-title::before{
   margin-right:7px;vertical-align:-1px;
   text-shadow:0 0 10px rgba(220,38,38,.35);
 }
+/* метка «ключевой» — красным словом в углу карточки, без заливки */
+a.card.key::before{
+  content:'КЛЮЧЕВОЙ';position:absolute;top:9px;right:32px;
+  font-size:8.5px;font-weight:900;letter-spacing:.14em;color:#dc2626;
+  background:#fef2f2;border:1px solid rgba(220,38,38,.35);
+  border-radius:5px;padding:2px 7px;line-height:1.4;
+}
+@media(max-width:640px){a.card.key::before{display:none;}}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}
 /* ── КЛЮЧЕВЫЕ ОТЧЁТЫ ──────────────────────────────────────────
