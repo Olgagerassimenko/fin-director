@@ -3,7 +3,7 @@
   try{ fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true}); }catch(e){}
   var pages=[
     {href:'index.html',icon:'🏠',label:'Главная'},
-    {href:'дашборд_ддс_прямой.html',icon:'💸',label:'ДДС · деньги'},
+    {href:'дашборд_ддс_прямой.html',icon:'💸',label:'ДДС 2026'},
     {href:'дз_кз.html',icon:'⚖️',label:'ДЗ / КЗ'},
     {href:'продажи_2026.html',icon:'🛒',label:'Продажи'},
     {href:'дашборд_sku_iiko.html',icon:'🧩',label:'SKU 360'},
