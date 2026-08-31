@@ -24,6 +24,7 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <!-- onerror гасит ошибку, если файл данных ещё не собран: страница покажет понятное сообщение вместо белого экрана -->
 <script src="opiu_audit.js" onerror="window.OPIU_AUDIT=null"></script>
 <script src="opiu_iiko.js" onerror="window.OPIU_IIKO=null"></script>
@@ -108,6 +109,8 @@ body::before{ /* мягкое неоновое свечение фона — ч�
 .grid{display:grid;gap:14px;margin-bottom:6px}
 .g2{grid-template-columns:1fr 1fr}
 .g2b{grid-template-columns:1.35fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:1100px){.g3{grid-template-columns:1fr}}
 @media(max-width:1100px){.g2,.g2b{grid-template-columns:1fr}}
 .card{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:16px 18px}
 .card-t{font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:8px}
@@ -132,12 +135,15 @@ body::before{ /* мягкое неоновое свечение фона — ч�
 .mv-v{width:98px;text-align:right;font-size:11.5px;font-weight:800;flex-shrink:0}
 
 /* ── таблица ─────────────────────────────────────────────────── */
-.tw{overflow:auto;max-height:78vh;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px;min-width:max-content}
-th,td{padding:7px 11px;text-align:right;white-space:nowrap}
+/* таблица живёт в потоке страницы: внутренних полос прокрутки нет.
+   overflow-x оставлен страховкой для узких экранов. */
+.tw{overflow-x:auto;overflow-y:visible;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:11.5px}
+th,td{padding:6px 8px;text-align:right;white-space:nowrap}
 thead th{position:sticky;top:0;background:#1b2748;color:#9fb0cd;font-size:10.5px;font-weight:800;
   text-transform:uppercase;letter-spacing:.4px;z-index:3;border-bottom:1px solid var(--line)}
-th.nm,td.nm{text-align:left;position:sticky;left:0;background:var(--panel);z-index:2;min-width:290px;max-width:440px;white-space:normal}
+th.nm,td.nm{text-align:left;position:sticky;left:0;background:var(--panel);z-index:2;
+  min-width:190px;width:23%;white-space:normal}
 thead th.nm{background:#1b2748;z-index:4}
 tbody td{border-bottom:1px solid rgba(36,50,87,.45)}
 tbody tr:hover td{background:rgba(168,85,247,.10)!important}
@@ -166,6 +172,46 @@ tr.open .nm::before{transform:rotate(90deg)}
 .empty{padding:80px;text-align:center;color:var(--mut);font-size:14px}
 .leg{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--mut);margin:10px 2px 0}
 .leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* ── ПРЕМИАЛЬНЫЙ СЛОЙ ────────────────────────────────────────────
+   Ничего лишнего не грузим: всё «дорогое» — на градиентах, тенях
+   и тонких линиях. Каждый раздел получает своё свечение, чтобы
+   страница читалась как разделённая на главы.                     */
+:root{--gold:#e8c98a}
+.h1{text-shadow:0 0 34px rgba(168,85,247,.45)}
+.hero{position:relative}
+.hero::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(232,201,138,.55),rgba(168,85,247,.5),transparent)}
+
+/* заголовок раздела: светящаяся грань слева и мягкий след вправо */
+.sec-t{position:relative;padding:2px 0 2px 16px}
+.sec-t::before{content:'';position:absolute;left:0;top:2px;bottom:2px;width:4px;border-radius:4px;
+  background:var(--sc,linear-gradient(180deg,var(--vio),var(--cy)));
+  box-shadow:0 0 18px var(--sg,rgba(168,85,247,.85)),0 0 46px var(--sg,rgba(168,85,247,.3))}
+.sec-t::after{content:'';position:absolute;left:16px;right:0;bottom:-7px;height:1px;
+  background:linear-gradient(90deg,var(--sg,rgba(168,85,247,.5)),transparent 60%)}
+
+/* карточки: стекло со светом сверху и глубокой мягкой тенью */
+.card,.kpi,.find,.gap,.tw,.note{box-shadow:0 18px 44px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)}
+.card{border-radius:18px;position:relative}
+.card::after{content:'';position:absolute;inset:0;border-radius:18px;pointer-events:none;
+  background:linear-gradient(160deg,rgba(255,255,255,.05),transparent 42%)}
+.card-t{letter-spacing:-.2px}
+.kpi{border-radius:18px}
+.kpi-v{text-shadow:0 0 26px currentColor}
+
+/* «было → стало»: читаются обе цифры, а не только новая */
+.ba{display:flex;align-items:flex-end;gap:10px;margin-top:9px;flex-wrap:wrap}
+.ba i{display:block;font-style:normal;font-size:9px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--mut);margin-bottom:2px}
+.ba-w{font-size:15px;font-weight:700;color:#9fb0cd}
+.ba-n{font-size:18px;font-weight:900;color:#fff}
+.ba-a{font-size:16px;color:var(--vio);text-shadow:0 0 12px var(--vio);padding-bottom:2px}
+
+/* таблица: золотой волосок под шапкой и мягкая подсветка строки */
+thead th{border-bottom:1px solid rgba(232,201,138,.28)}
+tbody tr:hover td{box-shadow:inset 0 0 0 9999px rgba(168,85,247,.06)}
+.leg{opacity:.85}
 </style>
 </head>
 <body>
@@ -357,25 +403,26 @@ H+='<div class="kpis">'
  + '</div>';
 
 /* — мост прибыли: от выручки до чистой, по шагам — */
-H+='<div class="grid g2b">'
- + '<div class="card"><div class="card-t">🌉 Мост прибыли</div><div class="card-s">как выручка '+esc(per26)+' превращается в чистую прибыль, млн ₸</div><div class="cv tall"><canvas id="cW"></canvas></div></div>'
- + '<div class="card"><div class="card-t">🍩 Куда уходят деньги</div><div class="card-s">структура затрат за период: себестоимость и расходы по блокам</div><div class="cv tall"><canvas id="cD"></canvas></div></div>'
+H+='<div class="grid g2">'
+ + '<div class="card"><div class="card-t">🟡 Выручка и себестоимость, млн ₸</div><div class="card-s">помесячно за 2025–2026 · всё из iiko</div><div class="cv tall"><canvas id="cRS"></canvas></div></div>'
+ + '<div class="card"><div class="card-t">🟣 Чистая прибыль / убыток, млн ₸</div><div class="card-s">зелёный столбец — месяц в плюс, красный — в минус</div><div class="cv tall"><canvas id="cNP"></canvas></div></div>'
+ + '</div>';
+
+H+='<div class="grid g3" style="margin-top:14px">'
+ + '<div class="card"><div class="card-t">🔴 Структура затрат 2025</div><div class="card-s">'+esc(per25)+', млн ₸</div><div class="cv"><canvas id="cS5"></canvas></div></div>'
+ + '<div class="card"><div class="card-t">🔵 Структура затрат 2026</div><div class="card-s">'+esc(per26)+', млн ₸</div><div class="cv"><canvas id="cS6"></canvas></div></div>'
+ + '<div class="card"><div class="card-t">🟢 Валовая прибыль, млн ₸</div><div class="card-s">выручка минус себестоимость, помесячно</div><div class="cv"><canvas id="cGP"></canvas></div></div>'
  + '</div>';
 
 H+='<div class="grid g2" style="margin-top:14px">'
- + '<div class="card"><div class="card-t">📊 Выручка и себестоимость по месяцам</div><div class="card-s">столбцы — деньги, линия — валовая прибыль, млн ₸</div><div class="cv"><canvas id="c1"></canvas></div></div>'
- + '<div class="card"><div class="card-t">⚡ Прибыль по месяцам</div><div class="card-s">операционная (столбцы, зелёная выше нуля) и чистая (линия), млн ₸</div><div class="cv"><canvas id="c2"></canvas></div></div>'
- + '</div>';
-
-H+='<div class="grid g2" style="margin-top:14px">'
- + '<div class="card"><div class="card-t">📈 Маржинальность по месяцам</div><div class="card-s">валовая маржа и доля расходов в выручке, % · пунктир — 2025 год</div><div class="cv"><canvas id="c3"></canvas></div></div>'
- + '<div class="card"><div class="card-t">🆚 2026 против 2025</div><div class="card-s">тот же период прошлого года, млн ₸</div><div class="cv"><canvas id="c4"></canvas></div></div>'
+ + '<div class="card"><div class="card-t">📈 Куда уходит каждые 100 ₸ выручки</div><div class="card-s">зелёная линия — сколько остаётся после себестоимости, жёлтая — сколько съедают расходы. Бледные линии — 2025 год</div><div class="cv"><canvas id="c3"></canvas></div></div>'
+ + '<div class="card"><div class="card-t">🆚 Что изменилось к 2025</div><div class="card-s">разница за тот же период: зелёное — в плюс результату, красное — в минус, млн ₸</div><div class="cv"><canvas id="c4"></canvas></div></div>'
  + '</div>';
 
 /* — авто-выводы: короткие человеческие фразы по цифрам — */
 function find(c,icon,h,d){ return '<div class="find" style="--ac:'+c+'"><div class="find-h">'+icon+' '+h+'</div><div class="find-d">'+d+'</div></div>'; }
 var topUp=mUp[0], topDn=mDn[0];
-H+='<div class="sec-t">🔍 Что видно в цифрах <span class="sub">автоматические выводы по данным периода</span></div><div class="finds">';
+H+='<div class="sec-t" style="--sc:linear-gradient(180deg,#22d3ee,#34d399);--sg:rgba(34,211,238,.8)">🔍 Что видно в цифрах <span class="sub">автоматические выводы по данным периода</span></div><div class="finds">';
 H+=find(Y.rev>=Y5.rev?'var(--em)':'var(--ro)','📉','Выручка',
     'За '+esc(per26)+' — <b>'+fbig(Y.rev)+'</b>, это '+(Y.rev>=Y5.rev?'на '+fbig(Y.rev-Y5.rev)+' больше':'на '+fbig(Y5.rev-Y.rev)+' меньше')
     +', чем за тот же период 2025 ('+fbig(Y5.rev)+'). В среднем <b>'+fbig(Y.rev/N)+'</b> в месяц.');
@@ -409,7 +456,7 @@ function mvlist(arr,color){
   });
   return h;
 }
-H+='<div class="sec-t">🏆 Что изменилось сильнее всего <span class="sub">конечные статьи, '+esc(per26)+' против '+esc(per25)+'</span></div>'
+H+='<div class="sec-t" style="--sc:linear-gradient(180deg,#fbbf24,#fb7185);--sg:rgba(251,191,36,.8)">🏆 Что изменилось сильнее всего <span class="sub">конечные статьи, '+esc(per26)+' против '+esc(per25)+'</span></div>'
  + '<div class="grid g2">'
  + '<div class="card"><div class="card-t">⬆️ Выросло</div><div class="card-s">в деньгах, к тому же периоду 2025</div>'+mvlist(mUp,'#fb7185')+'</div>'
  + '<div class="card"><div class="card-t">⬇️ Снизилось</div><div class="card-s">в деньгах, к тому же периоду 2025</div>'+mvlist(mDn,'#34d399')+'</div>'
@@ -422,7 +469,7 @@ function opts(sel){
   return h;
 }
 var defB=i26[N-1], defA=(N>1?i26[N-2]:i25[i25.length-1]);   /* по умолчанию: последний месяц против предыдущего */
-H+='<div class="sec-t">⚖️ Сравнение месяцев <span class="sub">что именно изменилось между двумя месяцами и как это повлияло на прибыль</span>'
+H+='<div class="sec-t" style="--sc:linear-gradient(180deg,#a855f7,#60a5fa);--sg:rgba(168,85,247,.85)">⚖️ Сравнение месяцев <span class="sub">что именно изменилось между двумя месяцами и как это повлияло на прибыль</span>'
  + '<span class="tools">'
  + '<select class="inp" id="mA">'+opts(defA)+'</select>'
  + '<span class="mut" style="align-self:center">→</span>'
@@ -461,7 +508,7 @@ function thead(){
   return h;
 }
 
-H+='<div class="sec-t">🧾 Постатейно'
+H+='<div class="sec-t" style="--sc:linear-gradient(180deg,#34d399,#22d3ee);--sg:rgba(52,211,153,.8)">🧾 Постатейно'
  + '<span class="sub">'+esc(per26)+'</span>'
  + '<span class="tools">'
  + '<input class="inp" id="q" placeholder="поиск по статье…">'
@@ -514,7 +561,7 @@ for(var j=0;j<N;j++){ var s=ST[j];
   gh+='<div class="gap"><div class="gap-h">'+esc(L[i26[j]])+'</div><ul><li>'+items.join('</li><li>')+'</li></ul></div>';
 }
 if(gh){
-  H+='<div class="sec-t">⚠️ Что в цифрах ещё не окончательно</div>'
+  H+='<div class="sec-t" style="--sc:linear-gradient(180deg,#fb7185,#fbbf24);--sg:rgba(251,113,133,.85)">⚠️ Что в цифрах ещё не окончательно</div>'
    + '<div class="note warn">Незакрытые месяцы нельзя сравнивать с закрытыми напрямую: зарплата, налоги, аренда и НДС проводятся в конце месяца и в начале следующего. Ниже — что именно дочитано оценкой, чтобы месяц не выглядел сказочно прибыльным.</div>'
    + '<div class="gaps">'+gh+'</div>';
 }
@@ -640,9 +687,11 @@ function renderCmp(a,b){
     var col = Math.abs(d)<1e4 ? 'var(--mut)' : ((d>0)===(k[2]>0)?'var(--em)':'var(--ro)');
     h+='<div class="kpi" style="--ac:'+col+'">'
      + '<div class="kpi-l">'+esc(k[1])+'</div>'
-     + '<div class="kpi-v" style="font-size:22px">'+fbig(vb)+'</div>'
-     + '<div class="kpi-d">'+dchip(vb,va,k[2])+'<span class="mut">было '+fbig(va)+'</span></div>'
-     + '<div class="kpi-note">разница <b>'+(d>0?'+':'')+fbig(d)+'</b> · '+esc(La)+' → '+esc(Lb)+'</div></div>';
+     + '<div class="ba"><span class="ba-w"><i>было</i>'+fbig(va)+'</span>'
+     +   '<span class="ba-a">→</span>'
+     +   '<span class="ba-n"><i>стало</i>'+fbig(vb)+'</span></div>'
+     + '<div class="kpi-d">'+dchip(vb,va,k[2])+'<span class="mut">разница '+(d>0?'+':'')+fbig(d)+'</span></div>'
+     + '<div class="kpi-note">'+esc(La)+' → '+esc(Lb)+'</div></div>';
   });
   h+='</div>';
 
@@ -673,9 +722,9 @@ function renderCmp(a,b){
   /* график и таблица различий */
   h+='<div class="grid g2b">'
    + '<div class="card"><div class="card-t">📊 Топ изменений по статьям</div><div class="card-s">'+esc(La)+' → '+esc(Lb)+', млн ₸ · красное увеличивает затраты, зелёное улучшает результат</div><div class="cv tall"><canvas id="cCmp"></canvas></div></div>'
-   + '<div class="card" style="overflow:auto;max-height:378px"><div class="card-t">🧮 Постатейно</div><div class="card-s">сортировка по величине изменения</div>'
+   + '<div class="card"><div class="card-t">🧮 Постатейно</div><div class="card-s">сортировка по величине изменения</div>'
    + '<table style="width:100%"><thead><tr><th class="nm" style="min-width:150px">Статья</th><th>'+esc(La)+'</th><th>'+esc(Lb)+'</th><th>Δ</th></tr></thead><tbody>';
-  diff.slice(0,40).forEach(function(m){
+  diff.slice(0,20).forEach(function(m){
     var good=(m.d>0)===m.inc;
     h+='<tr><td class="nm" style="padding-left:8px">'+esc(m.n)+'</td><td>'+fu(m.a)+'</td><td>'+fu(m.b)+'</td>'
      + '<td class="'+(Math.abs(m.d)<1e4?'mut':(good?'pos':'neg'))+'">'+(m.d>0?'+':'')+fu(m.d)+'</td></tr>';
@@ -708,16 +757,20 @@ if(selA&&selB){
 
 /* ============================================================
    7. ГРАФИКИ
-   ============================================================ */
+   ============================================================
+   Все они строятся по одному источнику — opiu_audit.js, а он собран
+   из оборотов счетов iiko. Ни одной цифры «из Excel»: и 2025 год,
+   и незакрытые месяцы 2026 приходят из айки.                      */
 var labs=i26.map(function(k){return short(M[k]);});
 function mln(v){ return nz(v)/1e6; }
 function chartOpts(extra){
   var o={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-    plugins:{legend:{labels:{color:'#9fb0cd',boxWidth:12,usePointStyle:true,font:{size:11}}},
-      tooltip:{backgroundColor:'rgba(10,15,31,.95)',borderColor:'rgba(168,85,247,.5)',borderWidth:1,
-        titleColor:'#fff',bodyColor:'#d7e0f2',padding:10,cornerRadius:8,
-        callbacks:{label:function(c){ var y=c.parsed.y; if(Array.isArray(c.raw)) y=c.raw[1]-c.raw[0];
-          return c.dataset.label+': '+(y===null?'—':y.toFixed(1)+' млн ₸'); }}}},
+    plugins:{datalabels:{display:false},
+      legend:{labels:{color:'#9fb0cd',boxWidth:11,usePointStyle:true,padding:12,font:{size:11}}},
+      tooltip:{backgroundColor:'rgba(8,12,26,.96)',borderColor:'rgba(168,85,247,.55)',borderWidth:1,
+        titleColor:'#fff',bodyColor:'#dbe4f7',padding:11,cornerRadius:10,displayColors:true,
+        callbacks:{label:function(c){ var y=c.parsed.y!==undefined?c.parsed.y:c.parsed.x;
+          return c.dataset.label+': '+(y===null||y===undefined?'—':y.toFixed(1)+' млн ₸'); }}}},
     scales:{x:{ticks:{color:'#8698b8',font:{size:10}},grid:{display:false}},
             y:{ticks:{color:'#8698b8',font:{size:10}},grid:{color:'rgba(148,163,184,.10)'}}}};
   if(extra) for(var k in extra) o[k]=extra[k];
@@ -726,74 +779,113 @@ function chartOpts(extra){
 
 if(window.Chart){
   Chart.defaults.font.family="Inter, system-ui, sans-serif";
+  /* плагин подписей подключаем точечно — только к бубликам, иначе он
+     лезет в остальные графики и падает на смешанных типах */
 
-  /* 7.1 мост прибыли: «плавающие» столбцы [от, до] — Chart.js умеет это из коробки */
-  var steps=[
-    {n:'Выручка',      v:Y.rev,   c:'#a855f7'},
-    {n:'Себестоимость',v:-Y.cogs, c:'#60a5fa'},
-    {n:'Валовая',      t:Y.gross, c:'#34d399'},
-    {n:'Расходы',      v:-Y.opex, c:'#fbbf24'},
-    {n:'Операционная', t:Y.oper,  c:Y.oper<0?'#fb7185':'#34d399'},
-    {n:'Прочие',       v:Y.net-Y.oper, c:'#22d3ee'},
-    {n:'Чистая',       t:Y.net,   c:Y.net<0?'#fb7185':'#34d399'}
-  ];
-  var acc=0, wd=[], wc=[];
-  steps.forEach(function(s){
-    if(s.t!==undefined){ wd.push([0,mln(s.t)]); acc=mln(s.t); }        /* итоговые колонки от нуля */
-    else { var a=acc, b=acc+mln(s.v); wd.push([a,b]); acc=b; }          /* шаги — от предыдущего уровня */
-    wc.push(s.c);
-  });
-  new Chart(document.getElementById('cW'),{type:'bar',
-    data:{labels:steps.map(function(s){return s.n;}),
-      datasets:[{label:'млн ₸',data:wd,backgroundColor:wc,borderRadius:6,borderSkipped:false}]},
-    options:chartOpts({plugins:{legend:{display:false},
-      tooltip:{callbacks:{label:function(c){return (c.raw[1]-c.raw[0]).toFixed(1)+' млн ₸';}}}}})});
+  var ALL=[]; for(var q=0;q<M.length;q++) ALL.push(q);          /* все месяцы 2025–2026 */
+  var labAll=ALL.map(function(k){ return L[k].replace(/\s20(\d\d)$/,"'$1"); });
 
-  /* 7.2 структура затрат: топ-9 конечных статей + «прочее» */
-  var costs=moves.filter(function(m){return !m.inc && m.a>0;}).slice().sort(function(x,y){return y.a-x.a;});
-  var top=costs.slice(0,9), rest=costs.slice(9).reduce(function(s,m){return s+m.a;},0);
-  var dl=top.map(function(m){return m.n.replace(/^[\d.]+\s*/,'');}), dv=top.map(function(m){return mln(m.a);});
-  if(rest>0){ dl.push('прочее'); dv.push(mln(rest)); }
-  new Chart(document.getElementById('cD'),{type:'doughnut',
-    data:{labels:dl,datasets:[{data:dv,borderWidth:0,
-      backgroundColor:['#a855f7','#60a5fa','#22d3ee','#34d399','#fbbf24','#fb7185','#818cf8','#f472b6','#2dd4bf','#475b86']}]},
-    options:chartOpts({cutout:'58%',scales:{},plugins:{legend:{position:'right',
-      labels:{color:'#9fb0cd',boxWidth:10,usePointStyle:true,font:{size:10}}},
-      tooltip:{callbacks:{label:function(c){ var t=c.dataset.data.reduce(function(a,b){return a+b;},0);
-        return c.label+': '+c.parsed.toFixed(1)+' млн ₸ ('+(c.parsed/t*100).toFixed(1)+'%)'; }}}}})});
+  /* градиентная заливка вместо плоского цвета — ради «дорогого» вида */
+  function grad(c,c1,c2){
+    var a=c.chart.chartArea; if(!a) return c1;
+    var g=c.chart.ctx.createLinearGradient(0,a.top,0,a.bottom);
+    g.addColorStop(0,c1); g.addColorStop(1,c2); return g;
+  }
 
-  /* 7.3 выручка / себестоимость / валовая */
-  new Chart(document.getElementById('c1'),{data:{labels:labs,datasets:[
-    {type:'bar',label:'Выручка',data:i26.map(function(k){return mln(K.rev[k]);}),backgroundColor:'rgba(168,85,247,.9)',borderRadius:6},
-    {type:'bar',label:'Себестоимость',data:i26.map(function(k){return mln(K.cogs[k]);}),backgroundColor:'rgba(96,165,250,.75)',borderRadius:6},
-    {type:'line',label:'Валовая прибыль',data:i26.map(function(k){return mln(K.gross[k]);}),
-     borderColor:'#34d399',backgroundColor:'rgba(52,211,153,.15)',fill:true,tension:.35,pointRadius:3,pointBackgroundColor:'#34d399'}
-  ]},options:chartOpts()});
-
-  /* 7.4 прибыль по месяцам: цвет столбца зависит от знака */
-  new Chart(document.getElementById('c2'),{data:{labels:labs,datasets:[
-    {type:'bar',label:'Прибыль от осн. деятельности',data:i26.map(function(k){return mln(K.oper[k]);}),
-     backgroundColor:i26.map(function(k){return nz(K.oper[k])<0?'rgba(251,113,133,.85)':'rgba(52,211,153,.85)';}),borderRadius:6},
-    {type:'line',label:'Чистая прибыль',data:i26.map(function(k){return mln(K.net[k]);}),
-     borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.12)',fill:true,tension:.35,pointRadius:3,pointBackgroundColor:'#22d3ee'}
-  ]},options:chartOpts()});
-
-  /* 7.5 маржинальность: 2026 сплошной, 2025 пунктиром — видно разрыв */
-  function pcArr(idx,a,b){ return idx.map(function(k){ var r=nz(K.rev[k]); return r?nz(K[a][k])/r*100:0; }); }
-  new Chart(document.getElementById('c3'),{data:{labels:labs,datasets:[
-    {type:'line',label:'Валовая маржа 2026',data:pcArr(i26,'gross'),borderColor:'#34d399',backgroundColor:'rgba(52,211,153,.14)',fill:true,tension:.35,pointRadius:3},
-    {type:'line',label:'Валовая маржа 2025',data:pcArr(i25,'gross'),borderColor:'#34d399',borderDash:[5,4],pointRadius:0,tension:.35},
-    {type:'line',label:'Расходы к выручке 2026',data:pcArr(i26,'opex'),borderColor:'#fbbf24',tension:.35,pointRadius:3},
-    {type:'line',label:'Расходы к выручке 2025',data:pcArr(i25,'opex'),borderColor:'#fbbf24',borderDash:[5,4],pointRadius:0,tension:.35}
-  ]},options:chartOpts({plugins:{legend:{labels:{color:'#9fb0cd',boxWidth:12,usePointStyle:true,font:{size:10}}},
-    tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.y.toFixed(1)+'%';}}}}})});
-
-  /* 7.6 год к году по ключевым блокам */
-  new Chart(document.getElementById('c4'),{type:'bar',
-    data:{labels:['Выручка','Себестоимость','Валовая','Расходы','Операционная','Чистая'],datasets:[
-      {label:esc(per25),data:[Y5.rev,Y5.cogs,Y5.gross,Y5.opex,Y5.oper,Y5.net].map(mln),backgroundColor:'rgba(96,165,250,.55)',borderRadius:6},
-      {label:esc(per26),data:[Y.rev,Y.cogs,Y.gross,Y.opex,Y.oper,Y.net].map(mln),backgroundColor:'rgba(168,85,247,.9)',borderRadius:6}
+  /* 7.1 Выручка и себестоимость — помесячно за оба года */
+  new Chart(document.getElementById('cRS'),{type:'bar',
+    data:{labels:labAll,datasets:[
+      {label:'Выручка',data:ALL.map(function(k){return mln(K.rev[k]);}),borderRadius:5,
+       backgroundColor:function(c){return grad(c,'#fbbf24','rgba(251,191,36,.5)');}},
+      {label:'Себестоимость',data:ALL.map(function(k){return mln(K.cogs[k]);}),borderRadius:5,
+       backgroundColor:function(c){return grad(c,'#fb7185','rgba(251,113,133,.45)');}}
     ]},options:chartOpts()});
+
+  /* 7.2 Чистая прибыль: цвет столбца — по знаку месяца */
+  new Chart(document.getElementById('cNP'),{type:'bar',
+    data:{labels:labAll,datasets:[{label:'Чистая прибыль',borderRadius:5,
+      data:ALL.map(function(k){return mln(K.net[k]);}),
+      backgroundColor:ALL.map(function(k){return nz(K.net[k])<0?'rgba(251,113,133,.9)':'rgba(52,211,153,.9)';})}]},
+    options:chartOpts({plugins:{datalabels:{display:false},legend:{display:false},
+      tooltip:{callbacks:{label:function(c){return (c.parsed.y>0?'прибыль ':'убыток ')+Math.abs(c.parsed.y).toFixed(1)+' млн ₸';}}}}})});
+
+  /* 7.3–7.4 Структура затрат по годам.
+     Берём подытоги ОПиУ: они не пересекаются и в сумме дают
+     всю себестоимость плюс все расходы. */
+  var STRUCT=['Итого 1.С/с реализованной продукции','Итого 2.ФОТ Производство','Итого 3.Арендная плата',
+              'Итого 2.Расходы по реализации(папка)','Итого 3.Расходы АДМ','Расходы по вознаграждениям','Зарплата'];
+  var SHORT={'Итого 1.С/с реализованной продукции':'С/с продукции','Итого 2.ФОТ Производство':'ФОТ пр-во',
+             'Итого 3.Арендная плата':'Аренда','Итого 2.Расходы по реализации(папка)':'Расходы по реализации',
+             'Итого 3.Расходы АДМ':'Админ. расходы','Расходы по вознаграждениям':'Вознаграждения','Зарплата':'Зарплата'};
+  var PAL=['#7c5cf0','#22d3ee','#fbbf24','#fb7185','#34d399','#f472b6','#94a3b8'];
+  function structData(idx){
+    var lab=[],val=[];
+    STRUCT.forEach(function(n){
+      for(var r=0;r<R.length;r++) if(R[r].n===n){
+        var v=sum(R[r].v||[],idx); if(v>0){ lab.push(SHORT[n]||n); val.push(v/1e6); } break; }
+    });
+    return {lab:lab,val:val};
+  }
+  function donut(id,d){
+    var el=document.getElementById(id); if(!el) return;
+    new Chart(el,{type:'doughnut',
+      plugins:window.ChartDataLabels?[window.ChartDataLabels]:[],
+      data:{labels:d.lab,datasets:[{data:d.val,backgroundColor:PAL,borderWidth:0,hoverOffset:10}]},
+      options:chartOpts({cutout:'62%',scales:{},plugins:{
+        legend:{position:'bottom',labels:{color:'#9fb0cd',boxWidth:9,usePointStyle:true,padding:9,font:{size:10}}},
+        datalabels:{display:true,color:'#fff',font:{size:11,weight:'800'},
+          textStrokeColor:'rgba(0,0,0,.45)',textStrokeWidth:3,
+          formatter:function(v,c){ var t=c.dataset.data.reduce(function(a,b){return a+b;},0);
+            var pp=v/t*100; return pp<6?'':pp.toFixed(1)+'%'; }},
+        tooltip:{callbacks:{label:function(c){ var t=c.dataset.data.reduce(function(a,b){return a+b;},0);
+          return c.label+': '+c.parsed.toFixed(1)+' млн ₸ ('+(c.parsed/t*100).toFixed(1)+'%)'; }}}}})});
+  }
+  donut('cS5',structData(i25)); donut('cS6',structData(i26));
+
+  /* 7.5 Валовая прибыль — область с градиентом */
+  new Chart(document.getElementById('cGP'),{type:'line',
+    data:{labels:labAll,datasets:[{label:'Валовая прибыль',data:ALL.map(function(k){return mln(K.gross[k]);}),
+      borderColor:'#34d399',borderWidth:3,tension:.35,fill:true,
+      backgroundColor:function(c){return grad(c,'rgba(52,211,153,.45)','rgba(52,211,153,0)');},
+      pointRadius:3,pointBackgroundColor:'#34d399',pointBorderColor:'#0a0f1f',pointBorderWidth:2}]},
+    options:chartOpts({plugins:{datalabels:{display:false},legend:{display:false},
+      tooltip:{callbacks:{label:function(c){return c.parsed.y.toFixed(1)+' млн ₸';}}}}})});
+
+  /* 7.6 «Куда уходит каждые 100 ₸ выручки»: 2026 ярко, 2025 бледным пунктиром */
+  function pcArr(idx,a){ return idx.map(function(k){ var r=nz(K.rev[k]); return r?nz(K[a][k])/r*100:0; }); }
+  new Chart(document.getElementById('c3'),{data:{labels:labs,datasets:[
+    {type:'line',label:'Осталось после себестоимости · 2026',data:pcArr(i26,'gross'),
+     borderColor:'#34d399',borderWidth:3,fill:true,tension:.35,
+     backgroundColor:function(c){return grad(c,'rgba(52,211,153,.35)','rgba(52,211,153,0)');},
+     pointRadius:4,pointBackgroundColor:'#34d399',pointBorderColor:'#0a0f1f',pointBorderWidth:2},
+    {type:'line',label:'Съели расходы · 2026',data:pcArr(i26,'opex'),
+     borderColor:'#fbbf24',borderWidth:3,tension:.35,
+     pointRadius:4,pointBackgroundColor:'#fbbf24',pointBorderColor:'#0a0f1f',pointBorderWidth:2},
+    {type:'line',label:'2025 · осталось',data:pcArr(i25,'gross'),
+     borderColor:'rgba(52,211,153,.45)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,tension:.35},
+    {type:'line',label:'2025 · расходы',data:pcArr(i25,'opex'),
+     borderColor:'rgba(251,191,36,.45)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,tension:.35}
+  ]},options:chartOpts({plugins:{datalabels:{display:false},
+    legend:{labels:{color:'#9fb0cd',boxWidth:10,usePointStyle:true,font:{size:10}}},
+    tooltip:{callbacks:{label:function(c){ return c.dataset.label+': '+c.parsed.y.toFixed(1)+' ₸ из 100'; }}}},
+    scales:{x:{ticks:{color:'#8698b8',font:{size:10}},grid:{display:false}},
+            y:{ticks:{color:'#8698b8',font:{size:10},callback:function(v){return v+'%';}},
+               grid:{color:'rgba(148,163,184,.10)'}}}})});
+
+  /* 7.7 «Что изменилось к 2025»: сразу разница, а не два столбика рядом —
+     иначе выручка в 2 млрд прячет убыток в 159 млн. */
+  var YY=[['Выручка',Y.rev,Y5.rev,1],['Себестоимость',Y.cogs,Y5.cogs,-1],
+          ['Валовая прибыль',Y.gross,Y5.gross,1],['Расходы',Y.opex,Y5.opex,-1],
+          ['Операционная',Y.oper,Y5.oper,1],['Чистая прибыль',Y.net,Y5.net,1]];
+  new Chart(document.getElementById('c4'),{type:'bar',
+    data:{labels:YY.map(function(r){return r[0];}),
+      datasets:[{label:'разница, млн ₸',data:YY.map(function(r){return (r[1]-r[2])/1e6;}),borderRadius:6,
+        backgroundColor:YY.map(function(r){ return ((r[1]-r[2])>0)===(r[3]>0)?'rgba(52,211,153,.9)':'rgba(251,113,133,.9)'; })}]},
+    options:chartOpts({indexAxis:'y',plugins:{datalabels:{display:false},legend:{display:false},
+      tooltip:{callbacks:{label:function(c){ var r=YY[c.dataIndex];
+        return 'было '+fbig(r[2])+' → стало '+fbig(r[1])+'  ('+(c.parsed.x>0?'+':'')+c.parsed.x.toFixed(1)+' млн ₸)'; }}}},
+      scales:{x:{ticks:{color:'#8698b8',font:{size:10}},grid:{color:'rgba(148,163,184,.10)'}},
+              y:{ticks:{color:'#cfdaef',font:{size:11}},grid:{display:false}}}})});
 }
 })();
 </script>
