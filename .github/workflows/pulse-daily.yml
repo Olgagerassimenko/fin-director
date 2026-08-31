@@ -134,7 +134,7 @@ jobs:
         run: |
           git config user.name "pulse-ci"
           git config user.email "ci@local"
-          git add -f продажи_2026.html дашборд_ддс.html дашборд_ддс_прямой.html склады.html "дашборд_себестоимость_2025-2026.html" закуп.html zakup_data.js dz_kz.js рычаги.html дашборд_sku_iiko.html *_meta.js ddsp_days.js kz_ana.js opiu_audit.js opiu_iiko.js sku_live.js contractor_items.js opiu_rev.js 2>/dev/null || true
+          git add -f продажи_2026.html дашборд_ддс.html дашборд_ддс_прямой.html склады.html "дашборд_себестоимость_2025-2026.html" закуп.html zakup_data.js dz_kz.js рычаги.html дашборд_sku_iiko.html *_meta.js ddsp_days.js kz_ana.js opiu_audit.js opiu_iiko.js sales_sum.js sku_live.js contractor_items.js opiu_rev.js 2>/dev/null || true
           git commit -m "Свежие данные дашбордов [skip ci]" || echo "нет изменений"
           git pull --rebase --autostash origin main || true
           git push origin HEAD:main || echo "push не удался"

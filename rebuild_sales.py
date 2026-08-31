@@ -202,6 +202,45 @@ def load_html_and_old_ds():
     return h, json.loads(obj)
 
 
+def write_sales_sum(ds):
+    """Короткая сводка продаж для плашки «Пульс» на главной.
+
+    Главная не может грузить продажи_2026.html целиком (2 МБ), поэтому
+    рядом кладём маленький файл с готовыми числами: последний месяц,
+    год с начала, топ-категория и топ-товар. Считается из тех же DS,
+    что и сам дашборд, поэтому расхождений между ними быть не может.
+    """
+    import re as _re
+    mk = sorted(k for k in ds if _re.match(r"^\d{4}-\d{2}$", k))
+    if not mk:
+        return
+    cur, prev = ds[mk[-1]], (ds[mk[-2]] if len(mk) > 1 else None)
+    cats = cur.get("categories") or []
+    top = (cur.get("top20") or [])
+    year = ds.get("year") or {}
+    out = {
+        "month": mk[-1],
+        "label": cur.get("label") or mk[-1],
+        "rev": cur.get("total_rev") or 0,
+        "gp": cur.get("total_gp") or 0,
+        "gpEst": bool(cur.get("gp_est")),
+        "sku": cur.get("sku_count") or 0,
+        "magRev": cur.get("mag_rev") or 0,
+        "magPct": cur.get("mag_pct") or 0,
+        "prevRev": (prev or {}).get("total_rev") or 0,
+        "prevLabel": (prev or {}).get("label") or "",
+        "yearRev": year.get("total_rev") or sum((ds[k].get("total_rev") or 0) for k in mk),
+        "yearGp": year.get("total_gp") or sum((ds[k].get("total_gp") or 0) for k in mk),
+        "months": [{"k": k, "rev": ds[k].get("total_rev") or 0} for k in mk],
+        "topCat": ({"n": cats[0].get("cat"), "rev": cats[0].get("rev"), "pct": cats[0].get("pct")} if cats else None),
+        "topSku": ({"n": top[0].get("name"), "rev": top[0].get("rev"), "qty": top[0].get("qty")} if top else None),
+    }
+    path = os.path.join(HERE, "sales_sum.js")
+    open(path, "w", encoding="utf-8").write(
+        "window.SALES_SUM=" + json.dumps(out, ensure_ascii=False) + ";")
+    print("sales_sum.js: %s, выручка %.1f млн" % (out["label"], out["rev"] / 1e6))
+
+
 def inject_ds(html, ds):
     i = html.find('const DS =')
     seg = html[i + len('const DS ='):]
@@ -389,6 +428,7 @@ def main():
     if not os.path.exists(bak):
         open(bak, 'w', encoding='utf-8').write(html)
     open(HTML_FILE, 'w', encoding='utf-8').write(inject_beacon(inject_bar_style(inject_footer(inject_opiu_columns(inject_returns_analytics(inject_returns_block(inject_ds(html, ds))))))))
+    write_sales_sum(ds)
     log(f"  Записано: {HTML_FILE}")
     log("  Готово.")
 

@@ -222,35 +222,35 @@ a.card.key::before{
   <div class="pulse">
     <div class="pulse-hdr"><span class="pulse-t">Пульс на сегодня</span><span class="pulse-s" id="pulse-upd">—</span></div>
     <div class="pulse-grid">
-      <a class="pt" href="опиу_2026.html" title="Выручка с начала года, к тому же периоду 2025">
-        <div class="pt-l">Выручка 2026</div>
-        <div class="pt-v" id="p-rev-v">—</div>
-        <div class="pt-d" id="p-rev-d">загрузка…</div>
+      <a class="pt" href="продажи_2026.html" title="Выручка последнего месяца за вычетом возвратов, из iiko">
+        <div class="pt-l">Продажи за месяц</div>
+        <div class="pt-v" id="p-sales-v">—</div>
+        <div class="pt-d" id="p-sales-d">загрузка…</div>
       </a>
-      <a class="pt" href="опиу_2026.html" title="Валовая прибыль к выручке">
-        <div class="pt-l">Валовая маржа</div>
-        <div class="pt-v" id="p-mrg-v">—</div>
-        <div class="pt-d" id="p-mrg-d">загрузка…</div>
+      <a class="pt" href="продажи_2026.html" title="Выручка и валовая прибыль по продажам с начала года">
+        <div class="pt-l">С начала года</div>
+        <div class="pt-v" id="p-year-v">—</div>
+        <div class="pt-d" id="p-year-d">загрузка…</div>
       </a>
-      <a class="pt" href="опиу_2026.html" title="Прибыль от основной деятельности с начала года">
-        <div class="pt-l">Опер. прибыль</div>
-        <div class="pt-v" id="p-opr-v">—</div>
-        <div class="pt-d" id="p-opr-d">загрузка…</div>
+      <a class="pt" href="продажи_2026.html" title="Категория с наибольшей выручкой за месяц">
+        <div class="pt-l">Топ-категория</div>
+        <div class="pt-v" id="p-cat-v">—</div>
+        <div class="pt-d" id="p-cat-d">загрузка…</div>
       </a>
-      <a class="pt" href="дашборд_ддс_прямой.html" title="Поступления минус платежи за последний месяц">
-        <div class="pt-l">Денежный поток</div>
-        <div class="pt-v" id="p-cf-v">—</div>
-        <div class="pt-d" id="p-cf-d">загрузка…</div>
+      <a class="pt" href="продажи_2026.html" title="Позиция с наибольшей выручкой за месяц">
+        <div class="pt-l">Топ-товар</div>
+        <div class="pt-v" id="p-sku-v">—</div>
+        <div class="pt-d" id="p-sku-d">загрузка…</div>
       </a>
-      <a class="pt" href="дз_кз.html" title="Нам должны">
-        <div class="pt-l">Дебиторка</div>
-        <div class="pt-v" id="p-dz-v">—</div>
-        <div class="pt-d" id="p-dz-d">загрузка…</div>
+      <a class="pt" href="продажи_2026.html" title="Возвраты покупателей за месяц, уже вычтены из выручки">
+        <div class="pt-l">Возвраты</div>
+        <div class="pt-v" id="p-ret-v">—</div>
+        <div class="pt-d" id="p-ret-d">загрузка…</div>
       </a>
-      <a class="pt" href="дз_кз.html" title="Мы должны">
-        <div class="pt-l">Кредиторка</div>
-        <div class="pt-v" id="p-kz-v">—</div>
-        <div class="pt-d" id="p-kz-d">загрузка…</div>
+      <a class="pt" href="дз_кз.html" title="Нам должны и мы должны">
+        <div class="pt-l">Долги</div>
+        <div class="pt-v" id="p-debt-v">—</div>
+        <div class="pt-d" id="p-debt-d">загрузка…</div>
       </a>
     </div>
   </div>
@@ -693,13 +693,11 @@ a.card.key::before{
 
 <script>
 /* ── ПУЛЬС НА СЕГОДНЯ ─────────────────────────────────────────────
-   Шесть ключевых цифр над разделами. Берём их из тех же файлов,
-   которые CI пересобирает три раза в день, поэтому плашка всегда
-   совпадает с дашбордами и не требует отдельного расчёта:
-     opiu_audit.js — выручка, маржа, операционная прибыль (из iiko);
-     ddsp_days.js  — поступления и платежи по дням (прямой ДДС);
-     dz_kz.js      — дебиторка и кредиторка из Google-таблицы.
-   Любой файл может не загрузиться — тогда его плитка остаётся
+   Точные сводки по продажам. Берём их из sales_sum.js — маленького
+   файла, который собирает rebuild_sales.py из тех же данных, что и
+   дашборд «Продажи 2026», поэтому цифры на главной и в отчёте
+   совпадают по определению. Долги — из dz_kz.js (Google-таблица).
+   Любой файл может не загрузиться: тогда его плитка останется
    с прочерком, а остальная страница работает как обычно.        */
 (function(){
   function load(src,cb){ var sc=document.createElement('script');
@@ -711,57 +709,69 @@ a.card.key::before{
     if(a>=1e6) return Math.round(x/1e6)+' млн ₸';
     if(a>=1e3) return Math.round(x/1e3)+' тыс ₸';
     return Math.round(x)+' ₸'; }
-  /* good=+1 — рост это хорошо, good=-1 — наоборот. Если база
-     отрицательная или знак поменялся, процент врёт: показываем деньги. */
+  function num(x){ return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
   function chg(now,was,good){
-    if(!was && !now) return '';
+    if(!was) return '';
     var d=now-was, cls=(d>0)===(good>0)?'up':'down';
-    var t=(was<=0||now<0)?((d>0?'+':'')+money(d)):((d>0?'+':'')+(d/was*100).toFixed(1)+'%');
-    return '<span class="'+cls+'">'+t+'</span> ';
+    return '<span class="'+cls+'">'+(d>0?'+':'')+(d/was*100).toFixed(1)+'%</span> ';
   }
+  function short(s,n){ s=String(s||''); return s.length>n?s.slice(0,n-1)+'…':s; }
+  /* «к июль» режет глаз — держим дательный падеж месяцев */
+  var DAT={'Январь':'январю','Февраль':'февралю','Март':'марту','Апрель':'апрелю','Май':'маю',
+           'Июнь':'июню','Июль':'июлю','Август':'августу','Сентябрь':'сентябрю','Октябрь':'октябрю',
+           'Ноябрь':'ноябрю','Декабрь':'декабрю'};
+  function dat(s){ var k=String(s||'').split(' ')[0]; return DAT[k]||String(s||'').toLowerCase(); }
 
-  load('/opiu_audit.js?v=1',function(){
-    var A=window.OPIU_AUDIT; if(!A||!A.months) return;
-    var M=A.months,K=A.kpi,i26=[],i25=[];
-    for(var i=0;i<M.length;i++){ if(M[i].indexOf('2026-')===0) i26.push(i); }
-    for(var i=0;i<M.length;i++){ if(M[i].indexOf('2025-')===0) i25.push(i); }
-    i25=i25.slice(0,i26.length);
-    if(!i26.length) return;
-    function S(k,idx){ var s=0; for(var j=0;j<idx.length;j++) s+=(K[k][idx[j]]||0); return s; }
-    var rev=S('rev',i26), rev5=S('rev',i25),
-        gr =S('gross',i26), gr5=S('gross',i25),
-        op =S('oper',i26), op5=S('oper',i25);
-    var per=A.labels[i26[0]]+' — '+A.labels[i26[i26.length-1]];
-    set('p-rev', money(rev), chg(rev,rev5,1)+'к 2025 · '+per);
-    var m=rev?gr/rev*100:0, m5=rev5?gr5/rev5*100:0;
-    set('p-mrg', m.toFixed(1)+'%',
-        '<span class="'+(m>=m5?'up':'down')+'">'+(m-m5>0?'+':'')+(m-m5).toFixed(1)+' п.п.</span> к 2025 ('+m5.toFixed(1)+'%)');
-    set('p-opr', money(op), chg(op,op5,1)+'к 2025 · '+(op<0?'убыток':'прибыль'));
-    var u=document.getElementById('pulse-upd');
-    if(u&&A.updated) u.textContent='данные из iiko · обновлено '+A.updated;
+  var SUM=null;
+  load('/sales_sum.js?v=1',function(){
+    SUM=window.SALES_SUM; if(!SUM) return;
+    set('p-sales', money(SUM.rev),
+        chg(SUM.rev,SUM.prevRev,1)+'к '+(SUM.prevLabel?dat(SUM.prevLabel):'прошлому месяцу')+' · '+SUM.label.toLowerCase());
+    var m=SUM.yearRev?SUM.yearGp/SUM.yearRev*100:0;
+    set('p-year', money(SUM.yearRev),
+        'валовая прибыль '+money(SUM.yearGp)+' · маржа '+m.toFixed(1)+'%');
+    if(SUM.topCat) set('p-cat', short(SUM.topCat.n,14),
+        money(SUM.topCat.rev)+' · '+(SUM.topCat.pct||0).toFixed(1)+'% выручки месяца');
+    if(SUM.topSku) set('p-sku', '<span style="font-size:15px">'+short(String(SUM.topSku.n).replace(/^Упак\s+/i,''),22)+'</span>',
+        money(SUM.topSku.rev)+(SUM.topSku.qty?' · '+num(SUM.topSku.qty)+' шт за месяц':''));
+    renderRet();
   });
 
-  load('/ddsp_days.js?v=1',function(){
-    var D=window.DDSP_DAYS; if(!D||!D.days) return;
-    var ks=Object.keys(D.days).sort(); if(!ks.length) return;
-    var ym=ks[ks.length-1].slice(0,7), inn=0, out=0;
-    ks.forEach(function(k){ if(k.slice(0,7)===ym){ inn+=D.days[k]['in']||0; out+=D.days[k].out||0; } });
-    var net=inn-out;
-    var nm=['','январь','февраль','март','апрель','май','июнь','июль','август',
-            'сентябрь','октябрь','ноябрь','декабрь'][+ym.slice(5)];
-    set('p-cf','<span class="'+(net>=0?'up':'down')+'">'+(net>0?'+':'')+money(net)+'</span>',
-        'за '+nm+' · пришло '+money(inn)+', ушло '+money(out));
+  /* Возвраты живут в sales_meta.js, а доля от выручки — в sales_sum.js.
+     Файлы грузятся параллельно, поэтому рисуем плитку только когда
+     пришли оба: иначе доля считалась бы от нуля и выходило «100%». */
+  var META=null;
+  function renderRet(){
+    if(!META) return;
+    var R=META.returns||{}, keys=Object.keys(R).sort();
+    if(!keys.length) return;
+    /* показываем с начала года: текущий месяц ещё не набрал возвратов
+       и в одиночку давал бы обманчивый ноль */
+    var tot=0; keys.forEach(function(k){ tot+=R[k]||0; });
+    var net=(SUM&&SUM.yearRev)||0, gross=net+tot;
+    set('p-ret','−'+money(tot),
+        (gross?(tot/gross*100).toFixed(1)+'% от выручки · ':'')+'с начала года');
+  }
+  load('/sales_meta.js?v=2',function(){
+    META=window.SALES_META||{};
+    var u=document.getElementById('pulse-upd');
+    if(u&&META.pulled) u.textContent='продажи из iiko · обновлено '+META.pulled+' · данные по '+(META.through||'—');
+    renderRet();
   });
 
   load('/dz_kz.js?v=1',function(){
     var Z=window.DZ_KZ; if(!Z) return;
-    function trend(o,good){
-      var d=o&&o.dynamics; if(!d||d.length<2) return '';
-      return chg(d[d.length-1].total,d[d.length-2].total,good)+'за неделю · ';
+    /* только процент, без слов: подпись собирается снаружи */
+    function pct(o,good){
+      var d=o&&o.dynamics; if(!d||d.length<2) return '—';
+      return chg(d[d.length-1].total,d[d.length-2].total,good).trim();
     }
-    /* рост дебиторки — это деньги, которые до нас не дошли, поэтому «вверх» здесь красное */
-    if(Z.dz) set('p-dz', money(Z.dz.total), trend(Z.dz,-1)+'на '+(Z.dz.date||'—'));
-    if(Z.kz) set('p-kz', money(Z.kz.total), trend(Z.kz,-1)+'на '+(Z.kz.date||'—'));
+    /* рост любого из долгов трактуем как минус: дебиторка — деньги, которые
+       до нас не дошли, кредиторка — которые мы ещё должны отдать */
+    if(Z.dz&&Z.kz) set('p-debt',
+      '<span style="font-size:16px">ДЗ '+money(Z.dz.total)+'</span><br>'
+      +'<span style="font-size:16px">КЗ '+money(Z.kz.total)+'</span>',
+      'за неделю ДЗ '+pct(Z.dz,-1)+' · КЗ '+pct(Z.kz,-1)+' · на '+(Z.dz.date||'—'));
   });
 })();
 </script>
