@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Про деньги — Мастерская Сегодня</title><meta name="author" content="Ольга Герасименко">
+<title>Про деньги — Фуд Завод</title><meta name="author" content="Ольга Герасименко">
 <script src="nav.js"></script>
 <style>
  :root{--cash:#2a78d6;--inv:#eb6834;--rec:#1baf7a;--kz:#e87ba4;--good:#34d399;--crit:#fb7185;
@@ -48,7 +48,7 @@
 </head>
 <body>
 <div class="topbar"><a href="index.html" class="backbtn">← На главную</a>
- <div><h1>💰 Про деньги</h1><p id="sub">Мастерская Сегодня · источник: iiko</p></div>
+ <div><h1>💰 Про деньги</h1><p id="sub">Фуд Завод · источник: iiko</p></div>
  <span class="live" id="live">🔄 из iiko · каждое утро</span></div>
 <div class="wrap">
  <div id="exec_summary"></div>
@@ -257,7 +257,7 @@ function render(mk){
  document.getElementById('c1_title').textContent='Сколько денег: было и стало за месяц';
  document.getElementById('c2_title').textContent='Что двигало деньги за месяц: сырьё и долги';
  document.getElementById('c2_sub').textContent='Что в этом месяце заморозило или освободило деньги компании.';
- document.getElementById('sub').textContent='Мастерская Сегодня · '+d.ru+' · источник: iiko · по счетам компании';
+ document.getElementById('sub').textContent='Фуд Завод · '+d.ru+' · источник: iiko · по счетам компании';
  document.getElementById('openbadge').innerHTML=d.closed?'':`<div class="openb">⚠️ ${d.closeNote||'период не закрыт — данные предварительные'}</div>`;
  // 1
  document.getElementById('mv_sub').textContent='По рабочим счетам компании. Сколько было, стало и почему изменилось.';
@@ -314,7 +314,7 @@ function renderYear(){
  document.getElementById('c1_title').textContent='Сколько денег: было и стало за 2026 год';
  document.getElementById('c2_title').textContent='Что двигало деньги за год: сырьё и долги';
  document.getElementById('c2_sub').textContent='Что за 2026 год заморозило или освободило деньги компании (январь — '+lm+').';
- document.getElementById('sub').textContent='Мастерская Сегодня · итоги за 2026 год (январь — '+lm+') · источник: iiko';
+ document.getElementById('sub').textContent='Фуд Завод · итоги за 2026 год (январь — '+lm+') · источник: iiko';
  document.getElementById('openbadge').innerHTML=excl?`<div class="openb">ℹ️ итог за год посчитан по закрытым месяцам (январь — ${lm}); июль ещё не закрыт и в годовой итог не входит</div>`:'';
  document.getElementById('mv_sub').textContent='Итог за 2026 год по счетам компании (январь — '+lm+').';
  document.getElementById('mv_head').innerHTML=`<div class="big ${net<0?'neg':'pos'}">${smln(net)} ₸</div><div style="font-size:13px;color:#b9c5d3">изменение денег на счетах за год</div>`;

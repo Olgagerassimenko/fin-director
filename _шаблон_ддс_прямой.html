@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ДДС 2026 · Мастерская Сегодня</title><meta name="author" content="Ольга Герасименко">
+<title>ДДС 2026 · Фуд Завод</title><meta name="author" content="Ольга Герасименко">
 <script src="nav.js"></script>
 <style>
  /* --out подобран так, чтобы приход и расход различались и при дальтонизме (ΔE 12 deutan) */
@@ -178,7 +178,7 @@
 </head>
 <body>
 <div class="topbar"><a href="index.html" class="backbtn">← На главную</a>
- <div><h1>💸 ДДС 2026</h1><p id="sub">Мастерская Сегодня · прямой метод · по счетам · источник: iiko</p></div>
+ <div><h1>💸 ДДС 2026</h1><p id="sub">Фуд Завод · прямой метод · по счетам · источник: iiko</p></div>
  <span class="live" id="live">🔄 из iiko · каждые 30 минут</span></div>
 <div class="wrap">
  <div class="tabs" id="tabs"></div>
@@ -401,7 +401,7 @@ function renderRange(from,to){
  h+=analytics(obj);
  h+=ddsTable(obj,{label:label});
  document.getElementById('body').innerHTML=h;
- document.getElementById('sub').textContent='Мастерская Сегодня · '+label+' · прямой метод · источник: iiko';
+ document.getElementById('sub').textContent='Фуд Завод · '+label+' · прямой метод · источник: iiko';
  document.getElementById('openbadge').innerHTML='';
  bindFold();
 }
@@ -429,7 +429,7 @@ function renderPeriod(obj,label,ru,closed){
  h+=analytics(obj);
  h+=ddsTable(obj,{label:label});
  document.getElementById('body').innerHTML=h;
- document.getElementById('sub').textContent='Мастерская Сегодня · '+(ru||label)+' · прямой метод · по счетам · источник: iiko';
+ document.getElementById('sub').textContent='Фуд Завод · '+(ru||label)+' · прямой метод · по счетам · источник: iiko';
  document.getElementById('openbadge').innerHTML=(closed===false)?`<div class="openb">⚠️ период не закрыт — данные предварительные, обновятся после 18-го числа</div>`:'';
  bindFold();
 }
@@ -756,7 +756,7 @@ function renderDay1(k){
  h+=ddsTable(obj,{label:dt});
  const body=document.getElementById('body');
  body.innerHTML=h;
- document.getElementById('sub').textContent='Мастерская Сегодня · '+label+' · прямой метод · по счетам · источник: iiko';
+ document.getElementById('sub').textContent='Фуд Завод · '+label+' · прямой метод · по счетам · источник: iiko';
  document.getElementById('openbadge').innerHTML=(k===(D.today||''))
    ? '<div class="openb">⏱ день ещё идёт — данные на '+esc(D.updatedFull||D.updated||'')+' · обновление из iiko каждые 30 минут</div>' : '';
  bindFold(); tipHide(); bindTips(body); fitDvg(body);
@@ -769,7 +769,7 @@ function renderDay(k){
  h+=analytics({articles:dd.articles});
  h+=ddsTable({articles:dd.articles},{label:dt});
  document.getElementById('body').innerHTML=h;
- document.getElementById('sub').textContent='Мастерская Сегодня · день '+dt+' · прямой метод · по счетам · источник: iiko';
+ document.getElementById('sub').textContent='Фуд Завод · день '+dt+' · прямой метод · по счетам · источник: iiko';
  document.getElementById('openbadge').innerHTML='';
  bindFold();
 }
