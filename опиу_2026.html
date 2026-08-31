@@ -471,10 +471,6 @@ H+='<div class="grid g3" style="margin-top:14px">'
  + '<div class="card"><div class="card-t">🟢 Валовая прибыль, млн ₸</div><div class="card-s">выручка минус себестоимость, помесячно</div><div class="cv"><canvas id="cGP"></canvas></div></div>'
  + '</div>';
 
-H+='<div class="grid g2" style="margin-top:14px">'
- + '<div class="card" style="grid-column:1 / -1"><div class="card-t">📈 Куда уходит каждые 100 ₸ выручки</div><div class="card-s">зелёная линия — сколько остаётся после себестоимости, жёлтая — сколько съедают расходы. Бледные линии — 2025 год</div><div class="cv"><canvas id="c3"></canvas></div></div>'
- + '</div>';
-
 /* — авто-выводы: короткие человеческие фразы по цифрам — */
 /* Вывод без рекомендации — это просто констатация. К каждому выводу
    добавляем шаг и ссылку на отчёт, где видно причину. */
@@ -933,26 +929,7 @@ if(window.Chart){
     options:chartOpts({plugins:{datalabels:{display:false},legend:{display:false},
       tooltip:{callbacks:{label:function(c){return c.parsed.y.toFixed(1)+' млн ₸';}}}}})});
 
-  /* 7.6 «Куда уходит каждые 100 ₸ выручки»: 2026 ярко, 2025 бледным пунктиром */
-  function pcArr(idx,a){ return idx.map(function(k){ var r=nz(K.rev[k]); return r?nz(K[a][k])/r*100:0; }); }
-  new Chart(document.getElementById('c3'),{data:{labels:labs,datasets:[
-    {type:'line',label:'Осталось после себестоимости · 2026',data:pcArr(i26,'gross'),
-     borderColor:'#34d399',borderWidth:3,fill:true,tension:.35,
-     backgroundColor:function(c){return grad(c,'rgba(52,211,153,.35)','rgba(52,211,153,0)');},
-     pointRadius:4,pointBackgroundColor:'#34d399',pointBorderColor:'#0a0f1f',pointBorderWidth:2},
-    {type:'line',label:'Съели расходы · 2026',data:pcArr(i26,'opex'),
-     borderColor:'#fbbf24',borderWidth:3,tension:.35,
-     pointRadius:4,pointBackgroundColor:'#fbbf24',pointBorderColor:'#0a0f1f',pointBorderWidth:2},
-    {type:'line',label:'2025 · осталось',data:pcArr(i25,'gross'),
-     borderColor:'rgba(52,211,153,.45)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,tension:.35},
-    {type:'line',label:'2025 · расходы',data:pcArr(i25,'opex'),
-     borderColor:'rgba(251,191,36,.45)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,tension:.35}
-  ]},options:chartOpts({plugins:{datalabels:{display:false},
-    legend:{labels:{color:'#9fb0cd',boxWidth:10,usePointStyle:true,font:{size:10}}},
-    tooltip:{callbacks:{label:function(c){ return c.dataset.label+': '+c.parsed.y.toFixed(1)+' ₸ из 100'; }}}},
-    scales:{x:{ticks:{color:'#8698b8',font:{size:10}},grid:{display:false}},
-            y:{ticks:{color:'#8698b8',font:{size:10},callback:function(v){return v+'%';}},
-               grid:{color:'rgba(148,163,184,.10)'}}}})});
+
 }
 })();
 </script>
