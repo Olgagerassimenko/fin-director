@@ -172,8 +172,46 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pt .up{color:#34d399;font-weight:800;}
 .pt .down{color:#fb7185;font-weight:800;}
 @media(max-width:640px){.pulse-grid{grid-template-columns:repeat(2,1fr);}.pt-v{font-size:18px;}}
+
+/* ── КЛЮЧЕВЫЕ ОТЧЁТЫ ──────────────────────────────────────────
+   Три отчёта, с которых начинается любой разбор: деньги, прибыль,
+   продажи. Выделяем их цветом карточки, а не только полосой слева:
+   заливка в цвет отчёта, окрашенная рамка и подпись «ключевой». */
+a.card.key{
+  background:linear-gradient(135deg,rgba(var(--cr),.20) 0,rgba(var(--cr),.07) 55%,#fff 100%);
+  border-color:rgba(var(--cr),.55);
+  box-shadow:0 1px 2px rgba(10,18,38,.06),0 10px 26px rgba(var(--cr),.28);
+}
+a.card.key .card-accent{width:6px;}
+a.card.key .card-icon{background:rgba(var(--cr),.24);border-color:rgba(var(--cr),.5);}
+a.card.key .card-title{color:#0b1222;}
+a.card.key::before{content:'КЛЮЧЕВОЙ';position:absolute;top:9px;right:34px;
+  font-size:8px;font-weight:900;letter-spacing:.12em;color:rgba(var(--cr),1);
+  background:rgba(var(--cr),.13);border:1px solid rgba(var(--cr),.35);
+  border-radius:5px;padding:2px 6px;}
+a.card.key:hover{box-shadow:0 2px 4px rgba(10,18,38,.08),0 18px 38px rgba(var(--cr),.42);}
+@media(max-width:640px){a.card.key::before{display:none;}}
 </style>
-<style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
+<style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}
+/* ── КЛЮЧЕВЫЕ ОТЧЁТЫ ──────────────────────────────────────────
+   Три отчёта, с которых начинается любой разбор: деньги, прибыль,
+   продажи. Выделяем их цветом карточки, а не только полосой слева:
+   заливка в цвет отчёта, окрашенная рамка и подпись «ключевой». */
+a.card.key{
+  background:linear-gradient(135deg,rgba(var(--cr),.20) 0,rgba(var(--cr),.07) 55%,#fff 100%);
+  border-color:rgba(var(--cr),.55);
+  box-shadow:0 1px 2px rgba(10,18,38,.06),0 10px 26px rgba(var(--cr),.28);
+}
+a.card.key .card-accent{width:6px;}
+a.card.key .card-icon{background:rgba(var(--cr),.24);border-color:rgba(var(--cr),.5);}
+a.card.key .card-title{color:#0b1222;}
+a.card.key::before{content:'КЛЮЧЕВОЙ';position:absolute;top:9px;right:34px;
+  font-size:8px;font-weight:900;letter-spacing:.12em;color:rgba(var(--cr),1);
+  background:rgba(var(--cr),.13);border:1px solid rgba(var(--cr),.35);
+  border-radius:5px;padding:2px 6px;}
+a.card.key:hover{box-shadow:0 2px 4px rgba(10,18,38,.08),0 18px 38px rgba(var(--cr),.42);}
+@media(max-width:640px){a.card.key::before{display:none;}}
+</style>
 </head>
 <body>
 
@@ -240,7 +278,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
       <div class="fin-sub">Хватит ли денег и кто кому должен</div>
     </div>
     <div class="cards">
-      <a class="card" style="--c1:#2fa39a;--c2:#1f7f86;--cr:47,163,154" href="дашборд_ддс_прямой.html">
+      <a class="card key" style="--c1:#2fa39a;--c2:#1f7f86;--cr:47,163,154" href="дашборд_ддс_прямой.html">
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">💸</div><div class="card-title">ДДС 2026</div></div>
         <div class="card-desc">Фактические поступления и платежи по статьям и счетам — год, месяц, день. Как в iiko.</div>
@@ -286,7 +324,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
       <div class="fin-sub">Сколько заработали и на чём</div>
     </div>
     <div class="cards">
-      <a class="card" style="--c1:#4f7ce0;--c2:#2b4c9b;--cr:79,124,224" href="опиу_2026.html">
+      <a class="card key" style="--c1:#4f7ce0;--c2:#2b4c9b;--cr:79,124,224" href="опиу_2026.html">
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">📊</div><div class="card-title">ОПиУ 2026</div></div>
         <div class="card-desc">Отчёт о прибылях и убытках помесячно: выручка, себестоимость, расходы и прибыль — и сразу рядом тот же период 2025 года.</div>
@@ -340,7 +378,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
           <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📅 по месяцам</span>
         </div>
       </a>
-      <a class="card" style="--c1:#e0995a;--c2:#d97706;--cr:224,153,90" href="продажи_2026.html">
+      <a class="card key" style="--c1:#e0995a;--c2:#d97706;--cr:224,153,90" href="продажи_2026.html">
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">🛒</div><div class="card-title">Продажи 2026</div></div>
         <div class="card-desc">Динамика продаж 2026: топ SKU, каналы сбыта, помесячно. Интерактивный дашборд.</div>
