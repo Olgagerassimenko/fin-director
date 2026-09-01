@@ -52,6 +52,9 @@ CACHE_FIELDS = ("rev", "through", "closed", "fullMonth", "share", "v", "est")
 # даёт бухгалтерия, а фантомные 33 млн ₸ расходов в июне исчезают.
 SKIP_ACCOUNTS = {"Зарплата"}
 
+# сюда main() складывает счета, не найденные в структуре ОПиУ
+OUT_UNKNOWN = []
+
 # ── Когда месяц считается закрытым ───────────────────────────────────────
 # Бухгалтерия закрывает период до 10-го числа месяца, следующего за отчётным.
 # Раньше «закрытым» считался только тот месяц, что есть в бухгалтерском xlsx,
@@ -158,7 +161,13 @@ def main():
     last_full = today - timedelta(days=1)
     want = month_keys(FIRST, today)
     cache = load_cache()
-    tail = set(want[-REFRESH_TAIL:])
+    # Раньше заново тянулись только последние REFRESH_TAIL месяцев, а закрытые
+    # брались из кэша навсегда. Но бухгалтерия правит документы задним числом:
+    # сверка с выгрузкой ОПиУ из iiko показала расхождение по февралю на 1.06 млн ₸,
+    # которого в отчёте уже не было, а в кэше оно осталось. Поэтому весь текущий
+    # год перечитываем каждый прогон — это плюс несколько запросов, зато цифры
+    # закрытых месяцев не «замерзают».
+    tail = set(want[-REFRESH_TAIL:]) | {k for k in want if k.startswith(str(today.year))}
     todo = [k for k in want if k not in cache or k in tail]
     print("месяцев всего %d, в кэше %d, тянем %d: %s"
           % (len(want), len(cache), len(todo), ", ".join(todo)))
@@ -233,6 +242,11 @@ def main():
                  "" if not gaps else " | не проведено: " + "; ".join(gaps),
                  "" if not est_of else " | досчёт %d статей на %s" % (len(est_of), GA.fmt(add))))
 
+    # Счета, которых нет в структуре бухгалтерского xlsx: в отчёт они не попадают,
+    # и пока файл не обновят, новая статья iiko остаётся невидимой. Складываем их
+    # в данные, чтобы страница могла честно сказать «вне структуры столько-то».
+    OUT_UNKNOWN[:] = [{"n": n, "v": round(v)} for n, v in
+                      sorted(unknown.items(), key=lambda x: -abs(x[1]))[:20] if abs(v) >= 100000]
     if unknown:
         top = sorted(unknown.items(), key=lambda x: -abs(x[1]))[:10]
         print("счета без строки в ОПиУ:", ", ".join("%s (%s)" % (n, GA.fmt(v)) for n, v in top))
@@ -258,6 +272,7 @@ def main():
             "through": last_full.isoformat(),
             "xlsxThrough": months_x[-1],
             "months": {k: cache[k] for k in want if k in cache},
+            "outside": list(OUT_UNKNOWN),      # статьи iiko вне структуры ОПиУ
             "diff": diff[:200]}
     open(OUT, "w", encoding="utf-8").write(
         "window.OPIU_IIKO=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";")
