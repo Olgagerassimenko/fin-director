@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="ddsp_days.js?v=1"></script>
+<script src="dz_kz.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -178,6 +179,7 @@ tr:hover td{background:#fafafa;}
     </div>
     <div class="tabs" id="tabs-row"></div>
     <div id="sections-wrap"></div>
+    <div id="analytics-wrap"></div>
   </div>
 </div>
 <script>
@@ -606,6 +608,133 @@ function chartDays(P){
     scales:{y:{ticks:{callback:v=>v+' М',font:{size:10}},grid:{color:'#eef1f5'}},x:{ticks:{font:{size:9},maxRotation:90,minRotation:60},grid:{display:false}}}}});
 }
 
+/* ═══════════ АНАЛИТИКА ПЛАНА ═══════════
+   Считается из того, что уже загружено: недельный план из таблицы,
+   факт платежей из iiko (ddsp_days.js) и дебиторка (dz_kz.js).
+   Ничего никуда не отправляет, только читает. */
+function codeOf(n){ const m=String(n||'').trim().match(/^0*(\d+)/); return m?m[1]:null; }
+
+function buildAnalytics(D,P){
+  const W=[1,2,3,4,5].map(w=>({w,label:weekLabel(w),inc:D.wks[w].incTotal,exp:D.wks[w].expTotal}))
+                     .filter(r=>r.inc||r.exp);
+  if(!W.length) return '';
+  const tI=D.totalInc, tE=D.totalExp;
+
+  /* 1 — накопленное сальдо и кассовые разрывы */
+  let cum=0; const rows=W.map(r=>{ cum+=r.inc-r.exp; return Object.assign({},r,{bal:r.inc-r.exp,cum:cum}); });
+  const holes=rows.filter(r=>r.bal<0);
+  const dip=rows.reduce((a,b)=>b.cum<a.cum?b:a,rows[0]);
+  const best=rows.reduce((a,b)=>b.bal>a.bal?b:a,rows[0]);
+  const t1='<table><thead><tr><th>Неделя</th><th>Ожидаем</th><th>Платим</th><th>За неделю</th><th>Нарастающим итогом</th></tr></thead><tbody>'
+    +rows.map(r=>'<tr><td style="font-weight:700;white-space:nowrap">Неделя '+r.w+' <span style="color:#9ca3af;font-weight:500">'+r.label+'</span></td>'
+      +'<td style="color:#854d0e;font-weight:700">'+fmt(r.inc)+'</td>'
+      +'<td style="color:#9f1239;font-weight:700">'+fmt(r.exp)+'</td>'
+      +'<td style="font-weight:700;color:'+gc(r.bal)+'">'+fmtS(r.bal)+'</td>'
+      +'<td style="font-weight:800;color:'+gc(r.cum)+'">'+fmtS(r.cum)+'</td></tr>').join('')
+    +'</tbody></table>';
+  let v1;
+  if(!holes.length) v1='Ни одна неделя не уходит в минус — план сбалансирован внутри месяца.';
+  else v1='Недель с разрывом: <b>'+holes.length+'</b>. Самая глубокая точка — после недели <b>'+dip.w+'</b> ('+dip.label+'): '
+     +'<b style="color:#9f1239">'+fmtS(dip.cum)+'</b> нарастающим итогом. '
+     +(best.bal>0? 'Профицит недели '+best.w+' — '+fmt(best.bal)+', часть платежей разумно сдвинуть туда.' : '');
+
+  /* 2 — выполнение плана на сегодня: факт из iiko против плана тех же дней */
+  const today=todayISO(), pref=PLAN_Y+'-'+String(PLAN_M+1).padStart(2,'0');
+  /* Докуда сравнивать: последний день планового месяца, по который есть факт.
+     FACT_THROUGH приходит строкой «31.08.2026» и с ISO-датой не сравнивается,
+     поэтому берём максимальный ключ самого факта. */
+  let upto='';
+  Object.keys(FACT).forEach(k=>{ if(k.slice(0,7)===pref && k<=today && k>upto) upto=k; });
+  let pIn=0,pOut=0,fIn=0,fOut=0,nd=0;
+  ((P&&P.rows)||[]).forEach(r=>{ if(r.d<=upto && r.d.slice(0,7)===pref){ pIn+=r.inc; pOut+=r.exp; nd++; } });
+  Object.keys(FACT).forEach(k=>{ if(k.slice(0,7)===pref && k<=upto){ fIn+=FACT[k].in||0; fOut+=FACT[k].out||0; } });
+  const hasFact=nd>0 && (fIn||fOut);
+  const doneP=pIn>0?fIn/pIn*100:0;
+  const t2=hasFact? '<table><thead><tr><th>С начала месяца по '+dRU(upto)+'</th><th>План</th><th>Факт</th><th>Разница</th><th>Выполнено</th></tr></thead><tbody>'
+      +'<tr><td style="font-weight:700">Поступления</td><td>'+fmt(pIn)+'</td><td style="font-weight:700;color:#854d0e">'+fmt(fIn)+'</td>'
+      +'<td style="font-weight:700;color:'+gc(fIn-pIn)+'">'+fmtS(fIn-pIn)+'</td>'
+      +'<td><span class="badge '+(doneP>=95?'bg-g':doneP>=75?'bg-y':'bg-r')+'">'+doneP.toFixed(0)+'%</span></td></tr>'
+      +'<tr><td style="font-weight:700">Выплаты</td><td>'+fmt(pOut)+'</td><td style="font-weight:700;color:#9f1239">'+fmt(fOut)+'</td>'
+      +'<td style="font-weight:700;color:'+gc(pOut-fOut)+'">'+fmtS(fOut-pOut)+'</td>'
+      +'<td><span class="badge bg-n">'+(pOut>0?(fOut/pOut*100).toFixed(0):0)+'%</span></td></tr>'
+      +'</tbody></table>'
+    : '<p class="sub2" style="margin:0">Факт за этот месяц ещё не набрался — сравнивать не с чем.</p>';
+  const v2=hasFact
+    ? (doneP>=100? 'Поступления идут с опережением плана на '+fmt(fIn-pIn)+'.'
+      : 'К этому дню собрано '+doneP.toFixed(0)+'% от плана — отставание <b style="color:#9f1239">'+fmt(pIn-fIn)+'</b>. '
+        +'Чтобы выйти на месяц, оставшиеся дни должны дать '+fmt(Math.max(0,tI-fIn))+'.')
+    : '';
+
+  /* 3 — обеспеченность плана дебиторкой */
+  const DZ=(window.DZ_KZ&&window.DZ_KZ.dz)||null;
+  let t3='',v3='';
+  if(DZ&&DZ.top&&DZ.top.length){
+    const debt={}; DZ.top.forEach(r=>{ const c=codeOf(r.name); if(c) debt[c]=(debt[c]||0)+r.debt; });
+    const plan={}; D.clients.forEach(([n,v])=>{ const c=codeOf(n); if(c){ plan[c]=plan[c]||{v:0,n:n}; plan[c].v+=v; } });
+    const list=Object.keys(plan).map(c=>({c,n:plan[c].n,plan:plan[c].v,debt:debt[c]||0}))
+                 .sort((a,b)=>b.plan-a.plan).slice(0,12);
+    const noPlan=Object.keys(debt).filter(c=>!plan[c]&&debt[c]>=400000)
+                 .map(c=>({c,debt:debt[c],n:(DZ.top.find(r=>codeOf(r.name)===c)||{}).name||c}))
+                 .sort((a,b)=>b.debt-a.debt);
+    t3='<table><thead><tr><th>Контрагент</th><th>План сбора</th><th>Долг на '+(DZ.date||'')+'</th><th>Долг / план</th><th>Запас</th></tr></thead><tbody>'
+      +list.map(r=>{ const k=r.plan>0?r.debt/r.plan:0;
+        const tag=r.debt===0?'<span class="badge bg-n">платят с колёс</span>'
+                 :k>=1.5?'<span class="badge bg-g">есть что добрать</span>'
+                 :k>=0.8?'<span class="badge bg-y">в притык</span>'
+                 :'<span class="badge bg-r">план выше долга</span>';
+        return '<tr><td>'+r.n+'</td><td style="font-weight:700;color:#854d0e">'+fmt(r.plan)+'</td>'
+          +'<td style="font-weight:700">'+fmt(r.debt)+'</td>'
+          +'<td style="font-weight:700">'+(r.plan>0?k.toFixed(2)+'×':'—')+'</td><td>'+tag+'</td></tr>'; }).join('')
+      +'</tbody></table>';
+    const sumPlan=list.reduce((s,r)=>s+r.plan,0), sumDebt=list.reduce((s,r)=>s+r.debt,0);
+    v3='Всего дебиторка <b>'+fmt(DZ.total||0)+'</b> на '+(DZ.date||'')+', план сбора по этим контрагентам <b>'+fmt(sumPlan)+'</b> '
+      +'при их долге <b>'+fmt(sumDebt)+'</b>. '
+      +(noPlan.length? 'Долг есть, а строки в плане нет: <b>'+noPlan.slice(0,4).map(r=>r.n.replace(/:.*$/,'')+' ('+fmt(r.debt)+')').join(', ')+'</b>'
+          +(noPlan.length>4?' и ещё '+(noPlan.length-4):'')+'.' : 'Все крупные должники в плане есть.');
+  }
+
+  /* 4 — концентрация */
+  const top3i=D.clients.slice(0,3).reduce((s,r)=>s+r[1],0);
+  const top3e=D.cats.slice(0,3).reduce((s,r)=>s+r[1],0);
+  const ci=tI>0?top3i/tI*100:0, ce=tE>0?top3e/tE*100:0;
+  const t4='<div class="mkpi-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+    +'<div class="mkpi mk-inc"><div class="mkpi-lbl">Топ-3 плательщика</div><div class="mkpi-val">'+ci.toFixed(0)+'%</div>'
+      +'<div class="sub2" style="margin:6px 0 0">'+D.clients.slice(0,3).map(r=>r[0]).join(' · ')+'</div></div>'
+    +'<div class="mkpi mk-exp"><div class="mkpi-lbl">Топ-3 статьи расхода</div><div class="mkpi-val">'+ce.toFixed(0)+'%</div>'
+      +'<div class="sub2" style="margin:6px 0 0">'+D.cats.slice(0,3).map(r=>r[0]).join(' · ')+'</div></div></div>';
+  const v4=ci>=60? 'Больше половины месячного плана держится на трёх плательщиках — сдвиг у любого из них сразу ломает месяц.'
+        : 'План распределён между плательщиками достаточно ровно.';
+
+  /* 5 — что делать */
+  const todo=[];
+  if(holes.length&&best.bal>0) todo.push('Перенести часть платежей недели '+holes[0].w+' на неделю '+best.w+' — там профицит '+fmt(best.bal)+'.');
+  if(hasFact&&doneP<90) todo.push('Отставание по сбору '+fmt(pIn-fIn)+' — начать с тех, у кого долг больше плана.');
+  if(DZ&&DZ.dynamics&&DZ.dynamics.length>1){
+    const a=DZ.dynamics[0].total,b=DZ.dynamics[DZ.dynamics.length-1].total;
+    if(b>a) todo.push('Дебиторка выросла с '+fmt(a)+' до '+fmt(b)+' — отгружаем быстрее, чем собираем.');
+  }
+  if(ci>=60) todo.push('Три плательщика дают '+ci.toFixed(0)+'% плана — держать их сроки на отдельном контроле.');
+  if(tI<tE) todo.push('Месяц свёрстан в минус на '+fmt(tE-tI)+' — либо добирать поступления, либо двигать платежи за границу месяца.');
+  const t5=todo.length? '<ul style="margin:0;padding-left:20px;font-size:13px;line-height:1.85;color:#374151">'
+      +todo.map(x=>'<li>'+x+'</li>').join('')+'</ul>'
+    : '<p class="sub2" style="margin:0">Критичных отклонений в плане нет.</p>';
+
+  return '<div id="analytics" style="margin-top:22px">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin:0 0 14px"><div style="width:4px;height:22px;border-radius:2px;background:#7c3aed"></div>'
+      +'<h2 style="font-size:15px;font-weight:800;color:#fff;margin:0;letter-spacing:.01em">Аналитика плана</h2>'
+      +'<span style="font-size:11px;color:rgba(255,255,255,.55)">считается по всему месяцу, независимо от выбранной вкладки</span></div>'
+    +'<div class="card" style="margin-bottom:16px">'+cardHdr(BAL_COL,'Кассовые разрывы по неделям')
+      +'<p class="sub2">'+v1+'</p>'+t1+'</div>'
+    +'<div class="card" style="margin-bottom:16px">'+cardHdr(INC_COL,'План против факта — сколько уже прошло')
+      +(v2?'<p class="sub2">'+v2+'</p>':'')+t2+'</div>'
+    +(t3? '<div class="card" style="margin-bottom:16px">'+cardHdr('#0891b2','Чем обеспечен план сбора')
+      +'<p class="sub2">'+v3+'</p>'+t3+'</div>' : '')
+    +'<div class="card" style="margin-bottom:16px">'+cardHdr('#6366f1','Концентрация')
+      +'<p class="sub2">'+v4+'</p>'+t4+'</div>'
+    +'<div class="card">'+cardHdr(EXP_COL,'Что делать')+t5+'</div>'
+    +'</div>';
+}
+
 function renderDashboard({wks,cats,clients,totalInc,totalExp}){
   const bal=totalInc-totalExp,cov=totalExp>0?totalInc/totalExp*100:0;
   document.getElementById('k-inc').textContent=fmt(totalInc);
@@ -635,6 +764,8 @@ function renderDashboard({wks,cats,clients,totalInc,totalExp}){
   for(let w=1;w<=5;w++){se.innerHTML+=buildWeek(w,wks[w]);}
   addTab(te,'За месяц','month',false,true);
   se.innerHTML+=buildMonth(cats,clients,totalInc,totalExp);
+  document.getElementById('analytics-wrap').innerHTML=
+    buildAnalytics({wks,cats,clients,totalInc,totalExp},P);
   requestAnimationFrame(()=>{ initCharts(wks,cats,clients); chartDays(P); });
 }
 function addTab(c,lbl,id,active,mt){
