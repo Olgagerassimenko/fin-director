@@ -745,17 +745,6 @@ if(openM.length){
   H+='<div id="s-note"></div><div class="note warn" style="margin-top:18px">Не закрыт: '+parts.join(', ')
    + '. Зарплата, налоги и аренда проводятся в конце месяца, поэтому по незакрытым месяцам регулярные статьи дочитаны оценкой — сравнивать их с закрытыми напрямую нельзя.</div>';
 }
-/* Структура строк берётся из бухгалтерского файла. Если в iiko завели новый счёт,
-   а файл ещё не обновили, статья в отчёт не попадёт — честно про это говорим. */
-var outs=(I&&I.outside)||[];
-if(outs.length){
-  var sumOut=outs.reduce(function(a,o){return a+Math.abs(o.v||0);},0);
-  H+='<div class="note" style="margin-top:12px">В iiko есть <b>'+outs.length+'</b> '
-   + 'счетов, которых нет в структуре бухгалтерского ОПиУ, на <b>'+fbig(sumOut)+'</b> — '
-   + 'в отчёт они не попадают: '+outs.slice(0,5).map(function(o){return esc(nice(o.n))+' ('+fbig(Math.abs(o.v))+')';}).join(', ')
-   + (outs.length>5?' и ещё '+(outs.length-5):'')+'. Появятся, когда обновят бухгалтерский файл.</div>';
-}
-
 W.innerHTML=H;
 
 /* ============================================================
