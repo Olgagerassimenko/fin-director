@@ -222,7 +222,7 @@ def main():
         if not closed:
             for grp, names in GAP_GROUPS:
                 got = sum(vals.get(n, 0) for n in names)
-                typ = _typical(lines, names)
+                typ = _norm_iiko(cache, want, k, names)
                 if typ > 0 and got < typ * share * 0.55:
                     gaps.append("%s: %s вместо ожидаемых %s" % (grp, GA.fmt(got), GA.fmt(typ * share)))
 
@@ -232,7 +232,12 @@ def main():
                 n = r["n"]
                 if n in ("Торговая выручка", "Выручка") or is_inc[n] or n in SKIP_ACCOUNTS:
                     continue
-                nz = [x for x in r["v"][-6:] if x]
+                # Норма берётся ТОЛЬКО из закрытых месяцев самой iiko. Раньше
+                # медиана считалась по бухгалтерскому xlsx, а он обновляется
+                # руками и отстаёт: в сентябре 2026 досчёт августа опирался на
+                # декабрь–май. Запасного варианта через xlsx нет намеренно:
+                # если истории iiko не хватает, статью честнее не досчитывать.
+                nz = [x for x in _hist_iiko(cache, want, k, n) if x]
                 if len(nz) < 5:                   # досчитываем только регулярные статьи
                     continue
                 typ = statistics.median(nz) * share
@@ -294,15 +299,30 @@ def main():
           % (len(data["months"]), len(data["diff"])))
 
 
-def _typical(lines, names):
+def _hist_iiko(cache, want, k, name, back=6):
+    """Значения статьи по ЗАКРЫТЫМ месяцам iiko, идущим до месяца k.
+
+    Это и есть «норма» для досчёта: только те месяцы, где бухгалтерия всё
+    провела, и только цифры iiko — бухгалтерский xlsx сюда не попадает.
+    """
+    out = []
+    for kk in want:
+        if kk >= k:
+            break
+        rec = cache.get(kk)
+        if rec and rec.get("closed") and isinstance(rec.get("v"), dict):
+            out.append(rec["v"].get(name, 0))
+    return out[-back:]
+
+
+def _norm_iiko(cache, want, k, names, back=6):
+    """Медиана суммы группы статей по закрытым месяцам iiko (0, если истории мало)."""
     tot = None
-    for r in lines:
-        if r["n"] in names:
-            tot = r["v"] if tot is None else [a + b for a, b in zip(tot, r["v"])]
-    if not tot:
-        return 0
-    tail = [x for x in tot[-6:] if x]
-    return statistics.median(tail) if tail else 0
+    for n in names:
+        h = _hist_iiko(cache, want, k, n, back)
+        tot = h if tot is None else [a + b for a, b in zip(tot, h)]
+    nz = [x for x in (tot or []) if x]
+    return statistics.median(nz) if len(nz) >= 5 else 0
 
 
 if __name__ == "__main__":
