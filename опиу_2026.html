@@ -226,42 +226,7 @@ thead th{border-bottom:1px solid rgba(232,201,138,.28)}
 tbody tr:hover td{box-shadow:inset 0 0 0 9999px rgba(168,85,247,.06)}
 .leg{opacity:.85}
 
-/* ── РАЗБОР: три силы, вклад статей, прогноз ─────────────────── */
-.frc{margin-top:14px}
-.frc-h{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;font-weight:700;color:#dbe4f7}
-.frc-h b{font-size:15px}
-.frc-bar{height:8px;border-radius:999px;background:rgba(134,152,184,.12);overflow:hidden;margin:6px 0 5px}
-.frc-bar i{display:block;height:100%;border-radius:999px}
-.frc-bar i.p{background:linear-gradient(90deg,#34d399,#22d3ee);box-shadow:0 0 12px rgba(52,211,153,.7)}
-.frc-bar i.n{background:linear-gradient(90deg,#fb7185,#f472b6);box-shadow:0 0 12px rgba(251,113,133,.7)}
-.frc-d{font-size:11px;color:#93a5c4;line-height:1.55}
-.frc-total{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);font-size:12.5px;color:#cfdaef}
-.frc-total b{font-size:16px}
-.frc-verdict{margin-top:10px;font-size:11.5px;color:#b9c7df;line-height:1.6;
-  background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:10px;padding:10px 12px}
-.frc-verdict b{color:#fff}
 
-.ctb{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed rgba(36,50,87,.7)}
-.ctb:last-of-type{border-bottom:none}
-.ctb-n{flex:1;font-size:11.5px;color:#cfdaef;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ctb-b{width:26%;height:7px;border-radius:999px;background:rgba(134,152,184,.12);overflow:hidden;flex-shrink:0}
-.ctb-b i{display:block;height:100%;border-radius:999px}
-.ctb-v{width:92px;text-align:right;font-size:11.5px;font-weight:800;flex-shrink:0}
-.ctb-p{width:76px;text-align:right;font-size:11px;color:#8ea0ba;flex-shrink:0}
-.ctb-note{margin-top:12px;font-size:10.5px;color:#8ea0ba;line-height:1.55;border-top:1px dashed var(--line);padding-top:9px}
-
-.fc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:6px}
-.fc{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.fc-l{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
-.fc-v{font-size:19px;font-weight:900;margin-top:6px;color:#fff}
-.fc-d{font-size:10.5px;color:#8ea0ba;margin-top:5px;line-height:1.5}
-.fc-warn{margin-top:12px;font-size:11px;color:#9fb0cd;border-top:1px dashed var(--line);padding-top:9px}
-.fc-ok{padding:16px 0;color:var(--em);font-weight:700}
-.need{display:flex;align-items:baseline;gap:12px;padding:11px 0;border-bottom:1px dashed rgba(36,50,87,.7);flex-wrap:wrap}
-.need:last-child{border-bottom:none}
-.need-l{width:86px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);flex-shrink:0}
-.need-v{font-size:17px;font-weight:900;color:var(--am);min-width:120px}
-.need-d{flex:1;min-width:170px;font-size:11px;color:#93a5c4;line-height:1.5}
 
 /* ── Три фразы вместо схем ───────────────────────────────────── */
 .lns{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);
@@ -288,7 +253,7 @@ tbody tr:hover td{box-shadow:inset 0 0 0 9999px rgba(168,85,247,.06)}
   <div class="hero-bar">
     <span class="mode" id="mode-sw"></span>
     <nav class="toc">
-      <a href="#s-charts">Графики</a><a href="#s-find">Выводы</a><a href="#s-why">Разбор</a>
+      <a href="#s-charts">Графики</a><a href="#s-find">Выводы</a>
       <a href="#s-cmp">Сравнение месяцев</a><a href="#s-tab">Постатейно</a><a href="#s-note">Оговорки</a>
     </nav>
   </div>
@@ -509,140 +474,6 @@ H+='<div class="lns">'
  + (lateN?line('В итоги входит <b>'+lateN+' мес.</b> с оценкой — незакрытый месяц дочитан по медиане закрытых.',
         location.pathname+'?fact=1','Показать только факт'):'')
  + '</div>';
-
-/* ============================================================
-   РАЗБОР: ПОЧЕМУ ПРИБЫЛЬ ИЗМЕНИЛАСЬ
-   ============================================================
-   Обычный отчёт говорит «стало хуже». Разбор объясняет, из чего
-   это «хуже» состоит, и раскладывается ровно, без остатка.
-
-   Прибыль от основной деятельности = Выручка × Маржа − Расходы,
-   поэтому её изменение к прошлому году раскладывается на три силы:
-
-     объём   = (Выручка₂₆ − Выручка₂₅) × Маржа₂₅
-               сколько прибыли дал сам оборот, если бы маржа не менялась
-     маржа   = (Маржа₂₆ − Маржа₂₅) × Выручка₂₆
-               сколько дало или забрало изменение маржи на текущем объёме
-     расходы = −(Расходы₂₆ − Расходы₂₅)
-
-   Сумма трёх в точности равна изменению прибыли — это тождество,
-   а не приближение, и внизу блока оно проверяется на экране.        */
-var fVol  = (Y.rev - Y5.rev) * gm25;
-var fMrg  = (gm26 - gm25) * Y.rev;
-var fOpex = -(Y.opex - Y5.opex);
-var fSum  = fVol + fMrg + fOpex;
-var fErr  = Math.abs(fSum - (Y.oper - Y5.oper));
-
-/* вклад отдельных статей расходов в изменение результата */
-var contrib = moves.filter(function(m){ return !m.inc && Math.abs(m.d) > 1e6; })
-                   .slice().sort(function(a,b){ return Math.abs(b.d) - Math.abs(a.d); }).slice(0,8);
-
-/* Прогноз до конца года считаем ТОЛЬКО по закрытым месяцам: незакрытый
-   месяц занижен и утащил бы прогноз вниз. Берём среднее трёх последних
-   закрытых, коридор — их разброс. */
-var closedIdx = i26.filter(function(k){ return mstat(M[k]).closed && mstat(M[k]).full; });
-var fc = null;
-if(closedIdx.length >= 3){
-  var last3 = closedIdx.slice(-3);
-  var mOper = last3.map(function(k){ return nz(K.oper[k]); });
-  var mNet  = last3.map(function(k){ return nz(K.net[k]); });
-  var avgO = mOper.reduce(function(a,b){return a+b;},0)/3;
-  var avgN = mNet.reduce(function(a,b){return a+b;},0)/3;
-  var doneN = closedIdx.length, left = 12 - doneN;
-  var factO = sum(K.oper, closedIdx), factN = sum(K.net, closedIdx);
-  fc = {left:left, done:doneN,
-        oper: factO + avgO*left, net: factN + avgN*left,
-        lo: factN + Math.min.apply(null,mNet)*left,
-        hi: factN + Math.max.apply(null,mNet)*left,
-        avgN: avgN, last: L[last3[last3.length-1]]};
-}
-
-H+='<div id="s-why"></div><div class="sec-t" style="--sc:linear-gradient(180deg,#f472b6,#a855f7);--sg:rgba(244,114,182,.85)">🧠 Разбор: почему прибыль изменилась'
- + '<span class="sub">'+esc(per26)+' против '+esc(per25)+' · раскладка без остатка</span></div>';
-
-H+='<div class="grid g2b">';
-
-/* — левая карточка: три силы — */
-function force(name,val,expl){
-  var cls = val>=0?'pos':'neg';
-  return '<div class="frc"><div class="frc-h"><span>'+name+'</span>'
-   + '<b class="'+cls+'">'+(val>0?'+':'')+fbig(val)+'</b></div>'
-   + '<div class="frc-bar"><i class="'+(val>=0?'p':'n')+'" style="width:'+Math.min(100,Math.abs(val)/Math.max(Math.abs(fVol),Math.abs(fMrg),Math.abs(fOpex),1)*100).toFixed(0)+'%"></i></div>'
-   + '<div class="frc-d">'+expl+'</div></div>';
-}
-H+='<div class="card"><div class="card-t">⚖️ Из чего сложилось изменение</div>'
- + '<div class="card-s">прибыль от основной деятельности: было '+fbig(Y5.oper)+' → стало '+fbig(Y.oper)+'</div>'
- + force('Объём выручки', fVol,
-     (Y.rev>=Y5.rev?'выручка выросла на '+fbig(Y.rev-Y5.rev):'выручка упала на '+fbig(Y5.rev-Y.rev))
-     +' — при прошлогодней марже '+pc(gm25)+' это '+(fVol>=0?'плюс':'минус')+' к прибыли')
- + force('Маржинальность', fMrg,
-     'маржа '+(gm26>=gm25?'выросла':'упала')+' с '+pc(gm25)+' до '+pc(gm26)
-     +' — на текущем обороте это '+(fMrg>=0?'плюс':'минус')+' к прибыли')
- + force('Расходы', fOpex,
-     'блок расходов '+(Y.opex>Y5.opex?'вырос':'снизился')+' на '+fbig(Math.abs(Y.opex-Y5.opex))
-     +' ('+pc(Y5.rev?Y5.opex/Y5.rev:0)+' → '+pc(Y.rev?Y.opex/Y.rev:0)+' выручки)')
- + '<div class="frc-total">Итого изменение прибыли: <b class="'+((Y.oper-Y5.oper)>=0?'pos':'neg')+'">'
- + ((Y.oper-Y5.oper)>0?'+':'')+fbig(Y.oper-Y5.oper)+'</b>'
- + '<span class="mut"> · сумма трёх сил сходится'+(fErr<1e4?'':' с погрешностью '+fbig(fErr))+'</span></div>'
- + '<div class="frc-verdict">'+ (function(){
-     var arr=[{n:'объём',v:fVol},{n:'маржа',v:fMrg},{n:'расходы',v:fOpex}];
-     arr.sort(function(a,b){return a.v-b.v;});
-     var worst=arr[0], best=arr[arr.length-1];
-     if(worst.v>=0) return 'Все три силы сработали в плюс — результат улучшили и оборот, и маржа, и контроль расходов.';
-     return 'Главный удар нанесли <b>'+worst.n+'</b> ('+fbig(worst.v)+')'
-       + (best.v>0?', частично компенсировал <b>'+best.n+'</b> (+'+fbig(best.v)+')':', компенсировать было нечем')
-       + '. Значит разбираться нужно прежде всего с этой силой, а не с отчётом целиком.';
-   })() + '</div></div>';
-
-/* — правая карточка: кто именно внутри расходов — */
-H+='<div class="card"><div class="card-t">🎯 Кто внутри расходов сдвинул результат</div>'
- + '<div class="card-s">вклад конечных статей в изменение прибыли, млн ₸ и в пунктах выручки</div>';
-if(contrib.length){
-  var cmax=Math.max.apply(null,contrib.map(function(m){return Math.abs(m.d);}))||1;
-  contrib.forEach(function(m){
-    var hurt=m.d>0;                       /* расход вырос — прибыли меньше */
-    var pp=Y.rev?(m.d/Y.rev*100):0;
-    H+='<div class="ctb"><div class="ctb-n" title="'+esc(m.n)+'">'+esc(nice(m.n))+'</div>'
-     + '<div class="ctb-b"><i style="width:'+(Math.abs(m.d)/cmax*100).toFixed(0)+'%;background:'+(hurt?'#fb7185':'#34d399')+'"></i></div>'
-     + '<div class="ctb-v '+(hurt?'neg':'pos')+'">'+(m.d>0?'−':'+')+fbig(Math.abs(m.d))+'</div>'
-     + '<div class="ctb-p">'+(pp>0?'−':'+')+Math.abs(pp).toFixed(2)+' п.п.</div></div>';
-  });
-  H+='<div class="ctb-note">«п.п.» — насколько статья изменила рентабельность: например −0.50 п.п. значит, что из каждых 100 ₸ выручки на прибыль стало оставаться на 50 тиын меньше именно из-за неё.</div>';
-} else H+='<div class="mut" style="padding:16px 0">Заметных сдвигов по отдельным статьям нет.</div>';
-H+='</div></div>';
-
-/* — прогноз — */
-if(fc){
-  H+='<div class="grid g2" style="margin-top:14px">'
-   + '<div class="card"><div class="card-t">🔮 Если ничего не менять</div>'
-   + '<div class="card-s">прогноз до конца года по темпу трёх последних закрытых месяцев (по '+esc(fc.last)+')</div>'
-   + '<div class="fc-grid">'
-   + '<div class="fc"><div class="fc-l">Чистая прибыль за год</div><div class="fc-v '+(fc.net<0?'neg':'pos')+'">'+fbig(fc.net)+'</div>'
-   +   '<div class="fc-d">факт за '+fc.done+' мес. плюс '+fc.left+' мес. по среднему темпу '+fbig(fc.avgN)+' в месяц</div></div>'
-   + '<div class="fc"><div class="fc-l">Коридор</div><div class="fc-v">'+fbig(fc.lo)+' … '+fbig(fc.hi)+'</div>'
-   +   '<div class="fc-d">если оставшиеся месяцы пойдут как худший или как лучший из трёх последних</div></div>'
-   + '<div class="fc"><div class="fc-l">Операционная за год</div><div class="fc-v '+(fc.oper<0?'neg':'pos')+'">'+fbig(fc.oper)+'</div>'
-   +   '<div class="fc-d">без прочих доходов и расходов</div></div>'
-   + '</div>'
-   + '<div class="fc-warn">Это не план, а инерция: продолжение текущего темпа. Любое решение по трём силам выше сдвинет цифру.</div>'
-   + '</div>'
-   + '<div class="card"><div class="card-t">📐 Сколько нужно, чтобы выйти в ноль</div>'
-   + '<div class="card-s">три способа закрыть разрыв — по одному за раз, при прочих равных</div>'
-   + (function(){
-       var gap = -Y.oper;                                  /* сколько не хватает до нуля */
-       if(gap<=0) return '<div class="fc-ok">Период отработан в плюс — разрыв закрывать не нужно.</div>';
-       var needRev = gm26>0 ? gap/gm26 : 0;                 /* добрать выручкой при текущей марже */
-       var needMrg = Y.rev>0 ? gap/Y.rev*100 : 0;           /* поднять маржу, п.п. */
-       var needCut = gap;                                   /* срезать расходы */
-       return '<div class="need"><div class="need-l">Выручкой</div><div class="need-v">+'+fbig(needRev)+'</div>'
-        + '<div class="need-d">это '+pc(Y.rev?needRev/Y.rev:0)+' к обороту периода, при марже '+pc(gm26)+'</div></div>'
-        + '<div class="need"><div class="need-l">Маржой</div><div class="need-v">+'+needMrg.toFixed(1)+' п.п.</div>'
-        + '<div class="need-d">с '+pc(gm26)+' до '+pc(gm26+needMrg/100)+' на том же обороте</div></div>'
-        + '<div class="need"><div class="need-l">Расходами</div><div class="need-v">−'+fbig(needCut)+'</div>'
-        + '<div class="need-d">это '+pc(Y.opex?needCut/Y.opex:0)+' блока расходов ('+fbig(needCut/N)+' в месяц)</div></div>';
-     })()
-   + '</div></div>';
-}
 
 /* — сравнение месяц к месяцу: селекторы + место под результат — */
 function opts(sel){
