@@ -4,6 +4,7 @@
   var pages=[
     {href:'index.html',icon:'🏠',label:'Главная'},
     {href:'дашборд_ддс_прямой.html',icon:'💸',label:'ДДС 2026'},
+    {href:'дашборд_гугл_live.html',icon:'🗓️',label:'План оплат'},
     {href:'дз_кз.html',icon:'⚖️',label:'ДЗ / КЗ'},
     {href:'продажи_2026.html',icon:'🛒',label:'Продажи'},
     {href:'дашборд_sku_iiko.html',icon:'🧩',label:'SKU 360'},
