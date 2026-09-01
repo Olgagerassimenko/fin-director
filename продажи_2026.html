@@ -337,6 +337,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       <span style="font-weight:500;font-size:12px;color:#94a3b8;margin-left:auto">нажмите, чтобы раскрыть</span>
     </summary>
     <div style="padding:4px 14px 16px">
+      <div id="ra-warn" style="display:none;background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.4);border-radius:10px;padding:10px 13px;font-size:12.5px;line-height:1.55;color:#fcd34d;margin:2px 0 12px"></div>
       <div class="card" style="height:320px"><canvas id="ch-returns"></canvas></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px">
         <div class="card"><div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:6px">🏢 По контрагентам <span style="font-weight:500;font-size:11px;color:#64748b">— клик по сектору фильтрует список</span></div><div style="height:250px;position:relative"><canvas id="ch-ret-ctr"></canvas></div></div>
@@ -462,10 +463,26 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       (D.months||[]).forEach(function(k){ opts+='<option value="'+k+'">'+(MN[parseInt(k.split("-")[1],10)]||k)+'</option>'; });
       sel.innerHTML=opts;
     }
+    /* месяц, в котором возвраты явно ещё не проведены: меньше 30% от медианы остальных */
+    function unpostedMonth(){
+      var D=window.RETURNS_DETAIL; if(!D||!D.by_month) return null;
+      var ks=Object.keys(D.by_month).sort(); if(ks.length<3) return null;
+      var last=ks[ks.length-1], prev=ks.slice(0,-1).map(function(k){return D.by_month[k]||0;}).sort(function(a,b){return a-b;});
+      var med=prev[Math.floor(prev.length/2)];
+      if(med>0 && (D.by_month[last]||0) < med*0.3) return {k:last,v:D.by_month[last]||0,med:med};
+      return null;
+    }
     function setSummary(){
       var D=window.RETURNS_DETAIL, e=document.getElementById("ra-sum"); if(!e||!D) return;
       var t=D.total||Object.keys(D.by_month||{}).reduce(function(s,k){return s+(D.by_month[k]||0);},0);
       e.textContent="возвраты −"+fmt(t)+" с начала года";
+      var u=unpostedMonth(), w=document.getElementById("ra-warn");
+      if(w&&u){
+        var nm=MN[parseInt(u.k.split("-")[1],10)]||u.k;
+        w.innerHTML="⚠️ "+nm+": возвраты ещё не проведены — "+fmt(u.v)+" ₸ против медианы "+fmt(u.med)
+          +". Выручка "+nm.toLowerCase()+"а завышена примерно на "+fmt(u.med)+" и уменьшится, когда возвраты закроют.";
+        w.style.display="";
+      } else if(w){ w.style.display="none"; }
     }
     function popList(tab){ return (window.RETURNS_DETAIL[tab]||[]).map(function(e){ var v=rowVal(e); return {n:e.n,ret:v.ret,gross:v.gross}; }).filter(function(r){ return r.ret>0; }); }
     function slices(arr,contractors){
@@ -484,14 +501,37 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       if(!sl.length){ return; }
       var total=sl.reduce(function(s,r){return s+r.ret;},0), tref={v:total};
       var cols=sl.map(function(r,i){ return r.rest?"#475569":(r.color||PAL[i%PAL.length]); });
-      var pls=[]; if(typeof ChartDataLabels!=="undefined") pls.push(ChartDataLabels);
+      /* подписи рисуем сами: плагин datalabels падает на этих бубликах
+         (они строятся внутри закрытого <details>, координаты секторов ещё null) */
+      var faces={id:"rd"+cid,afterDraw:function(ch){
+        var a=ch.chartArea; if(!a) return;
+        var meta=ch.getDatasetMeta(0); if(!meta||!meta.data) return;
+        var dd=ch.data.datasets[0].data, c=ch.ctx;
+        c.save(); c.textAlign="center"; c.textBaseline="middle";
+        meta.data.forEach(function(el,i){
+          if(!el||typeof el.x!=="number"||typeof el.startAngle!=="number") return;
+          var v=dd[i]||0, p=total?v/total*100:0; if(!(p>=7)) return;
+          var ang=(el.startAngle+el.endAngle)/2, rr=(el.innerRadius+el.outerRadius)/2;
+          var lx=el.x+Math.cos(ang)*rr, ly=el.y+Math.sin(ang)*rr;
+          c.font="800 10px system-ui,-apple-system,sans-serif";
+          c.shadowColor="rgba(0,0,0,.9)"; c.shadowBlur=6;
+          c.fillStyle="#fff"; c.fillText(Math.round(p)+"%",lx,ly);
+          c.shadowBlur=0;
+        });
+        var x=(a.left+a.right)/2, y=(a.top+a.bottom)/2;
+        c.fillStyle="#f1f5f9"; c.font="800 16px system-ui,-apple-system,sans-serif";
+        c.fillText("−"+fmt(tref.v),x,y-7);
+        c.fillStyle="#64748b"; c.font="600 10px system-ui,-apple-system,sans-serif";
+        c.fillText("возвраты",x,y+11);
+        c.restore();
+      }};
       new Chart(cv.getContext("2d"),{type:"doughnut",
         data:{labels:sl.map(function(r){return r.n;}),datasets:[{data:sl.map(function(r){return r.ret;}),backgroundColor:cols,borderColor:"#0f172a",borderWidth:2,hoverOffset:9}]},
         options:{responsive:true,maintainAspectRatio:false,cutout:"62%",layout:{padding:6},onClick:onClick,
           plugins:{legend:{display:false},
             tooltip:{callbacks:{label:function(c){var v=c.parsed;return " "+c.label+": −"+fmt(v)+" ("+(v/total*100).toFixed(1).replace(".",",")+"%)";}}},
-            datalabels:{color:"#fff",font:{size:10,weight:800},formatter:function(v){var p=v/total*100;return p<7?"":Math.round(p)+"%";},textShadowBlur:6,textShadowColor:"rgba(0,0,0,.9)"}}},
-        plugins:pls});
+            datalabels:{display:false}}},
+        plugins:[faces]});
     }
     function renderDonuts(){
       if(!window.RETURNS_DETAIL||!window.Chart) return;
@@ -593,6 +633,15 @@ details[open] .dc-caret{transform:rotate(90deg)}
     var keys=Object.keys(O).filter(function(k){return /^\d{4}-\d{2}$/.test(k);}).sort();
     if(!keys.length){ el.textContent="Данные ОПиУ подтянутся из iiko при следующем обновлении."; return; }
     var last=keys[keys.length-1];
+    /* месяц с непроведёнными возвратами: < 30% медианы остальных */
+    var UNP=null;
+    (function(){
+      var rk=keys.filter(function(k){return R[k]!==undefined;});
+      if(rk.length<3) return;
+      var lk=rk[rk.length-1], pr=rk.slice(0,-1).map(function(k){return R[k]||0;}).sort(function(a,b){return a-b;});
+      var med=pr[Math.floor(pr.length/2)];
+      if(med>0 && (R[lk]||0)<med*0.3) UNP={k:lk,med:med};
+    })();
     var sP=0,sT=0,sI=0,sG=0,sR=0,html='<table class="opiu-tbl"><thead><tr><th class="l">Месяц</th><th>I продажи, млн</th><th>Возвраты, млн</th><th>Продажи, млн ₸</th><th>ОПиУ: Торговая, млн</th><th>Δ, млн</th><th>Δ, %</th><th>ОПиУ: Итого, млн</th></tr></thead><tbody>';
     keys.forEach(function(k){
       var mm=k.slice(5), nm=MN[mm]||k;
@@ -605,6 +654,7 @@ details[open] .dc-caret{transform:rotate(90deg)}
       } else {
         sP+=p; sT+=t; sI+=it; sG+=gross; sR+=ret;
         var cls=Math.abs(dp)<1?"pos":"warn";
+        if(UNP&&k===UNP.k) nm+=' <span title="возвраты за месяц ещё не проведены" style="color:#fbbf24;font-weight:800">⚠</span>';
         html+='<tr><td class="l">'+nm+'</td><td>'+mln(gross)+'</td><td class="mut">−'+mln(ret)+'</td><td>'+mln(p)+'</td><td>'+mln(t)+'</td><td class="'+cls+'">'+(d>=0?"+":"−")+mln(Math.abs(d))+'</td><td class="'+cls+'">'+(dp>=0?"+":"−")+Math.abs(dp).toFixed(1)+'%</td><td class="mut2">'+mln(it)+'</td></tr>';
       }
     });
@@ -614,7 +664,13 @@ details[open] .dc-caret{transform:rotate(90deg)}
     html+='</tbody></table>';
     el.innerHTML=html;
     var ft=document.getElementById("opiu-check-foot");
-    if(ft) ft.textContent="Продажи и ОПиУ тянутся из iiko автоматически каждое утро. ОПиУ — обороты по доходным счетам «Фуд завод»"+(O._pulled?" · обновлено "+O._pulled:"")+".";
+    if(ft){
+      var base="Продажи и ОПиУ тянутся из iiko автоматически каждое утро. ОПиУ — обороты по доходным счетам «Фуд завод»"+(O._pulled?" · обновлено "+O._pulled:"")+".";
+      if(UNP){ var un=MN[UNP.k.slice(5)]||UNP.k;
+        base+=" ⚠ "+un+": возвраты ещё не проведены ("+mln(R[UNP.k]||0)+" млн против медианы "+mln(UNP.med)+" млн) — поэтому «Продажи» выше ОПиУ. Когда возвраты закроют, столбец «Продажи» опустится примерно до уровня ОПиУ.";
+      }
+      ft.textContent=base;
+    }
   }
   function boot(){ render(); if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",render);} }
   var sc=document.createElement("script"); sc.src="/opiu_rev.js?v="+(window.SALES_META&&window.SALES_META.pulled?encodeURIComponent(window.SALES_META.pulled):"1");
