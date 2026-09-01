@@ -120,6 +120,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .a-table td.pos{color:#4ade80}.a-table td.neg{color:#f87171}
 .a-table tfoot td{border-top:1px solid #1e293b;font-weight:800;color:#e2e8f0;padding:8px 10px}
 .a-table tfoot td.r{text-align:right;font-variant-numeric:tabular-nums}
+.a-table th{cursor:pointer;user-select:none;white-space:nowrap}
+.a-table th:hover{color:#64748b}
+.a-table th .sa{margin-left:5px;font-size:9px;opacity:0;transition:opacity .12s}
+.a-table th:hover .sa{opacity:.4}
+.a-table th.sorted{color:#60a5fa}
+.a-table th.sorted .sa{opacity:1}
 .kz-mut{color:#64748b;font-size:11px}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
@@ -655,6 +661,69 @@ function buildConsign(){
    + sec('#34d399','Замороженные остатки сырья', 'Хватит больше чем на 3 недели вперёд. Всего лежит: <b>'+num(frSum)+' ₸</b>.', t7);
 })();
 
+</script>
+<script>
+/* a-sort — сортировка любой таблицы .a-table по клику на заголовок.
+   Оформление не трогает: добавляется только стрелка и подсветка активной колонки.
+   Первый клик по числовой колонке — по убыванию (крупное сверху),
+   по текстовой — по алфавиту. Пустые ячейки («—») всегда внизу.
+   Третий клик возвращает исходный порядок. */
+(function(){
+  var SP=/[\s   ]/g;
+  function val(td){
+    var t=td.textContent.replace(SP,' ').trim();
+    if(!t||t==='—'||t==='–') return null;
+    var d=t.match(/^(\d{2})\.(\d{2})/);            /* «08.06–14.06» — по дате, не по числу */
+    if(d) return parseInt(d[2],10)*100+parseInt(d[1],10);
+    var c=t.replace(/−/g,'-').replace(SP,'');
+    var m=c.match(/-?\d+(?:[.,]\d+)?/);
+    if(!m) return t.toLowerCase();
+    return parseFloat(m[0].replace(',','.'));
+  }
+  function bind(tb){
+    if(tb.__asort) return; tb.__asort=1;
+    var head=tb.tHead, body=tb.tBodies[0];
+    if(!head||!head.rows.length||!body) return;
+    var hr=head.rows[0];
+    [].forEach.call(body.rows,function(r,i){ r.__i=i; });
+    [].forEach.call(hr.cells,function(th,ci){
+      var sa=document.createElement('span'); sa.className='sa'; sa.textContent='↕';
+      th.appendChild(sa);
+      th.addEventListener('click',function(){
+        var cur=+(th.getAttribute('data-d')||0);
+        var first=/\br\b/.test(th.className)?-1:1;   /* числовые колонки — сразу по убыванию */
+        var dir = cur===0 ? first : (cur===first ? -first : 0);
+        [].forEach.call(hr.cells,function(o){
+          o.removeAttribute('data-d'); o.classList.remove('sorted');
+          var s=o.querySelector('.sa'); if(s) s.textContent='↕';
+        });
+        var rows=[].slice.call(body.rows);
+        if(dir===0){
+          rows.sort(function(a,b){ return a.__i-b.__i; });
+        }else{
+          th.setAttribute('data-d',dir); th.classList.add('sorted');
+          sa.textContent = dir>0?'▲':'▼';
+          rows.sort(function(a,b){
+            var x=val(a.cells[ci]), y=val(b.cells[ci]);
+            if(x===null&&y===null) return a.__i-b.__i;
+            if(x===null) return 1;
+            if(y===null) return -1;
+            if(typeof x==='number'&&typeof y==='number'){
+              return x===y ? a.__i-b.__i : dir*(x-y);
+            }
+            return dir*String(x).localeCompare(String(y),'ru');
+          });
+        }
+        var f=document.createDocumentFragment();
+        rows.forEach(function(r){ f.appendChild(r); });
+        body.appendChild(f);
+      });
+    });
+  }
+  function scan(){ [].forEach.call(document.querySelectorAll('table.a-table'),bind); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',scan); else scan();
+  new MutationObserver(scan).observe(document.documentElement,{childList:true,subtree:true});
+})();
 </script>
 <script src="nav.js"></script>
 </body>
