@@ -168,9 +168,16 @@ def main():
     # год перечитываем каждый прогон — это плюс несколько запросов, зато цифры
     # закрытых месяцев не «замерзают».
     tail = set(want[-REFRESH_TAIL:]) | {k for k in want if k.startswith(str(today.year))}
+    # ...но прошлый год так и оставался замороженным навсегда, а он служит базой
+    # для сравнений «год к году». Раз в неделю (по понедельникам) перечитываем всё:
+    # +12 запросов один раз в неделю против вечно устаревшей истории.
+    full = today.weekday() == 0
+    if full:
+        tail = set(want)
     todo = [k for k in want if k not in cache or k in tail]
-    print("месяцев всего %d, в кэше %d, тянем %d: %s"
-          % (len(want), len(cache), len(todo), ", ".join(todo)))
+    print("месяцев всего %d, в кэше %d, тянем %d%s: %s"
+          % (len(want), len(cache), len(todo),
+             " (понедельник — полное обновление)" if full else "", ", ".join(todo)))
 
     if todo:
         OF.TOK = OF.auth()
@@ -179,6 +186,10 @@ def main():
     for k in todo:
         y, m = int(k[:4]), int(k[5:7])
         rows, d2 = turnover(y, m, last_full)
+        if d2 is None:
+            # месяц ещё не начался (текущий месяц в первый его день) — это не сбой
+            print("  %s: месяц ещё не начался — пропускаю" % k)
+            continue
         if not rows:
             print("  %s: iiko не ответил — оставляю как было" % k)
             continue
@@ -245,8 +256,11 @@ def main():
     # Счета, которых нет в структуре бухгалтерского xlsx: в отчёт они не попадают,
     # и пока файл не обновят, новая статья iiko остаётся невидимой. Складываем их
     # в данные, чтобы страница могла честно сказать «вне структуры столько-то».
+    # Список был обрезан на 20 позициях, и все 20 занимали крупные балансовые
+    # счета (склады, кредиты, Каспи). Незамапленная РАСХОДНАЯ статья на 2-3 млн
+    # вытеснялась из списка и оставалась невидимой — поднимаем предел.
     OUT_UNKNOWN[:] = [{"n": n, "v": round(v)} for n, v in
-                      sorted(unknown.items(), key=lambda x: -abs(x[1]))[:20] if abs(v) >= 100000]
+                      sorted(unknown.items(), key=lambda x: -abs(x[1]))[:60] if abs(v) >= 100000]
     if unknown:
         top = sorted(unknown.items(), key=lambda x: -abs(x[1]))[:10]
         print("счета без строки в ОПиУ:", ", ".join("%s (%s)" % (n, GA.fmt(v)) for n, v in top))
