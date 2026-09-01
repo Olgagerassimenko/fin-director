@@ -26,6 +26,11 @@
     +'#pnav .nl{opacity:0;transition:opacity .15s .05s;font-size:11px;pointer-events:none}'
     +'#pnav:hover .nl{opacity:1}'
     +'body{padding-left:56px!important}'
+    /* Меню отъедает 56px, и сетки, свёрстанные под всю ширину, начинали вылезать
+       вправо горизонтальной прокруткой (ДЗ/КЗ +28px, ОПиУ 2025–2026 +36px).
+       min-width:0 разрешает элементу сжаться до своей колонки — оформление
+       страниц при этом не меняется, это стандартное лечение переполнения grid. */
+    +'[class*=grid]>*,[class*=row]>*{min-width:0}'
     +'.topbar,.topbar-new{position:sticky!important;top:0!important;z-index:10000!important;margin-left:-56px!important;width:calc(100% + 56px)!important;box-sizing:border-box!important;padding-left:72px!important}'
     +'@media(max-width:640px){#pnav{width:46px!important}#pnav:hover{width:46px!important}#pnav a{padding:11px 0!important;justify-content:center!important}#pnav .nl{display:none!important}#pnav .ni{width:100%!important}body{padding-left:46px!important}.topbar,.topbar-new{margin-left:-46px!important;width:calc(100% + 46px)!important;padding-left:56px!important}}'
     +'@media(max-width:640px){html,body{overflow-x:hidden!important}.pnav-tw{overflow-x:auto!important;-webkit-overflow-scrolling:touch;max-width:100%}.pnav-tw>table{min-width:max-content}}'
