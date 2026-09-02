@@ -424,6 +424,29 @@ def main():
     log("-" * 60)
     log(f"  {'ИТОГО ГОД':16} {total_rev:>14,}   было {old_year:>14,}   Δ {total_rev-old_year:>+13,}")
 
+    # ── Защита от пустой пересборки ────────────────────────────────────
+    # 02.09.2026 iiko лежал (ServerState=WAITING_LICENSE), выгрузок продаж не
+    # появилось, scan_reports вернул пусто — и страница была перезаписана
+    # набором данных без единого месяца. График выручки исчез, период
+    # схлопнулся в «Янв–Янв», а возвраты показали «100,0% от выручки», потому
+    # что выручка стала нулём. Поэтому сверяем новую сборку с прежней и, если
+    # месяцев стало меньше или год просел больше чем на треть, ничего не пишем.
+    old_months = [k for k in old if re.match(r'^\d{4}-\d{2}$', k)]
+    old_year_rev = (old.get('year') or {}).get('total_rev', 0)
+    if old_months and (len(months) < len(old_months) or
+                       (old_year_rev and total_rev < old_year_rev * 0.67)):
+        log("")
+        log("  " + "=" * 56)
+        log("  ОСТАНОВЛЕНО: новая сборка беднее прежней.")
+        log(f"    было:  {len(old_months)} мес., год {old_year_rev:,} ₸")
+        log(f"    стало: {len(months)} мес., год {total_rev:,} ₸")
+        if not reports:
+            log("    Выгрузок «I Отчет ПРОДАЖИ» не найдено вовсе —")
+            log("    скорее всего, не отработал шаг выгрузки из iiko.")
+        log("  Ни продажи_2026.html, ни sales_sum.js не тронуты.")
+        log("  " + "=" * 56)
+        sys.exit(1)
+
     bak = HTML_FILE + ".bak2"
     if not os.path.exists(bak):
         open(bak, 'w', encoding='utf-8').write(html)
