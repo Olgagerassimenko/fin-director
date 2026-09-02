@@ -93,6 +93,11 @@
       <div class="cs" id="cySub"></div>
       <div id="tCity"></div>
     </div>
+    <div class="card">
+      <div class="ct">Из каких стран</div>
+      <div class="cs" id="ctSub"></div>
+      <div id="tCtry"></div>
+    </div>
   </div>
 
   <!-- ПО ДНЯМ -->
@@ -107,6 +112,13 @@
     <div class="ct">Таблица по числам</div>
     <div class="cs">Нажмите на строку, чтобы посмотреть этот день подробно.</div>
     <div id="tDays"></div>
+  </div>
+
+  <!-- ДЕТАЛИ ПО ОТЧЁТАМ -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="ct">Все отчёты — за всё время</div>
+    <div class="cs">Сколько раз открывали каждый отчёт с самого начала и когда заходили в последний раз.</div>
+    <div id="tAll"></div>
   </div>
 
   <!-- ПО ЧАСАМ -->
@@ -145,6 +157,19 @@
     "Moscow":"Москва","Bishkek":"Бишкек","Tashkent":"Ташкент","Kyiv":"Киев","Kiev":"Киев"};
   function cityName(c){ return c==="—" ? "город не определён" : (CITY[c]||c); }
 
+  // Коды стран приходят двухбуквенными — расшифровываем и добавляем флаг
+  var CTRY={"KZ":"Казахстан","RU":"Россия","MV":"Мальдивы","US":"США","AE":"ОАЭ","TR":"Турция",
+    "UZ":"Узбекистан","KG":"Киргизия","GE":"Грузия","DE":"Германия","GB":"Великобритания",
+    "TH":"Таиланд","CN":"Китай","UA":"Украина","BY":"Беларусь","AZ":"Азербайджан","AM":"Армения",
+    "EG":"Египет","ES":"Испания","IT":"Италия","FR":"Франция","NL":"Нидерланды","PL":"Польша",
+    "CZ":"Чехия","IN":"Индия","ID":"Индонезия","VN":"Вьетнам","QA":"Катар","SA":"Саудовская Аравия",
+    "MY":"Малайзия","SG":"Сингапур","KR":"Южная Корея","JP":"Япония","CY":"Кипр","IL":"Израиль","??":"не определена"};
+  function flag(cc){
+    if(!/^[A-Z]{2}$/.test(cc)) return "";
+    return String.fromCodePoint(0x1F1E6+cc.charCodeAt(0)-65)+String.fromCodePoint(0x1F1E6+cc.charCodeAt(1)-65)+" ";
+  }
+  function ctryName(cc){ return flag(cc)+(CTRY[cc]||cc); }
+
   function label(path){
     var f=decodeURIComponent(String(path||"").split("/").pop()||"").replace(/\.html$/,"");
     if(!f||f==="index") return "Главная";
@@ -176,13 +201,14 @@
 
   // Складываем выбранные дни в один набор чисел
   function sum(days){
-    var out={views:0,uniq:{},pages:{},city:{},hours:new Array(24).fill(0),mob:0,desk:0};
+    var out={views:0,uniq:{},pages:{},city:{},ctry:{},hours:new Array(24).fill(0),mob:0,desk:0};
     days.forEach(function(k){
       var d=DATA.days[k]; if(!d) return;
       out.views+=d.v||0;
       (d.u||[]).forEach(function(x){ out.uniq[x]=1; });
       for(var p in (d.p||{})) out.pages[p]=(out.pages[p]||0)+d.p[p];
       for(var c in (d.city||{})) out.city[c]=(out.city[c]||0)+d.city[c];
+      for(var q in (d.ctry||{})) out.ctry[q]=(out.ctry[q]||0)+d.ctry[q];
       (d.h||[]).forEach(function(v,i){ out.hours[i]+=v||0; });
       out.mob+=(d.dev&&d.dev.m)||0; out.desk+=(d.dev&&d.dev.d)||0;
     });
@@ -200,7 +226,8 @@
     var rows=Object.keys(obj).map(function(k){return {k:k,n:obj[k]};})
       .sort(function(a,b){return b.n-a.n;}).slice(0,12);
     if(!rows.length) return '<div class="empty">За этот период заходов не было.</div>';
-    return '<table><tr><th class="l">'+(nameFn===label?"Страница":"Город")+'</th><th>Открытий</th><th>Доля</th></tr>'+
+    var head = nameFn===label ? "Страница" : (nameFn===ctryName ? "Страна" : "Город");
+    return '<table><tr><th class="l">'+head+'</th><th>Открытий</th><th>Доля</th></tr>'+
       rows.map(function(r){
         var pc=total?Math.round(r.n/total*100):0;
         return '<tr><td class="l">'+nameFn(r.k)+'</td><td>'+fmt(r.n)+'</td><td style="color:#94a3b8">'+pc+'%</td></tr>';
@@ -223,6 +250,17 @@
     document.getElementById("cySub").textContent=t;
     document.getElementById("tPages").innerHTML=tableRows(S.pages,label,S.views);
     document.getElementById("tCity").innerHTML=tableRows(S.city,cityName,S.views);
+
+    // Страны: за новые дни считаем по периоду, за старые данных по дням нет —
+    // тогда показываем накопленное за всё время и честно пишем об этом.
+    var ctry=S.ctry, ctSub=t;
+    if(!Object.keys(ctry).length){ ctry=allCountries(); ctSub="за всё время"; }
+    document.getElementById("ctSub").textContent=ctSub;
+    document.getElementById("tCtry").innerHTML=tableRows(ctry,ctryName,
+      Object.keys(ctry).reduce(function(a,k){return a+ctry[k];},0));
+
+    // ── все отчёты за всё время ──────────────────────────────────
+    document.getElementById("tAll").innerHTML=allPagesTable(S.pages);
 
     // ── график по дням: всегда последние 30 дней, чтобы был контекст ─
     var all=Object.keys(DATA.days||{}).sort().slice(-30);
@@ -251,6 +289,33 @@
       "Устройство определяется по адресу в сети и браузеру. Один и тот же человек, зашедший из офиса "+
       "и из дома, посчитается как два устройства, а телефон и ноутбук — тоже как два. "+
       "Город показывает Cloudflare по адресу посетителя; иногда он не определяется. За дни до 2 сентября 2026 счётчик писал только просмотры — там прочерк вместо устройств и нет городов.";
+  }
+
+  // Страны за всё время — из прежнего разреза по страницам
+  function allCountries(){
+    var out={}, P=DATA.pages||{};
+    Object.keys(P).forEach(function(k){
+      var c=P[k].c||{};
+      for(var q in c) out[q]=(out[q]||0)+c[q];
+    });
+    return out;
+  }
+
+  function allPagesTable(periodPages){
+    var P=DATA.pages||{};
+    var rows=Object.keys(P).map(function(k){
+      return {k:k, name:label(k), t:P[k].t||0, per:periodPages[k]||0,
+              m:(P[k].dev&&P[k].dev.m)||0, d:(P[k].dev&&P[k].dev.d)||0, last:P[k].last||""};
+    }).sort(function(a,b){return b.t-a.t;});
+    if(!rows.length) return '<div class="empty">Пока нет данных.</div>';
+    return '<table><tr><th class="l">Отчёт</th><th>Всего открытий</th><th>За период</th>'+
+      '<th>С компьютера</th><th>С телефона</th><th class="l">Последний заход</th></tr>'+
+      rows.map(function(r){
+        var last=r.last?new Date(r.last).toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"—";
+        return '<tr><td class="l">'+r.name+'</td><td>'+fmt(r.t)+'</td>'+
+          '<td style="color:#a78bfa">'+fmt(r.per)+'</td><td>'+fmt(r.d)+'</td><td>'+fmt(r.m)+'</td>'+
+          '<td class="l" style="font-weight:400;color:#94a3b8">'+last+'</td></tr>';
+      }).join("")+'</table>';
   }
 
   function kpi(v,l,n){

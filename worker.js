@@ -1251,13 +1251,15 @@ async function recordView(p, request, env) {
   pg.last = now.toISOString();
 
   // ── разрез по дням: устройства, страницы, города ────────────────
-  const dd = m.days[day] || (m.days[day] = { v: 0, u: [], p: {}, city: {}, h: new Array(24).fill(0), dev: { m: 0, d: 0 } });
+  const dd = m.days[day] || (m.days[day] = { v: 0, u: [], p: {}, city: {}, ctry: {}, h: new Array(24).fill(0), dev: { m: 0, d: 0 } });
   if (!dd.h || dd.h.length !== 24) dd.h = new Array(24).fill(0);
   if (!Array.isArray(dd.u)) dd.u = [];
   dd.v = (dd.v || 0) + 1;
   if (dd.u.indexOf(vid) < 0 && dd.u.length < 5000) dd.u.push(vid);
   dd.p[p] = (dd.p[p] || 0) + 1;
   dd.city[city] = (dd.city[city] || 0) + 1;
+  if (!dd.ctry) dd.ctry = {};
+  dd.ctry[country] = (dd.ctry[country] || 0) + 1;
   dd.h[hour] = (dd.h[hour] || 0) + 1;
   if (isMob) dd.dev.m = (dd.dev.m || 0) + 1; else dd.dev.d = (dd.dev.d || 0) + 1;
 
