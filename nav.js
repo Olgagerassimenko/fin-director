@@ -42,19 +42,19 @@
   for(var i=0;i<pages.length;i++){var p=pages[i];var a=(p.href===cur)?' active':'';h+='<a href="'+p.href+'"class="'+a+'"><span class="ni">'+p.icon+'</span><span class="nl">'+p.label+'</span></a>';}
   var n=document.createElement('nav');n.id='pnav';n.innerHTML=h;
 
-  // ── Вкладка «Обучение» у правого края ──────────────────────────────
+  // ── Вкладка «Путеводитель» у правого края ──────────────────────────
   // Отдельно от левого меню: это не отчёт, а справка «как читать Пульс»,
   // и она должна быть под рукой на любой странице, не занимая места в списке.
   function addEdu(){
     if(document.getElementById('pedu'))return;
     // pathname приходит закодированным (%D0%BE…), поэтому сначала раскодируем,
-    // иначе вкладка «Обучение» висела бы и на самой странице обучения.
+    // иначе вкладка висела бы и на самой странице путеводителя.
     var here=location.pathname.split('/').pop()||'';
     try{ here=decodeURIComponent(here); }catch(e){}
-    if(here==='обучение.html'||here==='обучение')return;
+    if(here==='путеводитель.html'||here==='путеводитель')return;
     var e=document.createElement('a');
-    e.id='pedu'; e.href='обучение.html'; e.title='Как читать Пульс';
-    e.innerHTML='<span class="ei">🎓</span><span class="et">Обучение</span>';
+    e.id='pedu'; e.href='путеводитель.html'; e.title='Как читать Пульс';
+    e.innerHTML='<span class="ei">🧭</span><span class="et">Путеводитель</span>';
     document.body.appendChild(e);
   }
   var se=document.createElement('style');
