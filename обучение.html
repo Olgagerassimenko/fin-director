@@ -21,6 +21,18 @@ body{background:#1a1035;font-family:'Inter',system-ui,sans-serif;min-height:100v
 
 .main{max-width:940px;margin:0 auto;padding:26px 22px 6px}
 
+/* ── Обложка ────────────────────────────────────────────
+   Тонкая золотая рамка и мягкая тень — рисунок должен читаться как вклейка
+   в дорогой отчёт, а не как баннер. */
+.cover{margin:0 0 22px;border-radius:15px;overflow:hidden;
+  border:1px solid rgba(201,162,39,.30);
+  box-shadow:0 18px 44px rgba(0,0,0,.42),0 0 0 1px rgba(255,255,255,.03) inset}
+.cover svg{display:block;width:100%;height:auto}
+.cover figcaption{font-size:12px;line-height:1.5;color:rgba(240,217,140,.62);
+  background:rgba(0,0,0,.28);padding:9px 16px;letter-spacing:.01em;
+  border-top:1px solid rgba(201,162,39,.18)}
+@media(max-width:640px){.cover figcaption{font-size:11.5px;padding:8px 13px}}
+
 .hero{background:linear-gradient(135deg,rgba(124,58,237,.26),rgba(59,130,246,.13));
   border:1px solid rgba(167,139,250,.32);border-radius:15px;padding:20px 22px;margin-bottom:26px}
 .hero h2{font-size:21px;font-weight:900;color:#fff;letter-spacing:-.4px;margin-bottom:7px}
@@ -81,6 +93,78 @@ h3{font-size:15.5px;font-weight:900;color:#fff;margin:0 0 3px;letter-spacing:-.2
 </div>
 
 <div class="main">
+
+  <!-- Обложка. Рисунок собран прямо в разметке (SVG), а не картинкой-файлом:
+       так он остаётся чётким на любом экране и в печати, ничего не подгружает
+       со стороны и весит меньше килобайта. Линия — ровный пульс, переходящий
+       в рост: то самое, ради чего сайт и называется «Пульс». -->
+  <figure class="cover">
+    <svg viewBox="0 0 1200 400" role="img" aria-label="Пульс: ровная линия, переходящая в рост">
+      <defs>
+        <linearGradient id="cvBg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#150c30"/>
+          <stop offset="55%" stop-color="#1d1145"/>
+          <stop offset="100%" stop-color="#241436"/>
+        </linearGradient>
+        <radialGradient id="cvGlow" cx="78%" cy="26%" r="58%">
+          <stop offset="0" stop-color="#c9a227" stop-opacity=".30"/>
+          <stop offset="100%" stop-color="#c9a227" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="cvGold" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#8c6d1f"/>
+          <stop offset="42%" stop-color="#c9a227"/>
+          <stop offset="74%" stop-color="#f0d98c"/>
+          <stop offset="100%" stop-color="#fdf1cd"/>
+        </linearGradient>
+        <linearGradient id="cvFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#c9a227" stop-opacity=".26"/>
+          <stop offset="100%" stop-color="#c9a227" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="cvSoft" x="-25%" y="-25%" width="150%" height="150%">
+          <feGaussianBlur stdDeviation="9"/>
+        </filter>
+      </defs>
+
+      <rect width="1200" height="400" fill="url(#cvBg)"/>
+      <rect width="1200" height="400" fill="url(#cvGlow)"/>
+
+      <!-- разлиновка -->
+      <g stroke="#ffffff" stroke-opacity=".055">
+        <path d="M0 90h1200M0 160h1200M0 230h1200M0 300h1200"/>
+      </g>
+      <g stroke="#ffffff" stroke-opacity=".035">
+        <path d="M200 40v320M400 40v320M600 40v320M800 40v320M1000 40v320"/>
+      </g>
+
+      <!-- площадь под линией -->
+      <path fill="url(#cvFill)"
+        d="M64 300 H360 L392 298 C470 292 520 268 596 250 C688 228 742 196 812 168
+           C900 133 1000 106 1104 88 V360 H64 Z"/>
+
+      <!-- сама линия: ровный пульс слева, рост справа -->
+      <g fill="none" stroke="url(#cvGold)" stroke-width="3.4"
+         stroke-linecap="round" stroke-linejoin="round">
+        <path opacity=".45" filter="url(#cvSoft)"
+          d="M64 300 H196 L212 300 L226 252 L239 342 L252 282 L266 300 H360 L392 298
+             C470 292 520 268 596 250 C688 228 742 196 812 168 C900 133 1000 106 1104 88"/>
+        <path d="M64 300 H196 L212 300 L226 252 L239 342 L252 282 L266 300 H360 L392 298
+                 C470 292 520 268 596 250 C688 228 742 196 812 168 C900 133 1000 106 1104 88"/>
+      </g>
+
+      <!-- точка на конце -->
+      <circle cx="1104" cy="88" r="17" fill="#c9a227" opacity=".22" filter="url(#cvSoft)"/>
+      <circle cx="1104" cy="88" r="5.6" fill="#fdf1cd"/>
+      <circle cx="1104" cy="88" r="11" fill="none" stroke="#f0d98c" stroke-opacity=".5" stroke-width="1.2"/>
+
+      <!-- тонкая рамка с угловыми засечками -->
+      <rect x="28" y="26" width="1144" height="348" fill="none"
+            stroke="#c9a227" stroke-opacity=".22" stroke-width="1"/>
+      <g fill="none" stroke="#f0d98c" stroke-opacity=".55" stroke-width="1.6">
+        <path d="M28 62V26h36M1136 26h36v36M1172 338v36h-36M64 374H28v-36"/>
+      </g>
+    </svg>
+    <figcaption>Ровная линия — это тоже результат. Рост начинается там, где на неё смотрят каждый день.</figcaption>
+  </figure>
 
   <div class="hero">
     <h2>Что такое Пульс</h2>
