@@ -1223,11 +1223,24 @@ async function recordView(p, request, env) {
   const alm = new Date(now.getTime() + 5 * 3600 * 1000); // Алматы UTC+5
   const day = alm.toISOString().slice(0, 10);
   const hour = alm.getUTCHours();
-  const country = (request.cf && request.cf.country) || "??";
+  const cf = request.cf || {};
+  const country = cf.country || "??";
+  // Город даёт Cloudflare по адресу посетителя. Иногда его нет — тогда «—».
+  const city = String(cf.city || "").trim() || "—";
   const ua = request.headers.get("user-agent") || "";
   const isMob = /Mobile|Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(ua);
+
+  // «Компьютер» считаем как связку адреса и браузера. Храним только короткий
+  // хэш: сам IP в базу не попадает, а одинаковые заходы с одной машины
+  // схлопываются в одну запись за день.
+  const ip = request.headers.get("cf-connecting-ip") || "";
+  const vid = (await sha256hex("pulse|" + ip + "|" + ua)).slice(0, 12);
+
   const raw = await env.PLAN.get(M_KEY);
-  const m = raw ? JSON.parse(raw) : { pages: {}, updated: "" };
+  const m = raw ? JSON.parse(raw) : { pages: {}, days: {}, updated: "" };
+  if (!m.days) m.days = {};
+
+  // ── разрез по страницам (как было) ──────────────────────────────
   const pg = m.pages[p] || (m.pages[p] = { t: 0, d: {}, h: new Array(24).fill(0), c: {}, dev: { m: 0, d: 0 }, last: "" });
   if (!pg.h || pg.h.length !== 24) pg.h = new Array(24).fill(0);
   pg.t = (pg.t || 0) + 1;
@@ -1236,6 +1249,26 @@ async function recordView(p, request, env) {
   pg.c[country] = (pg.c[country] || 0) + 1;
   if (isMob) pg.dev.m = (pg.dev.m || 0) + 1; else pg.dev.d = (pg.dev.d || 0) + 1;
   pg.last = now.toISOString();
+
+  // ── разрез по дням: устройства, страницы, города ────────────────
+  const dd = m.days[day] || (m.days[day] = { v: 0, u: [], p: {}, city: {}, h: new Array(24).fill(0), dev: { m: 0, d: 0 } });
+  if (!dd.h || dd.h.length !== 24) dd.h = new Array(24).fill(0);
+  if (!Array.isArray(dd.u)) dd.u = [];
+  dd.v = (dd.v || 0) + 1;
+  if (dd.u.indexOf(vid) < 0 && dd.u.length < 5000) dd.u.push(vid);
+  dd.p[p] = (dd.p[p] || 0) + 1;
+  dd.city[city] = (dd.city[city] || 0) + 1;
+  dd.h[hour] = (dd.h[hour] || 0) + 1;
+  if (isMob) dd.dev.m = (dd.dev.m || 0) + 1; else dd.dev.d = (dd.dev.d || 0) + 1;
+
+  // держим полгода, чтобы запись в KV не разрасталась
+  const keep = Object.keys(m.days).sort().slice(-180);
+  if (keep.length < Object.keys(m.days).length) {
+    const trimmed = {};
+    keep.forEach(function (k) { trimmed[k] = m.days[k]; });
+    m.days = trimmed;
+  }
+
   m.updated = now.toISOString();
   await env.PLAN.put(M_KEY, JSON.stringify(m));
 }
