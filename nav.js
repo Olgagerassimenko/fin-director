@@ -42,36 +42,10 @@
   for(var i=0;i<pages.length;i++){var p=pages[i];var a=(p.href===cur)?' active':'';h+='<a href="'+p.href+'"class="'+a+'"><span class="ni">'+p.icon+'</span><span class="nl">'+p.label+'</span></a>';}
   var n=document.createElement('nav');n.id='pnav';n.innerHTML=h;
 
-  // ── Вкладка «Путеводитель» у правого края ──────────────────────────
-  // Отдельно от левого меню: это не отчёт, а справка «как читать Пульс»,
-  // и она должна быть под рукой на любой странице, не занимая места в списке.
-  function addEdu(){
-    if(document.getElementById('pedu'))return;
-    // pathname приходит закодированным (%D0%BE…), поэтому сначала раскодируем,
-    // иначе вкладка висела бы и на самой странице путеводителя.
-    var here=location.pathname.split('/').pop()||'';
-    try{ here=decodeURIComponent(here); }catch(e){}
-    if(here==='путеводитель.html'||here==='путеводитель')return;
-    var e=document.createElement('a');
-    e.id='pedu'; e.href='путеводитель.html'; e.title='Как читать Пульс';
-    e.innerHTML='<span class="ei">🧭</span><span class="et">Путеводитель</span>';
-    document.body.appendChild(e);
-  }
-  var se=document.createElement('style');
-  se.textContent=
-    '#pedu{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:9999;'
-    +'display:flex;flex-direction:column;align-items:center;gap:7px;'
-    +'background:#7c3aed;color:#fff;text-decoration:none;padding:15px 8px;'
-    +'border-radius:10px 0 0 10px;box-shadow:-3px 0 16px rgba(0,0,0,.4);'
-    +'font-family:Inter,sans-serif;transition:background .15s,padding .15s}'
-    +'#pedu:hover{background:#6d28d9;padding-right:12px}'
-    +'#pedu .ei{font-size:17px;line-height:1}'
-    +'#pedu .et{writing-mode:vertical-rl;font-size:10.5px;font-weight:800;'
-    +'letter-spacing:.12em;text-transform:uppercase}'
-    +'@media(max-width:640px){#pedu{padding:11px 6px}#pedu .et{display:none}}'
-    +'@media print{#pedu{display:none}}';
-  document.head.appendChild(se);
-  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',addEdu);}else{addEdu();}
+  // Вкладка «Путеводитель» у правого края убрана 02.09.2026: она висела
+  // поверх страниц и закрывала правую колонку таблиц (на закупе — «% выр.»).
+  // Вход в путеводитель остался один — плитка на главной.
+
   // Скрипт может стоять в <head> — тогда document.body ещё не существует.
   function mountNav(){
     if(document.getElementById('pnav'))return;
