@@ -10,14 +10,11 @@
     {href:'продажи_2026.html',icon:'🛒',label:'Продажи'},
     {href:'закуп.html',icon:'📦',label:'Закуп'},
     {href:'sku360.html',icon:'🧩',label:'SKU 360'},
-    {href:'дашборд_sku_iiko.html',icon:'⚡',label:'SKU iiko'},
-    {href:'склады.html',icon:'🏭',label:'Склады'},
     {href:'себестоимость_маржа.html',icon:'👥',label:'Кто приносит прибыль'},
     {href:'дашборд_себестоимость_2025-2026.html',icon:'🧱',label:'Полная себестоимость'},
     {href:'рычаги.html',icon:'⚙️',label:'Рычаги прибыли'},
     {href:'опиу_2026.html',icon:'📊',label:'ОПиУ 2026'},
-    {href:'опиу_аудит.html',icon:'🔎',label:'Аудит ОПиУ'},
-    {href:'metrics.html',icon:'🔒',label:'Метрики'}
+    {href:'опиу_аудит.html',icon:'🔎',label:'Аудит ОПиУ'}
   ];
   var cur=location.pathname.split('/').pop()||'index.html';
   var s=document.createElement('style');
