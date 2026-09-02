@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Автор: Ольга Герасименко · Фуд Завод · © 2026. Все права защищены. -->
+<meta name="author" content="Ольга Герасименко">
+<title>Обучение · Как читать Пульс</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a1035;font-family:'Inter',system-ui,sans-serif;min-height:100vh;color:#e2e8f0}
+
+.topbar{background:#fff;padding:13px 26px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.topbar h1{font-size:19px;font-weight:900;color:#111827;letter-spacing:-.3px}
+.topbar .sub{font-size:12.5px;color:#6b7280}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#7c3aed;
+  background:#f5f3ff;border:1px solid #c4b5fd;border-radius:20px;padding:7px 15px;text-decoration:none}
+.back:hover{background:#ede9fe}
+
+.main{max-width:900px;margin:0 auto;padding:26px 22px 6px}
+
+.lead{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-left:3px solid #a78bfa;
+  border-radius:12px;padding:15px 18px;font-size:14px;line-height:1.6;color:rgba(255,255,255,.82);margin-bottom:26px}
+.lead b{color:#fff}
+
+h2{font-size:17px;font-weight:900;color:#fff;margin:30px 0 4px;letter-spacing:-.2px}
+h2 .n{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.14em;color:#a78bfa;
+  background:rgba(124,58,237,.2);border-radius:5px;padding:3px 8px;margin-right:8px;vertical-align:3px}
+.h2sub{font-size:12.5px;color:rgba(255,255,255,.45);margin-bottom:13px;font-style:italic}
+
+.rep{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.085);border-radius:12px;
+  padding:13px 16px;margin-bottom:9px}
+.rep-hd{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:5px}
+.rep-t{font-size:14.5px;font-weight:800}
+.rep-t a{color:#fff;text-decoration:none;border-bottom:1px solid rgba(167,139,250,.5)}
+.rep-t a:hover{color:#c4b5fd}
+.q{font-size:12px;font-weight:700;color:#fbbf24}
+.rep p{font-size:13.5px;line-height:1.58;color:rgba(255,255,255,.74)}
+.rep p+p{margin-top:5px}
+.rep b{color:#fff;font-weight:700}
+
+.term{display:grid;grid-template-columns:172px 1fr;gap:12px;padding:9px 0;
+  border-bottom:1px solid rgba(255,255,255,.07)}
+.term:last-child{border-bottom:none}
+.term dt{font-size:13px;font-weight:800;color:#fff}
+.term dd{font-size:13px;line-height:1.55;color:rgba(255,255,255,.72)}
+.term dd b{color:#fff}
+@media(max-width:640px){.term{grid-template-columns:1fr;gap:2px}}
+
+.warn{background:rgba(251,191,36,.09);border:1px solid rgba(251,191,36,.26);border-radius:11px;
+  padding:11px 15px;margin-bottom:8px}
+.warn .q{display:block;margin-bottom:3px}
+.warn p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.76)}
+.warn b{color:#fde68a}
+
+.end{text-align:center;font-size:13px;color:rgba(255,255,255,.4);font-style:italic;margin:26px 0 4px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back" href="index.html">← На главную</a>
+  <div>
+    <h1>Как читать Пульс</h1>
+    <div class="sub">За пять минут · без бухгалтерского наречия</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="lead">
+    Пульс отвечает на четыре вопроса, которые задают любому заводу:
+    <b>чем платить</b>, <b>сколько продали</b>, <b>сколько на этом заработали</b> и
+    <b>куда всё утекло</b>. Всё считается из iiko само — от вас требуется только смотреть.
+  </div>
+
+  <h2><span class="n">01</span>Чем платить</h2>
+  <div class="h2sub">Деньги — единственное, что нельзя нарисовать в отчёте.</div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="дашборд_ддс_прямой.html">💸 ДДС 2026</a></span>
+      <span class="q">На что ушли деньги?</span></div>
+    <p>Каждый платёж по статьям: поступления, поставщики, зарплата, налоги. Год, месяц, день.
+      Если платежи третий месяц обгоняют поступления — прибыль в отчёте есть, а денег нет.</p>
+  </div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="дашборд_ддс.html">🏦 Про деньги</a></span>
+      <span class="q">Сколько осталось?</span></div>
+    <p>Остатки по счетам и кассам. С «ДДС 2026» они не сойдутся — и не должны:
+      один считает <b>на что</b>, другой <b>сколько</b>. Это два разных вопроса, а не ошибка.</p>
+  </div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="дашборд_гугл_live.html">🗓️ План оплат</a></span>
+      <span class="q">Доживём до пятницы?</span></div>
+    <p>Ваш лист «Неделя ОПЛАТ» с Google Диска, сверенный с фактом из iiko. Правите таблицу —
+      страница подхватывает за минуту. Смотрите на <b>покрытие</b>: меньше 100% — на этой неделе
+      платить нечем.</p>
+  </div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="дз_кз.html">⚖️ ДЗ / КЗ</a></span>
+      <span class="q">Кто кому должен?</span></div>
+    <p><b>ДЗ</b> — должны нам, <b>КЗ</b> — должны мы. Важна не сумма, а динамика: если ДЗ растёт,
+      а продажи стоят, товар уезжает, деньги — нет. Таблицы сортируются кликом по заголовку.</p>
+  </div>
+
+  <h2><span class="n">02</span>Сколько продали</h2>
+  <div class="h2sub">Отгрузили — ещё не значит получили.</div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="продажи_2026.html">🛒 Продажи 2026</a></span>
+      <span class="q">Как идёт год?</span></div>
+    <p>Выручка по месяцам, категориям и товарам — <b>уже за вычетом возвратов</b>,
+      так что накручивать нечего.</p>
+  </div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="sku360.html">🧩 SKU 360</a></span>
+      <span class="q">Что тянет, а что балласт?</span></div>
+    <p>Каждая позиция за 21 месяц с графиком прямо в строке. Матрица роста честно делит ассортимент
+      на «звёзд», «дойных коров», «вопросы» и <b>«собак»</b>. Начинайте с собак, у которых большая
+      выручка: производство они занимают, прибыль — нет.</p>
+  </div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="себестоимость_маржа.html">👥 Кто приносит прибыль</a></span>
+      <span class="q">Любимый клиент точно любимый?</span></div>
+    <p>Маржа по покупателям и товарам. Регулярно выясняется, что самый крупный по обороту клиент
+      кормит нас исключительно уважением. <b>Оборот — не доход.</b></p>
+  </div>
+
+  <h2><span class="n">03</span>Сколько заработали</h2>
+  <div class="h2sub">Момент истины.</div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="опиу_2026.html">📊 ОПиУ 2026</a></span>
+      <span class="q">Плюс или минус?</span></div>
+    <p>Выручка → валовая прибыль → расходы → результат. Рядом тот же месяц 2025 года.
+      Читать строго сверху вниз: провалиться можно на любой ступеньке, и лечится каждая по-своему.</p>
+  </div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="дашборд_себестоимость_2025-2026.html">🧱 Полная себестоимость</a></span>
+      <span class="q">Сколько продать, чтобы выйти в ноль?</span></div>
+    <p><b>Точка безубыточности</b> — выручка, при которой прибыль ровно ноль.
+      <b>Запас прочности</b> — насколько могут упасть продажи, пока мы не в минусе.
+      Меньше 10% — один плохой месяц съедает год.</p>
+  </div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="рычаги.html">⚙️ Рычаги прибыли</a></span>
+      <span class="q">Где течёт?</span></div>
+    <p>Продажи ниже средней цены, потери, ножницы затрат, хвост ассортимента — <b>с суммой в тенге</b>.
+      Это не отчёт, а список дел. Берите верхнюю строку.</p>
+  </div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="опиу_аудит.html">🔎 Аудит ОПиУ</a></span>
+      <span class="q">Статья подскочила — это правда?</span></div>
+    <p>Сравнение любых двух месяцев и поиск разносок «не туда». Загляните сюда <b>до</b> того,
+      как объяснять скачок руководству: половина аномалий — просто чужая статья.</p>
+  </div>
+
+  <h2><span class="n">04</span>Куда всё утекло</h2>
+  <div class="h2sub">Сырьё и склад.</div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="закуп.html">📦 Закуп</a></span>
+      <span class="q">Почём и у кого?</span></div>
+    <p>Одиннадцать вкладок: накладные, цены в динамике, долги поставщикам, план оплат, ☪ халал.
+      На вкладке «Рынок сырьё» процент — это <b>доля рынка во всём закупе месяца</b>:
+      сколько из каждых ста тенге ушло на рынок, а не по контракту. Ниже доля — спокойнее жизнь.</p>
+  </div>
+
+  <div class="rep">
+    <div class="rep-hd"><span class="rep-t"><a href="склады.html">🏭 Склады</a></span>
+      <span class="q">Сколько денег лежит без движения?</span></div>
+    <p>Остатки и <b>запас в днях</b>. Склад в минусе — это не кража, а пересорт: списали не ту позицию.
+      Такие вынесены отдельно, чтобы не портили картину.</p>
+  </div>
+
+  <h2><span class="n">05</span>Словарь</h2>
+  <div class="h2sub">Короткие определения без словаря к словарю.</div>
+
+  <div class="rep">
+    <dl>
+      <div class="term"><dt>Выручка</dt>
+        <dd>Отгружено за вычетом возвратов. <b>Не деньги на счёте.</b></dd></div>
+      <div class="term"><dt>Валовая прибыль</dt>
+        <dd>Выручка минус себестоимость. Всё, что осталось <b>до</b> зарплаты, аренды и налогов.</dd></div>
+      <div class="term"><dt>Маржа</dt>
+        <dd>ВП ÷ выручка. Сколько копеек с тенге. Считать в процентах, сравнивать в тенге.</dd></div>
+      <div class="term"><dt>Точка безубыточности</dt>
+        <dd>Выручка, при которой прибыль ноль. Дальше почти всё идёт в плюс.</dd></div>
+      <div class="term"><dt>Запас прочности</dt>
+        <dd>На сколько могут упасть продажи, прежде чем начнётся минус.</dd></div>
+      <div class="term"><dt>ДЗ / КЗ</dt>
+        <dd>Должны нам / должны мы. КЗ не зло: это бесплатная отсрочка, пока не просрочена.</dd></div>
+      <div class="term"><dt>Кассовый разрыв</dt>
+        <dd>Платить надо, а денег ещё нет. Именно на этом разоряются прибыльные заводы.</dd></div>
+      <div class="term"><dt>SKU</dt>
+        <dd>Отдельная позиция в конкретной фасовке.</dd></div>
+      <div class="term"><dt>Запас в днях</dt>
+        <dd>На сколько дней работы хватит остатка.</dd></div>
+    </dl>
+  </div>
+
+  <h2><span class="n">06</span>Четыре грабли</h2>
+  <div class="h2sub">На них наступают все. Один раз можно и не наступить.</div>
+
+  <div class="warn"><span class="q">Выручка ≠ деньги</span>
+    <p>Продажи считают отгрузку, ДДС — оплату. Между ними живёт отсрочка. Они не сойдутся никогда.</p></div>
+
+  <div class="warn"><span class="q">Текущий месяц всегда «проваливается»</span>
+    <p>Данные идут <b>по последний полный день</b>. Сравнивайте закрытые месяцы,
+      а текущий — с таким же куском прошлого.</p></div>
+
+  <div class="warn"><span class="q">Возвраты опаздывают</span>
+    <p>Накладные проводят не сразу, поэтому по свежему месяцу возвратов подозрительно мало.
+      Дашборд продаж об этом предупредит сам.</p></div>
+
+  <div class="warn"><span class="q">Странная цифра? Сначала посмотрите на дату</span>
+    <p>В шапке каждого отчёта написано, <b>когда обновляли</b> и <b>по какое число</b> данные.
+      Если iiko прилёг, Пульс показывает вчерашние цифры, а не пустоту — но дата это выдаст.</p></div>
+
+  <div class="end">Всё остальное — детали. Если цифра не сходится, она обычно права.</div>
+
+</div>
+
+<script src="nav.js"></script>
+</body>
+</html>

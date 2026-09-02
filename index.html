@@ -172,6 +172,11 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pt .up{color:#34d399;font-weight:800;}
 .pt .down{color:#fb7185;font-weight:800;}
 @media(max-width:640px){.pulse-grid{grid-template-columns:repeat(2,1fr);}.pt-v{font-size:18px;}}
+/* Плитка «Обучение» — не цифра, а ссылка на справку, поэтому выделена цветом
+   и с более мелким значением: длинная строка иначе не помещается. */
+.pt-edu{background:rgba(124,58,237,.22);border-color:rgba(167,139,250,.45);}
+.pt-edu:hover{background:rgba(124,58,237,.34);}
+.pt-edu .pt-v{font-size:15px;line-height:1.3;}
 
 /* ── КЛЮЧЕВЫЕ ОТЧЁТЫ ──────────────────────────────────────────
    Три отчёта, с которых начинается разбор: деньги, прибыль, продажи.
@@ -227,10 +232,10 @@ a.card.key::before{
         <div class="pt-v" id="p-sales-v">—</div>
         <div class="pt-d" id="p-sales-d">загрузка…</div>
       </a>
-      <a class="pt" href="продажи_2026.html" title="Выручка и валовая прибыль по продажам с начала года">
-        <div class="pt-l">С начала года</div>
-        <div class="pt-v" id="p-year-v">—</div>
-        <div class="pt-d" id="p-year-d">загрузка…</div>
+      <a class="pt pt-edu" href="обучение.html" title="Как читать Пульс — коротко, за пять минут">
+        <div class="pt-l">Обучение</div>
+        <div class="pt-v">🎓 Как читать Пульс</div>
+        <div class="pt-d">за пять минут · без бухгалтерского наречия</div>
       </a>
       <a class="pt" href="продажи_2026.html" title="Категория с наибольшей выручкой за месяц">
         <div class="pt-l">Топ-категория</div>
@@ -764,9 +769,8 @@ a.card.key::before{
     SUM=window.SALES_SUM; if(!SUM) return;
     set('p-sales', money(SUM.rev),
         chg(SUM.rev,SUM.prevRev,1)+'к '+(SUM.prevLabel?dat(SUM.prevLabel):'прошлому месяцу')+' · '+SUM.label.toLowerCase());
-    var m=SUM.yearRev?SUM.yearGp/SUM.yearRev*100:0;
-    set('p-year', money(SUM.yearRev),
-        'валовая прибыль '+money(SUM.yearGp)+' · маржа '+m.toFixed(1)+'%');
+    /* Плитка «С начала года» заменена ссылкой на «Обучение» — цифры года
+       остались на дашборде продаж, поэтому здесь их больше не считаем. */
     if(SUM.topCat) set('p-cat', short(SUM.topCat.n,14),
         money(SUM.topCat.rev)+' · '+(SUM.topCat.pct||0).toFixed(1)+'% выручки месяца');
     if(SUM.topSku) set('p-sku', '<span style="font-size:15px">'+short(String(SUM.topSku.n).replace(/^Упак\s+/i,''),22)+'</span>',
