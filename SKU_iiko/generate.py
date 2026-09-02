@@ -490,6 +490,48 @@ print(f"  Месяцев:     {N_MO}  ({MO_LABELS[0]} — {MO_LABELS[-1]})")
 print(f"  Склады:      {', '.join(склады_all[:5])}")
 print(f"  Источник:    {source}")
 
+# ──────────────────────────────────────────
+#   Защита от обеднённой сборки
+# ──────────────────────────────────────────
+# 02.09.2026 iiko был недоступен, скрипт молча ушёл на запасной вариант — папку
+# данные/, где лежал ОДИН Excel за май 2026. Хорошие данные (21 месяц, 2552 SKU)
+# были перезаписаны одним месяцем: тренды обнулились, графики исчезли.
+# Поэтому перед записью сравниваем новую сборку с уже опубликованной и, если она
+# заметно беднее, ничего не трогаем и падаем с ошибкой — пусть сборка покраснеет,
+# это лучше молчаливой потери истории.
+def _guard(new_months, new_skus):
+    p = os.path.join(PARENT_DIR, 'sku_live.js')
+    if not os.path.exists(p):
+        return
+    try:
+        old = open(p, encoding='utf-8').read()
+        i = old.find('window.SKU_DATA_LIVE=') + len('window.SKU_DATA_LIVE=')
+        j = old.rfind(';\nwindow.SKU_LIVE_META=')
+        prev = json.loads(old[i:j])
+    except Exception as e:
+        print(f"  ⚠  не смог прочитать прежний sku_live.js ({e}) — проверку пропускаю")
+        return
+    old_months, old_skus = len(prev.get('mo_keys', [])), len(prev.get('skus', []))
+    if not old_months:
+        return
+    # допускаем небольшую усушку номенклатуры (SKU выводят из ассортимента),
+    # но не потерю месяцев и не обвал числа позиций
+    if new_months < old_months or new_skus < old_skus * 0.7:
+        print()
+        print("  " + "=" * 51)
+        print("  ОСТАНОВЛЕНО: новая сборка беднее опубликованной.")
+        print(f"    было:  {old_months} мес., {old_skus} SKU")
+        print(f"    стало: {new_months} мес., {new_skus} SKU")
+        print(f"    источник: {source}")
+        print("  Файлы НЕ перезаписаны — на сайте остаются прежние данные.")
+        if source.startswith('Excel'):
+            print("  Причина: iiko не ответил, и сборка ушла на папку данные/,")
+            print("  а там лежит не вся история. Чинить надо доступ к iiko.")
+        print("  " + "=" * 51)
+        sys.exit(1)
+
+_guard(N_MO, len(result))
+
 # sku_live.js — свежие живые данные для sku360.html (он их подхватит вместо зашитого снимка)
 _through = date.fromordinal(date.today().toordinal() - 1).strftime("%d.%m.%Y")
 _sku_meta = json.dumps({"pulled": data['updated'], "through": _through}, ensure_ascii=False)
