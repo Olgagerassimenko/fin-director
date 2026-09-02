@@ -111,6 +111,20 @@ tbody td{padding:8px 12px;vertical-align:middle}
 .trr-mg{font-size:12px;font-weight:600;width:42px;text-align:right;flex-shrink:0}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
+<style id="pulse-scroll-fix">
+/* Страница была свёрстана как приложение на весь экран: body с overflow:hidden,
+   а таблица и графики — в своих окнах со внутренними ползунками. Пользоваться
+   этим неудобно: видно шесть строк, график обрезан. Отдаём прокрутку самой
+   странице, содержимое растёт на всю высоту. */
+html,body{height:auto!important;min-height:100vh;overflow:visible!important}
+.main{overflow:visible!important;min-height:0}
+.table-wrap,.an-view,.top-view{flex:none!important;overflow:visible!important;min-height:0}
+.tcard{overflow:visible}
+thead th{top:0}
+@media(min-width:1000px){
+  .an-view>*,.top-view>*{min-width:460px}
+}
+</style>
 </head>
 <body>
 <div class="topbar">

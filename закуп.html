@@ -990,6 +990,33 @@ PKEY=defKey(); render();
   '.mkshine{position:absolute;top:0;left:0;height:100%;width:38%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);animation:mkshine 5.5s ease-in-out infinite;pointer-events:none}'+
   '.mkbar{transition:filter .15s}.mkbar:hover{filter:brightness(1.18)}'+
   '.mkth{cursor:pointer;user-select:none}.mkth:hover{color:var(--accent)}'+
+  'table.z th.zsort{cursor:pointer;user-select:none;white-space:nowrap;transition:color .12s}'+
+  'table.z th.zsort:hover{color:#e8c766}'+
+  'table.z th .zsa{margin-left:5px;font-size:10px;opacity:0;transition:opacity .12s}'+
+  'table.z th.zsort:hover .zsa{opacity:.45}'+
+  'table.z th.zon{color:#e8c766}table.z th.zon .zsa{opacity:1}'+
+  '.mkwrap{position:relative;padding:6px 18px 2px}'+
+  '.mksvg{position:absolute;left:18px;right:18px;top:6px;width:calc(100% - 36px);height:236px;pointer-events:none;z-index:2;overflow:visible}'+
+  '.mkbars{position:relative;display:flex;gap:6px;height:236px;align-items:stretch}'+
+  '.mkcol{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}'+
+  '.mkval{font-size:11px;font-weight:800;color:#fed7aa;letter-spacing:-.01em;margin-bottom:3px;white-space:nowrap}'+
+  '.mkbarw{flex:1;width:100%;display:flex;align-items:flex-end;min-height:0}'+
+  '.mkbar{width:100%;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#fdba74 0%,#fb923c 45%,#ea580c 100%);box-shadow:0 0 16px rgba(249,115,22,.38),inset 0 1px 0 rgba(255,255,255,.35);transition:filter .16s,transform .16s;transform-origin:bottom}'+
+  '.mkcol:hover .mkbar{filter:brightness(1.2) saturate(1.15);transform:scaleY(1.02)}'+
+  '.mkbar.cur{background:linear-gradient(180deg,#fecdd3 0%,#fb7185 45%,#e11d48 100%);box-shadow:0 0 22px rgba(244,63,94,.5),inset 0 1px 0 rgba(255,255,255,.4)}'+
+  '.mkmo{font-size:11.5px;font-weight:800;color:#e2e8f0;margin-top:7px;white-space:nowrap}'+
+  '.mkshr{font-size:12.5px;font-weight:900;color:#7dd3fc;margin-top:2px;text-shadow:0 0 10px rgba(56,189,248,.55)}'+
+  '.mkshr.hot{color:#fda4af;text-shadow:0 0 10px rgba(251,113,133,.6)}'+
+  '.mkshr.cold{color:#6ee7b7;text-shadow:0 0 10px rgba(52,211,153,.55)}'+
+  '.mklg{display:flex;gap:22px;flex-wrap:wrap;padding:2px 18px 8px;font-size:11.5px;color:var(--ink2);align-items:center}'+
+  '.mklg i{display:inline-block;vertical-align:middle;margin-right:6px}'+
+  '.mklg .sw{width:13px;height:13px;border-radius:3px;background:linear-gradient(180deg,#fdba74,#ea580c);box-shadow:0 0 8px rgba(249,115,22,.5)}'+
+  '.mklg .ln{width:22px;height:3px;border-radius:2px;background:linear-gradient(90deg,#7dd3fc,#22d3ee);box-shadow:0 0 7px rgba(56,189,248,.8)}'+
+  '.mklg .dsh{width:22px;height:0;border-top:2px dashed #64748b}'+
+  '.mknote{margin:12px 18px 4px;padding:13px 16px;border-left:3px solid #38bdf8;border-radius:0 8px 8px 0;background:rgba(56,189,248,.07);font-size:12.5px;line-height:1.65;color:var(--ink2)}'+
+  '.mknote b{color:#7dd3fc}'+
+  '.mknote .good{color:#34d399;font-weight:700}.mknote .bad{color:#fb7185;font-weight:700}'+
+  '@media(max-width:720px){.mkval{font-size:9.5px}.mkmo{font-size:10px}.mkshr{font-size:11px}.mkbars,.mksvg{height:190px}}'+
   '.mktag{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;background:rgba(249,115,22,.16);border:1px solid rgba(249,115,22,.4);color:#fdba74}'+
   '</style>';
 
@@ -1023,28 +1050,62 @@ PKEY=defKey(); render();
     kc((trendUp?'📈':'📉'),'Динамика за год', trendTxt, 'первый → последний мес.', trendUp?'#fb7185':'#34d399')+
     '</div>';
 
-  // ── monthly dynamics chart (SVG bars + share line) ──
+  // ── monthly dynamics chart (bars + share line) ──
   var maxSum=Math.max.apply(null,S.map(function(m){return m.sum;}).concat([1]));
-  var bw=100/S.length;
-  var bars='',lbls='',pts='';
+  var shares=S.map(function(m){return m.zak?m.mkAll/m.zak*100:0;});
+  var maxShr=Math.max.apply(null,shares.concat([1]));
+  var avgShr=shares.reduce(function(a,b){return a+b;},0)/(shares.length||1);
+  var minShr=Math.min.apply(null,shares.concat([999]));
+  var iMax=shares.indexOf(Math.max.apply(null,shares)), iMin=shares.indexOf(minShr);
+  var n=S.length;
+  /* линия доли живёт в верхней трети полотна, чтобы не тонуть в столбиках */
+  var LY=function(s){ return 6+(1-s/maxShr)*30; };
+  var pts='',dots='';
   S.forEach(function(m,i){
-    var h=m.sum/maxSum*100;
-    var x=i*bw+bw*0.18, w=bw*0.64;
-    var cur=(i===S.length-1);
-    bars+='<rect class="mkbar" x="'+x.toFixed(2)+'" y="'+(100-h).toFixed(2)+'" width="'+w.toFixed(2)+'" height="'+h.toFixed(2)+'" rx="1.4" fill="'+(cur?'url(#mkgc2)':'url(#mkgc)')+'"><title>'+esc(m.label)+': '+fmt(m.sum)+' ₸ · '+m.pos+' позиций</title></rect>';
-    var shr=m.zak?m.mkAll/m.zak*100:0;
-    pts+=(i===0?'':' ')+(x+w/2).toFixed(2)+','+(100-shr/Math.max(20, Math.max.apply(null,S.map(function(z){return z.zak?z.mkAll/z.zak*100:0;})))*90).toFixed(2);
-    lbls+='<div style="flex:1;text-align:center;font-size:10.5px;color:var(--ink2);font-weight:600">'+esc(m.label.replace(/ 2026/,'').slice(0,3))+(cur?' <span class="mktag">тек.</span>':'')+'<div style="color:var(--mut);font-size:9.5px">'+MLN(m.sum)+'</div><div style="color:#7dd3fc;font-size:9.5px;font-weight:700">'+shr.toFixed(0)+'% рынка</div></div>';
+    var x=(i+0.5)/n*100, y=LY(shares[i]);
+    pts+=(i?' ':'')+x.toFixed(2)+','+y.toFixed(2);
+    dots+='<circle cx="'+x.toFixed(2)+'" cy="'+y.toFixed(2)+'" r="1" fill="#0b1220" stroke="#38bdf8" stroke-width="0.9" vector-effect="non-scaling-stroke"/>';
   });
-  var chart='<div class="card mkbn"><div class="hd"><h3>📉 Динамика закупа съедобного с рынка</h3><span class="sub">по месяцам за весь год · не зависит от выбранного периода сверху</span></div>'+
-    '<div style="display:flex;gap:20px;flex-wrap:wrap;padding:0 18px 6px;font-size:11.5px;color:var(--ink2)"><span><span style="display:inline-block;width:13px;height:13px;background:linear-gradient(180deg,#fb923c,#ea580c);border-radius:2px;vertical-align:-2px"></span> Сумма закупа с рынка, \u20b8/мес</span><span><span style="display:inline-block;width:20px;height:0;border-top:3px solid #38bdf8;box-shadow:0 0 6px #38bdf8;vertical-align:4px"></span> Доля рынка в общем закупе месяца, %</span></div>'+
-    '<div style="padding:2px 18px 4px"><svg viewBox="0 0 100 108" preserveAspectRatio="none" style="width:100%;height:230px">'+
-    '<defs><linearGradient id="mkgc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#ea580c"/></linearGradient>'+
-    '<linearGradient id="mkgc2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fca5a5"/><stop offset="1" stop-color="#f43f5e"/></linearGradient></defs>'+
-    '<line x1="0" y1="100" x2="100" y2="100" stroke="var(--line)" stroke-width="0.4"/>'+
-    bars+
-    '<polyline points="'+pts+'" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 0 2.5px #38bdf8)"/>'+
-    '</svg><div style="display:flex;margin-top:2px">'+lbls+'</div></div></div>';
+  var avgY=LY(avgShr);
+  var bars='';
+  S.forEach(function(m,i){
+    var h=Math.max(2,m.sum/maxSum*100);
+    var cur=(i===n-1);
+    var shr=shares[i];
+    var hot=(i===iMax), cold=(i===iMin);
+    bars+='<div class="mkcol" title="'+esc(m.label)+': '+fmt(m.sum)+' ₸ · '+m.pos+' позиций · '+shr.toFixed(1).replace('.',',')+'% закупа месяца">'
+      +'<div class="mkval">'+MLN(m.sum)+'</div>'
+      +'<div class="mkbarw"><div class="mkbar'+(cur?' cur':'')+'" style="height:'+h.toFixed(1)+'%"></div></div>'
+      +'<div class="mkmo">'+esc(m.label.replace(/ 2026/,'').slice(0,3))+(cur?' <span class="mktag">тек.</span>':'')+'</div>'
+      +'<div class="mkshr'+(hot?' hot':'')+(cold?' cold':'')+'">'+shr.toFixed(0)+'%</div>'
+      +'</div>';
+  });
+  var deltaShr=shares.length>1?(shares[shares.length-1]-shares[0]):0;
+  var chart='<div class="card mkbn"><div class="hd"><h3>📉 Динамика закупа съедобного с рынка</h3>'
+    +'<span class="sub">по месяцам за весь год · не зависит от выбранного периода сверху</span></div>'
+    +'<div class="mklg"><span><i class="sw"></i> Сумма закупа с рынка за месяц</span>'
+    +'<span><i class="ln"></i> Доля рынка в общем закупе месяца</span>'
+    +'<span><i class="dsh"></i> Средняя доля за год — '+avgShr.toFixed(1).replace('.',',')+'%</span></div>'
+    +'<div class="mkwrap">'
+      +'<svg class="mksvg" viewBox="0 0 100 100" preserveAspectRatio="none">'
+        +'<defs><linearGradient id="mkline" x1="0" y1="0" x2="1" y2="0">'
+        +'<stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>'
+        +'<line x1="0" y1="'+avgY.toFixed(2)+'" x2="100" y2="'+avgY.toFixed(2)+'" stroke="#64748b" stroke-width="0.6" stroke-dasharray="2 2" vector-effect="non-scaling-stroke"/>'
+        +'<polyline points="'+pts+'" fill="none" stroke="url(#mkline)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 4px rgba(56,189,248,.85))"/>'
+        +dots
+      +'</svg>'
+      +'<div class="mkbars">'+bars+'</div>'
+    +'</div>'
+    +'<div class="mknote"><b>Что означает процент.</b> Это доля рынка во всём закупе месяца: сколько из каждых ста тенге, '
+    +'потраченных на закуп, ушло на рынок, а не контрактным поставщикам. '
+    +'Максимум — '+maxShr.toFixed(0)+'% ('+esc(S[iMax]?S[iMax].label.replace(/ 2026/,''):'')+'), '
+    +'минимум — '+minShr.toFixed(0)+'% ('+esc(S[iMin]?S[iMin].label.replace(/ 2026/,''):'')+'). '
+    +'Столбик показывает сумму в тенге, линия — эту долю; они двигаются по-разному, потому что общий закуп месяца тоже меняется. '
+    +'<span class="'+(deltaShr<=0?'good':'bad')+'">С начала года доля '+(deltaShr<=0?'снизилась':'выросла')+' на '
+    +Math.abs(deltaShr).toFixed(1).replace('.',',')+' п.п.</span> '
+    +(deltaShr<=0?'Чем ниже доля, тем больше закупа идёт по контрактам — с понятной ценой и отсрочкой.'
+                 :'Чем выше доля, тем больше закупа уходит на рынок — по разовым ценам и без отсрочки.')
+    +'</div></div>';
 
   // ── table helper (sortable) ──
   function sortableTable(id,cols,rows){
@@ -1184,6 +1245,79 @@ PKEY=defKey(); render();
   return h;}
  window.mkTop=function(mode){var c=document.getElementById('mk_top_bars');if(c)c.innerHTML=mkTopBars(mode);['sum','qty','over'].forEach(function(m){var b=document.getElementById('mkbtn_'+m);if(b){b.style.background=(m===mode)?'linear-gradient(135deg,#f97316,#c2410c)':'rgba(255,255,255,.06)';b.style.color=(m===mode)?'#fff':'#c9d4e2';}});};
  window.mkJump=function(id){var e=document.getElementById(id);if(e)e.scrollIntoView({behavior:'smooth',block:'start'});};
+})();
+</script>
+<script>
+/* ── Универсальная сортировка всех таблиц .z по клику на заголовок ──
+   Числовые колонки первым кликом идут по убыванию, текстовые — по алфавиту,
+   третий клик возвращает исходный порядок. Прочерки всегда внизу.
+   Колонка «#» после сортировки перенумеровывается. Таблицы рынка со своей
+   сортировкой (mkth) не трогаем. */
+(function(){
+  var SP=/[\s   ]/g;
+  function val(td){
+    var t=(td.getAttribute('data-s')!==null)?td.getAttribute('data-s'):td.textContent;
+    t=String(t).replace(SP,' ').trim();
+    if(!t||t==='—'||t==='–') return null;
+    var q=t.match(/^"(.*)"$/); if(q) return q[1].toLowerCase();
+    var c=t.replace(/[−–]/g,'-').replace(SP,'');
+    var m=c.match(/-?\d+(?:[.,]\d+)?/);
+    if(!m) return t.toLowerCase();
+    return parseFloat(m[0].replace(',','.'));
+  }
+  function renum(tb){
+    var i=0;
+    [].forEach.call(tb.rows,function(r){
+      if(r.style.display==='none') return;
+      var c=r.querySelector('td.rk'); if(c) c.textContent=(++i);
+    });
+  }
+  function bind(t){
+    if(t.__zsort||t.querySelector('th.mkth')) return; t.__zsort=1;
+    var head=t.tHead, body=t.tBodies[0];
+    if(!head||!head.rows.length||!body||!body.rows.length) return;
+    var hr=head.rows[0];
+    [].forEach.call(body.rows,function(r,i){ r.__i=i; });
+    [].forEach.call(hr.cells,function(th,ci){
+      if(th.className&&th.className.indexOf('rk')>=0) return;   // колонку «#» не сортируем
+      th.classList.add('zsort');
+      var sa=document.createElement('span'); sa.className='zsa'; sa.textContent='↕';
+      th.appendChild(sa);
+      th.addEventListener('click',function(){
+        var cur=+(th.getAttribute('data-d')||0);
+        var probe=null;
+        for(var k=0;k<body.rows.length&&probe===null;k++) probe=val(body.rows[k].cells[ci]);
+        var first=(typeof probe==='number')?-1:1;
+        var dir = cur===0 ? first : (cur===first ? -first : 0);
+        [].forEach.call(hr.cells,function(o){
+          o.removeAttribute('data-d'); o.classList.remove('zon');
+          var s=o.querySelector('.zsa'); if(s) s.textContent='↕';
+        });
+        var rows=[].slice.call(body.rows);
+        if(dir===0){ rows.sort(function(a,b){ return a.__i-b.__i; }); }
+        else{
+          th.setAttribute('data-d',dir); th.classList.add('zon');
+          sa.textContent = dir>0?'▲':'▼';
+          rows.sort(function(a,b){
+            var x=val(a.cells[ci]), y=val(b.cells[ci]);
+            if(x===null&&y===null) return a.__i-b.__i;
+            if(x===null) return 1;
+            if(y===null) return -1;
+            if(typeof x==='number'&&typeof y==='number') return x===y?a.__i-b.__i:dir*(x-y);
+            return dir*String(x).localeCompare(String(y),'ru');
+          });
+        }
+        var f=document.createDocumentFragment();
+        rows.forEach(function(r){ f.appendChild(r); });
+        body.appendChild(f);
+        renum(body);
+      });
+    });
+  }
+  function scan(){ [].forEach.call(document.querySelectorAll('table.z'),bind); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',scan); else scan();
+  new MutationObserver(function(){ clearTimeout(window.__zst); window.__zst=setTimeout(scan,120); })
+    .observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
 </body></html>
