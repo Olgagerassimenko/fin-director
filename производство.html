@@ -1,0 +1,288 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Автор: Ольга Герасименко · Фуд Завод · © 2026. Все права защищены. -->
+<title>Производство · Фуд Завод</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#0b1220;--card:#111a2e;--line:#243049;--mut:#8091a8;--txt:#e5edf7;
+        --acc:#7c3aed;--gold:#e0b13c;--green:#34d399;--red:#f87171}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif}
+  .topbar{background:#fff;padding:12px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .topbar h1{font-size:19px;font-weight:900;color:#111827;margin:0}
+  .topbar .sub{font-size:12.5px;color:#6b7280}
+  .back{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#7c3aed;
+        background:#f5f3ff;border:1px solid #c4b5fd;border-radius:20px;padding:7px 15px;text-decoration:none}
+  .upd{margin-left:auto;font-size:11.5px;color:#6b7280;white-space:nowrap}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+  .tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+  .tb{background:#16203a;border:1px solid var(--line);color:#cbd5e1;border-radius:9px;
+      padding:9px 15px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+  .tb:hover{background:#1d2947;color:#fff}
+  .tb.on{background:var(--acc);border-color:#a78bfa;color:#fff}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+  .ct{font-size:14px;font-weight:800;margin-bottom:3px}
+  .cs{font-size:11.5px;color:var(--mut);margin-bottom:12px;line-height:1.5}
+  .kpis{display:grid;gap:11px;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));margin-bottom:12px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
+  .kpi .v{font-size:28px;font-weight:900;line-height:1.1;letter-spacing:-.5px}
+  .kpi .l{font-size:12.5px;font-weight:700;margin-top:6px;color:#f1f5f9}
+  .kpi .n{font-size:11.5px;color:var(--mut);margin-top:3px;line-height:1.45}
+  .kpi.hi{background:linear-gradient(140deg,rgba(124,58,237,.24),rgba(124,58,237,.07));
+          border-color:rgba(167,139,250,.42)}
+  .kpi.warn{background:linear-gradient(140deg,rgba(224,177,60,.18),rgba(224,177,60,.05));
+            border-color:rgba(224,177,60,.4)}
+
+  .two{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{color:var(--mut);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;
+     text-align:right;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th.l{text-align:left}
+  td{padding:7px 8px;border-bottom:1px solid #1b2636;text-align:right;font-variant-numeric:tabular-nums}
+  td.l{text-align:left;color:#f1f5f9;font-weight:600}
+  tr:hover td{background:rgba(255,255,255,.03)}
+  .tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.04em;border-radius:4px;
+       padding:2px 6px;margin-left:6px;background:rgba(224,177,60,.16);color:var(--gold)}
+  .bar{height:5px;border-radius:3px;background:#243049;overflow:hidden;margin-top:4px}
+  .bar i{display:block;height:100%;background:var(--acc)}
+  .up{color:var(--red)} .down{color:var(--green)}
+  .empty{color:var(--mut);font-size:13px;padding:16px 2px}
+  .note{background:rgba(224,177,60,.08);border:1px solid rgba(224,177,60,.25);border-radius:12px;
+        padding:13px 16px;font-size:12.5px;line-height:1.6;color:rgba(255,255,255,.82);margin-bottom:12px}
+  .note b{color:#f0d98c}
+  canvas{max-width:100%}
+  .pane{display:none} .pane.on{display:block}
+</style></head>
+<body>
+
+<div class="topbar">
+  <a class="back" href="index.html">← На главную</a>
+  <div>
+    <h1>🏭 Производство</h1>
+    <div class="sub">Что и на сколько выпускает завод · данные из iiko</div>
+  </div>
+  <div class="upd" id="upd">—</div>
+</div>
+
+<div class="wrap" id="app"><div class="empty">Загружаю данные производства…</div></div>
+
+<script src="production_data.js?v=1" onerror="window.PROD_DATA=null"></script>
+<script>
+(function(){
+  var D=window.PROD_DATA, app=document.getElementById("app");
+  if(!D||!D.mo_keys||!D.mo_keys.length){
+    app.innerHTML='<div class="card"><div class="ct">Данных пока нет</div>'+
+      '<div class="cs">Производство собирается из iiko вместе с остальными отчётами. '+
+      'Цифры появятся после ближайшей ночной сборки.</div></div>';
+    return;
+  }
+
+  function fmt(n){ return Math.round(n||0).toLocaleString("ru-RU"); }
+  function mln(n){ n=n||0;
+    if(Math.abs(n)>=1e9) return (n/1e9).toFixed(2).replace(".",",")+" млрд ₸";
+    if(Math.abs(n)>=1e6) return (n/1e6).toFixed(1).replace(".",",")+" млн ₸";
+    if(Math.abs(n)>=1e3) return Math.round(n/1e3)+" тыс ₸";
+    return fmt(n)+" ₸"; }
+  function pct(a,b){ return b? Math.round(a/b*100) : 0; }
+  function esc(s){ return String(s).replace(/[<>&]/g,function(c){return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c];}); }
+  function kpi(cls,v,l,n){ return '<div class="kpi '+cls+'"><div class="v">'+v+'</div>'+
+    '<div class="l">'+l+'</div><div class="n">'+n+'</div></div>'; }
+
+  var N=D.mo_keys.length, netto=D.mo_netto, gross=D.mo_gross;
+  var yearNetto=netto.reduce(function(a,b){return a+b;},0);
+  var yearGross=gross.reduce(function(a,b){return a+b;},0);
+  var inner=yearGross-yearNetto;
+  // последний месяц может быть неполным — «за месяц» берём последний закрытый
+  var closed=(N>1 && netto[N-1] < netto[N-2]*0.4) ? N-2 : N-1, cmp=closed-1;
+  var dPct=(cmp>=0 && netto[cmp]) ? Math.round((netto[closed]-netto[cmp])/netto[cmp]*100) : null;
+
+  // ── таблица «позиция · сумма · доля · вес» ───────────────────
+  function rows(list,total,markOwn,unitCol){
+    if(!list||!list.length) return '<div class="empty">Нет данных.</div>';
+    var max=list[0].s||1;
+    return '<table><tr><th class="l">Позиция</th>'+(unitCol?'<th>Количество</th>':'')+
+      '<th>Сумма</th><th>Доля</th><th class="l" style="width:110px">Вес</th></tr>'+
+      list.map(function(r){
+        return '<tr><td class="l">'+esc(r.n)+(markOwn&&r.own?'<span class="tag">своё</span>':'')+'</td>'+
+          (unitCol?'<td>'+fmt(r.kg)+' '+esc(r.u||'')+'</td>':'')+
+          '<td>'+mln(r.s)+'</td><td style="color:#94a3b8">'+pct(r.s,total)+'%</td>'+
+          '<td><div class="bar"><i style="width:'+Math.max(2,Math.round(r.s/max*100))+'%"></i></div></td></tr>';
+      }).join("")+'</table>';
+  }
+  function sum(list,f){ return (list||[]).reduce(function(a,r){return a+(f?f(r):r.s);},0); }
+
+  // ── вкладки ──────────────────────────────────────────────────
+  var TABS=[["out","Выпуск"],["cost","Себестоимость единицы"],
+            ["dis","Разделка"],["tr","Переработка и пересорт"],["wo","Списания"]];
+
+  app.innerHTML =
+  '<div class="tabs">'+TABS.map(function(t,i){
+     return '<button class="tb'+(i?'':' on')+'" data-p="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>'+
+
+  // ═══ ВЫПУСК ═══
+  '<div class="pane on" id="p-out">'+
+    '<div class="kpis">'+
+      kpi("hi",mln(netto[closed]),"Товарный выпуск за "+D.mo_labels[closed],
+          (dPct===null?"":(dPct>0?"+":"")+dPct+"% к "+D.mo_labels[cmp]+" · ")+"себестоимость произведённого")+
+      kpi("",mln(yearNetto),"С начала года","товарной продукции за "+N+" мес.")+
+      kpi("",fmt(D.fin_count)+" / "+fmt(D.inp_count),"Позиций: выпуск / сырьё",
+          "из них "+fmt(D.own_count)+" — полуфабрикаты своего передела")+
+      kpi("",pct(inner,yearGross)+"%","Внутренний передел",
+          mln(inner)+" — полуфабрикаты, посчитанные дважды")+
+    '</div>'+
+    '<div class="note"><b>Почему «оборот производства» обманчив.</b> Одна проводка списывает сырьё '+
+    'и приходует продукцию на одну и ту же сумму, поэтому оборот сам по себе ничего не говорит. '+
+    'Полуфабрикат при этом считается дважды — когда его сделали и когда пустили в дело. '+
+    '<b>Товарный выпуск</b> — это выпуск за вычетом того, что тут же вернулось в производство; '+
+    'только он сопоставим с выручкой и себестоимостью продаж.</div>'+
+    '<div class="card"><div class="ct">Выпуск по месяцам</div>'+
+    '<div class="cs">Столбики — товарный выпуск. Линия — весь оборот производства вместе с переделом.</div>'+
+    '<div style="height:280px"><canvas id="chMo"></canvas></div></div>'+
+    '<div class="two">'+
+      '<div class="card"><div class="ct">Что производим</div>'+
+      '<div class="cs">Товарный выпуск по позициям с начала года.</div>'+
+      rows(D.finished,sum(D.finished),false,false)+'</div>'+
+      '<div class="card"><div class="ct">Что уходит в производство</div>'+
+      '<div class="cs">Сырьё и полуфабрикаты по стоимости списания. Метка «своё» — позиция, '+
+      'которую завод сам же и производит.</div>'+
+      rows(D.inputs,sum(D.inputs),true,false)+'</div>'+
+    '</div>'+
+    (D.stores&&D.stores.length>1 ?
+     '<div class="card"><div class="ct">Где производим</div>'+
+     '<div class="cs">Оборот производства по складам и цехам с начала года.</div>'+
+     rows(D.stores,sum(D.stores),false,false)+'</div>' : '')+
+  '</div>'+
+
+  // ═══ СЕБЕСТОИМОСТЬ ЕДИНИЦЫ ═══
+  '<div class="pane" id="p-cost">'+
+    '<div class="note"><b>Зачем это.</b> Выпуск может расти просто потому, что больше произвели. '+
+    'Себестоимость единицы показывает другое: дорожает ли само производство. Считается как '+
+    'товарный выпуск в тенге, делённый на количество, по каждому месяцу.</div>'+
+    (D.unitcost&&D.unitcost.length ? unitTable() :
+     '<div class="card"><div class="empty">Недостаточно данных по количеству.</div></div>')+
+  '</div>'+
+
+  // ═══ РАЗДЕЛКА ═══
+  '<div class="pane" id="p-dis">'+ splitPane(D.disasm,"Разделка",
+    "Туша или отруб разбирается на части. В деньгах разделка сходится всегда — iiko разносит "+
+    "себестоимость по выходам. Смотреть надо килограммы: сколько ушло в разделку и сколько получено.") +'</div>'+
+
+  // ═══ ПЕРЕРАБОТКА ═══
+  '<div class="pane" id="p-tr">'+ splitPane(D.transf,"Переработка и пересорт",
+    "Одна позиция превращается в другую: сортность, фасовка, перевод в другой артикул. "+
+    "Здесь же видна усушка — когда вошло больше килограммов, чем вышло.") +'</div>'+
+
+  // ═══ СПИСАНИЯ ═══
+  '<div class="pane" id="p-wo">'+ woPane() +'</div>';
+
+  // ── себестоимость единицы ────────────────────────────────────
+  function unitTable(){
+    var L=D.mo_labels;
+    return '<div class="card"><div class="ct">Себестоимость единицы по месяцам</div>'+
+      '<div class="cs">Топ позиций по товарному выпуску. Изменение — от первого месяца с данными к последнему.</div>'+
+      '<div style="overflow-x:auto"><table><tr><th class="l">Позиция</th><th class="l">Ед.</th>'+
+      L.map(function(x){return '<th>'+x+'</th>';}).join("")+'<th>Изменение</th></tr>'+
+      D.unitcost.map(function(r){
+        return '<tr><td class="l">'+esc(r.n)+'</td><td class="l" style="color:#94a3b8;font-weight:400">'+
+          esc(r.u||'')+'</td>'+
+          r.c.map(function(v){return '<td>'+(v?fmt(v):'<span style="color:#475569">—</span>')+'</td>';}).join("")+
+          '<td class="'+(r.d>0?'up':(r.d<0?'down':''))+'" style="font-weight:700">'+
+          (r.d>0?'+':'')+r.d+'%</td></tr>';
+      }).join("")+'</table></div></div>';
+  }
+
+  // ── разделка и переработка ───────────────────────────────────
+  function splitPane(R,title,expl){
+    if(!R||!R.in||!R.in.length) return '<div class="card"><div class="ct">'+title+
+      '</div><div class="empty">За период таких операций не было.</div></div>';
+    var loss=R.kg_in-R.kg_out, lp=R.kg_in?Math.round(loss/R.kg_in*1000)/10:0;
+    return '<div class="kpis">'+
+      kpi("",mln(R.sum),title+" за год","стоимость того, что прошло операцию")+
+      kpi("",fmt(R.kg_in),"Вошло","суммарно по всем позициям, в единицах учёта")+
+      kpi("",fmt(R.kg_out),"Вышло","суммарно по всем позициям")+
+      kpi(loss>0?"warn":"", (loss>0?"−":"+")+fmt(Math.abs(loss))+" ("+Math.abs(lp)+"%)",
+          loss>0?"Потеря веса":"Прирост веса",
+          loss>0?"столько не дошло до выхода":"выход больше входа — многостадийная переработка")+
+    '</div>'+
+    '<div class="note">'+expl+'</div>'+
+    '<div class="two">'+
+      '<div class="card"><div class="ct">Что уходит в операцию</div>'+
+      '<div class="cs">'+R.n_in+' позиций, показаны крупнейшие.</div>'+
+      rows(R.in,sum(R.in),false,true)+'</div>'+
+      '<div class="card"><div class="ct">Что получается</div>'+
+      '<div class="cs">'+R.n_out+' позиций, показаны крупнейшие.</div>'+
+      rows(R.out,sum(R.out),false,true)+'</div>'+
+    '</div>';
+  }
+
+  // ── списания ─────────────────────────────────────────────────
+  function woPane(){
+    var W=D.writeoff;
+    if(!W||!W.by_product||!W.by_product.length)
+      return '<div class="card"><div class="ct">Списания</div><div class="empty">Списаний нет.</div></div>';
+    var avg=W.sum/N;
+    return '<div class="kpis">'+
+      kpi("warn",mln(W.sum),"Списано с начала года","за "+N+" мес., по себестоимости")+
+      kpi("",mln(avg),"В среднем за месяц","ровный уровень или всплески — видно на графике")+
+      kpi("",fmt(W.n),"Позиций в списаниях","сколько разной номенклатуры попадало в списание")+
+      kpi("",fmt(W.by_store.length),"Складов и цехов","откуда идут списания")+
+    '</div>'+
+    '<div class="card"><div class="ct">Списания по месяцам</div>'+
+    '<div class="cs">Всплеск обычно означает инвентаризацию или разовую порчу, ровный уровень — процесс.</div>'+
+    '<div style="height:250px"><canvas id="chWo"></canvas></div></div>'+
+    '<div class="two">'+
+      '<div class="card"><div class="ct">Что списываем</div>'+
+      '<div class="cs">Крупнейшие позиции по сумме списания.</div>'+
+      rows(W.by_product,sum(W.by_product),false,false)+'</div>'+
+      '<div class="card"><div class="ct">Откуда списываем</div>'+
+      '<div class="cs">Склады и цеха. Здесь видно, где именно теряется товар.</div>'+
+      rows(W.by_store,sum(W.by_store),false,false)+'</div>'+
+    '</div>';
+  }
+
+  // ── вкладки и графики ────────────────────────────────────────
+  [].forEach.call(document.querySelectorAll(".tb"),function(b){
+    b.addEventListener("click",function(){
+      [].forEach.call(document.querySelectorAll(".tb"),function(x){x.classList.remove("on");});
+      [].forEach.call(document.querySelectorAll(".pane"),function(x){x.classList.remove("on");});
+      b.classList.add("on");
+      var p=document.getElementById("p-"+b.getAttribute("data-p"));
+      if(p) p.classList.add("on");
+    });
+  });
+
+  if(window.Chart){
+    new Chart(document.getElementById("chMo"),{
+      data:{labels:D.mo_labels,datasets:[
+        {type:"bar",label:"Товарный выпуск",data:netto.map(function(v){return v/1e6;}),
+         backgroundColor:"#7c3aed",borderRadius:5,order:2},
+        {type:"line",label:"Оборот производства",data:gross.map(function(v){return v/1e6;}),
+         borderColor:"#e0b13c",backgroundColor:"#e0b13c",borderWidth:2,pointRadius:3,tension:.3,order:1}]},
+      options:{maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:12,font:{size:11}}},
+          tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y.toFixed(1)+" млн ₸";}}}},
+        scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
+                y:{beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},
+                   callback:function(v){return v+" млн";}},grid:{color:"#1b2636"}}}}});
+    var cw=document.getElementById("chWo");
+    if(cw&&D.writeoff&&D.writeoff.mo){
+      new Chart(cw,{type:"bar",data:{labels:D.mo_labels,
+        datasets:[{label:"Списано",data:D.writeoff.mo.map(function(v){return v/1e6;}),
+                   backgroundColor:"#e0b13c",borderRadius:5}]},
+        options:{maintainAspectRatio:false,plugins:{legend:{display:false},
+          tooltip:{callbacks:{label:function(c){return c.parsed.y.toFixed(2)+" млн ₸";}}}},
+          scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
+                  y:{beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},
+                     callback:function(v){return v+" млн";}},grid:{color:"#1b2636"}}}}});
+    }
+  }
+
+  document.getElementById("upd").textContent="обновлено "+D.updated+" · данные по "+D.through;
+})();
+</script>
+<script src="nav.js"></script>
+</body></html>

@@ -9,6 +9,7 @@
     {href:'дз_кз.html',icon:'⚖️',label:'ДЗ / КЗ'},
     {href:'продажи_2026.html',icon:'🛒',label:'Продажи'},
     {href:'закуп.html',icon:'📦',label:'Закуп'},
+    {href:'производство.html',icon:'🏭',label:'Производство'},
     {href:'sku360.html',icon:'🧩',label:'SKU 360'},
     {href:'себестоимость_маржа.html',icon:'👥',label:'Кто приносит прибыль'},
     {href:'дашборд_себестоимость_2025-2026.html',icon:'🧱',label:'Полная себестоимость'},
