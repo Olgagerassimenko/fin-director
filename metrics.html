@@ -154,7 +154,11 @@
     "Kyzylorda":"Кызылорда","Aktau":"Актау","Oral":"Уральск","Uralsk":"Уральск","Turkistan":"Туркестан",
     "Kokshetau":"Кокшетау","Petropavl":"Петропавловск","Taldykorgan":"Талдыкорган",
     "Temirtau":"Темиртау","Ekibastuz":"Экибастуз","Rudny":"Рудный","Zhezkazgan":"Жезказган",
-    "Moscow":"Москва","Bishkek":"Бишкек","Tashkent":"Ташкент","Kyiv":"Киев","Kiev":"Киев"};
+    "Moscow":"Москва","Bishkek":"Бишкек","Tashkent":"Ташкент","Kyiv":"Киев","Kiev":"Киев",
+    "Male":"Мале","Hulhumale":"Хулхумале","Dubai":"Дубай","Istanbul":"Стамбул",
+    "Antalya":"Анталья","Tbilisi":"Тбилиси","New York":"Нью-Йорк","Los Angeles":"Лос-Анджелес",
+    "Chicago":"Чикаго","Miami":"Майами","San Francisco":"Сан-Франциско","Seattle":"Сиэтл",
+    "Washington":"Вашингтон","Ashburn":"Ашберн","Bangkok":"Бангкок","Phuket":"Пхукет"};
   function cityName(c){ return c==="—" ? "город не определён" : (CITY[c]||c); }
 
   // Коды стран приходят двухбуквенными — расшифровываем и добавляем флаг
@@ -251,13 +255,26 @@
     document.getElementById("tPages").innerHTML=tableRows(S.pages,label,S.views);
     document.getElementById("tCity").innerHTML=tableRows(S.city,cityName,S.views);
 
-    // Страны: за новые дни считаем по периоду, за старые данных по дням нет —
-    // тогда показываем накопленное за всё время и честно пишем об этом.
-    var ctry=S.ctry, ctSub=t;
-    if(!Object.keys(ctry).length){ ctry=allCountries(); ctSub="за всё время"; }
-    document.getElementById("ctSub").textContent=ctSub;
-    document.getElementById("tCtry").innerHTML=tableRows(ctry,ctryName,
-      Object.keys(ctry).reduce(function(a,k){return a+ctry[k];},0));
+    // Страны. По дням они пишутся только с 02.09.2026, а до этого копились
+    // общей суммой. Поэтому показываем и выбранный период, и — всегда —
+    // итог за всё время: иначе редкие страны (Мальдивы, США) пропадали,
+    // как только за период набирался хотя бы один заход из Казахстана.
+    var per=S.ctry, perN=Object.keys(per).reduce(function(a,k){return a+per[k];},0);
+    var allC=allCountries(), allN=Object.keys(allC).reduce(function(a,k){return a+allC[k];},0);
+    var html="";
+    if(perN){
+      document.getElementById("ctSub").textContent=t;
+      html+=tableRows(per,ctryName,perN);
+    } else {
+      document.getElementById("ctSub").textContent="за период заходов не было";
+      html+='<div class="empty">За этот период заходов не было.</div>';
+    }
+    if(allN){
+      html+='<div style="margin-top:14px;padding-top:11px;border-top:1px solid var(--line)">'+
+            '<div class="cs" style="margin-bottom:8px">За всё время</div>'+
+            tableRows(allC,ctryName,allN)+'</div>';
+    }
+    document.getElementById("tCtry").innerHTML=html;
 
     // ── все отчёты за всё время ──────────────────────────────────
     document.getElementById("tAll").innerHTML=allPagesTable(S.pages);
