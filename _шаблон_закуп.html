@@ -90,6 +90,8 @@
  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
  @media(prefers-reduced-motion:reduce){.card,.k,.bars .b .bb{animation:none}}
  .foot{text-align:center;color:#8798ab;font-size:12px;padding:22px}.foot b{color:#c9d4e2}
+.z tfoot td{position:sticky;bottom:0;background:#111c2b;border-top:2px solid #2a3a4f;font-weight:800;color:#e8c766;padding:9px 10px;z-index:2}
+.z tfoot .nm{color:#cfe0f0;text-align:right}
 </style><style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
 </head>
 <body>
@@ -298,13 +300,27 @@ function renderTV(){
   <div class="k"><div class="l">Товаров закуплено</div><div class="v gold">${nprod}</div><div class="u">позиций</div></div>
   <div class="k"><div class="l">Поставщиков</div><div class="v">${nsup}</div><div class="u">в периоде</div></div>
   <div class="k"><div class="l">Сумма закупа</div><div class="v gold">${MLN(totSum)}</div><div class="u">за период</div></div></div>`;
- let rr=rows.map((r,i)=>`<tr data-s="${((r.product||'')+' '+(r.supplier||'')).toLowerCase()}"><td class="rk">${i+1}</td><td class="nm">${r.product}</td><td class="nm" style="min-width:170px;color:#e8c766">${r.supplier}</td><td>${r.qty.toLocaleString('ru-RU')}</td><td class="z0" style="text-align:left">${r.unit||''}</td><td>${PR(r.price)}</td><td>${PR(r.sum)}</td></tr>`).join('');
+ let rr=rows.map((r,i)=>`<tr data-s="${((r.product||'')+' '+(r.supplier||'')).toLowerCase()}" data-sum="${r.sum}"><td class="rk">${i+1}</td><td class="nm">${r.product}</td><td class="nm" style="min-width:170px;color:#e8c766">${r.supplier}</td><td>${r.qty.toLocaleString('ru-RU')}</td><td class="z0" style="text-align:left">${r.unit||''}</td><td>${PR(r.price)}</td><td>${PR(r.sum)}</td></tr>`).join('');
  let tbl=`<div class="card"><div class="hd"><h3>Что и у кого закупали</h3><span class="sub">товар · поставщик · количество (в ед. измерения) · цена · сумма</span></div>
   <input class="search" placeholder="🔍 поиск по товару или поставщику…" oninput="filterTv(this.value)">
-  <div class="tblwrap"><table class="z" id="tvtbl"><thead><tr><th class="rk">#</th><th class="nm">Товар</th><th class="nm">Поставщик</th><th>Кол-во</th><th style="text-align:left">Ед.</th><th>Цена, ₸</th><th>Сумма, ₸</th></tr></thead><tbody>${rr}</tbody></table></div></div>`;
+  <div class="tblwrap"><table class="z" id="tvtbl"><thead><tr><th class="rk">#</th><th class="nm">Товар</th><th class="nm">Поставщик</th><th>Кол-во</th><th style="text-align:left">Ед.</th><th>Цена, ₸</th><th>Сумма, ₸</th></tr></thead><tbody>${rr}</tbody>
+  <tfoot><tr class="tvfoot"><td class="rk"></td><td class="nm" colspan="5" id="tvtotlbl">Итого по ${rows.length} строкам</td><td id="tvtotsum">${PR(totSum)}</td></tr></tfoot></table></div></div>`;
  return kpi+tbl;
 }
-function filterTv(q){q=(q||'').toLowerCase().trim();document.querySelectorAll('#tvtbl tbody tr').forEach(tr=>{tr.style.display=(!q||tr.dataset.s.indexOf(q)>=0)?'':'none';});}
+function filterTv(q){
+ q=(q||'').toLowerCase().trim();
+ let n=0,sum=0;
+ document.querySelectorAll('#tvtbl tbody tr').forEach(tr=>{
+   const vis=(!q||tr.dataset.s.indexOf(q)>=0);
+   tr.style.display=vis?'':'none';
+   if(vis){ n++; sum+=Number(tr.dataset.sum||0); }
+ });
+ /* Итог считаем по видимым строкам: при поиске «пленка» внизу должна стоять
+    сумма по плёнке, а не по всему закупу — иначе строка вводит в заблуждение. */
+ const l=document.getElementById('tvtotlbl'), v=document.getElementById('tvtotsum');
+ if(l) l.textContent = q ? ('Итого по найденному: '+n+' '+(n%10===1&&n%100!==11?'строка':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?'строки':'строк'))) : ('Итого по '+n+' строкам');
+ if(v) v.textContent = PR(sum);
+}
 
 /* ---- Вкладка: Движение по складу ---- */
 function dvData(){ if(!D.dvizhenie)return{rows:[]}; if(MODE==='year')return D.dvizhenie.year||{rows:[]}; const b=(MODE==='month'?D.dvizhenie.months:D.dvizhenie.weeks)||{}; return b[PKEY]||{rows:[]}; }
