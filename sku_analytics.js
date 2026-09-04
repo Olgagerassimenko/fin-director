@@ -75,6 +75,9 @@
   var MDAT = ['', 'январю', 'февралю', 'марту', 'апрелю', 'маю', 'июню',
     'июлю', 'августу', 'сентябрю', 'октябрю', 'ноябрю', 'декабрю'];
   function monthDat(mk) { return MDAT[+String(mk).slice(5, 7)] || monthName(mk).toLowerCase(); }
+  var MPRE = ['', 'январе', 'феврале', 'марте', 'апреле', 'мае', 'июне',
+    'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
+  function monthPre(mk) { return MPRE[+String(mk).slice(5, 7)] || monthName(mk).toLowerCase(); }
   // сколько дней месяца отражено (для неполного месяца)
   function periodInfo(mk) {
     if (mk === 'year') return { partial: false, days: 1, dim: 1 };
@@ -493,7 +496,7 @@
     for (var i = 0; i < arr.length; i++) { acc += arr[i]; core++; if (acc >= cur.total * 0.8) break; }
     out.push(fact('🎯', '<b class="g">' + core + '</b> позиций из <b>' + arr.length +
       '</b> дают 80% выручки — это <b>' + (core / arr.length * 100).toFixed(0) + '%</b> ассортимента' +
-      ' <button onclick="exportSkuPareto()" title="Скачать Excel: лист 1 — топ 80% (' + core + '), лист 2 — весь ассортимент (' + arr.length + ') за ' + esc(monthName(MK)) + '. Обновляется по выбранному месяцу." style="margin-left:8px;padding:4px 11px;border:none;border-radius:8px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px -3px rgba(16,185,129,.7);vertical-align:middle;white-space:nowrap">📊 Скачать Excel</button>'));
+      ' <button onclick="exportSkuPareto()" title="Скачать Excel за ' + esc(monthName(MK)) + ': лист «Срочно сделать» — список дел с приоритетами (считается по последнему закрытому месяцу), лист «Топ 80%» (' + core + ' позиций) и лист «Весь ассортимент» (' + arr.length + '). В таблицах есть количество, цена за единицу и число покупателей. Обновляется по выбранному месяцу." style="margin-left:8px;padding:4px 11px;border:none;border-radius:8px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px -3px rgba(16,185,129,.7);vertical-align:middle;white-space:nowrap">📊 Скачать Excel</button>'));
     // 3) лидер месяца
     var top = Object.keys(cur.sku).map(function (n) { return cur.sku[n]; })
       .sort(function (a, b) { return b.r - a.r; })[0];
@@ -527,33 +530,217 @@
   function exportSkuPareto() {
     if (!MK) { alert('Выберите месяц'); return; }
     if (typeof ExcelJS === 'undefined') { alert('Модуль Excel ещё грузится — повторите через секунду'); return; }
-    var cur = index(MK);
-    var list = Object.keys(cur.sku).map(function (n) { var s = cur.sku[n]; return { name: s.n, cat: s.cat, rev: Math.round(s.r) }; })
-      .filter(function (x) { return x.rev > 0; });
+    var cur = index(MK), pk = prevKey(MK), prev = pk ? index(pk).sku : {};
+    var pi = periodInfo(MK);
+    /* Лист «Срочно сделать» считаем ТОЛЬКО по закрытому месяцу. Если выбран
+       неполный период (например «Сентябрь (1–3)»), половина позиций просто
+       ещё не успела отгрузиться — и любой вывод про «пропала из продаж» или
+       «просела» будет ложной тревогой. Поэтому берём последний закрытый. */
+    var AK = (pi.partial && pk) ? pk : MK;
+
+    var list = Object.keys(cur.sku).map(function (n) {
+      var s = cur.sku[n], b = s.buyers || [];
+      return {
+        name: s.n, cat: s.cat, rev: Math.round(s.r),
+        qty: Math.round((s.q || 0) * 100) / 100,
+        price: s.q ? Math.round(s.r / s.q) : null,
+        nb: b.length, topShare: (b.length && s.r) ? b[0].r / s.r : 0,
+        topName: b.length ? b[0].name : ''
+      };
+    }).filter(function (x) { return x.rev > 0; });
     list.sort(function (a, b) { return b.rev - a.rev; });
     var total = list.reduce(function (a, x) { return a + x.rev; }, 0) || 1, acc = 0, top = [];
     for (var i = 0; i < list.length; i++) { acc += list[i].rev; top.push(list[i]); if (acc >= total * 0.8) break; }
     var mn = (window.DS && window.DS[MK] && window.DS[MK].label) || MK;
     var wb = new ExcelJS.Workbook(); wb.creator = 'Пульс · Мастерская Сегодня';
+
+    /* ── Лист 1: «Срочно сделать» — не таблица, а список дел ── */
+    function sheetTodo() {
+      var acur = index(AK), apk = prevKey(AK), prev = apk ? index(apk).sku : {};
+      var alist = Object.keys(acur.sku).map(function (n) {
+        var s = acur.sku[n], b = s.buyers || [];
+        return {
+          name: s.n, cat: s.cat, rev: Math.round(s.r),
+          qty: Math.round((s.q || 0) * 100) / 100,
+          nb: b.length, topShare: (b.length && s.r) ? b[0].r / s.r : 0,
+          topName: b.length ? b[0].name : ''
+        };
+      }).filter(function (x) { return x.rev > 0; });
+      alist.sort(function (a, b) { return b.rev - a.rev; });
+      var atotal = alist.reduce(function (a, x) { return a + x.rev; }, 0) || 1, aacc = 0, atop = [];
+      for (var ai = 0; ai < alist.length; ai++) { aacc += alist[ai].rev; atop.push(alist[ai]); if (aacc >= atotal * 0.8) break; }
+      var amn = (window.DS && window.DS[AK] && window.DS[AK].label) || AK;
+      function fx(v, d) { return String(v.toFixed(d)).replace('.', ','); }
+      var ws = wb.addWorksheet('Срочно сделать', { views: [{ state: 'frozen', ySplit: 2 }] });
+      ws.columns = [
+        { header: 'Приоритет', key: 'p', width: 13 },
+        { header: 'Что сделать', key: 'a', width: 44 },
+        { header: 'Позиция / кто', key: 'o', width: 46 },
+        { header: 'Сумма, ₸', key: 'v', width: 14, style: { numFmt: '#,##0' } },
+        { header: 'Кол-во', key: 'q', width: 11, style: { numFmt: '#,##0.##' } },
+        { header: 'Почему это важно', key: 'w', width: 56 },
+        { header: 'Статус', key: 's', width: 14 }
+      ];
+      // строка-заголовок периода над шапкой
+      ws.spliceRows(1, 0, ['Срочно сделать по итогам месяца: ' + amn +
+        (AK !== MK ? '   (выбран неполный период ' + mn + ' — выводы считаем по последнему закрытому месяцу, иначе половина позиций выглядела бы «пропавшей»)' : '')]);
+      ws.mergeCells('A1:G1');
+      var t = ws.getRow(1); t.height = 26;
+      t.getCell(1).font = { bold: true, size: 13, color: { argb: 'FF064E3B' } };
+      t.getCell(1).alignment = { vertical: 'middle' };
+      var hdr = ws.getRow(2); hdr.height = 24;
+      hdr.eachCell(function (c) {
+        c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB45309' } };
+        c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      });
+      var n = 0, bn = 0;
+      function block(title) {
+        bn++;
+        var r = ws.addRow([bn + '. ' + title]);
+        ws.mergeCells(r.number, 1, r.number, 7);
+        r.height = 20;
+        r.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF1F2937' } };
+        r.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+        r.getCell(1).alignment = { vertical: 'middle' };
+      }
+      function item(pr, a, o, v, q, w) {
+        n++;
+        var r = ws.addRow({ p: pr, a: a, o: o, v: (v === null ? '' : v), q: (q === null ? '' : q), w: w, s: '' });
+        r.height = 16.5;
+        r.alignment = { vertical: 'middle', wrapText: true };
+        r.eachCell(function (c) { c.border = { bottom: { style: 'hair', color: { argb: 'FFE5E7EB' } } }; });
+        r.getCell('p').alignment = { horizontal: 'center', vertical: 'middle' };
+        r.getCell('p').font = { bold: true, color: { argb: pr.indexOf('Срочно') >= 0 ? 'FFB91C1C' : (pr.indexOf('Важно') >= 0 ? 'FFB45309' : 'FF065F46') } };
+        r.getCell('v').font = { bold: true, color: { argb: 'FF065F46' } };
+        r.getCell('s').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFBEB' } };
+        r.getCell('s').dataValidation = {
+          type: 'list', allowBlank: true, formulae: ['"Сделано,В работе,Отложено"']
+        };
+      }
+
+      // 1) пропали из продаж
+      var gone = [];
+      Object.keys(prev).forEach(function (nm) {
+        if (acur.sku[nm]) return;
+        var s = prev[nm]; if (s.r < atotal * 0.0005) return;
+        gone.push({ n: s.n, r: Math.round(s.r), q: Math.round((s.q || 0) * 100) / 100 });
+      });
+      gone.sort(function (a, b) { return b.r - a.r; });
+      if (gone.length) {
+        block('Пропали из продаж — были в ' + (apk ? monthPre(apk) : 'прошлом месяце') + ', в ' + monthPre(AK) + ' продаж нет (' + gone.length + ')');
+        gone.slice(0, 12).forEach(function (x) {
+          item('🔴 Срочно', 'Выяснить, почему продажи прекратились: снята с производства, нет сырья или ушёл покупатель',
+            x.n, x.r, x.q, 'Месяцем раньше позиция принесла ' + num(x.r) + ' ₸. В ' + monthPre(AK) + ' — ноль.');
+        });
+      }
+
+      // 2) резко просели к прошлому месяцу
+      var drops = [];
+      alist.forEach(function (x) {
+        var p = prev[x.name]; if (!p || p.r < atotal * 0.0008) return;
+        var d = x.rev - p.r;
+        if (d >= 0) return;
+        if (Math.abs(d) < p.r * 0.25) return;   // падение меньше четверти — не срочно
+        drops.push({ n: x.name, d: Math.round(d), pct: d / p.r * 100, rev: x.rev, q: x.qty });
+      });
+      drops.sort(function (a, b) { return a.d - b.d; });
+      if (drops.length) {
+        block('Резко просели — падение больше четверти к ' + (apk ? monthDat(apk) : 'прошлому месяцу') + ' (' + drops.length + ')');
+        drops.slice(0, 12).forEach(function (x) {
+          item('🔴 Срочно', 'Разобрать причину падения с отделом продаж и производством',
+            x.n, x.rev, x.q, 'Минус ' + num(Math.abs(x.d)) + ' ₸ к ' + (apk ? monthDat(apk) : 'прошлому месяцу') + ' — падение на ' + Math.abs(x.pct).toFixed(0) + '%.');
+        });
+      }
+
+      // 3) держится на одном покупателе
+      var solo = alist.filter(function (x) { return x.rev >= atotal * 0.003 && x.topShare >= 0.8 && x.nb <= 3; });
+      if (solo.length) {
+        block('Держатся на одном покупателе — уйдёт клиент, уйдёт вся позиция (' + solo.length + ')');
+        solo.slice(0, 12).forEach(function (x) {
+          item('🟠 Важно', 'Найти второго покупателя на позицию или заложить риск в план',
+            x.name, x.rev, x.qty,
+            'Один покупатель даёт ' + (x.topShare * 100).toFixed(0) + '% продаж позиции: ' + x.topName + '. Всего покупателей: ' + x.nb + '.');
+        });
+      }
+
+      // 4) хвост ассортимента
+      var tail = alist.slice(atop.length).slice().sort(function (a, b) { return a.rev - b.rev; });
+      var cut = [], s = 0;
+      for (var ti = 0; ti < tail.length; ti++) {
+        if (s + tail[ti].rev > atotal * 0.01) break;
+        s += tail[ti].rev; cut.push(tail[ti]);
+      }
+      if (cut.length) {
+        block('Хвост ассортимента — ' + cut.length + ' позиций дают вместе ' + fx(s / atotal * 100, 1) + '% выручки (' + num(s) + ' ₸)');
+        item('🟠 Важно', 'Пересмотреть весь хвост: вывести из ассортимента или объединить в одну позицию',
+          cut.length + ' позиций суммарно', Math.round(s), null,
+          'Каждая позиция — это отдельная закупка, техкарта, остаток и место на складе. Отдача — ' + fx(s / atotal * 100, 1) + '% выручки.');
+        cut.slice(-15).reverse().forEach(function (x) {
+          item('🟠 Важно', 'Решить: оставляем или выводим', x.name, x.rev, x.qty,
+            'Доля в выручке — ' + fx(x.rev / atotal * 100, 2) + '%. Покупателей: ' + x.nb + '.');
+        });
+      }
+
+      // 6) зависимость от покупателей
+      var c3 = acur.ctr.slice(0, 3).reduce(function (a, c) { return a + c.rev; }, 0);
+      if (acur.total && c3 / acur.total >= 0.5) {
+        block('Зависимость от покупателей');
+        item('🟠 Важно', 'Работать над расширением базы покупателей',
+          acur.ctr.slice(0, 3).map(function (c) { return c.name; }).join(', '), Math.round(c3), null,
+          'Топ-3 покупателя дают ' + (c3 / acur.total * 100).toFixed(0) + '% всей выручки месяца.');
+      }
+
+      // 7) что защищать
+      block('Держать на контроле — на этих позициях стоит выручка');
+      atop.slice(0, 5).forEach(function (x) {
+        item('🟢 Контроль', 'Не допускать перебоев: сырьё, смена, упаковка',
+          x.name, x.rev, x.qty,
+          'Позиция даёт ' + fx(x.rev / atotal * 100, 1) + '% выручки месяца. Простой сразу видно в деньгах.');
+      });
+
+      if (!n) {
+        item('🟢 Контроль', 'Срочных вопросов по ассортименту не найдено', '—', null, null,
+          'Ни одна позиция не пропала из продаж и не просела больше чем на четверть.');
+      }
+      ws.autoFilter = 'A2:G2';
+    }
+    sheetTodo();
+
+    /* ── Листы 2–3: ABC по выручке ── */
     function build(name, rows) {
       var ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
       ws.columns = [
         { header: '№', key: 'i', width: 6 },
         { header: 'Позиция', key: 'name', width: 50 },
         { header: 'Категория', key: 'cat', width: 18 },
+        { header: 'Кол-во', key: 'qty', width: 12, style: { numFmt: '#,##0.##' } },
         { header: 'Выручка, ₸', key: 'rev', width: 16, style: { numFmt: '#,##0' } },
+        { header: 'Цена за ед., ₸', key: 'price', width: 14, style: { numFmt: '#,##0' } },
         { header: 'Доля, %', key: 'share', width: 11, style: { numFmt: '0.0"%"' } },
-        { header: 'Накоплено, %', key: 'cum', width: 14, style: { numFmt: '0.0"%"' } }
+        { header: 'Накоплено, %', key: 'cum', width: 14, style: { numFmt: '0.0"%"' } },
+        { header: 'Покупателей', key: 'nb', width: 13 }
       ];
       var cc = 0;
-      rows.forEach(function (x, idx) { var sh = x.rev / total * 100; cc += sh; ws.addRow({ i: idx + 1, name: x.name, cat: x.cat, rev: x.rev, share: +sh.toFixed(1), cum: +cc.toFixed(1) }); });
+      rows.forEach(function (x, idx) {
+        var sh = x.rev / total * 100; cc += sh;
+        ws.addRow({
+          i: idx + 1, name: x.name, cat: x.cat, qty: x.qty, rev: x.rev,
+          price: (x.price === null ? '' : x.price),
+          share: +sh.toFixed(1), cum: +cc.toFixed(1), nb: x.nb
+        });
+      });
       var hdr = ws.getRow(1); hdr.height = 24;
       hdr.eachCell(function (c) {
         c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
-        c.alignment = { vertical: 'middle', horizontal: 'center' };
+        c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
         c.border = { bottom: { style: 'medium', color: { argb: 'FF047857' } } };
       });
+      // единица измерения у каждой позиции своя — предупреждаем в примечании
+      try {
+        hdr.getCell('qty').note = 'Количество в единицах самой позиции: где-то штуки, где-то килограммы или порции — единица зашита в названии.';
+      } catch (e) { }
       for (var r = 2; r <= rows.length + 1; r++) {
         var row = ws.getRow(r); row.height = 16.5;
         row.eachCell(function (c) {
@@ -562,11 +749,13 @@
         });
         row.getCell('rev').font = { bold: true, color: { argb: 'FF065F46' } };
         row.getCell('i').alignment = { horizontal: 'center' };
+        row.getCell('nb').alignment = { horizontal: 'center' };
       }
-      ws.autoFilter = 'A1:F1';
+      ws.autoFilter = 'A1:I1';
     }
     build('Топ 80% (' + top.length + ')', top);
     build('Весь ассортимент (' + list.length + ')', list);
+
     wb.xlsx.writeBuffer().then(function (buf) {
       var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -574,6 +763,7 @@
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     });
   }
+
   window.exportSkuPareto = exportSkuPareto;
 
   // ── ВОДОПАД: из чего сложилось изменение ───────────────────
