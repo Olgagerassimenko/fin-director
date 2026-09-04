@@ -1169,14 +1169,29 @@
       function ucDraw(){
         if(ucChart){ ucChart.data.datasets=ucSets(); ucChart.update(); ucHint(); return; }
         ucChart=new Chart(cc,{type:"line",data:{labels:D.mo_labels,datasets:ucSets()},
-          options:{maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
-            plugins:{legend:{labels:{color:CLEG,boxWidth:11,font:{size:10}}},
-              tooltip:{callbacks:{label:function(c){
-                var raw=(c.dataset._raw||[])[c.dataIndex];
-                return c.dataset.label+": "+c.parsed.y+" (100 = первый месяц)"+
-                  (raw? " · "+fmt(raw)+" ₸/"+c.dataset._u : "");}}}},
+          options:chOpts({
+            interaction:{mode:"nearest",intersect:true},
+            hover:{mode:"nearest",intersect:true},
+            plugins:{legend:{labels:{color:CLEG,boxWidth:11,font:{size:10},
+                                     usePointStyle:true,pointStyle:"circle"}},
+              tooltip:{backgroundColor:"rgba(20,28,48,.96)",borderColor:"#3b4a78",borderWidth:1,
+                titleColor:"#fff",bodyColor:"#dbe6f5",footerColor:"#9db0ca",
+                padding:11,cornerRadius:8,displayColors:false,
+                callbacks:{
+                  title:function(c){ return c[0].dataset.label; },
+                  label:function(c){
+                    var raw=(c.dataset._raw||[])[c.dataIndex];
+                    return (raw? fmt(raw)+" ₸/"+c.dataset._u : "нет данных")+
+                           "  ·  "+D.mo_labels[c.dataIndex]+" "+YR; },
+                  footer:function(c){
+                    var v=c[0].parsed.y;
+                    if(v===null||v===undefined) return "";
+                    var d=Math.round((v-100)*10)/10;
+                    return "индекс "+pc(v)+" — "+(d>0? "дороже на "+pc(d)+"%"
+                           : (d<0? "дешевле на "+pc(Math.abs(d))+"%" : "как в первом месяце"));}}}},
             scales:{x:{ticks:{color:CTICK,font:{size:11}},grid:{display:false}},
-                    y:{ticks:{color:CTICK,font:{size:10}},grid:{color:CGRID}}}}});
+                    y:{ticks:{color:CTICK,font:{size:10},callback:function(v){return v;}},
+                       grid:{color:CGRID}}}})});
         ucHint();
       }
       ucDraw();
