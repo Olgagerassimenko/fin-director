@@ -17,6 +17,9 @@
     {href:'опиу_2026.html',icon:'📊',label:'ОПиУ 2026'},
     {href:'опиу_аудит.html',icon:'🔎',label:'Аудит ОПиУ'}
   ];
+  // Список страниц публикуем наружу: путеводитель берёт из него число
+  // отчётов, чтобы оно не устаревало при каждом новом листе.
+  try{ window.PULSE_PAGES = pages; }catch(e){}
   var cur=location.pathname.split('/').pop()||'index.html';
   var s=document.createElement('style');
   s.textContent=
