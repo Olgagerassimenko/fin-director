@@ -79,6 +79,10 @@
   tr.pickable{cursor:pointer}
   .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
   .hint{font-size:11.5px;color:var(--mut);margin:9px 0 0}
+  .pitch{border-left:3px solid var(--acc);background:linear-gradient(90deg,rgba(139,124,246,.13),
+         rgba(139,124,246,.02));border-radius:0 10px 10px 0;padding:11px 16px;margin-bottom:11px;
+         font-size:13px;line-height:1.6;color:#cfdcee}
+  .pitch b{color:#fff;font-weight:800}
   .perbar{background:var(--card2);border:1px solid var(--line);border-radius:10px;
           padding:9px 14px;font-size:12px;color:#bccbe0;margin-bottom:12px}
   .perbar b{color:#e5edf7}
@@ -207,6 +211,14 @@
       '<ul class="il"><li>'+items.join('</li><li>')+'</li></ul></div>';
   }
   function pc(v){ return String(v).replace(".",",").replace("-","−"); }
+  // Русское склонение по числу: 1 раз, 2 раза, 5 раз.
+  function plural(k,one,few,many){
+    var a=Math.abs(k)%100, b=a%10;
+    if(a>10&&a<20) return many;
+    if(b>1&&b<5) return few;
+    if(b===1) return one;
+    return many;
+  }
   function up(v){ return '<span class="r">+'+pc(v)+'%</span>'; }
   function dn(v){ return '<span class="g">'+pc(v)+'%</span>'; }
   function sig(d){ return d>0? up(d) : dn(d); }
@@ -315,6 +327,35 @@
 
   // ── вкладки ──────────────────────────────────────────────────
   var CURTAB="out", TCMODE="norm";
+  // Одна строка под вкладками — зачем эта рубрика вообще открыта. Чтобы
+  // человек, который зашёл первый раз, понимал, что он сейчас смотрит,
+  // не читая пояснений внутри.
+  var PITCH={
+    out:["Выпуск","Сколько завод произвёл на самом деле: выпуск за вычетом полуфабрикатов, "+
+         "которые тут же вернулись в дело. Единственная цифра выпуска, сопоставимая с выручкой."],
+    cost:["Себестоимость единицы","Дорожает ли производство само по себе. Объём тут ни при чём — "+
+         "только цена одной единицы, месяц к месяцу, по всей номенклатуре."],
+    dis:["Разделка","Что остаётся от туши: сколько килограммов ушло в разделку, сколько вернулось, "+
+         "какой выход и во что обходится невозвратная часть."],
+    tr:["Переработка и пересорт","Когда одна позиция превращается в другую — сортность, фасовка, "+
+         "перевод в другой артикул. Здесь же видна усушка."],
+    wo:["Списания","Что и с какого склада списано, ровным потоком или всплесками — и указана ли "+
+         "вообще причина списания."],
+    inv:["Инвентаризации","Что не нашлось при пересчёте и на каком складе. Плюс история: кто "+
+         "считает каждый месяц, а кто через раз."],
+    tc:["Тех.карта","Норма закладки против фактического расхода: где цех тратит больше, чем "+
+         "записано в карте, а где карта устарела."],
+    grp:["Из чего себестоимость","Из чего складываются деньги производства — мясо, молочка, овощи, "+
+         "упаковка — и что из этого своё, а что куплено."]
+  };
+  function pitchHTML(){
+    var t=PITCH[CURTAB]; if(!t) return '';
+    return '<b>'+t[0]+'.</b> '+t[1];
+  }
+  function setPitch(){
+    var el=document.getElementById("pitch");
+    if(el) el.innerHTML=pitchHTML();
+  }
   var TABS=[["out","Выпуск"],["cost","Себестоимость единицы"],
             ["dis","Разделка"],["tr","Переработка и пересорт"],["wo","Списания"],
             ["inv","Инвентаризации"],["tc","Тех.карта"],
@@ -334,6 +375,7 @@
   function pageHTML(){ return (
   '<div class="tabs">'+TABS.map(function(t){
      return '<button class="tb'+(t[0]===CURTAB?' on':'')+'" data-p="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>'+
+  '<div class="pitch" id="pitch">'+pitchHTML()+'</div>'+
   '<div class="perbar"><span>Период:</span> <select id="perSel">'+
     perOptions().map(function(o){
       return '<option value="'+o[0]+'"'+(o[0]===(RA+':'+RB)?' selected':'')+'>'+o[1]+'</option>';
@@ -628,11 +670,63 @@
         if(!m[mx]||!avg) return "";
         var k=Math.round(m[mx]/avg*100)-100;
         return k>25? ("Выброс в <b>"+D.mo_labels[mx]+"</b>: "+mln(m[mx])+", это "+up(k)+
-          " к среднему месяцу. Обычно так выглядит инвентаризация или разовая порча партии.") : "";})()
+          " к среднему месяцу. Обычно так выглядит инвентаризация или разовая порча партии.") : "";})(),
+      // Экономическая часть: доля в выпуске, её разброс и тренд.
+      (function(){
+        var R=[], i;
+        for(i=0;i<=closed;i++) if(netto[i]) R.push({i:i,v:W0.mo[i]/netto[i]*100});
+        if(R.length<3) return "";
+        var mn=R[0], mx=R[0], sum1=0;
+        R.forEach(function(x){ if(x.v<mn.v)mn=x; if(x.v>mx.v)mx=x; sum1+=x.v; });
+        var mid=sum1/R.length;
+        return "Доля списаний в товарном выпуске держится около <b>"+pc(Math.round(mid*100)/100)+
+          "%</b>, разброс от "+pc(Math.round(mn.v*100)/100)+"% ("+D.mo_labels[mn.i]+") до "+
+          pc(Math.round(mx.v*100)/100)+"% ("+D.mo_labels[mx.i]+"). "+
+          "Именно эту долю и надо держать в норме: сумма в тенге сама по себе растёт вместе "+
+          "с выпуском и ни о чём не говорит.";})(),
+      (function(){
+        var R=[], i;
+        for(i=0;i<=closed;i++) if(netto[i]) R.push(W0.mo[i]/netto[i]*100);
+        if(R.length<4) return "";
+        var h=Math.floor(R.length/2);
+        var a=R.slice(0,h).reduce(function(x,y){return x+y;},0)/h;
+        var b=R.slice(R.length-h).reduce(function(x,y){return x+y;},0)/h;
+        if(!a) return "";
+        var d=Math.round((b/a-1)*100);
+        if(Math.abs(d)<8) return "Тренда нет: первая половина периода и вторая дают одну и ту же "+
+          "долю списаний. Это устойчивый процесс, а не разовые потери.";
+        return d>0
+          ? ("<b>Доля списаний растёт:</b> вторая половина периода "+up(d)+" к первой ("+
+             pc(Math.round(b*100)/100)+"% против "+pc(Math.round(a*100)/100)+"%). "+
+             "Списывают больше не потому, что больше производят.")
+          : ("Доля списаний снижается: вторая половина периода "+dn(d)+" к первой ("+
+             pc(Math.round(b*100)/100)+"% против "+pc(Math.round(a*100)/100)+"%).");})(),
+      (function(){
+        var L=W.by_product||[]; if(!L.length||!W.sum) return "";
+        var acc=0, k=0;
+        for(var i=0;i<L.length;i++){ acc+=S(L[i]); k++; if(acc>=W.sum*0.8) break; }
+        if(k>=L.length) return "Списания размазаны по всей номенклатуре: 80% набирается только "+
+          "всем списком из "+fmt(L.length)+" позиций. Точки приложения усилий здесь нет — "+
+          "это фон процесса, а не отдельные потери.";
+        return "<b>"+k+"</b> "+plural(k,"позиция","позиции","позиций")+" из "+fmt(L.length)+
+          " дают 80% всех списаний. Разбирать нужно их: остальные "+fmt(L.length-k)+
+          " — хвост, работа с которым не окупится.";})()
     ])+
     '<div class="card"><div class="ct">Списания по месяцам</div>'+
-    '<div class="cs">Всплеск обычно означает инвентаризацию или разовую порчу, ровный уровень — процесс.</div>'+
+    '<div class="cs">Всплеск обычно означает инвентаризацию или разовую порчу, ровный уровень — '+
+    'процесс. Клик по столбику показывает весь отчёт за этот месяц.</div>'+
     '<div style="height:250px"><canvas id="chWo"></canvas></div></div>'+
+    '<div class="card"><div class="ct">Списания к объёму производства</div>'+
+    '<div class="cs">Сумма списаний сама по себе растёт вместе с выпуском, поэтому экономисту '+
+    'нужна не она, а <b>доля</b>: сколько процентов товарного выпуска ушло в списание. '+
+    'Пунктир — средний уровень за период. Линия выше пунктира — месяц, в котором теряли больше '+
+    'обычного, даже если в тенге сумма выглядит привычной.</div>'+
+    '<div style="height:270px"><canvas id="chWoRatio"></canvas></div></div>'+
+    '<div class="card"><div class="ct">Правило Парето: где сосредоточены потери</div>'+
+    '<div class="cs">Позиции выстроены от крупных к мелким, линия — накопленная доля. '+
+    'Точка, где линия пересекает 80%, показывает, сколькими позициями закрывается основная '+
+    'часть списаний: именно с ними имеет смысл работать, остальное — хвост.</div>'+
+    '<div style="height:290px"><canvas id="chWoPareto"></canvas></div></div>'+
     '<div class="two">'+
       '<div class="card"><div class="ct">Что списываем</div>'+
       '<div class="cs">Все позиции за '+PER+', по сумме списания.</div>'+
@@ -665,24 +759,56 @@
   }
 
   // ── история пересчётов ───────────────────────────────────────
+  // Финансовая часть истории пересчётов: месяц, который не считали, — это не
+  // «недостач не было», а непроверенный остаток. Оцениваем его по тому, что
+  // этот же склад показывает, когда его всё-таки считают.
+  function histRisk(V){
+    var H=V.hist||[], mo=V.months||N, byName={}, out=[];
+    (V.by_store||[]).forEach(function(r){ byName[r.n]=r; });
+    H.forEach(function(h){
+      var st=byName[h.n];
+      var net=st? (st.s||0) : 0;              // чистая недостача склада за период
+      var perCount=h.cnt? net/h.cnt : 0;      // сколько находят за один пересчёт
+      var missed=Math.max(0, mo-h.cnt);
+      out.push({n:h.n, cnt:h.cnt, gap:h.gap, last:h.last, net:net,
+                per:perCount, missed:missed,
+                risk: perCount>0? perCount*missed : 0});
+    });
+    return out;
+  }
   function histTable(V){
     var H=V.hist||[]; if(!H.length) return '';
     var mo=V.months||N;
-    return '<div class="card"><div class="ct">Когда считали</div>'+
+    var R=histRisk(V);
+    var totalRisk=R.reduce(function(a,r){return a+r.risk;},0);
+    return '<div class="card"><div class="ct">Когда считали и чего это стоит</div>'+
       '<div class="cs">Склад, который не пересчитывают, — это не «нет недостач», '+
-      'а «недостачи не найдены». Норма для завода — раз в месяц, в последний день.</div>'+
+      'а «недостачи не найдены». Норма для завода — раз в месяц, в последний день. '+
+      '<b>Непроверенный остаток</b> — оценка того, сколько недостачи не нашли за пропущенные '+
+      'пересчёты: средняя недостача этого же склада за один пересчёт, умноженная на число '+
+      'пропущенных месяцев. Это не факт, а ожидаемая величина, но именно она показывает, '+
+      'во сколько обходится непроведённая инвентаризация.</div>'+
       '<table><tr><th class="l">Склад</th><th>Пересчётов</th><th>Из месяцев</th>'+
-      '<th>Последний</th><th>Дней назад</th><th class="l">Оценка</th></tr>'+
-      H.slice().sort(function(a,b){return a.cnt-b.cnt;}).map(function(h){
+      '<th>Последний</th><th>Дней назад</th><th>Нашли за период</th>'+
+      '<th>В среднем за пересчёт</th><th>Непроверенный остаток</th>'+
+      '<th class="l">Оценка</th></tr>'+
+      R.slice().sort(function(a,b){return b.risk-a.risk || a.cnt-b.cnt;}).map(function(h){
         var bad=h.cnt<mo-1||h.gap>45;
         return '<tr><td class="l">'+esc(h.n)+'</td>'+
           '<td data-v="'+h.cnt+'" class="'+(bad?'up':'down')+'" style="font-weight:700">'+h.cnt+'</td>'+
           '<td data-v="'+mo+'" style="color:#94a3b8">'+mo+'</td>'+
           '<td class="l" data-v="'+h.last.replace(/-/g,'')+'">'+h.last+'</td>'+
           '<td data-v="'+h.gap+'" class="'+(h.gap>45?'up':'')+'">'+h.gap+'</td>'+
+          '<td data-v="'+h.net+'" style="color:#94a3b8">'+(h.net>0? mln(h.net):'—')+'</td>'+
+          '<td data-v="'+Math.round(h.per)+'" style="color:#94a3b8">'+(h.per>0? mln(h.per):'—')+'</td>'+
+          '<td data-v="'+Math.round(h.risk)+'" class="'+(h.risk>0?'up':'')+'" style="font-weight:700">'+
+            (h.risk>0? mln(h.risk):'—')+'</td>'+
           '<td class="l" data-v="'+(bad?0:1)+'">'+(bad?
             '<span class="r">считают через раз</span>':'<span class="g">регулярно</span>')+'</td></tr>';
-      }).join("")+'</table></div>';
+      }).join("")+
+      (totalRisk>0? '<tr><td class="l" style="color:#fff">Итого непроверенный остаток</td>'+
+        '<td colspan="6"></td><td class="up" style="font-weight:800">'+mln(totalRisk)+'</td><td></td></tr>' : '')+
+      '</table></div>';
   }
 
   // ── инвентаризации ───────────────────────────────────────────
@@ -767,14 +893,24 @@
       (yearNetto? "К товарному выпуску чистая недостача — <b>"+
         (Math.round(V.net/yearNetto*1000)/10+"").replace(".",",")+"%</b>." : ""),
       (function(){
+        var R=histRisk(V), tot=R.reduce(function(a,r){return a+r.risk;},0);
+        if(tot<=0) return "";
+        var top=R.slice().sort(function(a,b){return b.risk-a.risk;}).filter(function(r){return r.risk>0;});
+        return "<b>Непроведённая инвентаризация стоит денег.</b> По складам, которые считают "+
+          "через раз, ожидаемая ненайденная недостача — <b>"+mln(tot)+"</b>"+
+          (yearNetto? " (это ещё "+pc(Math.round(tot/yearNetto*1000)/10)+"% товарного выпуска сверх "+
+            "того, что уже нашли)" : "")+". Больше всего у <b>"+esc(top[0].n)+"</b>: "+mln(top[0].risk)+
+          " за "+top[0].missed+" "+plural(top[0].missed,"пропущенный месяц","пропущенных месяца","пропущенных месяцев")+
+          ". Оценка считается по тому, что этот же склад показывает, когда его всё-таки считают.";})(),
+      (function(){
         var H=V.hist||[]; if(!H.length) return "";
         var mo=V.months||N;
         var bad=H.filter(function(h){return h.cnt<mo-1||h.gap>45;});
         if(!bad.length) return "Все склады пересчитывают регулярно — раз в месяц.";
         bad.sort(function(a,b){return a.cnt-b.cnt;});
         var top=bad.slice(0,3).map(function(h){
-          return "<b>"+esc(h.n)+"</b> — "+h.cnt+" раз"+(h.cnt===1?"":"а")+" за "+mo+" мес. (последний "+
-            h.last+")";}).join(", ");
+          return "<b>"+esc(h.n)+"</b> — "+h.cnt+" "+plural(h.cnt,"раз","раза","раз")+
+            " за "+mo+" мес. (последний "+h.last+")";}).join(", ");
         return "<b>Пересчитывают не все:</b> "+top+
           (bad.length>3? " и ещё "+(bad.length-3)+" склад"+(bad.length-3===1?"":"а") : "")+
           ". По этим складам недостача не «ноль», а «не искали» — цифры выше занижены ровно на то, "+
@@ -1069,6 +1205,7 @@
         CURTAB=b.getAttribute("data-p");
         var p=document.getElementById("p-"+CURTAB);
         if(p) p.classList.add("on");
+        setPitch();
       });
     });
     [].forEach.call(document.querySelectorAll(".chip[data-tc]"),function(c){
@@ -1159,7 +1296,7 @@
       function ucHint(){
         var h=document.getElementById("ucHint"); if(!h)return;
         h.innerHTML = UCsel.length
-          ? ("На графике "+UCsel.length+" позиц"+(UCsel.length===1?"ия":(UCsel.length<5?"ии":"ий"))+
+          ? ("На графике "+UCsel.length+" "+plural(UCsel.length,"позиция","позиции","позиций")+
              ": "+UCsel.map(function(idx,k){
                 return '<span class="dot" style="background:'+PAL2[k%PAL2.length]+'"></span>'+
                        esc(D.unitcost[idx].n);}).join(" &nbsp; ")+
@@ -1300,6 +1437,74 @@
                   y:{beginAtZero:true,ticks:{color:CTICK,font:{size:10},
                      callback:function(v){return v+" млн";}},grid:{color:CGRID}}}})});
       clickable("chWo");
+    }
+    // Доля списаний в товарном выпуске: нормированная величина, по которой
+    // только и можно судить, растут потери или просто растёт выпуск.
+    var cr=document.getElementById("chWoRatio");
+    if(cr&&D.writeoff&&D.writeoff.mo){
+      var mo=D.writeoff.mo;
+      var rat=mo.map(function(v,i){ return netto[i]? Math.round(v/netto[i]*1000)/10 : null; });
+      var okv=rat.filter(function(v,i){return v!==null && i<=closed;});
+      var mid=okv.length? okv.reduce(function(a,b){return a+b;},0)/okv.length : 0;
+      new Chart(cr,{data:{labels:D.mo_labels,datasets:[
+        {type:"bar",label:"Списано, млн ₸",_base:PAL[1],
+         data:mo.map(function(v){return v/1e6;}),
+         backgroundColor:mo.map(function(_,i){return shade(PAL[1],i);}),borderRadius:6,
+         order:3,yAxisID:"y"},
+        {type:"line",label:"Доля в товарном выпуске, %",data:rat,
+         borderColor:PAL[9],backgroundColor:PAL[9],borderWidth:2.5,pointRadius:4,
+         tension:.25,order:1,yAxisID:"y1",spanGaps:true},
+        {type:"line",label:"Средний уровень",data:rat.map(function(){return Math.round(mid*10)/10;}),
+         borderColor:"rgba(157,176,202,.7)",borderDash:[6,5],borderWidth:1.5,pointRadius:0,
+         order:2,yAxisID:"y1"}]},
+        options:chOpts({onClick:pickMonth,
+          plugins:{legend:{labels:{color:CLEG,boxWidth:11,font:{size:10.5},usePointStyle:true,
+                                   pointStyle:"circle",generateLabels:legLabels}},
+            tooltip:{backgroundColor:"rgba(20,28,48,.96)",borderColor:"#3b4a78",borderWidth:1,
+              titleColor:"#fff",bodyColor:"#dbe6f5",padding:10,cornerRadius:8,
+              callbacks:{title:function(c){var i=c[0].dataIndex;
+                           return D.mo_labels[i]+" "+YR+" · "+moStart(i)+"–"+moEnd(i);},
+                         label:function(c){ return c.datasetIndex===0
+                           ? ("списано "+c.parsed.y.toFixed(2)+" млн ₸")
+                           : (c.dataset.label+": "+pc(c.parsed.y)+"%"); }}}},
+          scales:{x:{ticks:{color:CTICK,font:{size:11}},grid:{display:false}},
+            y:{beginAtZero:true,position:"left",ticks:{color:CTICK,font:{size:10},
+               callback:function(v){return v+" млн";}},grid:{color:CGRID}},
+            y1:{beginAtZero:true,position:"right",ticks:{color:PAL[9],font:{size:10},
+               callback:function(v){return v+"%";}},grid:{display:false}}}})});
+      clickable("chWoRatio");
+    }
+    // Парето: сколько позиций закрывают 80% списаний.
+    var cp=document.getElementById("chWoPareto");
+    if(cp&&D.writeoff&&D.writeoff.by_product){
+      var L=LP(D.writeoff.by_product).slice(0,30);
+      var tot=sum(LP(D.writeoff.by_product))||1, run=0;
+      var cum=L.map(function(r){ run+=S(r); return Math.round(run/tot*1000)/10; });
+      new Chart(cp,{data:{labels:L.map(function(r){
+          return r.n.length>22? r.n.slice(0,22)+"…" : r.n;}),
+        datasets:[
+        {type:"bar",label:"Списано",_base:PAL[0],data:L.map(function(r){return S(r)/1e6;}),
+         backgroundColor:PAL[0],borderRadius:4,order:2,yAxisID:"y"},
+        {type:"line",label:"Накопленная доля, %",data:cum,borderColor:PAL[1],backgroundColor:PAL[1],
+         borderWidth:2.5,pointRadius:3,tension:.2,order:1,yAxisID:"y1"},
+        {type:"line",label:"Порог 80%",data:cum.map(function(){return 80;}),
+         borderColor:"rgba(157,176,202,.7)",borderDash:[6,5],borderWidth:1.5,pointRadius:0,
+         order:0,yAxisID:"y1"}]},
+        options:chOpts({
+          plugins:{legend:{labels:{color:CLEG,boxWidth:11,font:{size:10.5},usePointStyle:true,
+                                   pointStyle:"circle",generateLabels:legLabels}},
+            tooltip:{backgroundColor:"rgba(20,28,48,.96)",borderColor:"#3b4a78",borderWidth:1,
+              titleColor:"#fff",bodyColor:"#dbe6f5",padding:10,cornerRadius:8,
+              callbacks:{title:function(c){return L[c[0].dataIndex].n;},
+                         label:function(c){ return c.datasetIndex===0
+                           ? ("списано "+mln(S(L[c.dataIndex])))
+                           : (c.dataset.label+": "+pc(c.parsed.y)+"%"); }}}},
+          scales:{x:{ticks:{color:CTICK,font:{size:9},maxRotation:60,minRotation:45},
+                     grid:{display:false}},
+            y:{beginAtZero:true,position:"left",ticks:{color:CTICK,font:{size:10},
+               callback:function(v){return v+" млн";}},grid:{color:CGRID}},
+            y1:{beginAtZero:true,max:100,position:"right",ticks:{color:PAL[1],font:{size:10},
+               callback:function(v){return v+"%";}},grid:{display:false}}}})});
     }
   }
 

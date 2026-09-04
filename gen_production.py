@@ -655,7 +655,11 @@ def prev():
         return None
     try:
         t = open(OUT, encoding="utf-8").read()
-        return json.loads(t[t.find("{"):t.rfind("}") + 1])
+        # Раньше резали от первой «{» до последней «}». В названиях позиций
+        # встречаются фигурные скобки, и срез ловил лишнее — json падал с
+        # «Extra data», а защита от обеднённой сборки молча отключалась.
+        # Файл всегда имеет вид «window.PROD_DATA={...};», по нему и режем.
+        return json.loads(t[t.index("=") + 1:t.rindex(";")])
     except Exception as e:
         log(f"  прежний файл не прочитался ({e}) — проверку пропускаю"); return None
 
