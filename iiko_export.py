@@ -240,7 +240,11 @@ def main():
             "through": last_full.strftime("%d.%m.%Y"),
             "source": "iiko",
             "report": "выручка расходных накладных за вычетом возвратов",
-            "returns": returns_by_m}
+            "returns": returns_by_m,
+            # Второй канал возвратов — акты приёма услуг. Из выручки не вычтен
+            # (в документе нет номенклатуры), поэтому держим его отдельным
+            # полем: блок возвратов на странице показывает его своей меткой.
+            "returns_svc": svc_by_m}
     with open(os.path.join(HERE, "sales_meta.js"), "w", encoding="utf-8") as f:
         f.write("window.SALES_META=" + json.dumps(meta, ensure_ascii=False) + ";\n")
 
