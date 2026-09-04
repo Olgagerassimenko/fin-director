@@ -205,13 +205,23 @@
 
   // Складываем выбранные дни в один набор чисел
   function sum(days){
-    var out={views:0,uniq:{},pages:{},city:{},ctry:{},hours:new Array(24).fill(0),mob:0,desk:0};
+    var out={views:0,uniq:{},pages:{},city:{},ctry:{},hours:new Array(24).fill(0),mob:0,desk:0,
+             pageU:{},cityU:{},uSince:null,nDays:0,nPU:0};
     days.forEach(function(k){
       var d=DATA.days[k]; if(!d) return;
+      out.nDays++;
+      if(d.pu) out.nPU++;
       out.views+=d.v||0;
       (d.u||[]).forEach(function(x){ out.uniq[x]=1; });
       for(var p in (d.p||{})) out.pages[p]=(out.pages[p]||0)+d.p[p];
       for(var c in (d.city||{})) out.city[c]=(out.city[c]||0)+d.city[c];
+      // Устройства по страницам и городам считаются с того дня, как это
+      // завели. За более ранние дни поля просто нет — там будет прочерк.
+      if(d.pu){ if(!out.uSince||k<out.uSince) out.uSince=k;
+        for(var pp in d.pu){ var a=out.pageU[pp]||(out.pageU[pp]={});
+          (d.pu[pp]||[]).forEach(function(x){a[x]=1;}); } }
+      if(d.cu){ for(var cc in d.cu){ var b=out.cityU[cc]||(out.cityU[cc]={});
+          (d.cu[cc]||[]).forEach(function(x){b[x]=1;}); } }
       for(var q in (d.ctry||{})) out.ctry[q]=(out.ctry[q]||0)+d.ctry[q];
       (d.h||[]).forEach(function(v,i){ out.hours[i]+=v||0; });
       out.mob+=(d.dev&&d.dev.m)||0; out.desk+=(d.dev&&d.dev.d)||0;
@@ -226,15 +236,27 @@
     return ruDate(days[0])+" — "+ruDate(days[days.length-1])+" ("+days.length+" дн.)";
   }
 
-  function tableRows(obj, nameFn, total){
+  // uniq — сколько разных устройств пришлось на строку. Без этой колонки
+  // «19 открытий» читается неоднозначно: то ли девятнадцать человек, то ли
+  // один, который девятнадцать раз обновил страницу.
+  function tableRows(obj, nameFn, total, uniq){
     var rows=Object.keys(obj).map(function(k){return {k:k,n:obj[k]};})
       .sort(function(a,b){return b.n-a.n;}).slice(0,12);
     if(!rows.length) return '<div class="empty">За этот период заходов не было.</div>';
     var head = nameFn===label ? "Страница" : (nameFn===ctryName ? "Страна" : "Город");
-    return '<table><tr><th class="l">'+head+'</th><th>Открытий</th><th>Доля</th></tr>'+
+    var hasU = !!uniq;
+    return '<table><tr><th class="l">'+head+'</th>'+
+      (hasU?'<th>Устройств</th>':'')+'<th>Открытий</th>'+
+      (hasU?'<th>На одно</th>':'')+'<th>Доля</th></tr>'+
       rows.map(function(r){
         var pc=total?Math.round(r.n/total*100):0;
-        return '<tr><td class="l">'+nameFn(r.k)+'</td><td>'+fmt(r.n)+'</td><td style="color:#94a3b8">'+pc+'%</td></tr>';
+        var u=hasU? Object.keys(uniq[r.k]||{}).length : 0;
+        var per=(hasU&&u)? Math.round(r.n/u*10)/10 : 0;
+        return '<tr><td class="l">'+nameFn(r.k)+'</td>'+
+          (hasU?('<td style="font-weight:700">'+(u?fmt(u):'<span style="color:#475569">—</span>')+'</td>'):'')+
+          '<td>'+fmt(r.n)+'</td>'+
+          (hasU?('<td style="color:#94a3b8">'+(u?String(per).replace(".",","):'—')+'</td>'):'')+
+          '<td style="color:#94a3b8">'+pc+'%</td></tr>';
       }).join("")+'</table>';
   }
 
@@ -250,10 +272,23 @@
       kpi(fmt(S.desk)+" / "+fmt(S.mob),"С компьютера / с телефона","открытий с каждого вида устройств");
 
     var t=periodTitle(days);
-    document.getElementById("pgSub").textContent=t;
+    document.getElementById("pgSub").textContent=t+
+      (S.nPU>0 && S.nPU===S.nDays ? " · устройства и открытия по каждой странице" : "");
     document.getElementById("cySub").textContent=t;
-    document.getElementById("tPages").innerHTML=tableRows(S.pages,label,S.views);
-    document.getElementById("tCity").innerHTML=tableRows(S.city,cityName,S.views);
+    var hasPU = S.nPU>0 && S.nPU===S.nDays;
+    document.getElementById("tPages").innerHTML=
+      tableRows(S.pages,label,S.views,hasPU?S.pageU:null)+
+      (hasPU? '<div class="cs" style="margin-top:9px">«Устройств» — сколько разных компьютеров и '+
+        'телефонов открывало страницу. «На одно» — сколько открытий пришлось в среднем на одно '+
+        'устройство: единица значит «зашли и закрыли», больше трёх — страницу перечитывают.</div>'
+        : '<div class="cs" style="margin-top:9px">'+
+          (S.nPU? ('Сколько разных устройств открывало каждую страницу, Пульс начал считать '+
+            (S.uSince? ('с '+ruDate(S.uSince)) : 'недавно')+'. В выбранном периоде есть более '+
+            'ранние дни, поэтому по устройствам он неполный — показаны только открытия. '+
+            'Выберите период начиная с этой даты, и колонка появится.')
+           : 'За эти дни Пульс считал только открытия, без разбивки по устройствам.')+'</div>');
+    document.getElementById("tCity").innerHTML=
+      tableRows(S.city,cityName,S.views,hasPU?S.cityU:null);
 
     // Страны. По дням они пишутся только с 02.09.2026, а до этого копились
     // общей суммой. Поэтому показываем и выбранный период, и — всегда —

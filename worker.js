@@ -1258,6 +1258,17 @@ async function recordView(p, request, env) {
   if (dd.u.indexOf(vid) < 0 && dd.u.length < 5000) dd.u.push(vid);
   dd.p[p] = (dd.p[p] || 0) + 1;
   dd.city[city] = (dd.city[city] || 0) + 1;
+  // Сколько РАЗНЫХ устройств открывало каждую страницу и заходило из каждого
+  // города. Раньше по странице считались только открытия, и было не понять:
+  // девятнадцать заходов — это девятнадцать человек или один, обновлявший
+  // страницу. Храним те же короткие хэши, что и в dd.u, — адреса в базу
+  // по-прежнему не попадают.
+  if (!dd.pu) dd.pu = {};
+  if (!dd.cu) dd.cu = {};
+  const pl = dd.pu[p] || (dd.pu[p] = []);
+  if (pl.indexOf(vid) < 0 && pl.length < 300) pl.push(vid);
+  const cl = dd.cu[city] || (dd.cu[city] = []);
+  if (cl.indexOf(vid) < 0 && cl.length < 300) cl.push(vid);
   if (!dd.ctry) dd.ctry = {};
   dd.ctry[country] = (dd.ctry[country] || 0) + 1;
   dd.h[hour] = (dd.h[hour] || 0) + 1;
