@@ -32,6 +32,10 @@
    Из чего складывается себестоимость выпуска: мясо, молочка, овощи,
    упаковка. Отдельно — покупное сырьё и внутренний передел.
 
+7. ТЕХ.КАРТЫ: НОРМА ПРОТИВ ФАКТА
+   Себестоимость единицы, посчитанная по закладке из тех.карты и по
+   фактическим ценам сырья, против фактической себестоимости выпуска.
+
 Плюс себестоимость единицы товарного выпуска по месяцам: видно, дорожает ли
 производство само по себе, отдельно от объёма.
 
@@ -96,6 +100,11 @@ last_full = today - datetime.timedelta(days=1)
 YSTART = datetime.date(YEAR, 1, 1)
 YEND = last_full + datetime.timedelta(days=1)
 months = [m for m in range(1, 13) if datetime.date(YEAR, m, 1) <= last_full]
+# Последний ПОЛНОСТЬЮ закрытый месяц: только по нему можно сравнивать факт
+# с нормой — в незакрытом выпуск неполный.
+closed_months = [m for m in months
+                 if datetime.date(YEAR, m, calendar.monthrange(YEAR, m)[1]) <= last_full]
+CLOSED_KEY = f"{YEAR}-{closed_months[-1]:02d}" if closed_months else None
 
 MONEY = ["Sum.Incoming", "Sum.Outgoing"]
 FULL = ["Sum.Incoming", "Sum.Outgoing", "Amount.In", "Amount.Out"]
@@ -106,6 +115,7 @@ mo_gross, mo_netto = {}, {}
 out_tot, inp_tot, fin_tot = {}, {}, {}
 fin_by_mo, inp_by_mo, fin_qty_mo = {}, {}, {}
 units = {}
+pid_name, pid_unit, pid_cost, pid_qty, fact_pid = {}, {}, {}, {}, {}
 
 log("\n-- выпуск --")
 for m in months:
@@ -114,7 +124,7 @@ for m in months:
     if d2 < d1:
         continue
     key = f"{YEAR}-{m:02d}"
-    rows = olap(["PRODUCTION"], ["Product.Name", "Product.MeasureUnit"],
+    rows = olap(["PRODUCTION"], ["Product.Id", "Product.Name", "Product.MeasureUnit"],
                 d1, d2 + datetime.timedelta(days=1), FULL)
     if not rows:
         log(f"  {RUM[m]}: пусто"); continue
@@ -125,6 +135,18 @@ for m in months:
         if not name:
             continue
         units.setdefault(name, (x.get("Product.MeasureUnit") or "").strip())
+        # для тех.карт: цена ингредиента по фактическим списаниям за весь год
+        # и фактическая себестоимость единицы за последний закрытый месяц
+        pid = x.get("Product.Id")
+        if pid:
+            pid_name[pid] = name
+            pid_unit[pid] = (x.get("Product.MeasureUnit") or "").strip()
+            pid_cost[pid] = pid_cost.get(pid, 0.0) + (x.get("Sum.Outgoing") or 0)
+            pid_qty[pid] = pid_qty.get(pid, 0.0) + (x.get("Amount.Out") or 0)
+            if key == CLOSED_KEY:
+                f = fact_pid.setdefault(pid, {"s": 0.0, "q": 0.0})
+                f["s"] += x.get("Sum.Incoming") or 0
+                f["q"] += x.get("Amount.In") or 0
         r = per.setdefault(name, {"i": 0.0, "o": 0.0, "ai": 0.0, "ao": 0.0})
         r["i"] += x.get("Sum.Incoming") or 0
         r["o"] += x.get("Sum.Outgoing") or 0
@@ -261,8 +283,12 @@ transf = split_report(["TRANSFORMATION"], "переработка")
 
 # ═════════════════════ 4. СПИСАНИЯ ═════════════════════
 log("\n-- списания --")
-wo_prod, wo_store, wo_mo = {}, {}, {}
-for x in olap(["WRITEOFF"], ["Product.Name", "Store", "DateTime.DateTyped"],
+# Причина списания в iiko — это счёт списания (Account.Name). Если склад
+# ленится, все списания уходят на технический счёт, названный по складу,
+# и причины в учёте попросту нет. Это само по себе результат, который надо
+# показать: счета «Бракераж», «Проработка блюд» существуют, но пустые.
+wo_prod, wo_store, wo_mo, wo_acc = {}, {}, {}, {}
+for x in olap(["WRITEOFF"], ["Product.Name", "Store", "Account.Name", "DateTime.DateTyped"],
               YSTART, YEND, ["Sum.Outgoing"]):
     v = x.get("Sum.Outgoing") or 0
     if v <= 0:
@@ -270,8 +296,10 @@ for x in olap(["WRITEOFF"], ["Product.Name", "Store", "DateTime.DateTyped"],
     n = (x.get("Product.Name") or "—").strip() or "—"
     st = (x.get("Store") or "—").strip() or "—"
     k = str(x.get("DateTime.DateTyped") or "")[:7].replace(".", "-")
+    ac = (x.get("Account.Name") or "—").strip() or "—"
     wo_prod[n] = wo_prod.get(n, 0) + v
     wo_store[st] = wo_store.get(st, 0) + v
+    wo_acc[ac] = wo_acc.get(ac, 0) + v
     if k:
         wo_mo[k] = wo_mo.get(k, 0) + v
 writeoff = {
@@ -282,8 +310,18 @@ writeoff = {
     "by_store": sorted([{"n": k, "s": round(v)} for k, v in wo_store.items()],
                        key=lambda x: -x["s"]),
     "mo": [round(wo_mo.get(k, 0)) for k in mo_keys],
+    # Счёт, названный так же, как склад, причиной не является — это «списано
+    # со склада N», то есть причина не указана.
+    "by_reason": sorted([{"n": k, "s": round(v),
+                          "named": 0 if (k in wo_store or k.startswith(("Склад", "Основной"))) else 1}
+                         for k, v in wo_acc.items()], key=lambda x: -x["s"]),
+    "named_sum": round(sum(v for k, v in wo_acc.items()
+                           if not (k in wo_store or k.startswith(("Склад", "Основной"))))),
 }
 log(f"  списано: {writeoff['sum']/1e6:.1f} млн, позиций {writeoff['n']}")
+log(f"  с указанной причиной: {writeoff['named_sum']/1e6:.2f} млн из {writeoff['sum']/1e6:.1f} млн")
+for r in writeoff["by_reason"][:6]:
+    log(f"      {r['n'][:38]:40} {r['s']/1e6:8.2f} млн{'  <- причина' if r['named'] else ''}")
 
 
 # ═════════════════ 5. ИНВЕНТАРИЗАЦИИ ═════════════════
@@ -294,6 +332,7 @@ log(f"  списано: {writeoff['sum']/1e6:.1f} млн, позиций {writeo
 log("\n-- инвентаризации --")
 inv_store, inv_prod = {}, {}
 inv_mo_in, inv_mo_out = {}, {}
+inv_dates = {}          # склад -> множество дат, когда пересчёт реально был
 inv_zero = 0
 for x in olap(["INVENTORY_CORRECTION"],
               ["Product.Name", "Product.MeasureUnit", "Store", "DateTime.DateTyped"],
@@ -310,6 +349,9 @@ for x in olap(["INVENTORY_CORRECTION"],
     pr = inv_prod.setdefault(n, {"u": (x.get("Product.MeasureUnit") or "").strip(),
                                  "si": 0.0, "so": 0.0, "qi": 0.0, "qo": 0.0})
     b = inv_store.setdefault(st, {"i": 0.0, "o": 0.0})
+    dt = str(x.get("DateTime.DateTyped") or "")[:10].replace(".", "-")
+    if dt:
+        inv_dates.setdefault(st, set()).add(dt)
     if ai > 0:
         pr["si"] += v; pr["qi"] += ai; b["i"] += v
         inv_mo_in[k] = inv_mo_in.get(k, 0) + v
@@ -346,11 +388,26 @@ invent = {
                        key=lambda r: -r["s"]),
     "short": _inv_rows(-1),
     "over": _inv_rows(1),
+    # История проведения: сколько раз склад считали, когда в последний раз и
+    # сколько месяцев подряд пропущено. Склад, который не считают, — это не
+    # «нет недостач», а «недостачи не найдены».
+    "hist": sorted([{"n": st,
+                     "cnt": len(ds),
+                     "first": min(ds), "last": max(ds),
+                     "dates": sorted(ds),
+                     "gap": (last_full - datetime.date(*map(int, max(ds).split("-")))).days}
+                    for st, ds in inv_dates.items()],
+                   key=lambda r: (r["cnt"], -r["gap"])),
+    "months": len(mo_keys),
 }
 log(f"  излишки {inv_in/1e6:.1f} млн · недостачи {inv_out/1e6:.1f} млн · "
     f"чистая недостача {(inv_out-inv_in)/1e6:.1f} млн · позиций {len(inv_prod)}")
 for r in invent["by_store"][:6]:
     log(f"      {r['n'][:34]:36} сальдо {-r['s']/1e6:+8.2f} млн")
+log("  история пересчётов:")
+for h in invent["hist"]:
+    log(f"      {h['n'][:32]:34} пересчётов {h['cnt']:2}  последний {h['last']}  "
+        f"({h['gap']} дн. назад)")
 
 
 
@@ -423,6 +480,110 @@ for r in groups["inp"][:8]:
 
 
 
+# ═════════════ 7. ТЕХ.КАРТЫ: НОРМА ПРОТИВ ФАКТА ═════════════
+# iiko отдаёт тех.карты через /resto/api/v2/assemblyCharts/getAll (около 18 МБ).
+# Норма закладки на единицу выпуска = amountMiddle / assembledAmount.
+# Цену ингредиента берём не прайсовую, а фактическую — по его списаниям в
+# производство за год: Sum.Outgoing / Amount.Out. Факт по изделию — за
+# последний закрытый месяц: Sum.Incoming / Amount.In.
+# Позиции, где хотя бы у одного ингредиента нет фактической цены, в сравнение
+# не берём: неполная норма всегда «дешевле» факта, и вывод был бы ложным.
+log("\n-- тех.карты --")
+techcard = None
+try:
+    def _api(path, **params):
+        r = s.get(f"{URL}{path}", params=params,
+                  headers={"Cookie": f"key={tok}"}, verify=False, timeout=900)
+        if r.status_code != 200:
+            raise RuntimeError(f"{path} -> {r.status_code} {r.text[:160]}")
+        return r.json()
+
+    if not CLOSED_KEY:
+        raise RuntimeError("нет ни одного закрытого месяца")
+    cm = int(CLOSED_KEY[5:7])
+    d_from = datetime.date(YEAR, cm, 1)
+    d_to = datetime.date(YEAR, cm, calendar.monthrange(YEAR, cm)[1])
+
+    charts_raw = _api("/resto/api/v2/assemblyCharts/getAll",
+                      dateFrom=d_from.isoformat(), dateTo=d_to.isoformat(),
+                      includeDeletedProducts="false", includePreparedCharts="false")
+    charts = {}
+    for c in charts_raw.get("assemblyCharts", []):
+        pid = c.get("assembledProductId")
+        if not pid:
+            continue
+        old = charts.get(pid)
+        if old is None or str(c.get("dateFrom") or "") > str(old.get("dateFrom") or ""):
+            charts[pid] = c
+    log(f"  тех.карт: {len(charts)}")
+
+    price = {pid: pid_cost[pid] / pid_qty[pid]
+             for pid in pid_qty if pid_qty[pid] > 1e-4 and pid_cost.get(pid, 0) > 0}
+    log(f"  ингредиентов с фактической ценой: {len(price)}")
+
+    rows_tc, no_card = [], []
+    n_fact = n_partial = 0
+    for pid, f in fact_pid.items():
+        if f["q"] <= 1e-4 or f["s"] <= 0:
+            continue
+        n_fact += 1
+        fact_unit = f["s"] / f["q"]
+        c = charts.get(pid)
+        if not c:
+            no_card.append({"n": pid_name.get(pid, "—"), "u": pid_unit.get(pid, ""),
+                            "s": round(f["s"]), "kg": round(f["q"], 1)})
+            continue
+        out = c.get("assembledAmount") or 0
+        if out <= 0:
+            continue
+        plan = 0.0
+        miss = tot = 0
+        for it in (c.get("items") or []):
+            q = (it.get("amountMiddle") or it.get("amountOut") or it.get("amountIn") or 0) / out
+            if not q:
+                continue
+            tot += 1
+            pr = price.get(it.get("productId"))
+            if pr is None:
+                miss += 1
+                continue
+            plan += q * pr
+        if plan <= 0 or tot == 0:
+            continue
+        if miss:
+            n_partial += 1
+            continue
+        rows_tc.append({"n": pid_name.get(pid, "—"), "u": pid_unit.get(pid, ""),
+                        "kg": round(f["q"], 1), "s": round(f["s"]),
+                        "plan": round(plan, 1), "fact": round(fact_unit, 1),
+                        "d": round((fact_unit / plan - 1) * 100, 1),
+                        "ing": tot})
+    rows_tc.sort(key=lambda r: -r["s"])
+    no_card.sort(key=lambda r: -r["s"])
+
+    plan_sum = sum(r["plan"] * r["kg"] for r in rows_tc)
+    fact_sum = sum(r["fact"] * r["kg"] for r in rows_tc)
+    techcard = {
+        "month": RUM[cm],
+        "n_cards": len(charts), "n_fact": n_fact,
+        "n_matched": len(rows_tc), "n_partial": n_partial,
+        "n_nocard": len(no_card),
+        "plan_sum": round(plan_sum), "fact_sum": round(fact_sum),
+        "rows": rows_tc[:ALL_TOP],
+        "nocard": no_card[:ALL_TOP],
+    }
+    log(f"  выпущено позиций в {RUM[cm]}: {n_fact}; сравнимо {len(rows_tc)}, "
+        f"без цен на часть сырья {n_partial}, без карты {len(no_card)}")
+    if plan_sum:
+        log(f"  по сравнимым: норма {plan_sum/1e6:.1f} млн, факт {fact_sum/1e6:.1f} млн "
+            f"({(fact_sum/plan_sum-1)*100:+.1f}%)")
+    for r in rows_tc[:6]:
+        log(f"      {r['n'][:34]:36} норма {r['plan']:10.1f}  факт {r['fact']:10.1f} ₸/{r['u']:5} {r['d']:+6.1f}%")
+except Exception as e:
+    log(f"  тех.карты не собрались ({e}) — вкладка покажет прежние данные")
+
+
+
 data = {
     "updated": datetime.datetime.now().strftime("%d.%m.%Y %H:%M"),
     "through": last_full.strftime("%d.%m.%Y"),
@@ -443,6 +604,7 @@ data = {
     "writeoff": writeoff,
     "invent": invent,
     "groups": groups,
+    "techcard": techcard,
 }
 
 
@@ -457,6 +619,9 @@ def prev():
 
 
 p = prev()
+if techcard is None and p and p.get("techcard"):
+    data["techcard"] = p["techcard"]
+    log("  тех.карты взяты из прежней сборки")
 if p and p.get("mo_keys"):
     if len(mo_keys) < len(p["mo_keys"]) or len(fin_tot) < p.get("fin_count", 0) * 0.7:
         log("")

@@ -134,8 +134,9 @@
     return '<div class="card ins"><div class="ct">Что это значит</div>'+
       '<ul class="il"><li>'+items.join('</li><li>')+'</li></ul></div>';
   }
-  function up(v){ return '<span class="r">+'+v+'%</span>'; }
-  function dn(v){ return '<span class="g">'+v+'%</span>'; }
+  function pc(v){ return String(v).replace(".",",").replace("-","−"); }
+  function up(v){ return '<span class="r">+'+pc(v)+'%</span>'; }
+  function dn(v){ return '<span class="g">'+pc(v)+'%</span>'; }
   function sig(d){ return d>0? up(d) : dn(d); }
 
   var _tid=0;
@@ -167,7 +168,8 @@
   // ── вкладки ──────────────────────────────────────────────────
   var TABS=[["out","Выпуск"],["cost","Себестоимость единицы"],
             ["dis","Разделка"],["tr","Переработка и пересорт"],["wo","Списания"],
-            ["inv","Инвентаризации"],["grp","Из чего себестоимость"]];
+            ["inv","Инвентаризации"],["tc","Тех.карта"],
+            ["grp","Из чего себестоимость"]];
 
   app.innerHTML =
   '<div class="tabs">'+TABS.map(function(t,i){
@@ -257,6 +259,9 @@
 
   // ═══ ИНВЕНТАРИЗАЦИИ ═══
   '<div class="pane" id="p-inv">'+ invPane() +'</div>'+
+
+  // ═══ ТЕХ.КАРТА ═══
+  '<div class="pane" id="p-tc">'+ tcPane() +'</div>'+
 
   // ═══ СТРУКТУРА ПО ГРУППАМ ═══
   '<div class="pane" id="p-grp">'+ grpPane() +'</div>';
@@ -391,6 +396,17 @@
       (W.by_store&&W.by_store.length? "Больше всего списывает <b>"+esc(W.by_store[0].n)+"</b> — "+
         pct(W.by_store[0].s,W.sum)+"% суммы. С него и надо начинать разбор." : ""),
       (function(){
+        if(!W.by_reason||!W.by_reason.length) return "";
+        var named=W.named_sum||0;
+        if(named>W.sum*0.5) return "Причина указана у <b>"+pct(named,W.sum)+"%</b> списаний — учёт заполняется.";
+        var real=W.by_reason.filter(function(r){return r.named;});
+        return "<b>Причина списания не указывается.</b> Из "+mln(W.sum)+
+          " на счета с настоящей причиной (бракераж, проработка блюд, возвраты) отнесено "+
+          mln(named)+" — практически ноль. Всё остальное списано на технические счета, "+
+          "названные по складу, то есть в системе просто «списали со склада». "+
+          (real.length? "Счета для причин в плане счетов есть ("+real.length+" шт.), их не используют. " : "")+
+          "Пока это так, нельзя ответить, что из "+mln(W.sum)+" — брак, что просрочка, а что зачистка.";})(),
+      (function(){
         var m=W.mo||[], lim=Math.max(1,closed+1), mx=0;
         for(var i=1;i<lim;i++) if(m[i]>m[mx])mx=i;
         if(!m[mx]||!avg) return "";
@@ -408,9 +424,50 @@
       '<div class="card"><div class="ct">Откуда списываем</div>'+
       '<div class="cs">Склады и цеха. Здесь видно, где именно теряется товар.</div>'+
       rows(W.by_store,sum(W.by_store),false,false)+'</div>'+
-    '</div>';
+    '</div>'+
+    (W.by_reason&&W.by_reason.length ?
+      '<div class="card"><div class="ct">Почему списываем</div>'+
+      '<div class="cs">Причина списания в iiko — это счёт, на который его отнесли. '+
+      'Счёт, названный так же, как склад, причиной не является: это просто «списано со склада N».</div>'+
+      reasonTable(W)+'</div>' : '');
   }
 
+
+  // ── причины списания ─────────────────────────────────────────
+  function reasonTable(W){
+    var L=W.by_reason||[], max=L[0]?L[0].s:1;
+    return '<table><tr><th class="l">Счёт списания</th><th>Сумма</th><th>Доля</th>'+
+      '<th class="l">Это причина?</th><th class="l" style="width:100px">Вес</th></tr>'+
+      L.map(function(r){
+        return '<tr><td class="l">'+esc(r.n)+'</td>'+
+          '<td data-v="'+r.s+'">'+mln(r.s)+'</td>'+
+          '<td data-v="'+r.s+'" style="color:#94a3b8">'+pct(r.s,W.sum)+'%</td>'+
+          '<td class="l" data-v="'+(r.named?1:0)+'">'+
+            (r.named? '<span class="g">да</span>' : '<span style="color:#64748b">нет — просто склад</span>')+'</td>'+
+          '<td><div class="bar"><i style="width:'+Math.max(2,Math.round(r.s/max*100))+'%"></i></div></td></tr>';
+      }).join("")+'</table>';
+  }
+
+  // ── история пересчётов ───────────────────────────────────────
+  function histTable(V){
+    var H=V.hist||[]; if(!H.length) return '';
+    var mo=V.months||N;
+    return '<div class="card"><div class="ct">Когда считали</div>'+
+      '<div class="cs">Склад, который не пересчитывают, — это не «нет недостач», '+
+      'а «недостачи не найдены». Норма для завода — раз в месяц, в последний день.</div>'+
+      '<table><tr><th class="l">Склад</th><th>Пересчётов</th><th>Из месяцев</th>'+
+      '<th>Последний</th><th>Дней назад</th><th class="l">Оценка</th></tr>'+
+      H.slice().sort(function(a,b){return a.cnt-b.cnt;}).map(function(h){
+        var bad=h.cnt<mo-1||h.gap>45;
+        return '<tr><td class="l">'+esc(h.n)+'</td>'+
+          '<td data-v="'+h.cnt+'" class="'+(bad?'up':'down')+'" style="font-weight:700">'+h.cnt+'</td>'+
+          '<td data-v="'+mo+'" style="color:#94a3b8">'+mo+'</td>'+
+          '<td class="l" data-v="'+h.last.replace(/-/g,'')+'">'+h.last+'</td>'+
+          '<td data-v="'+h.gap+'" class="'+(h.gap>45?'up':'')+'">'+h.gap+'</td>'+
+          '<td class="l" data-v="'+(bad?0:1)+'">'+(bad?
+            '<span class="r">считают через раз</span>':'<span class="g">регулярно</span>')+'</td></tr>';
+      }).join("")+'</table></div>';
+  }
 
   // ── инвентаризации ───────────────────────────────────────────
   function invPane(){
@@ -484,12 +541,26 @@
           "расхода, а всплывают раз в месяц одной суммой при пересчёте — тогда это вопрос к учёту, "+
           "а не к сохранности.";})(),
       (yearNetto? "К товарному выпуску чистая недостача — <b>"+
-        (Math.round(V.net/yearNetto*1000)/10+"").replace(".",",")+"%</b>." : "")
+        (Math.round(V.net/yearNetto*1000)/10+"").replace(".",",")+"%</b>." : ""),
+      (function(){
+        var H=V.hist||[]; if(!H.length) return "";
+        var mo=V.months||N;
+        var bad=H.filter(function(h){return h.cnt<mo-1||h.gap>45;});
+        if(!bad.length) return "Все склады пересчитывают регулярно — раз в месяц.";
+        bad.sort(function(a,b){return a.cnt-b.cnt;});
+        var top=bad.slice(0,3).map(function(h){
+          return "<b>"+esc(h.n)+"</b> — "+h.cnt+" раз"+(h.cnt===1?"":"а")+" за "+mo+" мес. (последний "+
+            h.last+")";}).join(", ");
+        return "<b>Пересчитывают не все:</b> "+top+
+          (bad.length>3? " и ещё "+(bad.length-3)+" склад"+(bad.length-3===1?"":"а") : "")+
+          ". По этим складам недостача не «ноль», а «не искали» — цифры выше занижены ровно на то, "+
+          "что там не посчитано. Подробности в таблице «Когда считали».";})()
     ])+
     '<div class="card"><div class="ct">Недостачи и излишки по месяцам</div>'+
     '<div class="cs">Красное — недостачи, зелёное — излишки. Последний месяц может быть '+
     'неполным: инвентаризация проводится не каждый день.</div>'+
     '<div style="height:250px"><canvas id="chInv"></canvas></div></div>'+
+    histTable(V)+
     '<div class="card"><div class="ct">Где расходится учёт</div>'+
     '<div class="cs">Сальдо по складам. Минус — недостача, плюс — излишек.</div>'+
     storeTable()+'</div>'+
@@ -503,6 +574,100 @@
     '</div>';
   }
 
+
+
+  // ── тех.карта: норма против факта ────────────────────────────
+  function tcPane(){
+    var T=D.techcard;
+    if(!T||!T.rows||!T.rows.length)
+      return '<div class="card"><div class="ct">Тех.карта</div>'+
+        '<div class="cs">Сравнение нормы с фактом появится после ближайшей ночной сборки: '+
+        'тех.карты тянутся из iiko отдельным запросом.</div></div>';
+
+    var dev = T.plan_sum? (T.fact_sum/T.plan_sum-1)*100 : 0;
+    var over = T.rows.filter(function(r){return r.d>1;});
+    var under = T.rows.filter(function(r){return r.d<-1;});
+    var exact = T.rows.length-over.length-under.length;
+    var overMoney = over.reduce(function(a,r){return a+(r.fact-r.plan)*r.kg;},0);
+    var nocardSum = (T.nocard||[]).reduce(function(a,r){return a+r.s;},0);
+
+    function tcTable(list,neg){
+      if(!list||!list.length) return '<div class="empty">Таких позиций нет.</div>';
+      var id='tc'+(++_tid), big=list.length>25;
+      var html='<table id="'+id+'"><tr><th class="l">Позиция</th><th>Норма, ₸/ед.</th>'+
+        '<th>Факт, ₸/ед.</th><th>Отклонение</th><th>Выпуск</th><th>Цена отклонения</th></tr>'+
+        list.map(function(r){
+          var money=(r.fact-r.plan)*r.kg;
+          return '<tr><td class="l">'+esc(r.n)+'</td>'+
+            '<td data-v="'+r.plan+'">'+fmt(r.plan)+'</td>'+
+            '<td data-v="'+r.fact+'">'+fmt(r.fact)+'</td>'+
+            '<td data-v="'+r.d+'" class="'+(r.d>0?'up':(r.d<0?'down':''))+'" style="font-weight:700">'+
+              (r.d>0?'+':'')+String(r.d).replace(".",",")+'%</td>'+
+            '<td data-v="'+r.kg+'" style="color:#94a3b8">'+fmt(r.kg)+' '+esc(r.u||'')+'</td>'+
+            '<td data-v="'+money+'" class="'+(money>0?'up':'down')+'">'+
+              (money>0?'+':'−')+mln(Math.abs(money))+'</td></tr>';
+        }).join("")+'</table>';
+      if(!big) return html;
+      return '<input class="flt" data-t="'+id+'" placeholder="Поиск по названию — всего '+
+        fmt(list.length)+' позиций">'+'<div class="tall">'+html+'</div>'+
+        '<div class="cnt2">Показано <b class="cnt" data-t="'+id+'">'+fmt(list.length)+'</b> из '+
+        fmt(list.length)+' · сортировка — клик по заголовку</div>';
+    }
+
+    return '<div class="kpis">'+
+      kpi(Math.abs(dev)>3?"warn":"hi",(dev>0?"+":"")+dev.toFixed(1).replace(".",",")+"%",
+          "Факт против нормы за "+T.month,
+          "фактическое сырьё "+mln(T.fact_sum)+" против "+mln(T.plan_sum)+" по тех.картам")+
+      kpi("",fmt(T.n_matched)+" из "+fmt(T.n_fact),"Позиций сравнено",
+          "остальные — без карты ("+fmt(T.n_nocard)+") или без фактической цены части сырья ("+
+          fmt(T.n_partial)+")")+
+      kpi(over.length?"warn":"",fmt(over.length),"Дороже нормы",
+          overMoney? "перерасход "+mln(overMoney)+" за месяц" : "перерасхода нет")+
+      kpi("",fmt(T.n_cards),"Тех.карт в iiko",
+          "действующих на "+T.month+"; без карты выпущено на "+mln(nocardSum))+
+    '</div>'+
+    '<div class="note"><b>Как это посчитано.</b> Норма берётся из тех.карты iiko: закладка '+
+    'каждого ингредиента, делённая на выход по карте. Цена ингредиента — <b>не прайсовая, '+
+    'а фактическая</b>: сколько тенге за единицу этого сырья реально списано в производство '+
+    'за год. Факт — стоимость выпуска, делённая на количество, за '+T.month+
+    ' (последний закрытый месяц). Позиции, где хотя бы у одного ингредиента нет фактической '+
+    'цены, в сравнение не берём: неполная норма всегда выглядит дешевле факта, и вывод был бы '+
+    'ложным. Поэтому сравнение честное, но не по всему ассортименту.</div>'+
+    insight([
+      "По сопоставимым позициям завод укладывается в норму "+
+        (Math.abs(dev)<1? "<b>точно</b>: расхождение меньше процента."
+         : ("с расхождением <b>"+(dev>0?"+":"")+dev.toFixed(1).replace(".",",")+"%</b> — "+
+            (dev>0? "фактически сырья уходит больше, чем записано в картах."
+                  : "фактически сырья уходит меньше, чем записано в картах."))),
+      "<b>"+exact+"</b> позиций сходятся с картой в пределах процента — там учёт и рецептура "+
+        "живут одной жизнью. Разбирать надо не их, а хвосты.",
+      (over.length? "Дороже нормы — <b>"+over.length+"</b> позиций"+
+        (overMoney? ", и это "+mln(overMoney)+" лишнего сырья за месяц" : "")+
+        ". Крупнейшая: <b>"+esc(over[0].n)+"</b>, факт "+fmt(over[0].fact)+" ₸/"+esc(over[0].u)+
+        " против нормы "+fmt(over[0].plan)+" ("+up(over[0].d)+"). Это либо перерасход в цехе, "+
+        "либо замена ингредиента, которую не внесли в карту." : ""),
+      (under.length? "Дешевле нормы — <b>"+under.length+"</b> позиций. Это не всегда хорошо: "+
+        "чаще означает, что карта устарела и в ней записано больше сырья, чем кладут. "+
+        "Крупнейшая: <b>"+esc(under[0].n)+"</b> ("+dn(under[0].d)+")." : ""),
+      (T.n_nocard? "<b>"+fmt(T.n_nocard)+"</b> позиций выпускались без тех.карты, на "+
+        mln(nocardSum)+". По ним нормы просто нет — себестоимость такая, какая получилась." : "")
+    ])+
+    '<div class="card"><div class="ct">Кто дальше всех от нормы</div>'+
+    '<div class="cs">Отклонение факта от нормы в процентах. Столбик вправо — сырья ушло больше, '+
+    'чем по карте; влево — меньше.</div>'+
+    '<div style="height:330px"><canvas id="chTc"></canvas></div></div>'+
+    '<div class="card"><div class="ct">Дороже нормы</div>'+
+    '<div class="cs">Фактическая себестоимость единицы выше расчётной по тех.карте. '+
+    '«Цена отклонения» — во сколько это обошлось за '+T.month+'.</div>'+
+    tcTable(over,false)+'</div>'+
+    '<div class="card"><div class="ct">Дешевле нормы</div>'+
+    '<div class="cs">Обычно означает устаревшую карту: в ней записано больше сырья, чем кладут.</div>'+
+    tcTable(under,true)+'</div>'+
+    ((T.nocard&&T.nocard.length)?
+      '<div class="card"><div class="ct">Выпускается без тех.карты</div>'+
+      '<div class="cs">По этим позициям нормы нет вовсе — сравнивать не с чем.</div>'+
+      rows(T.nocard,nocardSum,false,true)+'</div>' : '');
+  }
 
   // ── структура по группам номенклатуры ────────────────────────
   function grpPane(){
@@ -695,6 +860,22 @@
           scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
                   y:{type:"logarithmic",ticks:{color:"#8091a8",font:{size:10}},grid:{color:"#1b2636"}}}}});
     });
+    var ct=document.getElementById("chTc");
+    if(ct&&D.techcard&&D.techcard.rows&&D.techcard.rows.length){
+      var R=D.techcard.rows.slice().filter(function(r){return Math.abs(r.d)>0.5;});
+      R.sort(function(a,b){return Math.abs(b.d)-Math.abs(a.d);});
+      R=R.slice(0,15).sort(function(a,b){return b.d-a.d;});
+      new Chart(ct,{type:"bar",data:{labels:R.map(function(r){
+          return r.n.length>26? r.n.slice(0,26)+"…" : r.n;}),
+        datasets:[{label:"Отклонение от нормы, %",data:R.map(function(r){return r.d;}),
+          backgroundColor:R.map(function(r){return r.d>0? "#f87171" : "#34d399";}),borderRadius:4}]},
+        options:{indexAxis:"y",maintainAspectRatio:false,
+          plugins:{legend:{display:false},
+            tooltip:{callbacks:{label:function(c){return (c.parsed.x>0?"+":"")+c.parsed.x+"% к норме";}}}},
+          scales:{x:{ticks:{color:"#8091a8",font:{size:10},callback:function(v){return v+"%";}},
+                     grid:{color:"#1b2636"}},
+                  y:{ticks:{color:"#cbd5e1",font:{size:10}},grid:{display:false}}}}});
+    }
     var cg=document.getElementById("chGrp");
     if(cg&&D.groups&&D.groups.inp){
       var PAL=["#7c3aed","#e0b13c","#34d399","#38bdf8","#f472b6","#fb923c","#475569"];
