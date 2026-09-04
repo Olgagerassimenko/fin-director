@@ -1,0 +1,93 @@
+name: Пульс — ДЗ/КЗ каждый час
+
+# Зачем отдельное расписание.
+# Полный прогон (pulse-daily) ходит четыре раза в сутки, последний — в 20:00 по Алматы.
+# Таблицу «Баланс по поставщикам и дебиторам» заполняют вечером, нередко после 22:00,
+# и до утра дашборд показывал прошлую неделю: 4 сентября на странице стояло
+# 208 594 403 ₸ (колонка «ДЗ на 28.08»), хотя в таблице уже было 215 259 795 ₸.
+# ДЗ/КЗ читаются из одного CSV-файла Google и считаются за секунды, поэтому
+# гонять их раз в час дешевле, чем объяснять расхождение.
+#
+# iiko здесь не трогаем: только Google-таблица, пересборка dz_kz.js и публикация.
+
+on:
+  schedule:
+    - cron: "5 * * * *"      # каждый час в:05, чтобы не сталкиваться с ДДС в:00 и :30
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Та же группа, что у полного прогона: два деплоя одновременно опубликовали бы
+# половину свежих файлов и половину старых.
+concurrency:
+  group: pulse-daily
+  cancel-in-progress: false
+
+jobs:
+  dzkz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Получить репозиторий
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Зависимости
+        run: pip install -r requirements.txt
+
+      # dz_kz_months.py считает помесячные итоги и следом сам вызывает
+      # parse_dz_kz.py, который пересобирает dz_kz.js для страницы ДЗ/КЗ.
+      - name: "ДЗ/КЗ из Google"
+        timeout-minutes: 5
+        run: python dz_kz_months.py
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Публикация (Cloudflare Workers)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@3 deploy
+
+      # dz_kz.js весит четыре килобайта, поэтому в отличие от страницы ДДС
+      # сохраняем его в репозиторий: история не распухнет, зато полный прогон
+      # и локальные сборки всегда стартуют со свежих данных.
+      - name: Сохранить ДЗ/КЗ в репозиторий
+        if: always()
+        run: |
+          git config user.name "pulse-ci"
+          git config user.email "ci@local"
+          git add -f dz_kz.js "дз_кз_месяцы.json" 2>/dev/null || true
+          git commit -m "ДЗ/КЗ: свежие данные [skip ci]" || echo "нет изменений"
+          git pull --rebase --autostash origin main || true
+          git push origin HEAD:main || echo "push не удался"
+
+      # Проверяем не дату сборки, а саму цифру: если последняя колонка «ДЗ на …»
+      # совпала с предыдущей до тенге, неделю в таблице ещё не заполнили —
+      # это не ошибка прогона, но знать об этом надо.
+      - name: "Проверка: свежая колонка ДЗ заполнена"
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, re, sys
+          txt = open("dz_kz.js", encoding="utf-8").read()
+          m = re.search(r"=\s*(\{.*\});?\s*$", txt, re.S)
+          if not m:
+              sys.exit("dz_kz.js не разобрался")
+          d = json.loads(m.group(1))
+          print("обновлено:", d.get("updated"))
+          for tag in ("dz", "kz"):
+              o = d.get(tag) or {}
+              dyn = o.get("dynamics") or []
+              print("%s: итог %s на %s" % (tag.upper(), f"{o.get('total',0):,}".replace(",", " "), o.get("date")))
+              if len(dyn) >= 2 and dyn[-1]["total"] == dyn[-2]["total"]:
+                  print("  ВНИМАНИЕ: %s на %s совпадает с %s до тенге — неделю в таблице,"
+                        " похоже, ещё не заполнили" % (tag.upper(), dyn[-1]["date"], dyn[-2]["date"]))
+          PY

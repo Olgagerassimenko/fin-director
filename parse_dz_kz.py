@@ -4,6 +4,9 @@ parse_dz_kz.py — парсинг ДЗ и КЗ из публичного Google 
 """
 import sys, csv, io, json, re, requests
 from datetime import datetime
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
 
 SHEET_ID = "13iFd16Hah1Yi5y2QptmyUrw51rSFfAmtnzhf0U2g_wc"
 KZ_GID   = "2005257911"
@@ -316,7 +319,9 @@ def main():
         sys.exit(1)
 
     result = {
-        "updated": datetime.now().strftime("%d.%m.%Y %H:%M"),
+        # datetime.now() на раннере GitHub — это UTC: страница показывала
+        # «обновлено 17:53», когда в Алматы было 22:53. Берём время завода.
+        "updated": almaty.now().strftime("%d.%m.%Y %H:%M"),
         "kz": kz,
         "dz": dz,
     }
