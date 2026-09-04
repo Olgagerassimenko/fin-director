@@ -35,6 +35,13 @@ YEAR = 2026
 REVENUE_TYPE_CODE = "OUTGOING_INVOICE_REVENUE"
 REVENUE_TYPE_RU = "Выручка расходной накладной"
 RETURN_TYPE_CODE = "INCOMING_RETURNED_INVOICE_REVENUE"   # возврат от покупателя — вычитаем из выручки
+# С июля 2026 часть возвратов проводится не обратной реализацией, а актом
+# приёма услуг: документ «Акты приёма услуг» с пометкой «Возврат товара» и
+# счётом «Торговая выручка». В номенклатуре такие возвраты не расписаны —
+# только контрагент и сумма, — но выручку они уменьшают так же. Без них
+# август показывал 20 тысяч возвратов вместо пяти с половиной миллионов.
+SERVICE_RETURN_TYPE = "INCOMING_SERVICE"
+SERVICE_RETURN_ACCOUNT = "Торговая выручка"
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARCH = os.path.join(HERE, "архив выгрузок")
@@ -56,6 +63,39 @@ def auth():
     r.raise_for_status()
     return s, {"Cookie": f"key={r.text.strip().strip(chr(34))}",
                "Content-Type": "application/json"}
+
+
+def pull_service_returns(s, H, d_from, d_to_exclusive):
+    """Возвраты, проведённые актом приёма услуг: контрагент и сумма за период.
+
+    Отбираем по счёту «Торговая выручка» — именно на него ложится возврат
+    товара, оформленный услугой. Номенклатуры в таком документе нет, поэтому
+    разложить возврат по товарам нельзя: только по контрагентам и месяцам."""
+    body = {
+        "reportType": "TRANSACTIONS",
+        "buildSummary": "true",
+        "groupByRowFields": ["Counteragent.Name", "Account.Name"],
+        "aggregateFields": ["Sum.Incoming"],
+        "filters": {
+            "DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                                   "from": d_from.isoformat(), "to": d_to_exclusive.isoformat(),
+                                   "includeLow": True, "includeHigh": True},
+            "TransactionType": {"filterType": "IncludeValues", "values": [SERVICE_RETURN_TYPE]},
+        },
+    }
+    r = s.post(f"{URL}/resto/api/v2/reports/olap", headers=H, data=json.dumps(body),
+               verify=False, timeout=600)
+    if r.status_code != 200:
+        raise RuntimeError(f"OLAP {r.status_code}: {r.text[:300]}")
+    out = []
+    for x in r.json().get("data", []):
+        if str(x.get("Account.Name") or "").strip() != SERVICE_RETURN_ACCOUNT:
+            continue
+        v = x.get("Sum.Incoming") or 0
+        if v > 0.5:
+            out.append({"Counteragent.Name": str(x.get("Counteragent.Name") or "—"),
+                        "Sum.Incoming": v})
+    return out
 
 
 def pull(s, H, d_from, d_to_exclusive, txn_types=None):
@@ -135,6 +175,9 @@ def main():
     c_mon = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0]))                        # [name][mo]=[возврат, продажи]
     p_mon = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0]))
     p_qty = defaultdict(float)
+    svc_by_m = {}                      # возвраты актами услуг по месяцам
+    svc_ctr = defaultdict(float)       # и по контрагентам
+    svc_ctr_mon = defaultdict(lambda: defaultdict(float))
     for m in range(1, 13):
         d1 = date(YEAR, m, 1)
         if d1 > last_full:
@@ -144,6 +187,23 @@ def main():
         d_end = d2 + timedelta(days=1)
         sales = pull(s, H, d1, d_end, [REVENUE_TYPE_CODE])
         rets  = pull(s, H, d1, d_end, [RETURN_TYPE_CODE])   # возвраты от покупателей
+        # Второй канал возвратов — акты приёма услуг. В номенклатуре их нет,
+        # поэтому в выручку по товарам они не попадают: считаем отдельно.
+        try:
+            svc = pull_service_returns(s, H, d1, d_end)
+        except Exception as e:
+            log(f"{m:02d}      возвраты актами услуг не получены: {e}")
+            svc = []
+        if svc:
+            mo_key = f"{YEAR}-{m:02d}"
+            ssum = 0.0
+            for x in svc:
+                v = x["Sum.Incoming"]
+                svc_ctr[x["Counteragent.Name"]] += v
+                svc_ctr_mon[x["Counteragent.Name"]][mo_key] += v
+                ssum += v
+            svc_by_m[mo_key] = round(ssum)
+            log(f"{m:02d}      возвраты актами услуг: -{ssum:>15,.0f}  ({len(svc)} строк)")
         agg = {}
         for x in sales:
             k = (str(x.get("Counteragent.Name") or ""), str(x.get("Product.Name") or ""))
@@ -201,15 +261,37 @@ def main():
             rows.append(row)
         rows.sort(key=lambda z: z["r"], reverse=True)
         return rows
+    # Возвраты актами услуг: отдельный блок. Из выручки по товарам они НЕ
+    # вычтены — в документе нет номенклатуры, разложить по SKU нечем. Поэтому
+    # держим их отдельно и честно подписываем на странице.
+    svc_rows = sorted(
+        ({"n": nm, "r": round(v),
+          "m": {k: round(x) for k, x in svc_ctr_mon.get(nm, {}).items() if x > 0.5}}
+         for nm, v in svc_ctr.items() if v > 0.5),
+        key=lambda z: -z["r"])
+    all_by_m = {}
+    for k in set(list(returns_by_m.keys()) + list(svc_by_m.keys())):
+        all_by_m[k] = round(returns_by_m.get(k, 0) + svc_by_m.get(k, 0))
+
     detail = {"by_month": returns_by_m,
               "months": sorted(k for k, v in returns_by_m.items() if v),
               "contractors": build_entities(c_tot, c_mon),
               "products": build_entities(p_tot, p_mon, p_qty),
               "total": round(sum(returns_by_m.values())),
+              "svc_by_month": svc_by_m,
+              "svc_contractors": svc_rows,
+              "svc_total": round(sum(svc_by_m.values())),
+              "svc_account": SERVICE_RETURN_ACCOUNT,
+              "all_by_month": all_by_m,
+              "all_total": round(sum(all_by_m.values())),
               "_pulled": meta["pulled"], "_through": meta["through"]}
     with open(os.path.join(HERE, "returns_meta.js"), "w", encoding="utf-8") as f:
         f.write("window.RETURNS_DETAIL=" + json.dumps(detail, ensure_ascii=False) + ";\n")
     log(f"returns_meta.js: контрагентов {len(detail['contractors'])}, товаров {len(detail['products'])}")
+    if detail["svc_total"]:
+        log(f"  возвраты актами услуг: {detail['svc_total']:,.0f} ₸ за "
+            f"{len(svc_by_m)} мес., контрагентов {len(svc_rows)}")
+        log(f"  всего возвратов с обоими каналами: {detail['all_total']:,.0f} ₸")
 
     log(f"\nотметка обновления: {meta['pulled']}, данные по {meta['through']}")
     log("\nГотово. Дальше: rebuild_sales.py и gen_contractor_items.py")
