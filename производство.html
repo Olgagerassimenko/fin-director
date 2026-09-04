@@ -6,8 +6,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  :root{--bg:#0b1220;--card:#111a2e;--line:#243049;--mut:#8091a8;--txt:#e5edf7;
-        --acc:#7c3aed;--gold:#e0b13c;--green:#34d399;--red:#f87171}
+  /* Единая палитра всей страницы: на тон светлее прежней, чтобы карточки,
+     таблицы и графики читались как одно целое, а не как тёмные пятна. */
+  :root{--bg:#131c30;--card:#1c2740;--card2:#243152;--line:#33436e;--mut:#9db0ca;--txt:#eef4fb;
+        --acc:#8b7cf6;--acc2:#a78bfa;--gold:#f0c674;--green:#5ee0a8;--red:#fb8a8a;
+        --grid:#2b3860}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif}
   .topbar{background:#fff;padding:12px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -19,10 +22,10 @@
 
   .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
   .tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
-  .tb{background:#16203a;border:1px solid var(--line);color:#cbd5e1;border-radius:9px;
+  .tb{background:var(--card2);border:1px solid var(--line);color:#d6e2f2;border-radius:9px;
       padding:9px 15px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
-  .tb:hover{background:#1d2947;color:#fff}
-  .tb.on{background:var(--acc);border-color:#a78bfa;color:#fff}
+  .tb:hover{background:#2d3d66;color:#fff}
+  .tb.on{background:var(--acc);border-color:var(--acc2);color:#fff;box-shadow:0 2px 12px rgba(139,124,246,.35)}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
   .ct{font-size:14px;font-weight:800;margin-bottom:3px}
@@ -32,17 +35,17 @@
   .kpi .v{font-size:28px;font-weight:900;line-height:1.1;letter-spacing:-.5px}
   .kpi .l{font-size:12.5px;font-weight:700;margin-top:6px;color:#f1f5f9}
   .kpi .n{font-size:11.5px;color:var(--mut);margin-top:3px;line-height:1.45}
-  .kpi.hi{background:linear-gradient(140deg,rgba(124,58,237,.24),rgba(124,58,237,.07));
-          border-color:rgba(167,139,250,.42)}
-  .kpi.warn{background:linear-gradient(140deg,rgba(224,177,60,.18),rgba(224,177,60,.05));
-            border-color:rgba(224,177,60,.4)}
+  .kpi.hi{background:linear-gradient(140deg,rgba(139,124,246,.26),rgba(139,124,246,.08));
+          border-color:rgba(167,139,250,.5)}
+  .kpi.warn{background:linear-gradient(140deg,rgba(240,198,116,.20),rgba(240,198,116,.06));
+            border-color:rgba(240,198,116,.45)}
 
   .two{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}
   table{width:100%;border-collapse:collapse;font-size:13px}
   th{color:var(--mut);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;
      text-align:right;padding:7px 8px;border-bottom:1px solid var(--line)}
   th.l{text-align:left}
-  td{padding:7px 8px;border-bottom:1px solid #1b2636;text-align:right;font-variant-numeric:tabular-nums}
+  td{padding:7px 8px;border-bottom:1px solid #2a3557;text-align:right;font-variant-numeric:tabular-nums}
   td:not(.l){white-space:nowrap}
   th[data-s]{cursor:pointer;user-select:none;transition:color .12s}
   th[data-s]:hover{color:#a78bfa}
@@ -51,13 +54,13 @@
   tr:hover td{background:rgba(255,255,255,.03)}
   .tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.04em;border-radius:4px;
        padding:2px 6px;margin-left:6px;background:rgba(224,177,60,.16);color:var(--gold)}
-  .bar{height:5px;border-radius:3px;background:#243049;overflow:hidden;margin-top:4px}
+  .bar{height:5px;border-radius:3px;background:#33436e;overflow:hidden;margin-top:4px}
   .bar i{display:block;height:100%;background:var(--acc)}
   .up{color:var(--red)} .down{color:var(--green)}
   .empty{color:var(--mut);font-size:13px;padding:16px 2px}
-  .note{background:rgba(224,177,60,.08);border:1px solid rgba(224,177,60,.25);border-radius:12px;
-        padding:13px 16px;font-size:12.5px;line-height:1.6;color:rgba(255,255,255,.82);margin-bottom:12px}
-  .note b{color:#f0d98c}
+  .note{background:rgba(240,198,116,.10);border:1px solid rgba(240,198,116,.30);border-radius:12px;
+        padding:13px 16px;font-size:12.5px;line-height:1.6;color:rgba(255,255,255,.88);margin-bottom:12px}
+  .note b{color:#f7e3a8}
   canvas{max-width:100%}
   .pane{display:none} .pane.on{display:block}
   /* Внутренних полос прокрутки нет: две прокрутки в одном окне сбивают —
@@ -65,32 +68,32 @@
      прилипает к верху экрана, чтобы названия столбцов не терялись. */
   .tall{border-radius:9px}
   .tall table th{position:sticky;top:var(--stick,0px);background:var(--card);z-index:2}
-  .flt{width:100%;box-sizing:border-box;background:#0f1830;border:1px solid var(--line);
+  .flt{width:100%;box-sizing:border-box;background:#16203a;border:1px solid var(--line);
        border-radius:9px;color:var(--txt);font-family:inherit;font-size:12.5px;
        padding:8px 11px;margin-bottom:9px;outline:none}
-  .flt:focus{border-color:#7c3aed}
+  .flt:focus{border-color:var(--acc2)}
   .flt::placeholder{color:#5b6b83}
   .cnt2{font-size:11.5px;color:var(--mut);margin-top:8px}
   .cnt2 b{color:#cbd5e1}
-  tr.pick td{background:rgba(124,58,237,.16)!important}
+  tr.pick td{background:rgba(139,124,246,.20)!important}
   tr.pickable{cursor:pointer}
   .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
   .hint{font-size:11.5px;color:var(--mut);margin:9px 0 0}
-  .perbar{background:#16203a;border:1px solid var(--line);border-radius:10px;
-          padding:9px 14px;font-size:12px;color:#a9b8cc;margin-bottom:12px}
+  .perbar{background:var(--card2);border:1px solid var(--line);border-radius:10px;
+          padding:9px 14px;font-size:12px;color:#bccbe0;margin-bottom:12px}
   .perbar b{color:#e5edf7}
   .perbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .perbar select{background:#0f1830;border:1px solid #33406a;border-radius:8px;color:#e5edf7;
+  .perbar select{background:#16203a;border:1px solid var(--line);border-radius:8px;color:var(--txt);
                  font-family:inherit;font-size:12.5px;font-weight:700;padding:7px 10px;outline:none}
   .perbar select:focus{border-color:#7c3aed}
   .perbar .pb2{color:#a9b8cc}
   .chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px}
-  .chip{background:#16203a;border:1px solid var(--line);color:#cbd5e1;border-radius:20px;
+  .chip{background:var(--card2);border:1px solid var(--line);color:#d6e2f2;border-radius:20px;
         padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
-  .chip:hover{background:#1d2947;color:#fff}
-  .chip.on{background:rgba(124,58,237,.35);border-color:#a78bfa;color:#fff}
-  .ins{background:linear-gradient(140deg,rgba(52,211,153,.11),rgba(52,211,153,.03));
-       border-color:rgba(52,211,153,.30)}
+  .chip:hover{background:#2d3d66;color:#fff}
+  .chip.on{background:rgba(139,124,246,.40);border-color:var(--acc2);color:#fff}
+  .ins{background:linear-gradient(140deg,rgba(94,224,168,.13),rgba(94,224,168,.04));
+       border-color:rgba(94,224,168,.34)}
   .il{margin:8px 0 0;padding-left:19px;font-size:13px;line-height:1.8;color:#dfe9f5}
   .il li{margin-bottom:5px}
   .il b{color:#fff}
@@ -176,7 +179,7 @@
   var PERD = PER+", данные по "+D.through;
   var CLOSED = (D.closed && D.closed>0) ? Math.min(D.closed,N)-1
              : ((N>1 && netto[N-1] < netto[N-2]*0.4) ? N-2 : N-1);
-  var closed=CLOSED, cmp=closed-1, dPct=null, PER="", PERD="";
+  var closed=CLOSED, cmp=closed-1, dPct=null, PER="", PERD="", PERDATES="";
   function recalc(){
     FULLP = (RA===0 && RB===N-1);
     NR = RB-RA+1;
@@ -189,6 +192,7 @@
                     : (D.mo_labels[RA]+" — "+D.mo_labels[RB]+" "+YR);
     PERD = PER+", данные по "+D.through;
     PERALL = D.mo_labels[0]+" — "+D.mo_labels[N-1]+" "+YR;
+    PERDATES = moStart(RA)+" — "+moEnd(RB);
   }
   recalc();
 
@@ -224,6 +228,49 @@
                   pf:"полуфабрикат",raw:"сырьё",other:"прочее"};
   // Группы номенклатуры размечаем по названию — там префиксов нет.
   function groupIsPack(nm){ return /\u0443\u043f\u0430\u043a\u043e\u0432|\u0442\u0430\u0440[\u0430\u044b]|\u0433\u043e\u0444\u0440\u043e|\u0440\u0430\u0441\u0445\u043e\u0434\u043d|\u0445\u0438\u043c\u0438|\u0438\u043d\u0432\u0435\u043d\u0442\u0430\u0440/i.test(String(nm||"")); }
+
+  // Единая палитра и единые настройки всех графиков: раньше каждый график
+  // задавал цвета и подписи по-своему, и страница выглядела набором чужих
+  // друг другу картинок.
+  var PAL=["#8b7cf6","#f0c674","#5ee0a8","#67c8f5","#f79bc4","#ffab70","#b6e36a","#6de0dd",
+           "#c4b5fd","#fca5a5"];
+  var CGRID="#2b3860", CTICK="#9db0ca", CLEG="#d6e2f2";
+  function legLabels(ch){
+    var d=window.Chart.defaults.plugins.legend.labels.generateLabels(ch);
+    d.forEach(function(l){
+      var ds=ch.data.datasets[l.datasetIndex];
+      if(ds&&ds._base){ l.fillStyle=ds._base; l.strokeStyle=ds._base; }
+    });
+    return d;
+  }
+  function chOpts(extra){
+    var o={maintainAspectRatio:false,
+      animation:{duration:420},
+      plugins:{legend:{labels:{color:CLEG,boxWidth:11,font:{size:10.5},usePointStyle:true,
+                               pointStyle:"circle",generateLabels:legLabels}},
+        tooltip:{backgroundColor:"rgba(20,28,48,.96)",borderColor:"#3b4a78",borderWidth:1,
+                 titleColor:"#fff",bodyColor:"#dbe6f5",padding:10,cornerRadius:8,
+                 displayColors:true,boxPadding:4}},
+      scales:{x:{ticks:{color:CTICK,font:{size:11}},grid:{display:false}},
+              y:{ticks:{color:CTICK,font:{size:10}},grid:{color:CGRID}}}};
+    if(extra) for(var k in extra) o[k]=extra[k];
+    return o;
+  }
+  // Месяцы вне выбранного периода гасим, а не прячем: видно и выбранный
+  // отрезок, и то, как он смотрится на фоне остальных.
+  function shade(color,i){ return (i>=RA&&i<=RB)? color : "rgba(157,176,202,.22)"; }
+  // Клик по столбику любого помесячного графика выбирает этот месяц периодом.
+  function pickMonth(e,el){ if(!el||!el.length)return; RA=el[0].index; RB=RA; draw(); }
+  function clickable(id){ var c=document.getElementById(id); if(c)c.style.cursor="pointer"; }
+
+  // Реальные даты, а не только названия месяцев.
+  function d2(x){ return (x<10?"0":"")+x; }
+  function moStart(i){ var k=D.mo_keys[i]; return "01."+k.slice(5,7)+"."+k.slice(0,4); }
+  function moEnd(i){
+    var k=D.mo_keys[i], y=+k.slice(0,4), m=+k.slice(5,7);
+    if(i===N-1 && D.through) return D.through;
+    return d2(new Date(y,m,0).getDate())+"."+k.slice(5,7)+"."+y;
+  }
 
   var _tid=0;
   function rows(list,total,markOwn,unitCol){
@@ -291,7 +338,7 @@
     perOptions().map(function(o){
       return '<option value="'+o[0]+'"'+(o[0]===(RA+':'+RB)?' selected':'')+'>'+o[1]+'</option>';
     }).join("")+'</select>'+
-  '<span class="pb2">Показано за <b>'+PER+'</b>'+
+  '<span class="pb2">Показано за <b>'+PER+'</b> ('+PERDATES+')'+
     (FULLP?'':' · остальные вкладки пересчитаны под этот же период')+
     ' · данные из iiko по <b>'+D.through+'</b> · последний закрытый месяц — <b>'+
     D.mo_labels[CLOSED]+'</b></span></div>'+
@@ -338,7 +385,9 @@
           Math.round((netto[mx]/(netto[mn]||1)-1)*100)+"%.";})()
     ])+
     '<div class="card"><div class="ct">Выпуск по месяцам</div>'+
-    '<div class="cs">Столбики — товарный выпуск. Линия — весь оборот производства вместе с переделом.</div>'+
+    '<div class="cs">Столбики — товарный выпуск, линия — весь оборот вместе с переделом. '+
+    'Выбранный период подсвечен, остальные месяцы приглушены. <b>Клик по столбику</b> показывает '+
+    'весь отчёт за этот месяц.</div>'+
     '<div style="height:280px"><canvas id="chMo"></canvas></div></div>'+
     '<div class="two">'+
       '<div class="card"><div class="ct">Что производим</div>'+
@@ -1059,18 +1108,31 @@
 
   function drawCharts(){
   if(window.Chart){
-    new Chart(document.getElementById("chMo"),{
-      data:{labels:D.mo_labels,datasets:[
+    var cmEl=document.getElementById("chMo");
+    var chMo=new Chart(cmEl,{
+      data:{labels:D.mo_labels.map(function(l,i){return l+" · "+moEnd(i).slice(3,5)+"."+YR.slice(2);}),
+        datasets:[
         {type:"bar",label:"Товарный выпуск",data:netto.map(function(v){return v/1e6;}),
-         backgroundColor:"#7c3aed",borderRadius:5,order:2},
+         _base:PAL[0],backgroundColor:netto.map(function(_,i){return shade(PAL[0],i);}),
+         borderRadius:6,order:2},
         {type:"line",label:"Оборот производства",data:gross.map(function(v){return v/1e6;}),
-         borderColor:"#e0b13c",backgroundColor:"#e0b13c",borderWidth:2,pointRadius:3,tension:.3,order:1}]},
-      options:{maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:12,font:{size:11}}},
-          tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y.toFixed(1)+" млн ₸";}}}},
-        scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
-                y:{beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},
-                   callback:function(v){return v+" млн";}},grid:{color:"#1b2636"}}}}});
+         borderColor:PAL[1],backgroundColor:PAL[1],borderWidth:2,
+         pointRadius:gross.map(function(_,i){return (i>=RA&&i<=RB)?4:2;}),tension:.3,order:1}]},
+      options:chOpts({
+        onClick:function(e,el){ if(!el||!el.length)return;
+          var i=el[0].index; RA=i; RB=i; draw(); },
+        plugins:{legend:{labels:{color:CLEG,boxWidth:11,font:{size:10.5},usePointStyle:true,
+                                 pointStyle:"circle",generateLabels:legLabels}},
+          tooltip:{backgroundColor:"rgba(20,28,48,.96)",borderColor:"#3b4a78",borderWidth:1,
+            titleColor:"#fff",bodyColor:"#dbe6f5",padding:10,cornerRadius:8,
+            callbacks:{title:function(c){var i=c[0].dataIndex;
+                         return D.mo_labels[i]+" "+YR+" · "+moStart(i)+"–"+moEnd(i);},
+                       label:function(c){return c.dataset.label+": "+c.parsed.y.toFixed(1)+" млн ₸";},
+                       footer:function(){return "Клик по столбику — показать этот месяц";}}}},
+        scales:{x:{ticks:{color:CTICK,font:{size:11}},grid:{display:false}},
+                y:{beginAtZero:true,ticks:{color:CTICK,font:{size:10},
+                   callback:function(v){return v+" млн";}},grid:{color:CGRID}}}})});
+    cmEl.style.cursor="pointer";
     // Себестоимость единицы: у позиций разный масштаб (₸/кг и ₸/порц не
     // сравнить), поэтому каждую приводим к индексу — первый закрытый месяц
     // с данными равен 100. Тогда на одном графике видно, кто дорожает.
@@ -1079,8 +1141,7 @@
     // ₸/порц на одной оси не сравнить; в подсказке при этом показываем и тенге.
     var cc=document.getElementById("chCost");
     if(cc&&D.unitcost&&D.unitcost.length){
-      var PAL2=["#7c3aed","#e0b13c","#34d399","#38bdf8","#f472b6","#fb923c",
-                "#a3e635","#22d3ee","#fca5a5","#c084fc"];
+      var PAL2=PAL;
       var UCsel=[]; for(var i0=0;i0<Math.min(6,D.unitcost.length);i0++)UCsel.push(i0);
       var ucChart=null;
       function ucColor(i){ return PAL2[UCsel.indexOf(i)%PAL2.length]; }
@@ -1109,13 +1170,13 @@
         if(ucChart){ ucChart.data.datasets=ucSets(); ucChart.update(); ucHint(); return; }
         ucChart=new Chart(cc,{type:"line",data:{labels:D.mo_labels,datasets:ucSets()},
           options:{maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
-            plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:11,font:{size:10}}},
+            plugins:{legend:{labels:{color:CLEG,boxWidth:11,font:{size:10}}},
               tooltip:{callbacks:{label:function(c){
                 var raw=(c.dataset._raw||[])[c.dataIndex];
                 return c.dataset.label+": "+c.parsed.y+" (100 = первый месяц)"+
                   (raw? " · "+fmt(raw)+" ₸/"+c.dataset._u : "");}}}},
-            scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
-                    y:{ticks:{color:"#8091a8",font:{size:10}},grid:{color:"#1b2636"}}}}});
+            scales:{x:{ticks:{color:CTICK,font:{size:11}},grid:{display:false}},
+                    y:{ticks:{color:CTICK,font:{size:10}},grid:{color:CGRID}}}}});
         ucHint();
       }
       ucDraw();
@@ -1144,7 +1205,7 @@
       var vals=U.map(function(u){return Math.round(u.out/u.in*1000)/10;});
       new Chart(el,{type:"bar",data:{labels:U.map(function(u){return u.u;}),
         datasets:[{label:"Выход, % от входа",data:vals,
-          backgroundColor:vals.map(function(v){return v<100? "#f87171":"#34d399";}),
+          backgroundColor:vals.map(function(v){return v<100? PAL[9]:PAL[2];}),
           borderRadius:5}]},
         options:{indexAxis:"y",maintainAspectRatio:false,
           plugins:{legend:{display:false},
@@ -1155,9 +1216,9 @@
                         "вышло  "+Math.round(u.out).toLocaleString("ru-RU")+" "+u.u,
                         "выход  "+String(c.parsed.x).replace(".",",")+"%"];}}}},
           scales:{x:{beginAtZero:true,suggestedMax:110,
-                     ticks:{color:"#8091a8",font:{size:10},callback:function(v){return v+"%";}},
-                     grid:{color:"#1b2636"}},
-                  y:{ticks:{color:"#cbd5e1",font:{size:12}},grid:{display:false}}}}});
+                     ticks:{color:CTICK,font:{size:10},callback:function(v){return v+"%";}},
+                     grid:{color:CGRID}},
+                  y:{ticks:{color:CLEG,font:{size:12}},grid:{display:false}}}}});
     });
     var ct=document.getElementById("chTc");
     if(ct&&D.techcard&&D.techcard.rows&&D.techcard.rows.length){
@@ -1167,58 +1228,63 @@
       new Chart(ct,{type:"bar",data:{labels:R.map(function(r){
           return r.n.length>26? r.n.slice(0,26)+"…" : r.n;}),
         datasets:[{label:"Отклонение от нормы, %",data:R.map(function(r){return r.d;}),
-          backgroundColor:R.map(function(r){return r.d>0? "#f87171" : "#34d399";}),borderRadius:4}]},
+          backgroundColor:R.map(function(r){return r.d>0? PAL[9] : PAL[2];}),borderRadius:4}]},
         options:{indexAxis:"y",maintainAspectRatio:false,
           plugins:{legend:{display:false},
             tooltip:{callbacks:{label:function(c){return (c.parsed.x>0?"+":"")+c.parsed.x+"% к норме";}}}},
-          scales:{x:{ticks:{color:"#8091a8",font:{size:10},callback:function(v){return v+"%";}},
-                     grid:{color:"#1b2636"}},
-                  y:{ticks:{color:"#cbd5e1",font:{size:10}},grid:{display:false}}}}});
+          scales:{x:{ticks:{color:CTICK,font:{size:10},callback:function(v){return v+"%";}},
+                     grid:{color:CGRID}},
+                  y:{ticks:{color:CLEG,font:{size:10}},grid:{display:false}}}}});
     }
     var cg=document.getElementById("chGrp");
     if(cg&&D.groups&&D.groups.inp){
-      var PAL=["#7c3aed","#e0b13c","#34d399","#38bdf8","#f472b6","#fb923c","#475569"];
+      var PALG=PAL.slice(0,6).concat(["rgba(157,176,202,.45)"]);
       var buyL=D.groups.inp.filter(function(r){return !r.own;});
       var six=buyL.slice(0,6);
       var ds=six.map(function(r,i){
-        return {label:r.n,data:(r.m||[]).map(function(v){return v/1e6;}),
-                backgroundColor:PAL[i],borderRadius:3,stack:"s"};});
+        return {label:r.n,data:(r.m||[]).map(function(v,mi){return (mi>=RA&&mi<=RB)? v/1e6 : null;}),
+                backgroundColor:PALG[i],borderRadius:3,stack:"s"};});
       var restM=(D.mo_labels||[]).map(function(_,i){
         var t=0; buyL.slice(6).forEach(function(r){t+=(r.m||[])[i]||0;}); return t/1e6;});
       if(restM.some(function(v){return v>0;}))
-        ds.push({label:"Прочее",data:restM,backgroundColor:PAL[6],borderRadius:3,stack:"s"});
+        ds.push({label:"Прочее",data:restM,backgroundColor:PALG[6],borderRadius:3,stack:"s"});
       new Chart(cg,{type:"bar",data:{labels:D.mo_labels,datasets:ds},
         options:{maintainAspectRatio:false,
-          plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:11,font:{size:10}}},
+          plugins:{legend:{labels:{color:CLEG,boxWidth:11,font:{size:10}}},
             tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y.toFixed(1)+" млн ₸";}}}},
-          scales:{x:{stacked:true,ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
-                  y:{stacked:true,beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},
-                     callback:function(v){return v+" млн";}},grid:{color:"#1b2636"}}}}});
+          scales:{x:{stacked:true,ticks:{color:CTICK,font:{size:11}},grid:{display:false}},
+                  y:{stacked:true,beginAtZero:true,ticks:{color:CTICK,font:{size:10},
+                     callback:function(v){return v+" млн";}},grid:{color:CGRID}}}}});
     }
     var ci=document.getElementById("chInv");
     if(ci&&D.invent&&D.invent.mo_out){
       new Chart(ci,{type:"bar",data:{labels:D.mo_labels,datasets:[
         {label:"Недостачи",data:D.invent.mo_out.map(function(v){return v/1e6;}),
-         backgroundColor:"#f87171",borderRadius:5},
+         _base:PAL[9],backgroundColor:(D.invent.mo_out||[]).map(function(_,i){return shade(PAL[9],i);}),borderRadius:6},
         {label:"Излишки",data:(D.invent.mo_in||[]).map(function(v){return v/1e6;}),
-         backgroundColor:"#34d399",borderRadius:5}]},
-        options:{maintainAspectRatio:false,
-          plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:12,font:{size:11}}},
-            tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y.toFixed(2)+" млн ₸";}}}},
-          scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
-                  y:{beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},
-                     callback:function(v){return v+" млн";}},grid:{color:"#1b2636"}}}}});
+         _base:PAL[2],backgroundColor:(D.invent.mo_in||[]).map(function(_,i){return shade(PAL[2],i);}),borderRadius:6}]},
+        options:chOpts({onClick:pickMonth,
+          scales:{x:{ticks:{color:CTICK,font:{size:11}},grid:{display:false}},
+                  y:{beginAtZero:true,ticks:{color:CTICK,font:{size:10},
+                     callback:function(v){return v+" млн";}},grid:{color:CGRID}}}})});
+      clickable("chInv");
     }
     var cw=document.getElementById("chWo");
     if(cw&&D.writeoff&&D.writeoff.mo){
       new Chart(cw,{type:"bar",data:{labels:D.mo_labels,
         datasets:[{label:"Списано",data:D.writeoff.mo.map(function(v){return v/1e6;}),
-                   backgroundColor:"#e0b13c",borderRadius:5}]},
-        options:{maintainAspectRatio:false,plugins:{legend:{display:false},
-          tooltip:{callbacks:{label:function(c){return c.parsed.y.toFixed(2)+" млн ₸";}}}},
-          scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
-                  y:{beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},
-                     callback:function(v){return v+" млн";}},grid:{color:"#1b2636"}}}}});
+                   backgroundColor:D.writeoff.mo.map(function(_,i){return shade(PAL[1],i);}),
+                   borderRadius:6}]},
+        options:chOpts({onClick:pickMonth,
+          plugins:{legend:{display:false},
+            tooltip:{backgroundColor:"rgba(20,28,48,.96)",borderColor:"#3b4a78",borderWidth:1,
+              titleColor:"#fff",bodyColor:"#dbe6f5",padding:10,cornerRadius:8,
+              callbacks:{label:function(c){return c.parsed.y.toFixed(2)+" млн ₸";},
+                         footer:function(){return "Клик — показать этот месяц";}}}},
+          scales:{x:{ticks:{color:CTICK,font:{size:11}},grid:{display:false}},
+                  y:{beginAtZero:true,ticks:{color:CTICK,font:{size:10},
+                     callback:function(v){return v+" млн";}},grid:{color:CGRID}}}})});
+      clickable("chWo");
     }
   }
 
