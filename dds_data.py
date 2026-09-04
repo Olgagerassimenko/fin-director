@@ -56,7 +56,7 @@ def byname(mi,subs):
         n=d["name"].replace(" ","")
         if any(x.replace(" ","")[:12] in n for x in subs): tot+=d["api"]
     return tot
-def cash_accounts(mi): return {d["name"]:round(d["api"]) for d in accs(mi).values() if d["type"]=="CASH" and _is_active(d["name"]) and abs(d["api"])>0.5}
+def cash_accounts(mi): return {d["name"]:round(d["api"]) for d in accs(mi).values() if _is_active(d["name"]) and abs(d["api"])>0.5}
 PLTYPES={"INCOME","COST_OF_GOODS_SOLD","EXPENSES","OTHER_EXPENSES","OTHER_INCOME"}
 def month_pl(mi):
     """Чистая прибыль за месяц mi через ОБОРОТ P&L-счетов из проводок ФЗ (надёжно)."""
@@ -86,10 +86,13 @@ PAY=["Текущие расчеты с сотрудниками","Задолже
 FIN=["3050 ВФП","Кредиты полученные"]
 OSN=["7- Основные средства"]
 
-ACTIVE_CASH=["99Главная касса","Касса Взаиморасчеты","ФЗ Айдана каспи","ФЗ Ермагамбет отдел продаж","ФЗ Жусан Банк","ФЗ Каспи","ФЗ Каспи копилка","ФЗ РБК Каламкас","Цой Д.Л.Каспи"]
+ACTIVE_CASH=["99Главная касса","Касса Взаиморасчеты","ФЗ Айдана каспи","ФЗ ДЕПОЗИТ каспи","ФЗ Ермагамбет отдел продаж","ФЗ Жусан Банк","ФЗ Каспи","ФЗ Каспи копилка","ФЗ РБК Каламкас","Цой Д.Л.Каспи"]
 _ACTN=set(a.replace(" ","").lower() for a in ACTIVE_CASH)
 def _is_active(nm): return (nm or "").replace(" ","").lower() in _ACTN
-def cash(mi): return sum(d["api"] for d in accs(mi).values() if d["type"]=="CASH" and _is_active(d["name"]))
+# Фильтра по типу счёта здесь больше нет: депозитный счёт заведён в iiko не
+# типом «Денежные средства», и вместе с типом из «денег» выпадали 7,3 млн ₸.
+# Список ACTIVE_CASH ведём руками — имя счёта и есть решение.
+def cash(mi): return sum(d["api"] for d in accs(mi).values() if _is_active(d["name"]))
 def inv_total(mi): return bytype(mi,{"INVENTORY_ASSETS","STORES","STORE"})
 def inv_stores(mi):
     out={}
@@ -99,6 +102,13 @@ def inv_stores(mi):
     return out
 SYR="склад (сырье)"   # «Основной склад (сырье) ФЗ» — реальный товар/сырьё
 def inv(mi):  return sum(v for n,v in inv_stores(mi).items() if SYR in (n or "").lower())
+
+# Денежные счета iiko, которых нет в ACTIVE_CASH: чтобы новый счёт больше не
+# появлялся незаметно для ДДС. Пишем в лог, в отчёт это не попадает.
+_miss=sorted({d["name"] for d in accs(lastm).values()
+              if d["type"]=="CASH" and not _is_active(d["name"])})
+if _miss: log("ВНИМАНИЕ: денежные счета iiko вне списка ДДС: "+"; ".join(_miss))
+log("счетов в ДДС: %d" % len(ACTIVE_CASH))
 
 months={}
 for mi in range(1,lastm+1):

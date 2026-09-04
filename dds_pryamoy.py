@@ -15,8 +15,8 @@ HERE=os.path.dirname(os.path.abspath(__file__))
 src=open(os.path.join(HERE,"iiko_export.py"),encoding="utf-8").read()
 URL=re.search(r'URL\s*=\s*"([^"]+)"',src).group(1);LOGIN=re.search(r'LOGIN\s*=\s*"([^"]+)"',src).group(1);PASS=re.search(r'PASS\s*=\s*"([^"]+)"',src).group(1)
 YEAR=2026; FZ="2aafb9a8-7c62-499f-80b7-c3935348b891"
-ACTIVE=["99Главная касса","Касса Взаиморасчеты","ФЗ Айдана каспи","ФЗ Жусан Банк","ФЗ Каспи","ФЗ Каспи копилка","ФЗ РБК Каламкас","Цой Д.Л.Каспи","ФЗ Ермагамбет отдел продаж"]
-SHORT={"99Главная касса":"Гл. касса","Касса Взаиморасчеты":"Взаиморасчёты","ФЗ Айдана каспи":"Айдана","ФЗ Жусан Банк":"Жусан","ФЗ Каспи":"Каспи","ФЗ Каспи копилка":"Каспи копилка","ФЗ РБК Каламкас":"РБК Каламкас","Цой Д.Л.Каспи":"Цой Д.Л.","ФЗ Ермагамбет отдел продаж":"Ермагамбет"}
+ACTIVE=["99Главная касса","Касса Взаиморасчеты","ФЗ Айдана каспи","ФЗ Жусан Банк","ФЗ Каспи","ФЗ Каспи копилка","ФЗ ДЕПОЗИТ каспи","ФЗ РБК Каламкас","Цой Д.Л.Каспи","ФЗ Ермагамбет отдел продаж"]
+SHORT={"99Главная касса":"Гл. касса","Касса Взаиморасчеты":"Взаиморасчёты","ФЗ Айдана каспи":"Айдана","ФЗ Жусан Банк":"Жусан","ФЗ Каспи":"Каспи","ФЗ Каспи копилка":"Каспи копилка","ФЗ ДЕПОЗИТ каспи":"Депозит каспи","ФЗ РБК Каламкас":"РБК Каламкас","Цой Д.Л.Каспи":"Цой Д.Л.","ФЗ Ермагамбет отдел продаж":"Ермагамбет"}
 _ACT=set(ACTIVE); REVCAT="1.Выручка"
 _NORM={a.replace(" ","").lower():a for a in ACTIVE}
 def _canon(nm): return _NORM.get((nm or "").replace(" ","").lower())
@@ -27,6 +27,12 @@ s=requests.Session()
 tok=s.get(f"{URL}/resto/api/auth",params={"login":LOGIN,"pass":hashlib.sha1(PASS.encode()).hexdigest()},verify=False,timeout=60).text.strip().strip('"')
 log("iiko: авторизация ok")
 ACC={a["id"]:(a.get("name") or "",a.get("type") or "") for a in s.get(f"{URL}/resto/api/v2/entities/accounts/list",params={"key":tok},verify=False,timeout=120).json()}
+
+# Счета типа «Денежные средства», которых нет в ACTIVE, — чтобы новый счёт
+# больше не появлялся в iiko незаметно для ДДС. Пишем в лог, не в отчёт.
+_miss=sorted({nm for nm,tp in ACC.values() if tp=="CASH" and not _canon(nm)})
+if _miss: log("ВНИМАНИЕ: денежные счета iiko вне списка ДДС:", "; ".join(_miss))
+log("счетов в ДДС:", len(ACTIVE))
 
 def _olap(body):
     r=s.post(f"{URL}/resto/api/v2/reports/olap",headers={"Cookie":f"key={tok}","Content-Type":"application/json"},data=json.dumps(body),verify=False,timeout=180)
@@ -40,7 +46,11 @@ def cash_by_acc(d):
         if r.get("department")!=FZ: continue
         nm,tp=ACC.get(r.get("account"),("",""))
         c=_canon(nm)
-        if tp=="CASH" and c: res[c]+=(r.get("sum") or 0)
+        # Раньше здесь стояло ещё и tp=="CASH". Депозитный счёт в iiko заведён
+        # не типом «Денежные средства», и из-за фильтра по типу его остаток
+        # молча падал в ноль, хотя обороты по нему шли. Список ACTIVE ведём
+        # руками — имя счёта и есть решение, что это наши деньги.
+        if c: res[c]+=(r.get("sum") or 0)
     return {k:round(v) for k,v in res.items()}
 
 # ---- статьи по счетам за период [d1,d2) ----
