@@ -84,6 +84,11 @@
                  font-family:inherit;font-size:12.5px;font-weight:700;padding:7px 10px;outline:none}
   .perbar select:focus{border-color:#7c3aed}
   .perbar .pb2{color:#a9b8cc}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px}
+  .chip{background:#16203a;border:1px solid var(--line);color:#cbd5e1;border-radius:20px;
+        padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+  .chip:hover{background:#1d2947;color:#fff}
+  .chip.on{background:rgba(124,58,237,.35);border-color:#a78bfa;color:#fff}
   .ins{background:linear-gradient(140deg,rgba(52,211,153,.11),rgba(52,211,153,.03));
        border-color:rgba(52,211,153,.30)}
   .il{margin:8px 0 0;padding-left:19px;font-size:13px;line-height:1.8;color:#dfe9f5}
@@ -202,6 +207,24 @@
   function dn(v){ return '<span class="g">'+pc(v)+'%</span>'; }
   function sig(d){ return d>0? up(d) : dn(d); }
 
+  // Номенклатура iiko размечена префиксами, и смешивать эти виды в одном
+  // анализе нельзя. «Упак ...» — это уже упакованная готовая продукция:
+  // отклонение по ней складывается из фасовки и упаковки, а не из расхода
+  // сырья, и нормы расхода по ней читать бессмысленно. Упаковка, расходники
+  // и химия — вообще не сырьё, это материалы.
+  function kindOf(nm){
+    var n=String(nm||"").trim();
+    if(/^(RP\*\s*)?Упак/i.test(n)) return "ready";
+    if(/^[\u0423U]\*|^[\u0420P]\*|^[\u0425X]\*/.test(n)) return "pack";
+    if(/^(\u041f\u0424|\u041f|\u0411)\*/.test(n)) return "pf";
+    if(/^[\u0421C]\*/.test(n)) return "raw";
+    return "other";
+  }
+  var KIND_LABEL={ready:"фасовка готовой продукции",pack:"упаковка и расходники",
+                  pf:"полуфабрикат",raw:"сырьё",other:"прочее"};
+  // Группы номенклатуры размечаем по названию — там префиксов нет.
+  function groupIsPack(nm){ return /\u0443\u043f\u0430\u043a\u043e\u0432|\u0442\u0430\u0440[\u0430\u044b]|\u0433\u043e\u0444\u0440\u043e|\u0440\u0430\u0441\u0445\u043e\u0434\u043d|\u0445\u0438\u043c\u0438|\u0438\u043d\u0432\u0435\u043d\u0442\u0430\u0440/i.test(String(nm||"")); }
+
   var _tid=0;
   function rows(list,total,markOwn,unitCol){
     list=LP(list);
@@ -244,7 +267,7 @@
   function sum(list,f){ return (list||[]).reduce(function(a,r){return a+(f?f(r):S(r));},0); }
 
   // ── вкладки ──────────────────────────────────────────────────
-  var CURTAB="out";
+  var CURTAB="out", TCMODE="norm";
   var TABS=[["out","Выпуск"],["cost","Себестоимость единицы"],
             ["dis","Разделка"],["tr","Переработка и пересорт"],["wo","Списания"],
             ["inv","Инвентаризации"],["tc","Тех.карта"],
@@ -736,6 +759,19 @@
         '<div class="cs">Сравнение нормы с фактом появится после ближайшей ночной сборки: '+
         'тех.карты тянутся из iiko отдельным запросом.</div></div>';
 
+    // Считаем только по тому виду позиций, который сейчас выбран: у фасовки
+    // отклонение — это упаковка и порционирование, у сырья и полуфабрикатов —
+    // действительно расход. Складывать их в одну цифру некорректно.
+    var ALL=T.rows||[];
+    var pick=(TCMODE==="ready") ? ALL.filter(function(r){return kindOf(r.n)==="ready";})
+           : (TCMODE==="all") ? ALL
+           : ALL.filter(function(r){return kindOf(r.n)!=="ready";});
+    var nReady=ALL.filter(function(r){return kindOf(r.n)==="ready";}).length;
+    var T={month:T.month,n_cards:T.n_cards,n_fact:T.n_fact,n_partial:T.n_partial,
+           n_nocard:T.n_nocard,nocard:T.nocard,rows:pick,
+           n_matched:pick.length,
+           plan_sum:pick.reduce(function(a,r){return a+r.plan*r.kg;},0),
+           fact_sum:pick.reduce(function(a,r){return a+r.fact*r.kg;},0)};
     var dev = T.plan_sum? (T.fact_sum/T.plan_sum-1)*100 : 0;
     var over = T.rows.filter(function(r){return r.d>1;});
     var under = T.rows.filter(function(r){return r.d<-1;});
@@ -766,9 +802,24 @@
         fmt(list.length)+' · сортировка — клик по заголовку</div>';
     }
 
-    return '<div class="kpis">'+
+    return '<div class="chips">'+
+      [["norm","Сырьё и полуфабрикаты"],["ready","Фасовка готовой продукции ("+nReady+")"],
+       ["all","Всё вместе"]].map(function(c){
+        return '<button class="chip'+(TCMODE===c[0]?' on':'')+'" data-tc="'+c[0]+'">'+c[1]+'</button>';
+      }).join("")+'</div>'+
+    (TCMODE==="ready"
+      ? '<div class="note"><b>Осторожно с выводами.</b> «Упак …» — это уже упакованная готовая '+
+        'продукция. Отклонение по ней складывается из фасовки, упаковки и порционирования, '+
+        'а не из расхода сырья: читать это как перерасход в цехе нельзя.</div>'
+      : (TCMODE==="all"
+        ? '<div class="note"><b>Виды смешаны.</b> В одном списке и сырьё, и упакованная готовая '+
+          'продукция. Общая цифра отклонения в таком наборе мало что значит — переключитесь на '+
+          '«Сырьё и полуфабрикаты», если смотрите нормы расхода.</div>'
+        : ''))+
+    '<div class="kpis">'+
       kpi(Math.abs(dev)>3?"warn":"hi",(dev>0?"+":"")+dev.toFixed(1).replace(".",",")+"%",
-          "Факт против нормы за "+T.month,
+          "Факт против нормы за "+T.month+
+            (TCMODE==="norm"?" · сырьё и п/ф":(TCMODE==="ready"?" · фасовка":"")),
           "фактическое сырьё "+mln(T.fact_sum)+" против "+mln(T.plan_sum)+" по тех.картам")+
       kpi("",fmt(T.n_matched)+" из "+fmt(T.n_fact),"Позиций сравнено",
           "остальные — без карты ("+fmt(T.n_nocard)+") или без фактической цены части сырья ("+
@@ -833,12 +884,20 @@
     var buyList=LP((G.inp||[]).filter(function(r){return !r.own;}));
     var top3=buyList.slice(0,3).reduce(function(a,r){return a+S(r);},0);
     var GBUY=SA(G.mo_buy)||G.buy;
+    // Упаковка, расходники и химия — не сырьё. Держать их в одной цифре с
+    // мясом и молочкой значит мерить рецептуру вместе с коробками.
+    var packL=buyList.filter(function(r){return groupIsPack(r.n);});
+    var rawL=buyList.filter(function(r){return !groupIsPack(r.n);});
+    var packS=packL.reduce(function(a,r){return a+S(r);},0);
+    var rawS=rawL.reduce(function(a,r){return a+S(r);},0);
     var GOWN=FULLP? G.own : Math.round((G.own||0)*(G.buy? GBUY/G.buy : 1));
     var conc=GBUY? Math.round(top3/GBUY*100) : 0;
 
     return '<div class="kpis">'+
-      kpi("hi",mln(GBUY),(FULLP?"Покупное сырьё с начала года":"Покупное сырьё за "+PER),
-          "без внутреннего передела — только то, что завод купил")+
+      kpi("hi",mln(rawS),(FULLP?"Покупное сырьё с начала года":"Покупное сырьё за "+PER),
+          "продукты без упаковки и расходников; внутренний передел не в счёт")+
+      kpi("",mln(packS),"Упаковка и расходники",
+          "это материалы, а не сырьё — "+pct(packS,GBUY)+"% всех закупок в производство")+
       kpi("",conc+"%","Три группы дают",
           (buyList.slice(0,3).map(function(r){return r.n;}).join(" · ")||"—"))+
       kpi("",mln(GOWN),"Внутренний передел",
@@ -856,17 +915,17 @@
     'показывает. Работает только структура: какая группа сколько занимает и как это '+
     'меняется по месяцам.</div>'+
     insight([
-      "Покупное сырьё за "+PER+" — <b>"+mln(GBUY)+"</b>. Внутренний передел ("+mln(GOWN)+
+      "Куплено в производство за "+PER+" — <b>"+mln(GBUY)+"</b>: из них сырьё <b>"+mln(rawS)+
+        "</b>, упаковка и расходники <b>"+mln(packS)+"</b>. Внутренний передел ("+mln(GOWN)+
         ") сюда не входит: это уже оплаченное сырьё, прошедшее через собственный цех, и второй раз "+
         "его считать нельзя.",
       (buyList.length? "Три группы дают <b>"+conc+"%</b> всего сырья: "+
         buyList.slice(0,3).map(function(r){return "<b>"+esc(r.n)+"</b> ("+pct(S(r),GBUY)+"%)";}).join(", ")+
         ". Экономить имеет смысл здесь — процент с этих трёх строк весит больше, чем весь остальной список." : ""),
       (function(){
-        var pk=buyList.filter(function(r){return /упаков|тар[аы]|гофро|расходн/i.test(r.n);});
-        var ps=pk.reduce(function(a,r){return a+S(r);},0);
-        return ps? ("Упаковка и расходники — <b>"+mln(ps)+"</b>, это "+pct(ps,GBUY)+
-          "% сырья. Единственная группа, которую можно сократить, не трогая рецептуру.") : "";})(),
+        return packS? ("Упаковка и расходники — <b>"+mln(packS)+"</b>, это "+pct(packS,GBUY)+
+          "% всего, что закуплено в производство. Это <b>не сырьё</b>: единственная группа, "+
+          "которую можно сократить, не трогая рецептуру.") : "";})(),
       (function(){
         var best=null;
         buyList.slice(0,8).forEach(function(r){
@@ -962,6 +1021,9 @@
         var p=document.getElementById("p-"+CURTAB);
         if(p) p.classList.add("on");
       });
+    });
+    [].forEach.call(document.querySelectorAll(".chip[data-tc]"),function(c){
+      c.addEventListener("click",function(){ TCMODE=c.getAttribute("data-tc"); draw(); });
     });
     var sel=document.getElementById("perSel");
     if(sel) sel.addEventListener("change",function(){
