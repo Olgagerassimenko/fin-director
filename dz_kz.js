@@ -1,5 +1,9 @@
 window.DZ_KZ = {
+<<<<<<< Updated upstream
   "updated": "04.09.2026 03:55",
+=======
+  "updated": "04.09.2026 04:12",
+>>>>>>> Stashed changes
   "kz": {
     "total": 200431051,
     "date": "28.08.2026",
