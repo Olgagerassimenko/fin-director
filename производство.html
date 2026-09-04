@@ -307,6 +307,14 @@
   // Клик по столбику любого помесячного графика выбирает этот месяц периодом.
   function pickMonth(e,el){ if(!el||!el.length)return; RA=el[0].index; RB=RA; draw(); }
   function clickable(id){ var c=document.getElementById(id); if(c)c.style.cursor="pointer"; }
+  function resizePane(){
+    if(!window.Chart||!window.Chart.getChart) return;
+    var p=document.getElementById("p-"+CURTAB); if(!p) return;
+    [].forEach.call(p.querySelectorAll("canvas"),function(c){
+      var ch=window.Chart.getChart(c);
+      if(ch){ try{ ch.resize(); }catch(e){} }
+    });
+  }
 
   // Реальные даты, а не только названия месяцев.
   function d2(x){ return (x<10?"0":"")+x; }
@@ -1420,6 +1428,8 @@
         var p=document.getElementById("p-"+CURTAB);
         if(p) p.classList.add("on");
         setPitch();
+        resizePane();
+        setTimeout(resizePane,60); setTimeout(resizePane,320);
       });
     });
     [].forEach.call(document.querySelectorAll(".chip[data-tc]"),function(c){
@@ -1443,6 +1453,7 @@
     if(p){ [].forEach.call(document.querySelectorAll(".pane"),function(x){x.classList.remove("on");});
            p.classList.add("on"); }
     bindTabs(); makeSortable(); drawCharts(); stickHead();
+    resizePane(); setTimeout(resizePane,80);
   }
 
   // Шапка длинной таблицы прилипает не к нулю, а под белую шапку страницы и
