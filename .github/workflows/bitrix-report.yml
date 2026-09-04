@@ -41,7 +41,9 @@ jobs:
           git config user.email "ci@local"
           git add -f bitrix_log.txt "bitrix_отчёт_оплаты.html" 2>/dev/null || true
           git commit -m "Битрикс: отчёт по оплатам [skip ci]" || echo "нет изменений"
-          git pull --rebase --autostash origin main || true
+          # --autostash при конфликте писал маркеры <<<<<<< прямо в данные.
+          git checkout -- . 2>/dev/null || true
+          git pull --rebase -X theirs origin main || { git rebase --abort || true; }
           git push origin HEAD:main || echo "push не удался"
 
       - name: Node

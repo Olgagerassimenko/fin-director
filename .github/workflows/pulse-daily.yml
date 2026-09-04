@@ -166,7 +166,21 @@ jobs:
           git config user.email "ci@local"
           git add -f продажи_2026.html дашборд_ддс.html дашборд_ддс_прямой.html склады.html "дашборд_себестоимость_2025-2026.html" закуп.html zakup_data.js dz_kz.js рычаги.html дашборд_sku_iiko.html *_meta.js ddsp_days.js kz_ana.js opiu_audit.js opiu_iiko.js sales_sum.js sku_live.js contractor_items.js opiu_rev.js production_data.js production_LOG.txt 2>/dev/null || true
           git commit -m "Свежие данные дашбордов [skip ci]" || echo "нет изменений"
-          git pull --rebase --autostash origin main || true
+          # Здесь тоже стоял --autostash, и это была вторая точка порчи данных:
+          # при конфликте stash pop писал маркеры <<<<<<< прямо в файлы, а
+          # «|| true» проглатывал ошибку. Слои копились от прогона к прогону,
+          # и 04.09.2026 на сайт дважды уехали склеенные продажи, ДДС и склады.
+          # Всё несохранённое уже опубликовано шагом выше и будет пересобрано
+          # следующим прогоном — сбрасываем, чтобы дерево было чистым.
+          # -X theirs при rebase означает «наш коммит важнее»: свежая сборка
+          # побеждает то, что лежало в main.
+          git checkout -- . 2>/dev/null || true
+          git pull --rebase -X theirs origin main || { git rebase --abort || true; }
+          if grep -rlq '^<<<<<<< ' --include='*.js' --include='*.html' . ; then
+            echo "::error::в файлах маркеры конфликта — push отменён, битые данные в main не уедут"
+            grep -rl '^<<<<<<< ' --include='*.js' --include='*.html' .
+            exit 1
+          fi
           git push origin HEAD:main || echo "push не удался"
 
       - name: "Проверка свежести (данные и сайт за сегодня)"
