@@ -199,16 +199,33 @@
   function splitPane(R,title,expl){
     if(!R||!R.in||!R.in.length) return '<div class="card"><div class="ct">'+title+
       '</div><div class="empty">За период таких операций не было.</div></div>';
-    var loss=R.kg_in-R.kg_out, lp=R.kg_in?Math.round(loss/R.kg_in*1000)/10:0;
+
+    // Вход и выход считаем по каждой единице отдельно: складывать килограммы
+    // со штуками и литрами нельзя — «потеря веса» из такой суммы бессмысленна.
+    var U=R.units||[];
+    var unitRows = U.length ?
+      '<table><tr><th class="l">Единица</th><th>Вошло</th><th>Вышло</th><th>Разница</th><th>Доля</th></tr>'+
+      U.map(function(u){
+        var d=u.in-u.out;
+        var cls=d>0?'up':(d<0?'down':'');
+        // Доля считается от входа. Если входа не было (позиция только появляется
+        // на выходе), процент не имеет смысла — ставим прочерк.
+        var ps = u.in>0 ? ((d>0?'−':(d<0?'+':''))+Math.round(Math.abs(d)/u.in*1000)/10+'%')
+                        : '<span style="color:#475569">—</span>';
+        return '<tr><td class="l">'+esc(u.u)+'</td><td>'+fmt(u.in)+'</td><td>'+fmt(u.out)+'</td>'+
+          '<td class="'+cls+'" style="font-weight:700">'+(d>0?'−':(d<0?'+':''))+fmt(Math.abs(d))+'</td>'+
+          '<td class="'+cls+'">'+ps+'</td></tr>';
+      }).join("")+'</table>' :
+      '<div class="empty">Нет данных по количеству.</div>';
+
     return '<div class="kpis">'+
       kpi("",mln(R.sum),title+" за год","стоимость того, что прошло операцию")+
-      kpi("",fmt(R.kg_in),"Вошло","суммарно по всем позициям, в единицах учёта")+
-      kpi("",fmt(R.kg_out),"Вышло","суммарно по всем позициям")+
-      kpi(loss>0?"warn":"", (loss>0?"−":"+")+fmt(Math.abs(loss))+" ("+Math.abs(lp)+"%)",
-          loss>0?"Потеря веса":"Прирост веса",
-          loss>0?"столько не дошло до выхода":"выход больше входа — многостадийная переработка")+
+      kpi("",fmt(R.n_in)+" → "+fmt(R.n_out),"Позиций: вход → выход","сколько разной номенклатуры участвует")+
     '</div>'+
     '<div class="note">'+expl+'</div>'+
+    '<div class="card"><div class="ct">Вход и выход по единицам измерения</div>'+
+    '<div class="cs">Килограммы, литры и штуки считаются отдельно — сложить их в одно число нельзя. '+
+    'Минус в разнице означает, что вышло меньше, чем вошло.</div>'+unitRows+'</div>'+
     '<div class="two">'+
       '<div class="card"><div class="ct">Что уходит в операцию</div>'+
       '<div class="cs">'+R.n_in+' позиций, показаны крупнейшие.</div>'+

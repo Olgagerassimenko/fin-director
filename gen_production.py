@@ -187,29 +187,46 @@ log(f"  позиций с себестоимостью единицы: {len(unit
 
 # ═════════════ 2 и 3. РАЗДЕЛКА и ПЕРЕРАБОТКА ═════════════
 def split_report(types, title):
+    """Килограммы, литры и штуки в одну сумму складывать нельзя, поэтому
+    вход и выход считаем ОТДЕЛЬНО ПО КАЖДОЙ ЕДИНИЦЕ ИЗМЕРЕНИЯ. Иначе
+    «потеря веса» получается бессмысленной: 678 тысяч чего именно."""
     rows = olap(types, ["Product.Name", "Product.MeasureUnit"], YSTART, YEND, FULL)
     per = {}
     for x in rows:
         name = (x.get("Product.Name") or "").strip()
         if not name:
             continue
-        r = per.setdefault(name, {"u": (x.get("Product.MeasureUnit") or "").strip(),
+        r = per.setdefault(name, {"u": (x.get("Product.MeasureUnit") or "").strip() or "—",
                                   "si": 0.0, "so": 0.0, "ai": 0.0, "ao": 0.0})
         r["si"] += x.get("Sum.Incoming") or 0
         r["so"] += x.get("Sum.Outgoing") or 0
         r["ai"] += x.get("Amount.In") or 0
         r["ao"] += x.get("Amount.Out") or 0
+
     ins = [{"n": n, "u": r["u"], "kg": round(r["ao"], 1), "s": round(r["so"])}
            for n, r in per.items() if r["so"] > 0]
     outs = [{"n": n, "u": r["u"], "kg": round(r["ai"], 1), "s": round(r["si"])}
             for n, r in per.items() if r["si"] > 0]
     ins.sort(key=lambda x: -x["s"]); outs.sort(key=lambda x: -x["s"])
+
+    by_unit = {}
+    for r in ins:
+        b = by_unit.setdefault(r["u"], {"in": 0.0, "out": 0.0, "n_in": 0, "n_out": 0})
+        b["in"] += r["kg"]; b["n_in"] += 1
+    for r in outs:
+        b = by_unit.setdefault(r["u"], {"in": 0.0, "out": 0.0, "n_in": 0, "n_out": 0})
+        b["out"] += r["kg"]; b["n_out"] += 1
+    units = sorted(({"u": u, "in": round(v["in"], 1), "out": round(v["out"], 1),
+                     "n_in": v["n_in"], "n_out": v["n_out"]} for u, v in by_unit.items()),
+                   key=lambda x: -(x["in"] + x["out"]))
+
     res = {"in": ins[:TOP], "out": outs[:TOP],
            "sum": round(sum(x["s"] for x in ins)),
-           "kg_in": round(sum(x["kg"] for x in ins), 1),
-           "kg_out": round(sum(x["kg"] for x in outs), 1),
-           "n_in": len(ins), "n_out": len(outs)}
-    log(f"  {title}: {res['sum']/1e6:.1f} млн, вход {res['kg_in']:.0f}, выход {res['kg_out']:.0f}")
+           "units": units, "n_in": len(ins), "n_out": len(outs)}
+    log(f"  {title}: {res['sum']/1e6:.1f} млн, позиций {len(ins)}/{len(outs)}")
+    for u in units:
+        d = u["in"] - u["out"]
+        log(f"      {u['u']:5} вход {u['in']:12.1f}  выход {u['out']:12.1f}  разница {-d:+.1f}")
     return res
 
 
