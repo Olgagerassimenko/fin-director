@@ -76,6 +76,11 @@
   .perbar{background:#16203a;border:1px solid var(--line);border-radius:10px;
           padding:9px 14px;font-size:12px;color:#a9b8cc;margin-bottom:12px}
   .perbar b{color:#e5edf7}
+  .perbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .perbar select{background:#0f1830;border:1px solid #33406a;border-radius:8px;color:#e5edf7;
+                 font-family:inherit;font-size:12.5px;font-weight:700;padding:7px 10px;outline:none}
+  .perbar select:focus{border-color:#7c3aed}
+  .perbar .pb2{color:#a9b8cc}
   .ins{background:linear-gradient(140deg,rgba(52,211,153,.11),rgba(52,211,153,.03));
        border-color:rgba(52,211,153,.30)}
   .il{margin:8px 0 0;padding-left:19px;font-size:13px;line-height:1.8;color:#dfe9f5}
@@ -123,18 +128,56 @@
   // сумма в 46,7 млн ₸ ничего не значит, пока не сказано, за какой отрезок.
   var YR=String(D.mo_keys[0]||"").slice(0,4);
   var N=D.mo_keys.length, netto=D.mo_netto, gross=D.mo_gross;
-  var yearNetto=netto.reduce(function(a,b){return a+b;},0);
-  var yearGross=gross.reduce(function(a,b){return a+b;},0);
-  var inner=yearGross-yearNetto;
+
+  // Выбранный период: RA..RB — индексы месяцев. По умолчанию весь год.
+  // Все суммы на странице считаются по этому окну, а не «с начала года»:
+  // директору по производству нужен месяц, а не только накопительный итог.
+  var RA=0, RB=N-1;
+  // Разделка, переработка и тех.карты приходят из iiko без помесячной
+  // раскладки, поэтому выбор периода на них не влияет — и написать об этом
+  // надо прямо, иначе цифры выглядят как противоречие остальным вкладкам.
+  var PERALL="";
+  function SA(a){ var t=0; if(!a)return 0;
+    for(var i=RA;i<=RB&&i<a.length;i++) t+=a[i]||0; return t; }
+  function S(r){ if(!r)return 0; if(!r.m||!r.m.length) return r.s||0; return SA(r.m); }
+  // Список под выбранный период: пересчитываем суммы и заново сортируем,
+  // иначе за август наверху висели бы лидеры года, а не месяца.
+  function LP(list){
+    if(!list||!list.length) return [];
+    if(RA===0 && RB===N-1) return list;
+    var out=[];
+    for(var i=0;i<list.length;i++){
+      var r=list[i], v=S(r);
+      if(!v) continue;
+      out.push({n:r.n,u:r.u,kg:r.kg,own:r.own,m:r.m,s:v,i:r.i,o:r.o,mi:r.mi,mo:r.mo});
+    }
+    out.sort(function(a,b){return Math.abs(b.s)-Math.abs(a.s);});
+    return out;
+  }
+  var FULLP=true, NR=N;          // выбран ли весь период и сколько в нём месяцев
+  var yearNetto=0, yearGross=0, inner=0;
   // Все сравнения — только между закрытыми месяцами. Сколько их, сборщик
   // считает по календарю и кладёт в D.closed; на старых файлах, где поля ещё
   // нет, откатываемся на прежнюю прикидку по величине выпуска.
   var PER = D.mo_labels[0]+" — "+D.mo_labels[N-1]+" "+YR;
   var PERD = PER+", данные по "+D.through;
-  var closed = (D.closed && D.closed>0) ? Math.min(D.closed,N)-1
+  var CLOSED = (D.closed && D.closed>0) ? Math.min(D.closed,N)-1
              : ((N>1 && netto[N-1] < netto[N-2]*0.4) ? N-2 : N-1);
-  var cmp=closed-1;
-  var dPct=(cmp>=0 && netto[cmp]) ? Math.round((netto[closed]-netto[cmp])/netto[cmp]*100) : null;
+  var closed=CLOSED, cmp=closed-1, dPct=null, PER="", PERD="";
+  function recalc(){
+    FULLP = (RA===0 && RB===N-1);
+    NR = RB-RA+1;
+    yearNetto=SA(netto); yearGross=SA(gross); inner=yearGross-yearNetto;
+    closed = Math.min(CLOSED, RB);
+    if(closed<RA) closed=RB;
+    cmp = (closed-1>=RA)? closed-1 : (closed-1>=0? closed-1 : -1);
+    dPct=(cmp>=0 && netto[cmp]) ? Math.round((netto[closed]-netto[cmp])/netto[cmp]*100) : null;
+    PER = (RA===RB) ? (D.mo_labels[RA]+" "+YR)
+                    : (D.mo_labels[RA]+" — "+D.mo_labels[RB]+" "+YR);
+    PERD = PER+", данные по "+D.through;
+    PERALL = D.mo_labels[0]+" — "+D.mo_labels[N-1]+" "+YR;
+  }
+  recalc();
 
   // ── таблица «позиция · сумма · доля · вес» ───────────────────
   // Блок «Что это значит»: короткие выводы человеческим языком, посчитанные
@@ -153,20 +196,35 @@
 
   var _tid=0;
   function rows(list,total,markOwn,unitCol){
-    if(!list||!list.length) return '<div class="empty">Нет данных.</div>';
-    var max=list[0].s||1;
+    list=LP(list);
+    if(!list||!list.length) return '<div class="empty">За выбранный период данных нет.</div>';
+    total=sum(list);
+    var max=Math.abs(list[0].s)||1;
+    // Когда выбран один месяц, показываем ещё и изменение к предыдущему —
+    // без него месячная цифра висит без ответа на вопрос «это много или мало».
+    var dcol=(RA===RB && RA>0), dlab=dcol? D.mo_labels[RA-1] : "";
     // Таблица отдаётся целиком, а не первой сороковкой: сортировка и поиск
     // должны работать по всей базе. Длинный список кладём в прокрутку,
     // чтобы страница не растягивалась на десять экранов.
     var id='tb'+(++_tid), big=list.length>25;
     var html='<table id="'+id+'"><tr><th class="l">Позиция</th>'+(unitCol?'<th>Количество</th>':'')+
-      '<th>Сумма</th><th>Доля</th><th class="l" style="width:110px">Вес</th></tr>'+
+      '<th>Сумма</th>'+(dcol?'<th>Δ к '+dlab+'</th>':'')+
+      '<th>Доля</th><th class="l" style="width:110px">Вес</th></tr>'+
       list.map(function(r){
+        var dv='',dh='';
+        if(dcol){
+          var pv=(r.m&&r.m[RA-1])||0, cv=(r.m&&r.m[RA])||0;
+          if(pv>0){ var dd=Math.round((cv/pv-1)*100);
+            dh='<td data-v="'+dd+'" class="'+(dd>0?'up':(dd<0?'down':''))+'" style="font-weight:700">'+
+               (dd>0?'+':'')+dd+'%</td>'; }
+          else dh='<td data-v="99999" style="color:#64748b">новая</td>';
+        }
         return '<tr><td class="l">'+esc(r.n)+(markOwn&&r.own?'<span class="tag">своё</span>':'')+'</td>'+
-          (unitCol?'<td data-v="'+(r.kg||0)+'">'+fmt(r.kg)+' '+esc(r.u||'')+'</td>':'')+
-          '<td data-v="'+(r.s||0)+'">'+mln(r.s)+'</td>'+
+          (unitCol?'<td data-v="'+(FULLP?(r.kg||0):-1)+'">'+
+            (FULLP? (fmt(r.kg)+' '+esc(r.u||'')) : '<span style="color:#475569" title="Количество считается за весь период">—</span>')+'</td>':'')+
+          '<td data-v="'+(r.s||0)+'">'+mln(r.s)+'</td>'+dh+
           '<td data-v="'+(r.s||0)+'" style="color:#94a3b8">'+pct(r.s,total)+'%</td>'+
-          '<td><div class="bar"><i style="width:'+Math.max(2,Math.round(r.s/max*100))+'%"></i></div></td></tr>';
+          '<td><div class="bar"><i style="width:'+Math.max(2,Math.round(Math.abs(r.s)/max*100))+'%"></i></div></td></tr>';
       }).join("")+'</table>';
     if(!big) return html;
     return '<input class="flt" data-t="'+id+'" placeholder="Поиск по названию — всего '+
@@ -175,19 +233,37 @@
       '<div class="cnt2">Показано <b class="cnt" data-t="'+id+'">'+fmt(list.length)+'</b> из '+
       fmt(list.length)+' · сортировка — клик по заголовку столбца</div>';
   }
-  function sum(list,f){ return (list||[]).reduce(function(a,r){return a+(f?f(r):r.s);},0); }
+  function sum(list,f){ return (list||[]).reduce(function(a,r){return a+(f?f(r):S(r));},0); }
 
   // ── вкладки ──────────────────────────────────────────────────
+  var CURTAB="out";
   var TABS=[["out","Выпуск"],["cost","Себестоимость единицы"],
             ["dis","Разделка"],["tr","Переработка и пересорт"],["wo","Списания"],
             ["inv","Инвентаризации"],["tc","Тех.карта"],
             ["grp","Из чего себестоимость"]];
 
-  app.innerHTML =
-  '<div class="tabs">'+TABS.map(function(t,i){
-     return '<button class="tb'+(i?'':' on')+'" data-p="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>'+
-  '<div class="perbar">Период отчёта: <b>'+PER+'</b> · данные из iiko по <b>'+D.through+
-  '</b> · последний закрытый месяц — <b>'+D.mo_labels[closed]+'</b></div>'+
+  function perOptions(){
+    var o=[], i;
+    o.push(['0:'+(N-1),'Весь период — '+D.mo_labels[0]+'–'+D.mo_labels[N-1]]);
+    if(D.closed>0) o.push([(D.closed-1)+':'+(D.closed-1),'Последний закрытый месяц — '+D.mo_labels[D.closed-1]]);
+    if(N>=3) o.push([Math.max(0,N-3)+':'+(N-1),'Последние 3 месяца']);
+    if(D.closed>=3) o.push([(D.closed-3)+':'+(D.closed-1),'Последний квартал по закрытым — '+
+       D.mo_labels[D.closed-3]+'–'+D.mo_labels[D.closed-1]]);
+    for(i=N-1;i>=0;i--) o.push([i+':'+i, D.mo_labels[i]+' '+YR]);
+    return o;
+  }
+
+  function pageHTML(){ return (
+  '<div class="tabs">'+TABS.map(function(t){
+     return '<button class="tb'+(t[0]===CURTAB?' on':'')+'" data-p="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>'+
+  '<div class="perbar"><span>Период:</span> <select id="perSel">'+
+    perOptions().map(function(o){
+      return '<option value="'+o[0]+'"'+(o[0]===(RA+':'+RB)?' selected':'')+'>'+o[1]+'</option>';
+    }).join("")+'</select>'+
+  '<span class="pb2">Показано за <b>'+PER+'</b>'+
+    (FULLP?'':' · остальные вкладки пересчитаны под этот же период')+
+    ' · данные из iiko по <b>'+D.through+'</b> · последний закрытый месяц — <b>'+
+    D.mo_labels[CLOSED]+'</b></span></div>'+
 
   // ═══ ВЫПУСК ═══
   '<div class="pane on" id="p-out">'+
@@ -195,7 +271,7 @@
       kpi("hi",mln(netto[closed]),"Товарный выпуск за "+D.mo_labels[closed],
           (dPct===null?"":(dPct>0?"+":"")+dPct+"% к "+D.mo_labels[cmp]+" · ")+
           "последний закрытый месяц")+
-      kpi("",mln(yearNetto),"С начала года","товарной продукции за "+N+" мес.")+
+      kpi("",mln(yearNetto),(FULLP?"С начала года":"За "+PER),"товарной продукции за "+NR+" мес.")+
       kpi("",fmt(D.fin_count)+" / "+fmt(D.inp_count),"Позиций: выпуск / сырьё",
           "из них "+fmt(D.own_count)+" — полуфабрикаты своего передела")+
       kpi("",pct(inner,yearGross)+"%","Внутренний передел",
@@ -212,12 +288,13 @@
         var d=Math.round((netto[closed]-netto[cmp])/(netto[cmp]||1)*100);
         return "В "+D.mo_labels[closed]+" завод выпустил товарной продукции на <b>"+mln(netto[closed])+
           "</b> — это "+sig(d)+" к "+D.mo_labels[cmp]+". Сравниваем только закрытые месяцы.";})(),
-      "Каждый третий тенге оборота производства — внутренний передел: <b>"+mln(inner)+
+      "Внутренний передел за период — <b>"+mln(inner)+
         "</b> ("+pct(inner,yearGross)+"%) это полуфабрикаты, которые завод сделал сам и тут же пустил в дело. "+
         "На выручку они работают только через готовую продукцию, поэтому в товарный выпуск не попадают.",
       (function(){
-        var t10=(D.finished||[]).slice(0,10).reduce(function(a,r){return a+r.s;},0);
-        var all=sum(D.finished);
+        var fl=LP(D.finished);
+        var t10=fl.slice(0,10).reduce(function(a,r){return a+S(r);},0);
+        var all=sum(fl);
         if(!all) return "";
         return "Десять позиций из "+fmt(D.fin_count)+" дают <b>"+pct(t10,all)+
           "%</b> товарного выпуска — производство сосредоточено в узком ядре ассортимента.";})(),
@@ -278,7 +355,8 @@
   '<div class="pane" id="p-tc">'+ tcPane() +'</div>'+
 
   // ═══ СТРУКТУРА ПО ГРУППАМ ═══
-  '<div class="pane" id="p-grp">'+ grpPane() +'</div>';
+  '<div class="pane" id="p-grp">'+ grpPane() +'</div>');
+  }
 
   // ── себестоимость единицы ────────────────────────────────────
   function unitTable(){
@@ -351,12 +429,14 @@
     var main=U.length? U[0] : null;
     var yield_ = (main&&main.in>0)? Math.round(main.out/main.in*1000)/10 : null;
     return '<div class="kpis">'+
-      kpi("",mln(R.sum),title+" за год","стоимость того, что прошло операцию")+
+      kpi("",mln(R.sum),title+" за "+PERALL,"стоимость того, что прошло операцию")+
       (yield_!==null? kpi(yield_<90?"warn":"",String(yield_).replace(".",",")+"%","Выход по «"+esc(main.u)+"»",
           fmt(main.in)+" "+esc(main.u)+" вошло → "+fmt(main.out)+" "+esc(main.u)+" вышло") : "")+
       kpi("",fmt(R.n_in)+" → "+fmt(R.n_out),"Позиций: вход → выход","сколько разной номенклатуры участвует")+
     '</div>'+
-    '<div class="note">'+expl+'</div>'+
+    '<div class="note">'+expl+
+    (FULLP? '' : ' <b>Выбор периода на эту вкладку не влияет:</b> разделка и переработка '+
+      'приходят из iiko одной суммой за '+PERALL+', помесячной раскладки по ним нет.')+'</div>'+
     insight([
       (yield_===null? "" : (yield_<100
         ? ("Из каждых 100 "+esc(main.u)+", отправленных в операцию, обратно приходит <b>"+
@@ -381,33 +461,42 @@
         " ("+pct(R.in[0].s,sum(R.in))+"% всей операции)." : "")
     ])+
     (cid? '<div class="card"><div class="ct">Выход по единицам измерения</div>'+
-      '<div class="cs">За '+PER+'. Сколько процентов от того, что вошло, вернулось обратно. '+
+      '<div class="cs">За '+PERALL+'. Сколько процентов от того, что вошло, вернулось обратно. '+
       '100% — ничего не потеряли. Наведите на полосу, чтобы увидеть килограммы. Единицы, '+
       'у которых входа не было, на графике не показаны — считать выход не от чего.</div>'+
       '<div style="height:250px"><canvas id="'+cid+'"></canvas></div></div>' : '')+
     '<div class="card"><div class="ct">Вход и выход по единицам измерения</div>'+
-    '<div class="cs">За '+PER+'. Килограммы, литры и штуки считаются отдельно — сложить их '+
+    '<div class="cs">За '+PERALL+'. Килограммы, литры и штуки считаются отдельно — сложить их '+
     'в одно число нельзя. Минус в разнице означает, что вышло меньше, чем вошло.</div>'+unitRows+'</div>'+
     '<div class="two">'+
       '<div class="card"><div class="ct">Что уходит в операцию</div>'+
-      '<div class="cs">Все '+R.n_in+' позиций за '+PER+'. Сумма — стоимость того, что списано в операцию.</div>'+
+      '<div class="cs">Все '+R.n_in+' позиций за '+PERALL+'. Сумма — стоимость того, что списано в операцию.</div>'+
       rows(R.in,sum(R.in),false,true)+'</div>'+
       '<div class="card"><div class="ct">Что получается</div>'+
-      '<div class="cs">Все '+R.n_out+' позиций за '+PER+'. Сумма — стоимость того, что получено.</div>'+
+      '<div class="cs">Все '+R.n_out+' позиций за '+PERALL+'. Сумма — стоимость того, что получено.</div>'+
       rows(R.out,sum(R.out),false,true)+'</div>'+
     '</div>';
   }
 
   // ── списания ─────────────────────────────────────────────────
   function woPane(){
-    var W=D.writeoff;
-    if(!W||!W.by_product||!W.by_product.length)
+    var W0=D.writeoff;
+    if(!W0||!W0.by_product||!W0.by_product.length)
       return '<div class="card"><div class="ct">Списания</div><div class="empty">Списаний нет.</div></div>';
-    var avg=W.sum/N;
+    // Пересчитываем всё под выбранный период — иначе месяц показывал бы
+    // годовые суммы, и цифры не сходились бы с графиком над ними.
+    var W={by_product:LP(W0.by_product), by_store:LP(W0.by_store), mo:W0.mo,
+           by_reason:W0.by_reason, named_sum:W0.named_sum, n:W0.n};
+    W.sum=SA(W0.mo);
+    if(!FULLP){ var k=W0.sum? W.sum/W0.sum : 0;
+      W.by_reason=(W0.by_reason||[]).map(function(r){return {n:r.n,s:Math.round(r.s*k),named:r.named};});
+      W.named_sum=Math.round((W0.named_sum||0)*k); }
+    var avg=W.sum/NR;
     return '<div class="kpis">'+
-      kpi("warn",mln(W.sum),"Списано с начала года","за "+N+" мес., по себестоимости")+
+      kpi("warn",mln(W.sum),(FULLP?"Списано с начала года":"Списано за "+PER),
+          "за "+NR+" мес., по себестоимости")+
       kpi("",mln(avg),"В среднем за месяц","ровный уровень или всплески — видно на графике")+
-      kpi("",fmt(W.n),"Позиций в списаниях","сколько разной номенклатуры попадало в списание")+
+      kpi("",fmt(W.by_product.length),"Позиций в списаниях","сколько разной номенклатуры попадало в списание")+
       kpi("",fmt(W.by_store.length),"Складов и цехов","откуда идут списания")+
     '</div>'+
     insight([
@@ -494,14 +583,22 @@
 
   // ── инвентаризации ───────────────────────────────────────────
   function invPane(){
-    var V=D.invent;
-    if(!V||!V.by_store||!V.by_store.length)
+    var V0=D.invent;
+    if(!V0||!V0.by_store||!V0.by_store.length)
       return '<div class="card"><div class="ct">Инвентаризации</div>'+
         '<div class="empty">Пересчётов за период не было.</div></div>';
+    var V={hist:V0.hist, months:V0.months, mo_in:V0.mo_in, mo_out:V0.mo_out,
+           short:LP(V0.short), over:LP(V0.over)};
+    V.sum_in=SA(V0.mo_in); V.sum_out=SA(V0.mo_out); V.net=V.sum_in? (V.sum_out-V.sum_in) : V.sum_out;
+    V.n=V.short.length+V.over.length;
+    V.by_store=(V0.by_store||[]).map(function(r){
+      var i=r.mi? SA(r.mi):r.i, o=r.mo? SA(r.mo):r.o;
+      return {n:r.n,i:i,o:o,s:o-i};}).filter(function(r){return r.i||r.o;})
+      .sort(function(a,b){return b.s-a.s;});
     var share=yearNetto? (V.net/yearNetto*100) : 0;
     // Средний месяц считаем только по закрытым: инвентаризация текущего месяца
     // ещё не проведена, и её почти нулевая сумма занизила бы среднее.
-    var mo=V.mo_out||[], big=mo.filter(function(v){return v>(V.sum_out/mo.length)*0.25;});
+    var mo=V.mo_out||[], big=mo.filter(function(v){return v>(V0.sum_out/mo.length)*0.25;});
     var avg=big.length? big.reduce(function(a,b){return a+b;},0)/big.length : 0;
 
     // таблица «склад · излишки · недостачи · сальдо»
@@ -535,7 +632,7 @@
     }
 
     return '<div class="kpis">'+
-      kpi("warn",mln(V.net),"Чистая недостача с начала года",
+      kpi("warn",mln(V.net),(FULLP?"Чистая недостача с начала года":"Чистая недостача за "+PER),
           "недостачи "+mln(V.sum_out)+" минус излишки "+mln(V.sum_in))+
       kpi("",share.toFixed(1).replace(".",",")+"%","К товарному выпуску",
           "сколько процентов выпуска не доехало до склада")+
@@ -548,7 +645,7 @@
     'уже чистый результат. <b>Пересорт</b> (нашли одно, потеряли другое на том же складе) '+
     'даёт сальдо около нуля; настоящая потеря — это склад с большим минусом.</div>'+
     insight([
-      "За "+N+" месяцев пересчёты дали чистую недостачу <b>"+mln(V.net)+"</b>: нашлось на "+
+      "За "+PER+" пересчёты дали чистую недостачу <b>"+mln(V.net)+"</b>: нашлось на "+
         mln(V.sum_in)+", не нашлось на "+mln(V.sum_out)+".",
       (function(){
         var w=(V.by_store||[])[0];
@@ -701,16 +798,18 @@
     // Проводка производства двойная: стоимость выпуска ВСЕГДА равна стоимости
     // списанного сырья, поэтому «материалоёмкость» здесь тождественно равна
     // ста процентам и ничего не значит. Смысл имеет только структура.
-    var buyList=(G.inp||[]).filter(function(r){return !r.own;});
-    var top3=buyList.slice(0,3).reduce(function(a,r){return a+r.s;},0);
-    var conc=G.buy? Math.round(top3/G.buy*100) : 0;
+    var buyList=LP((G.inp||[]).filter(function(r){return !r.own;}));
+    var top3=buyList.slice(0,3).reduce(function(a,r){return a+S(r);},0);
+    var GBUY=SA(G.mo_buy)||G.buy;
+    var GOWN=FULLP? G.own : Math.round((G.own||0)*(G.buy? GBUY/G.buy : 1));
+    var conc=GBUY? Math.round(top3/GBUY*100) : 0;
 
     return '<div class="kpis">'+
-      kpi("hi",mln(G.buy),"Покупное сырьё с начала года",
+      kpi("hi",mln(GBUY),(FULLP?"Покупное сырьё с начала года":"Покупное сырьё за "+PER),
           "без внутреннего передела — только то, что завод купил")+
       kpi("",conc+"%","Три группы дают",
           (buyList.slice(0,3).map(function(r){return r.n;}).join(" · ")||"—"))+
-      kpi("",mln(G.own),"Внутренний передел",
+      kpi("",mln(GOWN),"Внутренний передел",
           "полуфабрикаты собственного производства, ушедшие в дело")+
       kpi("",fmt(G.n_inp)+" / "+fmt(G.n_out),"Групп: сырьё / выпуск",
           "вместо тысяч отдельных позиций")+
@@ -725,16 +824,16 @@
     'показывает. Работает только структура: какая группа сколько занимает и как это '+
     'меняется по месяцам.</div>'+
     insight([
-      "Покупное сырьё за "+N+" месяцев — <b>"+mln(G.buy)+"</b>. Внутренний передел ("+mln(G.own)+
+      "Покупное сырьё за "+PER+" — <b>"+mln(GBUY)+"</b>. Внутренний передел ("+mln(GOWN)+
         ") сюда не входит: это уже оплаченное сырьё, прошедшее через собственный цех, и второй раз "+
         "его считать нельзя.",
       (buyList.length? "Три группы дают <b>"+conc+"%</b> всего сырья: "+
-        buyList.slice(0,3).map(function(r){return "<b>"+esc(r.n)+"</b> ("+pct(r.s,G.buy)+"%)";}).join(", ")+
+        buyList.slice(0,3).map(function(r){return "<b>"+esc(r.n)+"</b> ("+pct(S(r),GBUY)+"%)";}).join(", ")+
         ". Экономить имеет смысл здесь — процент с этих трёх строк весит больше, чем весь остальной список." : ""),
       (function(){
         var pk=buyList.filter(function(r){return /упаков|тар[аы]|гофро|расходн/i.test(r.n);});
-        var ps=pk.reduce(function(a,r){return a+r.s;},0);
-        return ps? ("Упаковка и расходники — <b>"+mln(ps)+"</b>, это "+pct(ps,G.buy)+
+        var ps=pk.reduce(function(a,r){return a+S(r);},0);
+        return ps? ("Упаковка и расходники — <b>"+mln(ps)+"</b>, это "+pct(ps,GBUY)+
           "% сырья. Единственная группа, которую можно сократить, не трогая рецептуру.") : "";})(),
       (function(){
         var best=null;
@@ -820,17 +919,39 @@
     if(lab)lab.textContent=fmt(shown);
   });
 
-  // ── вкладки и графики ────────────────────────────────────────
-  [].forEach.call(document.querySelectorAll(".tb"),function(b){
-    b.addEventListener("click",function(){
-      [].forEach.call(document.querySelectorAll(".tb"),function(x){x.classList.remove("on");});
-      [].forEach.call(document.querySelectorAll(".pane"),function(x){x.classList.remove("on");});
-      b.classList.add("on");
-      var p=document.getElementById("p-"+b.getAttribute("data-p"));
-      if(p) p.classList.add("on");
+  // ── вкладки, период и перерисовка ────────────────────────────
+  function bindTabs(){
+    [].forEach.call(document.querySelectorAll(".tb"),function(b){
+      b.addEventListener("click",function(){
+        [].forEach.call(document.querySelectorAll(".tb"),function(x){x.classList.remove("on");});
+        [].forEach.call(document.querySelectorAll(".pane"),function(x){x.classList.remove("on");});
+        b.classList.add("on");
+        CURTAB=b.getAttribute("data-p");
+        var p=document.getElementById("p-"+CURTAB);
+        if(p) p.classList.add("on");
+      });
     });
-  });
+    var sel=document.getElementById("perSel");
+    if(sel) sel.addEventListener("change",function(){
+      var v=String(sel.value).split(":");
+      RA=parseInt(v[0],10)||0; RB=parseInt(v[1],10);
+      if(isNaN(RB)) RB=N-1;
+      if(RB<RA) RB=RA;
+      draw();
+    });
+  }
 
+  function draw(){
+    recalc();
+    _tid=0;
+    app.innerHTML=pageHTML();
+    var p=document.getElementById("p-"+CURTAB);
+    if(p){ [].forEach.call(document.querySelectorAll(".pane"),function(x){x.classList.remove("on");});
+           p.classList.add("on"); }
+    bindTabs(); makeSortable(); drawCharts();
+  }
+
+  function drawCharts(){
   if(window.Chart){
     new Chart(document.getElementById("chMo"),{
       data:{labels:D.mo_labels,datasets:[
@@ -995,6 +1116,9 @@
     }
   }
 
+  }
+
+  draw();
   document.getElementById("upd").textContent="обновлено "+D.updated+" · данные по "+D.through;
 })();
 </script>

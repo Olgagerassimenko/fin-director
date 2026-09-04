@@ -188,25 +188,25 @@ log(f"  закрытых месяцев: {closed_n} из {len(mo_keys)}")
 
 own = {n for n in inp_tot if n in out_tot}
 
-stores = {}
-for x in olap(["PRODUCTION"], ["Store"], YSTART, YEND, MONEY):
+stores, stores_mo = {}, {}
+for x in olap(["PRODUCTION"], ["Store", "DateTime.DateTyped"], YSTART, YEND, MONEY):
     nm = (x.get("Store") or "—").strip() or "—"
     v = x.get("Sum.Incoming") or 0
     if v > 0:
         stores[nm] = stores.get(nm, 0) + v
+        k = str(x.get("DateTime.DateTyped") or "")[:7].replace(".", "-")
+        stores_mo.setdefault(nm, {})[k] = stores_mo.setdefault(nm, {}).get(k, 0) + v
 log(f"  складов выпуска: {len(stores)}")
 
 
 def top(d_tot, d_mo, mark_own=False):
-    """Отдаём всю базу, чтобы на странице можно было сортировать по любому
-    столбцу, а не только по сорока крупнейшим. Помесячную раскладку держим
-    только для первых TOP позиций — иначе файл раздувается в разы, а нужна
-    она только там, где её реально смотрят."""
+    """Отдаём всю базу и помесячную раскладку по каждой позиции: на странице
+    есть выбор периода, и любую цифру нужно уметь пересчитать за месяц или
+    за квартал, а не только с начала года."""
     res = []
-    for i, (name, total) in enumerate(sorted(d_tot.items(), key=lambda kv: -kv[1])[:ALL_TOP]):
-        row = {"n": name, "s": round(total)}
-        if i < TOP:
-            row["m"] = [round(d_mo.get(name, {}).get(k, 0)) for k in mo_keys]
+    for name, total in sorted(d_tot.items(), key=lambda kv: -kv[1])[:ALL_TOP]:
+        row = {"n": name, "s": round(total),
+               "m": [round(d_mo.get(name, {}).get(k, 0)) for k in mo_keys]}
         if mark_own and name in own:
             row["own"] = 1
         res.append(row)
@@ -290,6 +290,7 @@ log("\n-- списания --")
 # и причины в учёте попросту нет. Это само по себе результат, который надо
 # показать: счета «Бракераж», «Проработка блюд» существуют, но пустые.
 wo_prod, wo_store, wo_mo, wo_acc = {}, {}, {}, {}
+wo_prod_mo, wo_store_mo = {}, {}
 for x in olap(["WRITEOFF"], ["Product.Name", "Store", "Account.Name", "DateTime.DateTyped"],
               YSTART, YEND, ["Sum.Outgoing"]):
     v = x.get("Sum.Outgoing") or 0
@@ -303,14 +304,19 @@ for x in olap(["WRITEOFF"], ["Product.Name", "Store", "Account.Name", "DateTime.
     wo_store[st] = wo_store.get(st, 0) + v
     wo_acc[ac] = wo_acc.get(ac, 0) + v
     if k:
+        wo_prod_mo.setdefault(n, {})[k] = wo_prod_mo.setdefault(n, {}).get(k, 0) + v
+        wo_store_mo.setdefault(st, {})[k] = wo_store_mo.setdefault(st, {}).get(k, 0) + v
+    if k:
         wo_mo[k] = wo_mo.get(k, 0) + v
 writeoff = {
     "sum": round(sum(wo_prod.values())),
     "n": len(wo_prod),
-    "by_product": sorted([{"n": k, "s": round(v)} for k, v in wo_prod.items()],
-                         key=lambda x: -x["s"])[:ALL_TOP],
-    "by_store": sorted([{"n": k, "s": round(v)} for k, v in wo_store.items()],
-                       key=lambda x: -x["s"]),
+    "by_product": sorted([{"n": k, "s": round(v),
+                           "m": [round(wo_prod_mo.get(k, {}).get(mk, 0)) for mk in mo_keys]}
+                          for k, v in wo_prod.items()], key=lambda x: -x["s"])[:ALL_TOP],
+    "by_store": sorted([{"n": k, "s": round(v),
+                         "m": [round(wo_store_mo.get(k, {}).get(mk, 0)) for mk in mo_keys]}
+                        for k, v in wo_store.items()], key=lambda x: -x["s"]),
     "mo": [round(wo_mo.get(k, 0)) for k in mo_keys],
     # Счёт, названный так же, как склад, причиной не является — это «списано
     # со склада N», то есть причина не указана.
@@ -335,6 +341,7 @@ log("\n-- инвентаризации --")
 inv_store, inv_prod = {}, {}
 inv_mo_in, inv_mo_out = {}, {}
 inv_dates = {}          # склад -> множество дат, когда пересчёт реально был
+inv_st_mo = {}          # склад -> помесячно излишки/недостачи
 inv_zero = 0
 for x in olap(["INVENTORY_CORRECTION"],
               ["Product.Name", "Product.MeasureUnit", "Store", "DateTime.DateTyped"],
@@ -348,18 +355,26 @@ for x in olap(["INVENTORY_CORRECTION"],
     n = (x.get("Product.Name") or "—").strip() or "—"
     st = (x.get("Store") or "—").strip() or "—"
     k = str(x.get("DateTime.DateTyped") or "")[:7].replace(".", "-")
+    mk = str(x.get("DateTime.DateTyped") or "")[:7].replace(".", "-")
     pr = inv_prod.setdefault(n, {"u": (x.get("Product.MeasureUnit") or "").strip(),
-                                 "si": 0.0, "so": 0.0, "qi": 0.0, "qo": 0.0})
+                                 "si": 0.0, "so": 0.0, "qi": 0.0, "qo": 0.0,
+                                 "mi": {}, "mo": {}})
     b = inv_store.setdefault(st, {"i": 0.0, "o": 0.0})
     dt = str(x.get("DateTime.DateTyped") or "")[:10].replace(".", "-")
     if dt:
         inv_dates.setdefault(st, set()).add(dt)
     if ai > 0:
         pr["si"] += v; pr["qi"] += ai; b["i"] += v
+        pr["mi"][mk] = pr["mi"].get(mk, 0) + v
         inv_mo_in[k] = inv_mo_in.get(k, 0) + v
+        inv_st_mo.setdefault(st, {"i": {}, "o": {}})["i"][mk] = \
+            inv_st_mo[st]["i"].get(mk, 0) + v
     else:
         pr["so"] += v; pr["qo"] += ao; b["o"] += v
+        pr["mo"][mk] = pr["mo"].get(mk, 0) + v
         inv_mo_out[k] = inv_mo_out.get(k, 0) + v
+        inv_st_mo.setdefault(st, {"i": {}, "o": {}})["o"][mk] = \
+            inv_st_mo[st]["o"].get(mk, 0) + v
 
 
 def _inv_rows(sign):
@@ -372,7 +387,9 @@ def _inv_rows(sign):
         if net <= 0:
             continue
         q = (pr["qi"] - pr["qo"]) if sign > 0 else (pr["qo"] - pr["qi"])
-        res.append({"n": n, "u": pr["u"], "s": round(net), "kg": round(q, 1)})
+        m = [round((pr["mi"].get(k, 0) - pr["mo"].get(k, 0)) * (1 if sign > 0 else -1))
+             for k in mo_keys]
+        res.append({"n": n, "u": pr["u"], "s": round(net), "kg": round(q, 1), "m": m})
     res.sort(key=lambda r: -r["s"])
     return res[:ALL_TOP]
 
@@ -385,8 +402,10 @@ invent = {
     "mo_in": [round(inv_mo_in.get(k, 0)) for k in mo_keys],
     "mo_out": [round(inv_mo_out.get(k, 0)) for k in mo_keys],
     "by_store": sorted([{"n": k, "i": round(v["i"]), "o": round(v["o"]),
-                         "s": round(v["o"] - v["i"])} for k, v in inv_store.items()
-                        if v["i"] > 0 or v["o"] > 0],
+                         "s": round(v["o"] - v["i"]),
+                         "mi": [round(inv_st_mo.get(k, {}).get("i", {}).get(mk, 0)) for mk in mo_keys],
+                         "mo": [round(inv_st_mo.get(k, {}).get("o", {}).get(mk, 0)) for mk in mo_keys]}
+                        for k, v in inv_store.items() if v["i"] > 0 or v["o"] > 0],
                        key=lambda r: -r["s"]),
     "short": _inv_rows(-1),
     "over": _inv_rows(1),
@@ -618,8 +637,9 @@ data = {
     "fin_count": len(fin_tot), "own_count": len(own),
     "finished": top(fin_tot, fin_by_mo),
     "inputs": top(inp_tot, inp_by_mo, mark_own=True),
-    "stores": sorted([{"n": k, "s": round(v)} for k, v in stores.items()],
-                     key=lambda x: -x["s"]),
+    "stores": sorted([{"n": k, "s": round(v),
+                       "m": [round(stores_mo.get(k, {}).get(mk, 0)) for mk in mo_keys]}
+                      for k, v in stores.items()], key=lambda x: -x["s"]),
     "unitcost": unitcost,
     "disasm": disasm,
     "transf": transf,
