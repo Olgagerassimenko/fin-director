@@ -367,14 +367,14 @@ for x in olap(["INVENTORY_CORRECTION"],
         pr["si"] += v; pr["qi"] += ai; b["i"] += v
         pr["mi"][mk] = pr["mi"].get(mk, 0) + v
         inv_mo_in[k] = inv_mo_in.get(k, 0) + v
-        inv_st_mo.setdefault(st, {"i": {}, "o": {}})["i"][mk] = \
-            inv_st_mo[st]["i"].get(mk, 0) + v
+        sm = inv_st_mo.setdefault(st, {"i": {}, "o": {}})
+        sm["i"][mk] = sm["i"].get(mk, 0) + v
     else:
         pr["so"] += v; pr["qo"] += ao; b["o"] += v
         pr["mo"][mk] = pr["mo"].get(mk, 0) + v
         inv_mo_out[k] = inv_mo_out.get(k, 0) + v
-        inv_st_mo.setdefault(st, {"i": {}, "o": {}})["o"][mk] = \
-            inv_st_mo[st]["o"].get(mk, 0) + v
+        sm = inv_st_mo.setdefault(st, {"i": {}, "o": {}})
+        sm["o"][mk] = sm["o"].get(mk, 0) + v
 
 
 def _inv_rows(sign):
