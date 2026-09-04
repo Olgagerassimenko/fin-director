@@ -1,16 +1,4 @@
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-iiko auth ok 05:18:12
-=======
-iiko auth ok 05:32:52
->>>>>>> Stashed changes
-=======
-iiko auth ok 05:44:19
->>>>>>> Stashed changes
-=======
-iiko auth ok 05:59:17
->>>>>>> Stashed changes
+iiko auth ok 06:23:54
 
 -- выпуск --
   янв: оборот   170.6 млн · товарный выпуск   119.0 млн · позиций 1582
