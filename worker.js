@@ -1265,6 +1265,10 @@ async function recordView(p, request, env) {
   // по-прежнему не попадают.
   if (!dd.pu) dd.pu = {};
   if (!dd.cu) dd.cu = {};
+  // Момент, с которого в этот день считаются устройства по страницам. В день
+  // включения разбивка охватывает не все сутки, и без этой отметки цифры
+  // выглядят противоречиво: «за день 3 устройства», а по страницам одно.
+  if (!dd.puFrom) dd.puFrom = now.toISOString();
   const pl = dd.pu[p] || (dd.pu[p] = []);
   if (pl.indexOf(vid) < 0 && pl.length < 300) pl.push(vid);
   const cl = dd.cu[city] || (dd.cu[city] = []);

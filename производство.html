@@ -100,9 +100,25 @@
        color:#f0c674;margin-bottom:9px}
   .rec .rt span{background:rgba(240,198,116,.18);border:1px solid rgba(240,198,116,.4);
        border-radius:5px;padding:3px 8px;letter-spacing:.08em}
-  .rec ol{margin:0;padding-left:20px;font-size:13px;line-height:1.8;color:#eaf1fa}
-  .rec ol li{margin-bottom:6px}
+  .rec ol{margin:0;padding-left:0;list-style:none;font-size:13px;line-height:1.75;color:#eaf1fa}
+  .rec ol li{margin-bottom:2px}
   .rec b{color:#fff}
+  .rec label{display:flex;gap:11px;align-items:flex-start;cursor:pointer;padding:8px 10px;
+             border-radius:9px;transition:background .12s}
+  .rec label:hover{background:rgba(255,255,255,.05)}
+  .rec input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:0 0 18px;width:18px;height:18px;
+    margin:2px 0 0;border:2px solid rgba(240,198,116,.6);border-radius:5px;background:transparent;
+    cursor:pointer;position:relative;transition:all .15s}
+  .rec input[type=checkbox]:hover{border-color:var(--gold)}
+  .rec input[type=checkbox]:checked{background:var(--gold);border-color:var(--gold)}
+  .rec input[type=checkbox]:checked::after{content:"";position:absolute;left:5px;top:1px;width:4px;height:9px;
+    border:solid #1c2740;border-width:0 2.5px 2.5px 0;transform:rotate(43deg)}
+  .rec li.done label{opacity:.45}
+  .rec li.done .rtxt{text-decoration:line-through}
+  .rec .rnum{color:#f0c674;font-weight:800;flex:0 0 auto}
+  .rec .prg{margin-left:auto;font-size:11px;font-weight:700;color:#f0c674;letter-spacing:.02em}
+  .rec .rdone{margin-top:10px;padding-top:9px;border-top:1px solid rgba(240,198,116,.25);
+              font-size:12px;color:#c7d5e8}
   .perbar{background:var(--card2);border:1px solid var(--line);border-radius:10px;
           padding:9px 14px;font-size:12px;color:#bccbe0;margin-bottom:12px}
   .perbar b{color:#e5edf7}
@@ -231,11 +247,28 @@
     return '<details class="ex"><summary>О чём эта таблица</summary><div>'+txt+'</div></details>';
   }
   // Блок «Рекомендует»: не пересказ цифр, а что с ними делать.
-  function rec(items){
+  // Рекомендации — не текст, а список дел: каждую строку можно отметить
+  // выполненной, отметки переживают перезагрузку страницы (хранятся в самом
+  // браузере, на сервер ничего не уходит). Ключ привязан к вкладке и номеру
+  // пункта, поэтому вкладки не путаются между собой.
+  function recKey(tab,i){ return "pulse.prod.rec."+(tab||"x")+"."+i; }
+  function recGet(tab,i){ try{ return localStorage.getItem(recKey(tab,i))==="1"; }catch(e){ return false; } }
+  function recSet(tab,i,v){ try{ localStorage.setItem(recKey(tab,i), v?"1":"0"); }catch(e){} }
+  function rec(items,tab){
     items=(items||[]).filter(function(x){return x;});
     if(!items.length) return '';
-    return '<div class="rec"><div class="rt"><span>РЕКОМЕНДУЕТ</span> что сделать с этими цифрами</div>'+
-      '<ol><li>'+items.join('</li><li>')+'</li></ol></div>';
+    var done=0;
+    var li=items.map(function(t,i){
+      var on=recGet(tab,i); if(on)done++;
+      return '<li class="'+(on?'done':'')+'" data-ri="'+i+'">'+
+        '<label><input type="checkbox" data-ri="'+i+'"'+(on?' checked':'')+'>'+
+        '<span class="rnum">'+(i+1)+'.</span><span class="rtxt">'+t+'</span></label></li>';
+    }).join("");
+    return '<div class="rec" data-rt="'+(tab||"")+'"><div class="rt"><span>РЕКОМЕНДУЕТ</span> '+
+      'что сделать с этими цифрами<span class="prg">сделано '+done+' из '+items.length+'</span></div>'+
+      '<ol>'+li+'</ol>'+
+      '<div class="rdone">Отметки сохраняются в этом браузере — можно вернуться и увидеть, '+
+      'что уже разобрали. На сервер ничего не уходит.</div></div>';
   }
   function insight(items){
     items=(items||[]).filter(function(x){return x;});
@@ -487,7 +520,7 @@
         ("Внутренний передел — "+pct(inner,yearGross)+"% оборота. Проверить, не проходят ли "+
          "полуфабрикаты лишние переделы: каждый лишний документ — это ещё одна точка потерь "+
          "и ещё одно место, где расходится учёт.") : ""
-    ])+
+    ],"out")+
     '<div class="card"><div class="ct">Выпуск по месяцам</div>'+
     '<div class="cs">Столбики — товарный выпуск, линия — весь оборот вместе с переделом. '+
     'Выбранный период подсвечен, остальные месяцы приглушены. <b>Клик по столбику</b> показывает '+
@@ -606,7 +639,7 @@
         "пересмотреть отпускную цену или рецептуру, а не ждать конца года.",
       "Позиции с прочерками в месяцах выпускаются нерегулярно — по ним себестоимость "+
         "сравнивать некорректно, и в отчёт для директора их лучше не включать."
-    ])+
+    ],"cost")+
     '<div class="card"><div class="ct">Как менялась себестоимость единицы</div>'+
     '<div class="cs">Первый закрытый месяц каждой позиции принят за 100. Линия выше 100 — '+
     'единица продукции стала дороже, ниже — дешевле. <b>Кликните строку в таблице ниже</b>, '+
@@ -713,7 +746,7 @@
       (yield_!==null && R.sum && main.in)?
         ("Оценить эффект: один процент выхода по «"+esc(main.u)+"» — это примерно "+
          mln(R.sum/main.in*(main.in*0.01))+" в год.") : ""
-    ])+
+    ], cid==="chDis"?"dis":"tr")+
     (cid? '<div class="card"><div class="ct">Выход по единицам измерения</div>'+
       '<div class="cs">За '+PERALL+'. Сколько процентов от того, что вошло, вернулось обратно. '+
       '100% — ничего не потеряли. Наведите на полосу, чтобы увидеть килограммы. Единицы, '+
@@ -850,7 +883,7 @@
         return "Поставить норматив: доля списаний в товарном выпуске не выше <b>"+
           pc(Math.round(mid*100)/100)+"%</b> — текущего среднего. Дальше улучшать его "+
           "по четверти процента в квартал, а не разбирать каждый месяц заново.";})()
-    ])+
+    ],"wo")+
     '<div class="card"><div class="ct">Списания по месяцам</div>'+
     '<div class="cs">Всплеск обычно означает инвентаризацию или разовую порчу, ровный уровень — '+
     'процесс. Клик по столбику показывает весь отчёт за этот месяц.</div>'+
@@ -1088,7 +1121,7 @@
         "позже, искажает и себестоимость закрытого месяца, и остатки следующего.",
       "Разделить в отчётности пересорт и потерю: склад с большими оборотами и нулевым сальдо "+
         "не теряет товар, он путает позиции — это разные задачи и разные ответственные."
-    ])+
+    ],"inv")+
     histTable(V)+
     '<div class="card"><div class="ct">Где расходится учёт</div>'+
     '<div class="cs">Сальдо по складам за '+PER+'. Минус — недостача, плюс — излишек.</div>'+
@@ -1236,7 +1269,7 @@
         fmt(T.n_fact)+": у остальных хотя бы один ингредиент за год ни разу не покупался и не "+
         "списывался, поэтому фактической цены у него нет. Расширить покрытие можно, наведя "+
         "порядок в справочнике — убрать из карт ингредиенты, которые больше не используются.") : ""
-    ])+
+    ],"tc")+
     '<div class="card"><div class="ct">Кто дальше всех от нормы</div>'+
     '<div class="cs">Отклонение факта от нормы в процентах. Столбик вправо — сырья ушло больше, '+
     'чем по карте; влево — меньше.</div>'+
@@ -1339,7 +1372,7 @@
         "тогда надо разбираться.",
       "Внутренний передел в закупку не включать. Это уже оплаченное сырьё, прошедшее через "+
         "собственный цех, и второй раз его считать нельзя — иначе затраты задвоятся."
-    ])+
+    ],"grp")+
     '<div class="card"><div class="ct">Структура покупного сырья по месяцам</div>'+
     '<div class="cs">Шесть крупнейших групп и всё остальное одной полосой. '+
     'Смотреть надо не на высоту столбика — она идёт за объёмом выпуска, — а на то, '+
@@ -1399,6 +1432,19 @@
     });
   }
   makeSortable();
+
+  // ── отметки в списке дел ──────────────────────────────────────
+  document.addEventListener("change",function(e){
+    var i=e.target;
+    if(!i||i.type!=="checkbox"||i.getAttribute("data-ri")===null) return;
+    var box=i.closest? i.closest(".rec") : null; if(!box) return;
+    var li=i.closest("li"); if(li) li.classList.toggle("done", i.checked);
+    recSet(box.getAttribute("data-rt"), parseInt(i.getAttribute("data-ri"),10), i.checked);
+    var all=box.querySelectorAll('input[type=checkbox]');
+    var done=box.querySelectorAll('input[type=checkbox]:checked').length;
+    var p=box.querySelector(".prg");
+    if(p) p.textContent="сделано "+done+" из "+all.length;
+  });
 
   // ── поиск по названию внутри таблицы ─────────────────────────
   document.addEventListener("input",function(e){
