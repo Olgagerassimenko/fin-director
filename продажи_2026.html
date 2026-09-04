@@ -7,7 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script src="contractors.js" onerror="window.CONTRACTORS={}"></script>
+<!-- contractors.js убран 04.09.2026: файл не обновлялся с июля. Данные берём из contractor_items.js. -->
 <script src="sales_meta.js" onerror="window.SALES_META=null"></script>
 <script src="/sales_live.js?v=2" onerror="window.DS_LIVE=null"></script>
 <script src="contractor_items.js" onerror="window.CTR={}"></script>
@@ -1681,6 +1681,20 @@ window.DS = DS;
   var el = document.getElementById('page-title');
   if(el && mk.length) el.textContent = '📊 Продажи ' + mk[0].slice(0,4);
 })();
+/* contractors.js остался от прежнего генератора (parse_contractors.py) и
+   перестал обновляться на июле 2026 — из-за него блок «кто покупает» за
+   август и сентябрь был пустым. Свежий и полный источник — window.CTR
+   из contractor_items.js, поэтому CONTRACTORS всегда пересобираем из него. */
+if (window.CTR) {
+  window.CONTRACTORS = {};
+  Object.keys(window.CTR).forEach(function(mk){
+    window.CONTRACTORS[mk] = (window.CTR[mk]||[]).map(function(c){
+      return { name: c.name, rev: c.rev, pct: c.pct,
+               top_items: (c.items||[]).slice(0,5).map(function(i){
+                 return { name: i.n, rev: i.r }; }) };
+    });
+  });
+}
 if(window.CONTRACTORS){Object.keys(window.CONTRACTORS).forEach(mk=>{if(DS[mk])DS[mk].contractors=window.CONTRACTORS[mk];});}
 const CAT_COLORS={'Горячее':'#3b82f6','Выпечка':'#f97316','Сэндвичи':'#eab308','П/Ф Кулинария':'#ef4444','Япония':'#a855f7','Десерты':'#ec4899','Завтраки':'#14b8a6','Салаты':'#22c55e','Напитки':'#06b6d4','Прочее':'#6366f1','Торты':'#f43f5e','ФудЗавод':'#22c55e','My Mart':'#a78bfa','АЗС':'#f97316'};
 function cc(c){return CAT_COLORS[c]||'#64748b';}
