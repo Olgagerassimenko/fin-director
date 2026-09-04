@@ -70,7 +70,7 @@
 
 <div class="wrap" id="app"><div class="empty">Загружаю данные производства…</div></div>
 
-<script src="production_data.js?v=1" onerror="window.PROD_DATA=null"></script>
+<script src="production_data.js?v=2" onerror="window.PROD_DATA=null"></script>
 <script>
 (function(){
   var D=window.PROD_DATA, app=document.getElementById("app");
@@ -117,7 +117,8 @@
 
   // ── вкладки ──────────────────────────────────────────────────
   var TABS=[["out","Выпуск"],["cost","Себестоимость единицы"],
-            ["dis","Разделка"],["tr","Переработка и пересорт"],["wo","Списания"]];
+            ["dis","Разделка"],["tr","Переработка и пересорт"],["wo","Списания"],
+            ["inv","Инвентаризации"]];
 
   app.innerHTML =
   '<div class="tabs">'+TABS.map(function(t,i){
@@ -177,7 +178,10 @@
     "Здесь же видна усушка — когда вошло больше килограммов, чем вышло.") +'</div>'+
 
   // ═══ СПИСАНИЯ ═══
-  '<div class="pane" id="p-wo">'+ woPane() +'</div>';
+  '<div class="pane" id="p-wo">'+ woPane() +'</div>'+
+
+  // ═══ ИНВЕНТАРИЗАЦИИ ═══
+  '<div class="pane" id="p-inv">'+ invPane() +'</div>';
 
   // ── себестоимость единицы ────────────────────────────────────
   function unitTable(){
@@ -261,6 +265,79 @@
     '</div>';
   }
 
+
+  // ── инвентаризации ───────────────────────────────────────────
+  function invPane(){
+    var V=D.invent;
+    if(!V||!V.by_store||!V.by_store.length)
+      return '<div class="card"><div class="ct">Инвентаризации</div>'+
+        '<div class="empty">Пересчётов за период не было.</div></div>';
+    var share=yearNetto? (V.net/yearNetto*100) : 0;
+    // Средний месяц считаем только по закрытым: инвентаризация текущего месяца
+    // ещё не проведена, и её почти нулевая сумма занизила бы среднее.
+    var mo=V.mo_out||[], big=mo.filter(function(v){return v>(V.sum_out/mo.length)*0.25;});
+    var avg=big.length? big.reduce(function(a,b){return a+b;},0)/big.length : 0;
+
+    // таблица «склад · излишки · недостачи · сальдо»
+    function storeTable(){
+      var max=1; V.by_store.forEach(function(r){ max=Math.max(max,Math.abs(r.s)); });
+      return '<table><tr><th class="l">Склад</th><th>Излишки</th><th>Недостачи</th>'+
+        '<th>Сальдо</th><th class="l" style="width:110px">Вес</th></tr>'+
+        V.by_store.map(function(r){
+          var neg=r.s>0;
+          return '<tr><td class="l">'+esc(r.n)+'</td>'+
+            '<td style="color:#94a3b8">'+mln(r.i)+'</td>'+
+            '<td style="color:#94a3b8">'+mln(r.o)+'</td>'+
+            '<td class="'+(neg?'up':'down')+'" style="font-weight:700">'+
+              (neg?'−':'+')+mln(Math.abs(r.s)).replace('-','')+'</td>'+
+            '<td><div class="bar"><i style="width:'+Math.max(2,Math.round(Math.abs(r.s)/max*100))+
+              '%;background:'+(neg?'#f87171':'#34d399')+'"></i></div></td></tr>';
+        }).join("")+'</table>';
+    }
+    function posTable(list,neg){
+      if(!list||!list.length) return '<div class="empty">Нет данных.</div>';
+      var max=list[0].s||1;
+      return '<table><tr><th class="l">Позиция</th><th>Количество</th><th>Сумма</th>'+
+        '<th class="l" style="width:100px">Вес</th></tr>'+
+        list.map(function(r){
+          return '<tr><td class="l">'+esc(r.n)+'</td>'+
+            '<td>'+fmt(r.kg)+' '+esc(r.u||'')+'</td>'+
+            '<td class="'+(neg?'up':'down')+'" style="font-weight:700">'+mln(r.s)+'</td>'+
+            '<td><div class="bar"><i style="width:'+Math.max(2,Math.round(r.s/max*100))+
+              '%;background:'+(neg?'#f87171':'#34d399')+'"></i></div></td></tr>';
+        }).join("")+'</table>';
+    }
+
+    return '<div class="kpis">'+
+      kpi("warn",mln(V.net),"Чистая недостача с начала года",
+          "недостачи "+mln(V.sum_out)+" минус излишки "+mln(V.sum_in))+
+      kpi("",share.toFixed(1).replace(".",",")+"%","К товарному выпуску",
+          "сколько процентов выпуска не доехало до склада")+
+      kpi("",mln(avg),"В среднем за месяц","недостач по закрытым пересчётам")+
+      kpi("",fmt(V.n),"Позиций в расхождениях","сколько разной номенклатуры расходилось с учётом")+
+    '</div>'+
+    '<div class="note"><b>Как это читать.</b> Проводка инвентаризации в iiko двойная: '+
+    'в деньгах приход и расход равны, поэтому направление определяется по количеству. '+
+    'Излишек и недостача по одной позиции сворачиваются между собой — в таблицах ниже '+
+    'уже чистый результат. <b>Пересорт</b> (нашли одно, потеряли другое на том же складе) '+
+    'даёт сальдо около нуля; настоящая потеря — это склад с большим минусом.</div>'+
+    '<div class="card"><div class="ct">Недостачи и излишки по месяцам</div>'+
+    '<div class="cs">Красное — недостачи, зелёное — излишки. Последний месяц может быть '+
+    'неполным: инвентаризация проводится не каждый день.</div>'+
+    '<div style="height:250px"><canvas id="chInv"></canvas></div></div>'+
+    '<div class="card"><div class="ct">Где расходится учёт</div>'+
+    '<div class="cs">Сальдо по складам. Минус — недостача, плюс — излишек.</div>'+
+    storeTable()+'</div>'+
+    '<div class="two">'+
+      '<div class="card"><div class="ct">Что теряем</div>'+
+      '<div class="cs">Чистая недостача по позициям с начала года.</div>'+
+      posTable(V.short,true)+'</div>'+
+      '<div class="card"><div class="ct">Что находим</div>'+
+      '<div class="cs">Чистые излишки. Обычно это обратная сторона пересорта.</div>'+
+      posTable(V.over,false)+'</div>'+
+    '</div>';
+  }
+
   // ── вкладки и графики ────────────────────────────────────────
   [].forEach.call(document.querySelectorAll(".tb"),function(b){
     b.addEventListener("click",function(){
@@ -285,6 +362,20 @@
         scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
                 y:{beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},
                    callback:function(v){return v+" млн";}},grid:{color:"#1b2636"}}}}});
+    var ci=document.getElementById("chInv");
+    if(ci&&D.invent&&D.invent.mo_out){
+      new Chart(ci,{type:"bar",data:{labels:D.mo_labels,datasets:[
+        {label:"Недостачи",data:D.invent.mo_out.map(function(v){return v/1e6;}),
+         backgroundColor:"#f87171",borderRadius:5},
+        {label:"Излишки",data:(D.invent.mo_in||[]).map(function(v){return v/1e6;}),
+         backgroundColor:"#34d399",borderRadius:5}]},
+        options:{maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:12,font:{size:11}}},
+            tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y.toFixed(2)+" млн ₸";}}}},
+          scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
+                  y:{beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},
+                     callback:function(v){return v+" млн";}},grid:{color:"#1b2636"}}}}});
+    }
     var cw=document.getElementById("chWo");
     if(cw&&D.writeoff&&D.writeoff.mo){
       new Chart(cw,{type:"bar",data:{labels:D.mo_labels,

@@ -24,6 +24,10 @@
 4. СПИСАНИЯ (WRITEOFF)
    Что и с какого склада списано, в деньгах.
 
+5. ИНВЕНТАРИЗАЦИИ (INVENTORY_CORRECTION)
+   Недостачи и излишки по итогам пересчётов. Проводка двойная, направление
+   определяется по количеству, а не по деньгам.
+
 Плюс себестоимость единицы товарного выпуска по месяцам: видно, дорожает ли
 производство само по себе, отдельно от объёма.
 
@@ -262,6 +266,74 @@ writeoff = {
 log(f"  списано: {writeoff['sum']/1e6:.1f} млн, позиций {writeoff['n']}")
 
 
+# ═════════════════ 5. ИНВЕНТАРИЗАЦИИ ═════════════════
+# Проводка инвентаризации в iiko двойная: Sum.Incoming == Sum.Outgoing на каждой
+# строке, поэтому по деньгам направление не определить. Направление читается по
+# количеству: Amount.In > 0 — излишек, Amount.Out > 0 — недостача. Строки, где
+# количество нулевое (пересчёт без расхождения), в отчёт не идут.
+log("\n-- инвентаризации --")
+inv_store, inv_prod = {}, {}
+inv_mo_in, inv_mo_out = {}, {}
+inv_zero = 0
+for x in olap(["INVENTORY_CORRECTION"],
+              ["Product.Name", "Product.MeasureUnit", "Store", "DateTime.DateTyped"],
+              YSTART, YEND, FULL):
+    ai = x.get("Amount.In") or 0
+    ao = x.get("Amount.Out") or 0
+    v = x.get("Sum.Incoming") or 0
+    if ai <= 0 and ao <= 0:
+        inv_zero += 1
+        continue
+    n = (x.get("Product.Name") or "—").strip() or "—"
+    st = (x.get("Store") or "—").strip() or "—"
+    k = str(x.get("DateTime.DateTyped") or "")[:7].replace(".", "-")
+    pr = inv_prod.setdefault(n, {"u": (x.get("Product.MeasureUnit") or "").strip(),
+                                 "si": 0.0, "so": 0.0, "qi": 0.0, "qo": 0.0})
+    b = inv_store.setdefault(st, {"i": 0.0, "o": 0.0})
+    if ai > 0:
+        pr["si"] += v; pr["qi"] += ai; b["i"] += v
+        inv_mo_in[k] = inv_mo_in.get(k, 0) + v
+    else:
+        pr["so"] += v; pr["qo"] += ao; b["o"] += v
+        inv_mo_out[k] = inv_mo_out.get(k, 0) + v
+
+
+def _inv_rows(sign):
+    """sign=-1 — чистые недостачи, sign=+1 — чистые излишки (по каждой позиции
+    излишек и недостача сворачиваются: одна и та же позиция может и теряться,
+    и находиться в разные месяцы)."""
+    res = []
+    for n, pr in inv_prod.items():
+        net = (pr["si"] - pr["so"]) if sign > 0 else (pr["so"] - pr["si"])
+        if net <= 0:
+            continue
+        q = (pr["qi"] - pr["qo"]) if sign > 0 else (pr["qo"] - pr["qi"])
+        res.append({"n": n, "u": pr["u"], "s": round(net), "kg": round(q, 1)})
+    res.sort(key=lambda r: -r["s"])
+    return res[:TOP]
+
+
+inv_in = sum(v["i"] for v in inv_store.values())
+inv_out = sum(v["o"] for v in inv_store.values())
+invent = {
+    "sum_in": round(inv_in), "sum_out": round(inv_out), "net": round(inv_out - inv_in),
+    "n": len(inv_prod), "zero": inv_zero,
+    "mo_in": [round(inv_mo_in.get(k, 0)) for k in mo_keys],
+    "mo_out": [round(inv_mo_out.get(k, 0)) for k in mo_keys],
+    "by_store": sorted([{"n": k, "i": round(v["i"]), "o": round(v["o"]),
+                         "s": round(v["o"] - v["i"])} for k, v in inv_store.items()
+                        if v["i"] > 0 or v["o"] > 0],
+                       key=lambda r: -r["s"]),
+    "short": _inv_rows(-1),
+    "over": _inv_rows(1),
+}
+log(f"  излишки {inv_in/1e6:.1f} млн · недостачи {inv_out/1e6:.1f} млн · "
+    f"чистая недостача {(inv_out-inv_in)/1e6:.1f} млн · позиций {len(inv_prod)}")
+for r in invent["by_store"][:6]:
+    log(f"      {r['n'][:34]:36} сальдо {-r['s']/1e6:+8.2f} млн")
+
+
+
 data = {
     "updated": datetime.datetime.now().strftime("%d.%m.%Y %H:%M"),
     "through": last_full.strftime("%d.%m.%Y"),
@@ -279,6 +351,7 @@ data = {
     "disasm": disasm,
     "transf": transf,
     "writeoff": writeoff,
+    "invent": invent,
 }
 
 
