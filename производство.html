@@ -139,12 +139,17 @@
   var PERALL="";
   function SA(a){ var t=0; if(!a)return 0;
     for(var i=RA;i<=RB&&i<a.length;i++) t+=a[i]||0; return t; }
-  function S(r){ if(!r)return 0; if(!r.m||!r.m.length) return r.s||0; return SA(r.m); }
+  // Если у строки нет помесячной раскладки, за неполный период показывать её
+  // годовую сумму нельзя — цифра будет неверной. В таком случае строка просто
+  // не участвует: лучше её не показать, чем показать не за тот период.
+  function S(r){ if(!r)return 0;
+    if(!r.m||!r.m.length) return FULLP? (r.s||0) : 0;
+    return SA(r.m); }
   // Список под выбранный период: пересчитываем суммы и заново сортируем,
   // иначе за август наверху висели бы лидеры года, а не месяца.
   function LP(list){
     if(!list||!list.length) return [];
-    if(RA===0 && RB===N-1) return list;
+    if(FULLP) return list;
     var out=[];
     for(var i=0;i<list.length;i++){
       var r=list[i], v=S(r);
