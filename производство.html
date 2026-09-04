@@ -43,6 +43,10 @@
      text-align:right;padding:7px 8px;border-bottom:1px solid var(--line)}
   th.l{text-align:left}
   td{padding:7px 8px;border-bottom:1px solid #1b2636;text-align:right;font-variant-numeric:tabular-nums}
+  td:not(.l){white-space:nowrap}
+  th[data-s]{cursor:pointer;user-select:none;transition:color .12s}
+  th[data-s]:hover{color:#a78bfa}
+  th[data-dir]{color:#c4b5fd}
   td.l{text-align:left;color:#f1f5f9;font-weight:600}
   tr:hover td{background:rgba(255,255,255,.03)}
   .tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.04em;border-radius:4px;
@@ -56,6 +60,22 @@
   .note b{color:#f0d98c}
   canvas{max-width:100%}
   .pane{display:none} .pane.on{display:block}
+  .tall{max-height:520px;overflow:auto;border-radius:9px}
+  .tall table th{position:sticky;top:0;background:var(--card);z-index:2}
+  .flt{width:100%;box-sizing:border-box;background:#0f1830;border:1px solid var(--line);
+       border-radius:9px;color:var(--txt);font-family:inherit;font-size:12.5px;
+       padding:8px 11px;margin-bottom:9px;outline:none}
+  .flt:focus{border-color:#7c3aed}
+  .flt::placeholder{color:#5b6b83}
+  .cnt2{font-size:11.5px;color:var(--mut);margin-top:8px}
+  .cnt2 b{color:#cbd5e1}
+  .ins{background:linear-gradient(140deg,rgba(52,211,153,.11),rgba(52,211,153,.03));
+       border-color:rgba(52,211,153,.30)}
+  .il{margin:8px 0 0;padding-left:19px;font-size:13px;line-height:1.8;color:#dfe9f5}
+  .il li{margin-bottom:5px}
+  .il b{color:#fff}
+  .il .g{color:var(--green);font-weight:700}
+  .il .r{color:var(--red);font-weight:700}
 </style></head>
 <body>
 
@@ -70,7 +90,7 @@
 
 <div class="wrap" id="app"><div class="empty">Загружаю данные производства…</div></div>
 
-<script src="production_data.js?v=2" onerror="window.PROD_DATA=null"></script>
+<script src="production_data.js?v=3" onerror="window.PROD_DATA=null"></script>
 <script>
 (function(){
   var D=window.PROD_DATA, app=document.getElementById("app");
@@ -96,29 +116,58 @@
   var yearNetto=netto.reduce(function(a,b){return a+b;},0);
   var yearGross=gross.reduce(function(a,b){return a+b;},0);
   var inner=yearGross-yearNetto;
-  // последний месяц может быть неполным — «за месяц» берём последний закрытый
-  var closed=(N>1 && netto[N-1] < netto[N-2]*0.4) ? N-2 : N-1, cmp=closed-1;
+  // Все сравнения — только между закрытыми месяцами. Сколько их, сборщик
+  // считает по календарю и кладёт в D.closed; на старых файлах, где поля ещё
+  // нет, откатываемся на прежнюю прикидку по величине выпуска.
+  var closed = (D.closed && D.closed>0) ? Math.min(D.closed,N)-1
+             : ((N>1 && netto[N-1] < netto[N-2]*0.4) ? N-2 : N-1);
+  var cmp=closed-1;
   var dPct=(cmp>=0 && netto[cmp]) ? Math.round((netto[closed]-netto[cmp])/netto[cmp]*100) : null;
 
   // ── таблица «позиция · сумма · доля · вес» ───────────────────
+  // Блок «Что это значит»: короткие выводы человеческим языком, посчитанные
+  // из тех же цифр, что и таблицы рядом. Ничего не выдумываем — только то,
+  // что прямо следует из данных.
+  function insight(items){
+    items=(items||[]).filter(function(x){return x;});
+    if(!items.length) return '';
+    return '<div class="card ins"><div class="ct">Что это значит</div>'+
+      '<ul class="il"><li>'+items.join('</li><li>')+'</li></ul></div>';
+  }
+  function up(v){ return '<span class="r">+'+v+'%</span>'; }
+  function dn(v){ return '<span class="g">'+v+'%</span>'; }
+  function sig(d){ return d>0? up(d) : dn(d); }
+
+  var _tid=0;
   function rows(list,total,markOwn,unitCol){
     if(!list||!list.length) return '<div class="empty">Нет данных.</div>';
     var max=list[0].s||1;
-    return '<table><tr><th class="l">Позиция</th>'+(unitCol?'<th>Количество</th>':'')+
+    // Таблица отдаётся целиком, а не первой сороковкой: сортировка и поиск
+    // должны работать по всей базе. Длинный список кладём в прокрутку,
+    // чтобы страница не растягивалась на десять экранов.
+    var id='tb'+(++_tid), big=list.length>25;
+    var html='<table id="'+id+'"><tr><th class="l">Позиция</th>'+(unitCol?'<th>Количество</th>':'')+
       '<th>Сумма</th><th>Доля</th><th class="l" style="width:110px">Вес</th></tr>'+
       list.map(function(r){
         return '<tr><td class="l">'+esc(r.n)+(markOwn&&r.own?'<span class="tag">своё</span>':'')+'</td>'+
-          (unitCol?'<td>'+fmt(r.kg)+' '+esc(r.u||'')+'</td>':'')+
-          '<td>'+mln(r.s)+'</td><td style="color:#94a3b8">'+pct(r.s,total)+'%</td>'+
+          (unitCol?'<td data-v="'+(r.kg||0)+'">'+fmt(r.kg)+' '+esc(r.u||'')+'</td>':'')+
+          '<td data-v="'+(r.s||0)+'">'+mln(r.s)+'</td>'+
+          '<td data-v="'+(r.s||0)+'" style="color:#94a3b8">'+pct(r.s,total)+'%</td>'+
           '<td><div class="bar"><i style="width:'+Math.max(2,Math.round(r.s/max*100))+'%"></i></div></td></tr>';
       }).join("")+'</table>';
+    if(!big) return html;
+    return '<input class="flt" data-t="'+id+'" placeholder="Поиск по названию — всего '+
+      fmt(list.length)+' позиций">'+
+      '<div class="tall">'+html+'</div>'+
+      '<div class="cnt2">Показано <b class="cnt" data-t="'+id+'">'+fmt(list.length)+'</b> из '+
+      fmt(list.length)+' · сортировка — клик по заголовку столбца</div>';
   }
   function sum(list,f){ return (list||[]).reduce(function(a,r){return a+(f?f(r):r.s);},0); }
 
   // ── вкладки ──────────────────────────────────────────────────
   var TABS=[["out","Выпуск"],["cost","Себестоимость единицы"],
             ["dis","Разделка"],["tr","Переработка и пересорт"],["wo","Списания"],
-            ["inv","Инвентаризации"]];
+            ["inv","Инвентаризации"],["grp","Из чего себестоимость"]];
 
   app.innerHTML =
   '<div class="tabs">'+TABS.map(function(t,i){
@@ -128,7 +177,8 @@
   '<div class="pane on" id="p-out">'+
     '<div class="kpis">'+
       kpi("hi",mln(netto[closed]),"Товарный выпуск за "+D.mo_labels[closed],
-          (dPct===null?"":(dPct>0?"+":"")+dPct+"% к "+D.mo_labels[cmp]+" · ")+"себестоимость произведённого")+
+          (dPct===null?"":(dPct>0?"+":"")+dPct+"% к "+D.mo_labels[cmp]+" · ")+
+          "последний закрытый месяц")+
       kpi("",mln(yearNetto),"С начала года","товарной продукции за "+N+" мес.")+
       kpi("",fmt(D.fin_count)+" / "+fmt(D.inp_count),"Позиций: выпуск / сырьё",
           "из них "+fmt(D.own_count)+" — полуфабрикаты своего передела")+
@@ -140,6 +190,29 @@
     'Полуфабрикат при этом считается дважды — когда его сделали и когда пустили в дело. '+
     '<b>Товарный выпуск</b> — это выпуск за вычетом того, что тут же вернулось в производство; '+
     'только он сопоставим с выручкой и себестоимостью продаж.</div>'+
+    insight([
+      (function(){
+        if(cmp<0) return "";
+        var d=Math.round((netto[closed]-netto[cmp])/(netto[cmp]||1)*100);
+        return "В "+D.mo_labels[closed]+" завод выпустил товарной продукции на <b>"+mln(netto[closed])+
+          "</b> — это "+sig(d)+" к "+D.mo_labels[cmp]+". Сравниваем только закрытые месяцы.";})(),
+      "Каждый третий тенге оборота производства — внутренний передел: <b>"+mln(inner)+
+        "</b> ("+pct(inner,yearGross)+"%) это полуфабрикаты, которые завод сделал сам и тут же пустил в дело. "+
+        "На выручку они работают только через готовую продукцию, поэтому в товарный выпуск не попадают.",
+      (function(){
+        var t10=(D.finished||[]).slice(0,10).reduce(function(a,r){return a+r.s;},0);
+        var all=sum(D.finished);
+        if(!all) return "";
+        return "Десять позиций из "+fmt(D.fin_count)+" дают <b>"+pct(t10,all)+
+          "%</b> товарного выпуска — производство сосредоточено в узком ядре ассортимента.";})(),
+      (function(){
+        var lim=Math.max(1,closed+1), mx=0, mn=0;
+        for(var i=1;i<lim;i++){ if(netto[i]>netto[mx])mx=i; if(netto[i]<netto[mn])mn=i; }
+        if(mx===mn) return "";
+        return "Самый сильный закрытый месяц — <b>"+D.mo_labels[mx]+"</b> ("+mln(netto[mx])+
+          "), самый слабый — <b>"+D.mo_labels[mn]+"</b> ("+mln(netto[mn])+"). Разница "+
+          Math.round((netto[mx]/(netto[mn]||1)-1)*100)+"%.";})()
+    ])+
     '<div class="card"><div class="ct">Выпуск по месяцам</div>'+
     '<div class="cs">Столбики — товарный выпуск. Линия — весь оборот производства вместе с переделом.</div>'+
     '<div style="height:280px"><canvas id="chMo"></canvas></div></div>'+
@@ -170,37 +243,61 @@
   // ═══ РАЗДЕЛКА ═══
   '<div class="pane" id="p-dis">'+ splitPane(D.disasm,"Разделка",
     "Туша или отруб разбирается на части. В деньгах разделка сходится всегда — iiko разносит "+
-    "себестоимость по выходам. Смотреть надо килограммы: сколько ушло в разделку и сколько получено.") +'</div>'+
+    "себестоимость по выходам. Смотреть надо килограммы: сколько ушло в разделку и сколько получено.",
+    "chDis","это кость, обрезь, жир и усушка") +'</div>'+
 
   // ═══ ПЕРЕРАБОТКА ═══
   '<div class="pane" id="p-tr">'+ splitPane(D.transf,"Переработка и пересорт",
     "Одна позиция превращается в другую: сортность, фасовка, перевод в другой артикул. "+
-    "Здесь же видна усушка — когда вошло больше килограммов, чем вышло.") +'</div>'+
+    "Здесь же видна усушка — когда вошло больше килограммов, чем вышло.",
+    "chTr","это усушка и обрезь при фасовке") +'</div>'+
 
   // ═══ СПИСАНИЯ ═══
   '<div class="pane" id="p-wo">'+ woPane() +'</div>'+
 
   // ═══ ИНВЕНТАРИЗАЦИИ ═══
-  '<div class="pane" id="p-inv">'+ invPane() +'</div>';
+  '<div class="pane" id="p-inv">'+ invPane() +'</div>'+
+
+  // ═══ СТРУКТУРА ПО ГРУППАМ ═══
+  '<div class="pane" id="p-grp">'+ grpPane() +'</div>';
 
   // ── себестоимость единицы ────────────────────────────────────
   function unitTable(){
     var L=D.mo_labels;
-    return '<div class="card"><div class="ct">Себестоимость единицы по месяцам</div>'+
-      '<div class="cs">Топ позиций по товарному выпуску. Изменение — от первого месяца с данными к последнему.</div>'+
+    var upN=0,dnN=0,mxU=null,mnU=null;
+    D.unitcost.forEach(function(r){
+      if(r.d>0)upN++; else if(r.d<0)dnN++;
+      if(!mxU||r.d>mxU.d)mxU=r; if(!mnU||r.d<mnU.d)mnU=r;
+    });
+    return insight([
+      "Из "+D.unitcost.length+" крупнейших позиций подорожало <b>"+upN+"</b>, подешевело <b>"+dnN+
+        "</b>. Это себестоимость одной единицы, объём тут ни при чём.",
+      mxU? "Сильнее всего выросла <b>"+esc(mxU.n)+"</b>: "+up(mxU.d)+" за период. "+
+        "Такой скачок — это либо подорожавшее сырьё, либо изменённая рецептура; стоит проверить по закупу." : "",
+      mnU&&mnU.d<0? "Сильнее всего подешевела <b>"+esc(mnU.n)+"</b>: "+dn(mnU.d)+
+        ". Падение больше чем на четверть обычно означает не экономию, а смену состава или пересчёт норм — тоже повод посмотреть." : ""
+    ])+
+    '<div class="card"><div class="ct">Как менялась себестоимость единицы</div>'+
+    '<div class="cs">Первый закрытый месяц каждой позиции принят за 100. Линия выше 100 — '+
+    'единица продукции стала дороже, ниже — дешевле. Показаны шесть крупнейших позиций.</div>'+
+    '<div style="height:280px"><canvas id="chCost"></canvas></div></div>'+
+    '<div class="card"><div class="ct">Себестоимость единицы по месяцам</div>'+
+      '<div class="cs">Топ позиций по товарному выпуску. Изменение — от первого закрытого месяца '+
+      'с данными к последнему закрытому: незакрытый месяц в сравнение не берём.</div>'+
       '<div style="overflow-x:auto"><table><tr><th class="l">Позиция</th><th class="l">Ед.</th>'+
       L.map(function(x){return '<th>'+x+'</th>';}).join("")+'<th>Изменение</th></tr>'+
       D.unitcost.map(function(r){
         return '<tr><td class="l">'+esc(r.n)+'</td><td class="l" style="color:#94a3b8;font-weight:400">'+
           esc(r.u||'')+'</td>'+
-          r.c.map(function(v){return '<td>'+(v?fmt(v):'<span style="color:#475569">—</span>')+'</td>';}).join("")+
-          '<td class="'+(r.d>0?'up':(r.d<0?'down':''))+'" style="font-weight:700">'+
+          r.c.map(function(v){return '<td data-v="'+(v||0)+'">'+
+            (v?fmt(v):'<span style="color:#475569">—</span>')+'</td>';}).join("")+
+          '<td data-v="'+(r.d||0)+'" class="'+(r.d>0?'up':(r.d<0?'down':''))+'" style="font-weight:700">'+
           (r.d>0?'+':'')+r.d+'%</td></tr>';
       }).join("")+'</table></div></div>';
   }
 
   // ── разделка и переработка ───────────────────────────────────
-  function splitPane(R,title,expl){
+  function splitPane(R,title,expl,cid,loss){
     if(!R||!R.in||!R.in.length) return '<div class="card"><div class="ct">'+title+
       '</div><div class="empty">За период таких операций не было.</div></div>';
 
@@ -216,17 +313,50 @@
         // на выходе), процент не имеет смысла — ставим прочерк.
         var ps = u.in>0 ? ((d>0?'−':(d<0?'+':''))+Math.round(Math.abs(d)/u.in*1000)/10+'%')
                         : '<span style="color:#475569">—</span>';
-        return '<tr><td class="l">'+esc(u.u)+'</td><td>'+fmt(u.in)+'</td><td>'+fmt(u.out)+'</td>'+
-          '<td class="'+cls+'" style="font-weight:700">'+(d>0?'−':(d<0?'+':''))+fmt(Math.abs(d))+'</td>'+
-          '<td class="'+cls+'">'+ps+'</td></tr>';
+        return '<tr><td class="l">'+esc(u.u)+'</td>'+
+          '<td data-v="'+u.in+'">'+fmt(u.in)+'</td><td data-v="'+u.out+'">'+fmt(u.out)+'</td>'+
+          '<td data-v="'+(-d)+'" class="'+cls+'" style="font-weight:700">'+
+            (d>0?'−':(d<0?'+':''))+fmt(Math.abs(d))+'</td>'+
+          '<td data-v="'+(u.in>0?(-d/u.in):0)+'" class="'+cls+'">'+ps+'</td></tr>';
       }).join("")+'</table>' :
       '<div class="empty">Нет данных по количеству.</div>';
 
+    var main=U.length? U[0] : null;
+    var yield_ = (main&&main.in>0)? Math.round(main.out/main.in*1000)/10 : null;
     return '<div class="kpis">'+
       kpi("",mln(R.sum),title+" за год","стоимость того, что прошло операцию")+
+      (yield_!==null? kpi(yield_<90?"warn":"",String(yield_).replace(".",",")+"%","Выход по «"+esc(main.u)+"»",
+          fmt(main.in)+" "+esc(main.u)+" вошло → "+fmt(main.out)+" "+esc(main.u)+" вышло") : "")+
       kpi("",fmt(R.n_in)+" → "+fmt(R.n_out),"Позиций: вход → выход","сколько разной номенклатуры участвует")+
     '</div>'+
     '<div class="note">'+expl+'</div>'+
+    insight([
+      (yield_===null? "" : (yield_<100
+        ? ("Из каждых 100 "+esc(main.u)+", отправленных в операцию, обратно приходит <b>"+
+           String(yield_).replace(".",",")+"</b>. Не возвращается "+fmt(main.in-main.out)+" "+
+           esc(main.u)+" за год"+(loss? " — "+loss : "")+"."+
+           (R.sum&&main.in? " В деньгах вход стоит "+mln(R.sum)+", то есть невозвратная часть — около <b>"+
+             mln(R.sum*(main.in-main.out)/main.in)+"</b>." : ""))
+        : ("По «"+esc(main.u)+"» вес не теряется: вошло "+fmt(main.in)+", вышло "+fmt(main.out)+
+           " ("+String(yield_).replace(".",",")+"%). Прибавка по количеству — это обычно перефасовка "+
+           "в более мелкую единицу, а не появление товара из ниоткуда."))),
+      (function(){
+        var bad=U.filter(function(u){return u.in>0 && (u.in-u.out)/u.in>0.02;});
+        var good=U.filter(function(u){return u.in>0 && (u.out-u.in)/u.in>0.02;});
+        var t="";
+        if(bad.length) t+="Теряют в весе: <b>"+bad.map(function(u){return esc(u.u)+" ("+
+          dn(-Math.round((u.in-u.out)/u.in*1000)/10)+")";}).join(", ")+"</b>. ";
+        if(good.length) t+="Прибавляют: <b>"+good.map(function(u){return esc(u.u)+" ("+
+          up(Math.round((u.out-u.in)/u.in*1000)/10)+")";}).join(", ")+
+          "</b> — прибавка по количеству означает фасовку в более мелкую единицу, а не «выросло из ниоткуда».";
+        return t;})(),
+      (R.in&&R.in.length? "Основное сырьё операции — <b>"+esc(R.in[0].n)+"</b>: "+mln(R.in[0].s)+
+        " ("+pct(R.in[0].s,sum(R.in))+"% всей операции)." : "")
+    ])+
+    (cid? '<div class="card"><div class="ct">Вошло и вышло — по единицам</div>'+
+      '<div class="cs">Каждая единица измерения своим столбиком. Правый столбик ниже левого — '+
+      'значит, часть веса не вернулась.</div>'+
+      '<div style="height:250px"><canvas id="'+cid+'"></canvas></div></div>' : '')+
     '<div class="card"><div class="ct">Вход и выход по единицам измерения</div>'+
     '<div class="cs">Килограммы, литры и штуки считаются отдельно — сложить их в одно число нельзя. '+
     'Минус в разнице означает, что вышло меньше, чем вошло.</div>'+unitRows+'</div>'+
@@ -252,6 +382,22 @@
       kpi("",fmt(W.n),"Позиций в списаниях","сколько разной номенклатуры попадало в списание")+
       kpi("",fmt(W.by_store.length),"Складов и цехов","откуда идут списания")+
     '</div>'+
+    insight([
+      "Списания идут ровным потоком — в среднем <b>"+mln(avg)+"</b> в месяц. Это не разовая порча, "+
+        "а постоянный процесс: брак, сроки, зачистка. К товарному выпуску это "+
+        (yearNetto? (Math.round(W.sum/yearNetto*1000)/10+"").replace(".",",") : "0")+"%.",
+      (W.by_product&&W.by_product.length? "Крупнейшая позиция — <b>"+esc(W.by_product[0].n)+"</b>: "+
+        mln(W.by_product[0].s)+", это "+pct(W.by_product[0].s,W.sum)+"% всех списаний." : ""),
+      (W.by_store&&W.by_store.length? "Больше всего списывает <b>"+esc(W.by_store[0].n)+"</b> — "+
+        pct(W.by_store[0].s,W.sum)+"% суммы. С него и надо начинать разбор." : ""),
+      (function(){
+        var m=W.mo||[], lim=Math.max(1,closed+1), mx=0;
+        for(var i=1;i<lim;i++) if(m[i]>m[mx])mx=i;
+        if(!m[mx]||!avg) return "";
+        var k=Math.round(m[mx]/avg*100)-100;
+        return k>25? ("Выброс в <b>"+D.mo_labels[mx]+"</b>: "+mln(m[mx])+", это "+up(k)+
+          " к среднему месяцу. Обычно так выглядит инвентаризация или разовая порча партии.") : "";})()
+    ])+
     '<div class="card"><div class="ct">Списания по месяцам</div>'+
     '<div class="cs">Всплеск обычно означает инвентаризацию или разовую порчу, ровный уровень — процесс.</div>'+
     '<div style="height:250px"><canvas id="chWo"></canvas></div></div>'+
@@ -286,9 +432,9 @@
         V.by_store.map(function(r){
           var neg=r.s>0;
           return '<tr><td class="l">'+esc(r.n)+'</td>'+
-            '<td style="color:#94a3b8">'+mln(r.i)+'</td>'+
-            '<td style="color:#94a3b8">'+mln(r.o)+'</td>'+
-            '<td class="'+(neg?'up':'down')+'" style="font-weight:700">'+
+            '<td data-v="'+r.i+'" style="color:#94a3b8">'+mln(r.i)+'</td>'+
+            '<td data-v="'+r.o+'" style="color:#94a3b8">'+mln(r.o)+'</td>'+
+            '<td data-v="'+r.s+'" class="'+(neg?'up':'down')+'" style="font-weight:700">'+
               (neg?'−':'+')+mln(Math.abs(r.s)).replace('-','')+'</td>'+
             '<td><div class="bar"><i style="width:'+Math.max(2,Math.round(Math.abs(r.s)/max*100))+
               '%;background:'+(neg?'#f87171':'#34d399')+'"></i></div></td></tr>';
@@ -301,8 +447,8 @@
         '<th class="l" style="width:100px">Вес</th></tr>'+
         list.map(function(r){
           return '<tr><td class="l">'+esc(r.n)+'</td>'+
-            '<td>'+fmt(r.kg)+' '+esc(r.u||'')+'</td>'+
-            '<td class="'+(neg?'up':'down')+'" style="font-weight:700">'+mln(r.s)+'</td>'+
+            '<td data-v="'+(r.kg||0)+'">'+fmt(r.kg)+' '+esc(r.u||'')+'</td>'+
+            '<td data-v="'+(r.s||0)+'" class="'+(neg?'up':'down')+'" style="font-weight:700">'+mln(r.s)+'</td>'+
             '<td><div class="bar"><i style="width:'+Math.max(2,Math.round(r.s/max*100))+
               '%;background:'+(neg?'#f87171':'#34d399')+'"></i></div></td></tr>';
         }).join("")+'</table>';
@@ -321,6 +467,25 @@
     'Излишек и недостача по одной позиции сворачиваются между собой — в таблицах ниже '+
     'уже чистый результат. <b>Пересорт</b> (нашли одно, потеряли другое на том же складе) '+
     'даёт сальдо около нуля; настоящая потеря — это склад с большим минусом.</div>'+
+    insight([
+      "За "+N+" месяцев пересчёты дали чистую недостачу <b>"+mln(V.net)+"</b>: нашлось на "+
+        mln(V.sum_in)+", не нашлось на "+mln(V.sum_out)+".",
+      (function(){
+        var w=(V.by_store||[])[0];
+        if(!w||w.s<=0||!V.net) return "";
+        return "Почти всё сосредоточено в одном месте: <b>"+esc(w.n)+"</b> даёт "+
+          Math.round(w.s/V.net*100)+"% чистой недостачи ("+mln(w.s)+"). Остальные склады "+
+          "расходятся в пределах пересорта — там нашли одно, потеряли другое, сальдо около нуля.";})(),
+      (function(){
+        var t=(V.short||[]).slice(0,3);
+        if(!t.length) return "";
+        return "Крупнейшие потери: <b>"+t.map(function(r){return esc(r.n)+" ("+mln(r.s)+")";}).join(", ")+
+          "</b>. Если это расходники и упаковка, значит они не списываются документами по факту "+
+          "расхода, а всплывают раз в месяц одной суммой при пересчёте — тогда это вопрос к учёту, "+
+          "а не к сохранности.";})(),
+      (yearNetto? "К товарному выпуску чистая недостача — <b>"+
+        (Math.round(V.net/yearNetto*1000)/10+"").replace(".",",")+"%</b>." : "")
+    ])+
     '<div class="card"><div class="ct">Недостачи и излишки по месяцам</div>'+
     '<div class="cs">Красное — недостачи, зелёное — излишки. Последний месяц может быть '+
     'неполным: инвентаризация проводится не каждый день.</div>'+
@@ -337,6 +502,135 @@
       posTable(V.over,false)+'</div>'+
     '</div>';
   }
+
+
+  // ── структура по группам номенклатуры ────────────────────────
+  function grpPane(){
+    var G=D.groups;
+    if(!G||!G.inp||!G.inp.length)
+      return '<div class="card"><div class="ct">Из чего себестоимость</div>'+
+        '<div class="empty">Группы номенклатуры не заполнены в справочнике iiko.</div></div>';
+    // Проводка производства двойная: стоимость выпуска ВСЕГДА равна стоимости
+    // списанного сырья, поэтому «материалоёмкость» здесь тождественно равна
+    // ста процентам и ничего не значит. Смысл имеет только структура.
+    var buyList=(G.inp||[]).filter(function(r){return !r.own;});
+    var top3=buyList.slice(0,3).reduce(function(a,r){return a+r.s;},0);
+    var conc=G.buy? Math.round(top3/G.buy*100) : 0;
+
+    return '<div class="kpis">'+
+      kpi("hi",mln(G.buy),"Покупное сырьё с начала года",
+          "без внутреннего передела — только то, что завод купил")+
+      kpi("",conc+"%","Три группы дают",
+          (buyList.slice(0,3).map(function(r){return r.n;}).join(" · ")||"—"))+
+      kpi("",mln(G.own),"Внутренний передел",
+          "полуфабрикаты собственного производства, ушедшие в дело")+
+      kpi("",fmt(G.n_inp)+" / "+fmt(G.n_out),"Групп: сырьё / выпуск",
+          "вместо тысяч отдельных позиций")+
+    '</div>'+
+    '<div class="note"><b>Зачем группы.</b> По списку из сорока позиций не видно, из чего '+
+    'вообще складывается себестоимость. Группы номенклатуры дают ту же картину в двадцати '+
+    'строках: мясо, молочка, овощи, упаковка. Метка <b>«своё»</b> — группа, которую завод '+
+    'не только тратит, но и сам выпускает: это внутренний передел, и в покупное сырьё он '+
+    'не входит, иначе затраты задвоились бы. <b>Доли, а не «материалоёмкость».</b> '+
+    'Проводка производства двойная — стоимость выпуска всегда равна стоимости списанного '+
+    'сырья, поэтому отношение одного к другому тождественно сто процентов и ничего не '+
+    'показывает. Работает только структура: какая группа сколько занимает и как это '+
+    'меняется по месяцам.</div>'+
+    insight([
+      "Покупное сырьё за "+N+" месяцев — <b>"+mln(G.buy)+"</b>. Внутренний передел ("+mln(G.own)+
+        ") сюда не входит: это уже оплаченное сырьё, прошедшее через собственный цех, и второй раз "+
+        "его считать нельзя.",
+      (buyList.length? "Три группы дают <b>"+conc+"%</b> всего сырья: "+
+        buyList.slice(0,3).map(function(r){return "<b>"+esc(r.n)+"</b> ("+pct(r.s,G.buy)+"%)";}).join(", ")+
+        ". Экономить имеет смысл здесь — процент с этих трёх строк весит больше, чем весь остальной список." : ""),
+      (function(){
+        var pk=buyList.filter(function(r){return /упаков|тар[аы]|гофро|расходн/i.test(r.n);});
+        var ps=pk.reduce(function(a,r){return a+r.s;},0);
+        return ps? ("Упаковка и расходники — <b>"+mln(ps)+"</b>, это "+pct(ps,G.buy)+
+          "% сырья. Единственная группа, которую можно сократить, не трогая рецептуру.") : "";})(),
+      (function(){
+        var best=null;
+        buyList.slice(0,8).forEach(function(r){
+          var m=r.m||[]; if(!m.length||closed<1) return;
+          var a=m[0], b=m[closed]; if(!a||!b) return;
+          var d=Math.round((b/a-1)*100);
+          if(!best||Math.abs(d)>Math.abs(best.d)) best={n:r.n,d:d};
+        });
+        return best? ("Сильнее всего за период изменилась группа <b>"+esc(best.n)+"</b>: "+sig(best.d)+
+          " от "+D.mo_labels[0]+" к "+D.mo_labels[closed]+".") : "";})()
+    ])+
+    '<div class="card"><div class="ct">Структура покупного сырья по месяцам</div>'+
+    '<div class="cs">Шесть крупнейших групп и всё остальное одной полосой. '+
+    'Смотреть надо не на высоту столбика — она идёт за объёмом выпуска, — а на то, '+
+    'меняются ли пропорции внутри него.</div>'+
+    '<div style="height:290px"><canvas id="chGrp"></canvas></div></div>'+
+    '<div class="two">'+
+      '<div class="card"><div class="ct">Из чего производим</div>'+
+      '<div class="cs">Группы сырья и полуфабрикатов по стоимости списания с начала года.</div>'+
+      rows(G.inp,sum(G.inp),true,false)+'</div>'+
+      '<div class="card"><div class="ct">Что производим — по группам</div>'+
+      '<div class="cs">Выпуск по группам номенклатуры, включая внутренний передел.</div>'+
+      rows(G.out,sum(G.out),false,false)+'</div>'+
+    '</div>';
+  }
+
+
+  // ── сортировка таблиц по клику на заголовок ──────────────────
+  // Числа берём из data-v, а не из текста: «21,6 млн ₸» и «343 шт»
+  // как строки сортируются неправильно. Колонку-полоску «Вес» и
+  // единицу измерения не трогаем — там сортировать нечего.
+  function makeSortable(){
+    [].forEach.call(document.querySelectorAll("table"),function(t){
+      if(t.getAttribute("data-srt"))return;
+      var head=t.rows[0]; if(!head||!head.cells.length)return;
+      t.setAttribute("data-srt","1");
+      var body=t.rows[1]&&t.rows[1].parentNode; if(!body)return;
+      for(var c=0;c<head.cells.length;c++)(function(ci){
+        var th=head.cells[ci];
+        if(/^\s*вес\s*$/i.test(th.textContent))return;
+        th.setAttribute("data-s","1");
+        th.title="Нажмите, чтобы отсортировать";
+        th.addEventListener("click",function(){
+          var dir=(th.getAttribute("data-dir")==="desc")?"asc":"desc";
+          for(var j=0;j<head.cells.length;j++){
+            var o=head.cells[j];
+            o.removeAttribute("data-dir");
+            o.innerHTML=o.innerHTML.replace(/\s*[▲▼]$/,"");
+          }
+          th.setAttribute("data-dir",dir);
+          th.innerHTML=th.innerHTML.replace(/\s*[▲▼]$/,"")+(dir==="asc"?" ▲":" ▼");
+          var rs=[].slice.call(t.rows,1);
+          rs.sort(function(a,b){
+            var x=a.cells[ci], y=b.cells[ci];
+            if(!x||!y)return 0;
+            var xv=x.getAttribute("data-v"), yv=y.getAttribute("data-v"), r;
+            if(xv!==null&&yv!==null) r=parseFloat(xv)-parseFloat(yv);
+            else r=String(x.textContent||"").localeCompare(String(y.textContent||""),"ru");
+            return dir==="asc"? r : -r;
+          });
+          for(var k=0;k<rs.length;k++) body.appendChild(rs[k]);
+        });
+      })(c);
+    });
+  }
+  makeSortable();
+
+  // ── поиск по названию внутри таблицы ─────────────────────────
+  document.addEventListener("input",function(e){
+    var i=e.target;
+    if(!i||!i.className||i.className.indexOf("flt")<0)return;
+    var key=i.getAttribute("data-t"), t=document.getElementById(key);
+    if(!t)return;
+    var q=(i.value||"").trim().toLowerCase(), shown=0;
+    for(var r=1;r<t.rows.length;r++){
+      var c=t.rows[r].cells[0];
+      var ok=!q||String(c&&c.textContent||"").toLowerCase().indexOf(q)>=0;
+      t.rows[r].style.display=ok?"":"none";
+      if(ok)shown++;
+    }
+    var lab=document.querySelector('.cnt[data-t="'+key+'"]');
+    if(lab)lab.textContent=fmt(shown);
+  });
 
   // ── вкладки и графики ────────────────────────────────────────
   [].forEach.call(document.querySelectorAll(".tb"),function(b){
@@ -362,6 +656,65 @@
         scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
                 y:{beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},
                    callback:function(v){return v+" млн";}},grid:{color:"#1b2636"}}}}});
+    // Себестоимость единицы: у позиций разный масштаб (₸/кг и ₸/порц не
+    // сравнить), поэтому каждую приводим к индексу — первый закрытый месяц
+    // с данными равен 100. Тогда на одном графике видно, кто дорожает.
+    var cc=document.getElementById("chCost");
+    if(cc&&D.unitcost&&D.unitcost.length){
+      var PAL2=["#7c3aed","#e0b13c","#34d399","#38bdf8","#f472b6","#fb923c"];
+      var dsC=D.unitcost.slice(0,6).map(function(r,i){
+        var base=null;
+        for(var k=0;k<=closed&&k<r.c.length;k++){ if(r.c[k]){ base=r.c[k]; break; } }
+        return {label:r.n.length>28? r.n.slice(0,28)+"…" : r.n,
+                data:r.c.map(function(v){return (v&&base)? Math.round(v/base*1000)/10 : null;}),
+                borderColor:PAL2[i],backgroundColor:PAL2[i],borderWidth:2,
+                pointRadius:2.5,tension:.3,spanGaps:true};
+      });
+      new Chart(cc,{type:"line",data:{labels:D.mo_labels,datasets:dsC},
+        options:{maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:11,font:{size:10}}},
+            tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y+" (100 = "+
+              D.mo_labels[0]+")";}}}},
+          scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
+                  y:{ticks:{color:"#8091a8",font:{size:10},callback:function(v){return v;}},
+                     grid:{color:"#1b2636"}}}}});
+    }
+    // Разделка и переработка: вход против выхода по каждой единице
+    ["chDis","chTr"].forEach(function(id){
+      var el=document.getElementById(id); if(!el)return;
+      var R=(id==="chDis")? D.disasm : D.transf;
+      if(!R||!R.units||!R.units.length)return;
+      var U=R.units;
+      new Chart(el,{type:"bar",data:{labels:U.map(function(u){return u.u;}),datasets:[
+        {label:"Вошло",data:U.map(function(u){return u.in;}),backgroundColor:"#7c3aed",borderRadius:5},
+        {label:"Вышло",data:U.map(function(u){return u.out;}),backgroundColor:"#34d399",borderRadius:5}]},
+        options:{maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:12,font:{size:11}}},
+            tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+
+              Math.round(c.parsed.y).toLocaleString("ru-RU")+" "+c.label;}}}},
+          scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
+                  y:{type:"logarithmic",ticks:{color:"#8091a8",font:{size:10}},grid:{color:"#1b2636"}}}}});
+    });
+    var cg=document.getElementById("chGrp");
+    if(cg&&D.groups&&D.groups.inp){
+      var PAL=["#7c3aed","#e0b13c","#34d399","#38bdf8","#f472b6","#fb923c","#475569"];
+      var buyL=D.groups.inp.filter(function(r){return !r.own;});
+      var six=buyL.slice(0,6);
+      var ds=six.map(function(r,i){
+        return {label:r.n,data:(r.m||[]).map(function(v){return v/1e6;}),
+                backgroundColor:PAL[i],borderRadius:3,stack:"s"};});
+      var restM=(D.mo_labels||[]).map(function(_,i){
+        var t=0; buyL.slice(6).forEach(function(r){t+=(r.m||[])[i]||0;}); return t/1e6;});
+      if(restM.some(function(v){return v>0;}))
+        ds.push({label:"Прочее",data:restM,backgroundColor:PAL[6],borderRadius:3,stack:"s"});
+      new Chart(cg,{type:"bar",data:{labels:D.mo_labels,datasets:ds},
+        options:{maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:11,font:{size:10}}},
+            tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y.toFixed(1)+" млн ₸";}}}},
+          scales:{x:{stacked:true,ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
+                  y:{stacked:true,beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},
+                     callback:function(v){return v+" млн";}},grid:{color:"#1b2636"}}}}});
+    }
     var ci=document.getElementById("chInv");
     if(ci&&D.invent&&D.invent.mo_out){
       new Chart(ci,{type:"bar",data:{labels:D.mo_labels,datasets:[

@@ -28,6 +28,10 @@
    Недостачи и излишки по итогам пересчётов. Проводка двойная, направление
    определяется по количеству, а не по деньгам.
 
+6. СТРУКТУРА ПО ГРУППАМ НОМЕНКЛАТУРЫ
+   Из чего складывается себестоимость выпуска: мясо, молочка, овощи,
+   упаковка. Отдельно — покупное сырьё и внутренний передел.
+
 Плюс себестоимость единицы товарного выпуска по месяцам: видно, дорожает ли
 производство само по себе, отдельно от объёма.
 
@@ -47,7 +51,8 @@ LOGIN = re.search(r'LOGIN\s*=\s*"([^"]+)"', src).group(1)
 PASS = re.search(r'PASS\s*=\s*"([^"]+)"', src).group(1)
 
 YEAR = 2026
-TOP = 40
+TOP = 40          # столько позиций отдаём с помесячной раскладкой
+ALL_TOP = 3000    # столько строк отдаём всего — чтобы сортировать по всей базе
 UNIT_TOP = 12
 OUT = os.path.join(HERE, "production_data.js")
 RUM = {1: "янв", 2: "фев", 3: "мар", 4: "апр", 5: "май", 6: "июн",
@@ -151,6 +156,14 @@ if not mo_keys:
     log("ОСТАНОВЛЕНО: iiko не отдал ни одного месяца — файл не трогаю.")
     sys.exit(1)
 
+# Месяц считается закрытым, только если его последний день уже прошёл.
+# Все сравнения на странице должны идти по закрытым месяцам: текущий
+# неполный месяц занижает и выпуск, и себестоимость единицы.
+closed_n = sum(1 for k in mo_keys
+               if datetime.date(YEAR, int(k[5:7]),
+                                calendar.monthrange(YEAR, int(k[5:7]))[1]) <= last_full)
+log(f"  закрытых месяцев: {closed_n} из {len(mo_keys)}")
+
 own = {n for n in inp_tot if n in out_tot}
 
 stores = {}
@@ -163,10 +176,15 @@ log(f"  складов выпуска: {len(stores)}")
 
 
 def top(d_tot, d_mo, mark_own=False):
+    """Отдаём всю базу, чтобы на странице можно было сортировать по любому
+    столбцу, а не только по сорока крупнейшим. Помесячную раскладку держим
+    только для первых TOP позиций — иначе файл раздувается в разы, а нужна
+    она только там, где её реально смотрят."""
     res = []
-    for name, total in sorted(d_tot.items(), key=lambda kv: -kv[1])[:TOP]:
-        row = {"n": name, "s": round(total),
-               "m": [round(d_mo.get(name, {}).get(k, 0)) for k in mo_keys]}
+    for i, (name, total) in enumerate(sorted(d_tot.items(), key=lambda kv: -kv[1])[:ALL_TOP]):
+        row = {"n": name, "s": round(total)}
+        if i < TOP:
+            row["m"] = [round(d_mo.get(name, {}).get(k, 0)) for k in mo_keys]
         if mark_own and name in own:
             row["own"] = 1
         res.append(row)
@@ -181,7 +199,9 @@ for name, total in sorted(fin_tot.items(), key=lambda kv: -kv[1])[:UNIT_TOP]:
     for k in mo_keys:
         q = qty.get(k, 0)
         series.append(round(sums.get(k, 0) / q, 1) if q > 0.001 else None)
-    have = [v for v in series if v]
+    # Изменение считаем только по закрытым месяцам — в незакрытом выпуск
+    # неполный, и себестоимость единицы по нему обманчива.
+    have = [v for v in series[:closed_n] if v]
     if len(have) >= 3:
         unitcost.append({"n": name, "u": units.get(name, ""), "c": series,
                          "q": [round(qty.get(k, 0), 1) for k in mo_keys],
@@ -224,7 +244,7 @@ def split_report(types, title):
                      "n_in": v["n_in"], "n_out": v["n_out"]} for u, v in by_unit.items()),
                    key=lambda x: -(x["in"] + x["out"]))
 
-    res = {"in": ins[:TOP], "out": outs[:TOP],
+    res = {"in": ins[:ALL_TOP], "out": outs[:ALL_TOP],
            "sum": round(sum(x["s"] for x in ins)),
            "units": units, "n_in": len(ins), "n_out": len(outs)}
     log(f"  {title}: {res['sum']/1e6:.1f} млн, позиций {len(ins)}/{len(outs)}")
@@ -258,9 +278,9 @@ writeoff = {
     "sum": round(sum(wo_prod.values())),
     "n": len(wo_prod),
     "by_product": sorted([{"n": k, "s": round(v)} for k, v in wo_prod.items()],
-                         key=lambda x: -x["s"])[:TOP],
+                         key=lambda x: -x["s"])[:ALL_TOP],
     "by_store": sorted([{"n": k, "s": round(v)} for k, v in wo_store.items()],
-                       key=lambda x: -x["s"])[:20],
+                       key=lambda x: -x["s"]),
     "mo": [round(wo_mo.get(k, 0)) for k in mo_keys],
 }
 log(f"  списано: {writeoff['sum']/1e6:.1f} млн, позиций {writeoff['n']}")
@@ -310,7 +330,7 @@ def _inv_rows(sign):
         q = (pr["qi"] - pr["qo"]) if sign > 0 else (pr["qo"] - pr["qi"])
         res.append({"n": n, "u": pr["u"], "s": round(net), "kg": round(q, 1)})
     res.sort(key=lambda r: -r["s"])
-    return res[:TOP]
+    return res[:ALL_TOP]
 
 
 inv_in = sum(v["i"] for v in inv_store.values())
@@ -334,10 +354,80 @@ for r in invent["by_store"][:6]:
 
 
 
+# ═════════ 6. СТРУКТУРА ВЫПУСКА И СЫРЬЯ ПО ГРУППАМ НОМЕНКЛАТУРЫ ═════════
+# Позиций тысячи, и по списку из сорока строк не видно, из чего вообще
+# складывается себестоимость. Группы номенклатуры (Product.SecondParent)
+# дают ту же картину в двадцати строках: мясо, молочка, овощи, упаковка.
+# Группу считаем «своей», если завод её не только тратит, но и сам выпускает
+# хотя бы на пятую часть от того, что списывает, — это внутренний передел,
+# и в покупное сырьё его включать нельзя, иначе затраты задвоятся.
+log("\n-- структура по группам --")
+g_out, g_inp = {}, {}
+g_out_mo, g_inp_mo = {}, {}
+for m in months:
+    d1 = datetime.date(YEAR, m, 1)
+    d2 = min(datetime.date(YEAR, m, calendar.monthrange(YEAR, m)[1]), last_full)
+    if d2 < d1:
+        continue
+    key = f"{YEAR}-{m:02d}"
+    for x in olap(["PRODUCTION"], ["Product.TopParent", "Product.SecondParent"],
+                  d1, d2 + datetime.timedelta(days=1), MONEY):
+        nm = ((x.get("Product.SecondParent") or "").strip()
+              or (x.get("Product.TopParent") or "").strip() or "—")
+        i = x.get("Sum.Incoming") or 0
+        o = x.get("Sum.Outgoing") or 0
+        if i > 0:
+            g_out[nm] = g_out.get(nm, 0) + i
+            d = g_out_mo.setdefault(nm, {}); d[key] = d.get(key, 0) + i
+        if o > 0:
+            g_inp[nm] = g_inp.get(nm, 0) + o
+            d = g_inp_mo.setdefault(nm, {}); d[key] = d.get(key, 0) + o
+
+
+def _own_group(nm, spent):
+    return g_out.get(nm, 0) >= 0.2 * spent
+
+
+def _grp(d_tot, d_mo, mark=False):
+    res = []
+    for nm, t in sorted(d_tot.items(), key=lambda kv: -kv[1])[:TOP]:
+        row = {"n": nm, "s": round(t),
+               "m": [round(d_mo.get(nm, {}).get(k, 0)) for k in mo_keys]}
+        if mark and _own_group(nm, t):
+            row["own"] = 1
+        res.append(row)
+    return res
+
+
+buy_mo = {}
+buy_tot = own_tot = 0.0
+for nm, t in g_inp.items():
+    if _own_group(nm, t):
+        own_tot += t
+    else:
+        buy_tot += t
+        for k, v in g_inp_mo.get(nm, {}).items():
+            buy_mo[k] = buy_mo.get(k, 0) + v
+
+groups = {
+    "out": _grp(g_out, g_out_mo),
+    "inp": _grp(g_inp, g_inp_mo, True),
+    "buy": round(buy_tot), "own": round(own_tot),
+    "mo_buy": [round(buy_mo.get(k, 0)) for k in mo_keys],
+    "n_out": len(g_out), "n_inp": len(g_inp),
+}
+log(f"  групп: выпуск {len(g_out)}, списание {len(g_inp)}")
+log(f"  покупное сырьё {buy_tot/1e6:.1f} млн · внутренний передел {own_tot/1e6:.1f} млн")
+for r in groups["inp"][:8]:
+    log(f"      {r['n'][:34]:36} {r['s']/1e6:8.1f} млн{'  (своё)' if r.get('own') else ''}")
+
+
+
 data = {
     "updated": datetime.datetime.now().strftime("%d.%m.%Y %H:%M"),
     "through": last_full.strftime("%d.%m.%Y"),
     "mo_keys": mo_keys,
+    "closed": closed_n,
     "mo_labels": [RUM[int(k[5:7])] for k in mo_keys],
     "mo_gross": [round(mo_gross[k]) for k in mo_keys],
     "mo_netto": [round(mo_netto[k]) for k in mo_keys],
@@ -352,6 +442,7 @@ data = {
     "transf": transf,
     "writeoff": writeoff,
     "invent": invent,
+    "groups": groups,
 }
 
 
