@@ -213,8 +213,10 @@ def top(d_tot, d_mo, mark_own=False):
     return res
 
 
+# Себестоимость единицы отдаём по ВСЕМ позициям, а не по дюжине крупнейших:
+# на странице есть поиск и сортировка, и смотреть нужно уметь любую позицию.
 unitcost = []
-for name, total in sorted(fin_tot.items(), key=lambda kv: -kv[1])[:UNIT_TOP]:
+for name, total in sorted(fin_tot.items(), key=lambda kv: -kv[1])[:ALL_TOP]:
     qty = fin_qty_mo.get(name, {})
     sums = fin_by_mo.get(name, {})
     series = []
@@ -226,7 +228,7 @@ for name, total in sorted(fin_tot.items(), key=lambda kv: -kv[1])[:UNIT_TOP]:
     have = [v for v in series[:closed_n] if v]
     if len(have) >= 3:
         unitcost.append({"n": name, "u": units.get(name, ""), "c": series,
-                         "q": [round(qty.get(k, 0), 1) for k in mo_keys],
+                         "s": round(total),
                          "d": round((have[-1] / have[0] - 1) * 100, 1) if have[0] else 0})
 log(f"  позиций с себестоимостью единицы: {len(unitcost)}")
 
@@ -519,7 +521,27 @@ try:
 
     price = {pid: pid_cost[pid] / pid_qty[pid]
              for pid in pid_qty if pid_qty[pid] > 1e-4 and pid_cost.get(pid, 0) > 0}
-    log(f"  ингредиентов с фактической ценой: {len(price)}")
+    log(f"  цен из списаний в производство: {len(price)}")
+    # Многие ингредиенты тех.карт за год ни разу не списывались в производство
+    # (сезонные, редкие, ушедшие из меню) — по ним цены из PRODUCTION нет, и
+    # позиция целиком выпадала из сравнения. Добираем цену из приходов:
+    # накладная поставщика — это и есть закупочная цена за единицу.
+    inv_c, inv_q = {}, {}
+    for x in olap(["INVOICE"], ["Product.Id"], YSTART, YEND,
+                  ["Sum.Incoming", "Amount.In"]):
+        pid = x.get("Product.Id")
+        if not pid:
+            continue
+        inv_c[pid] = inv_c.get(pid, 0.0) + (x.get("Sum.Incoming") or 0)
+        inv_q[pid] = inv_q.get(pid, 0.0) + (x.get("Amount.In") or 0)
+    added = 0
+    for pid in inv_q:
+        if pid in price:
+            continue
+        if inv_q[pid] > 1e-4 and inv_c.get(pid, 0) > 0:
+            price[pid] = inv_c[pid] / inv_q[pid]
+            added += 1
+    log(f"  добрано цен из приходов: {added}; итого {len(price)}")
 
     rows_tc, no_card = [], []
     n_fact = n_partial = 0

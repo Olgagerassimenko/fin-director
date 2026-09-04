@@ -69,6 +69,13 @@
   .flt::placeholder{color:#5b6b83}
   .cnt2{font-size:11.5px;color:var(--mut);margin-top:8px}
   .cnt2 b{color:#cbd5e1}
+  tr.pick td{background:rgba(124,58,237,.16)!important}
+  tr.pickable{cursor:pointer}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  .hint{font-size:11.5px;color:var(--mut);margin:9px 0 0}
+  .perbar{background:#16203a;border:1px solid var(--line);border-radius:10px;
+          padding:9px 14px;font-size:12px;color:#a9b8cc;margin-bottom:12px}
+  .perbar b{color:#e5edf7}
   .ins{background:linear-gradient(140deg,rgba(52,211,153,.11),rgba(52,211,153,.03));
        border-color:rgba(52,211,153,.30)}
   .il{margin:8px 0 0;padding-left:19px;font-size:13px;line-height:1.8;color:#dfe9f5}
@@ -112,6 +119,9 @@
   function kpi(cls,v,l,n){ return '<div class="kpi '+cls+'"><div class="v">'+v+'</div>'+
     '<div class="l">'+l+'</div><div class="n">'+n+'</div></div>'; }
 
+  // Период отчёта. Без него любая таблица читается как «неизвестно за что»:
+  // сумма в 46,7 млн ₸ ничего не значит, пока не сказано, за какой отрезок.
+  var YR=String(D.mo_keys[0]||"").slice(0,4);
   var N=D.mo_keys.length, netto=D.mo_netto, gross=D.mo_gross;
   var yearNetto=netto.reduce(function(a,b){return a+b;},0);
   var yearGross=gross.reduce(function(a,b){return a+b;},0);
@@ -119,6 +129,8 @@
   // Все сравнения — только между закрытыми месяцами. Сколько их, сборщик
   // считает по календарю и кладёт в D.closed; на старых файлах, где поля ещё
   // нет, откатываемся на прежнюю прикидку по величине выпуска.
+  var PER = D.mo_labels[0]+" — "+D.mo_labels[N-1]+" "+YR;
+  var PERD = PER+", данные по "+D.through;
   var closed = (D.closed && D.closed>0) ? Math.min(D.closed,N)-1
              : ((N>1 && netto[N-1] < netto[N-2]*0.4) ? N-2 : N-1);
   var cmp=closed-1;
@@ -174,6 +186,8 @@
   app.innerHTML =
   '<div class="tabs">'+TABS.map(function(t,i){
      return '<button class="tb'+(i?'':' on')+'" data-p="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>'+
+  '<div class="perbar">Период отчёта: <b>'+PER+'</b> · данные из iiko по <b>'+D.through+
+  '</b> · последний закрытый месяц — <b>'+D.mo_labels[closed]+'</b></div>'+
 
   // ═══ ВЫПУСК ═══
   '<div class="pane on" id="p-out">'+
@@ -220,16 +234,16 @@
     '<div style="height:280px"><canvas id="chMo"></canvas></div></div>'+
     '<div class="two">'+
       '<div class="card"><div class="ct">Что производим</div>'+
-      '<div class="cs">Товарный выпуск по позициям с начала года.</div>'+
+      '<div class="cs">Товарный выпуск по позициям за '+PER+'. Все '+fmt(D.fin_count)+' позиций.</div>'+
       rows(D.finished,sum(D.finished),false,false)+'</div>'+
       '<div class="card"><div class="ct">Что уходит в производство</div>'+
-      '<div class="cs">Сырьё и полуфабрикаты по стоимости списания. Метка «своё» — позиция, '+
-      'которую завод сам же и производит.</div>'+
+      '<div class="cs">Сырьё и полуфабрикаты по стоимости списания за '+PER+'. '+
+      'Все '+fmt(D.inp_count)+' позиций. Метка «своё» — позиция, которую завод сам же и производит.</div>'+
       rows(D.inputs,sum(D.inputs),true,false)+'</div>'+
     '</div>'+
     (D.stores&&D.stores.length>1 ?
      '<div class="card"><div class="ct">Где производим</div>'+
-     '<div class="cs">Оборот производства по складам и цехам с начала года.</div>'+
+     '<div class="cs">Оборот производства по складам и цехам за '+PER+'.</div>'+
      rows(D.stores,sum(D.stores),false,false)+'</div>' : '')+
   '</div>'+
 
@@ -275,7 +289,7 @@
       if(!mxU||r.d>mxU.d)mxU=r; if(!mnU||r.d<mnU.d)mnU=r;
     });
     return insight([
-      "Из "+D.unitcost.length+" крупнейших позиций подорожало <b>"+upN+"</b>, подешевело <b>"+dnN+
+      "Из "+D.unitcost.length+" позиций с историей подорожало <b>"+upN+"</b>, подешевело <b>"+dnN+
         "</b>. Это себестоимость одной единицы, объём тут ни при чём.",
       mxU? "Сильнее всего выросла <b>"+esc(mxU.n)+"</b>: "+up(mxU.d)+" за период. "+
         "Такой скачок — это либо подорожавшее сырьё, либо изменённая рецептура; стоит проверить по закупу." : "",
@@ -284,21 +298,29 @@
     ])+
     '<div class="card"><div class="ct">Как менялась себестоимость единицы</div>'+
     '<div class="cs">Первый закрытый месяц каждой позиции принят за 100. Линия выше 100 — '+
-    'единица продукции стала дороже, ниже — дешевле. Показаны шесть крупнейших позиций.</div>'+
-    '<div style="height:280px"><canvas id="chCost"></canvas></div></div>'+
+    'единица продукции стала дороже, ниже — дешевле. <b>Кликните строку в таблице ниже</b>, '+
+    'чтобы добавить позицию на график или убрать её; клик по названию в легенде прячет линию.</div>'+
+    '<div style="height:300px"><canvas id="chCost"></canvas></div>'+
+    '<div class="hint" id="ucHint"></div></div>'+
     '<div class="card"><div class="ct">Себестоимость единицы по месяцам</div>'+
-      '<div class="cs">Топ позиций по товарному выпуску. Изменение — от первого закрытого месяца '+
-      'с данными к последнему закрытому: незакрытый месяц в сравнение не берём.</div>'+
-      '<div style="overflow-x:auto"><table><tr><th class="l">Позиция</th><th class="l">Ед.</th>'+
+      '<div class="cs">Все '+fmt(D.unitcost.length)+' позиций, у которых есть история хотя бы за '+
+      'три закрытых месяца. Изменение — от первого закрытого месяца с данными к последнему '+
+      'закрытому: незакрытый месяц в сравнение не берём. Клик по строке ставит позицию на график.</div>'+
+      '<input class="flt" data-t="tbUC" placeholder="Поиск по названию — всего '+
+        fmt(D.unitcost.length)+' позиций">'+
+      '<div class="tall"><table id="tbUC"><tr><th class="l">Позиция</th><th class="l">Ед.</th>'+
       L.map(function(x){return '<th>'+x+'</th>';}).join("")+'<th>Изменение</th></tr>'+
-      D.unitcost.map(function(r){
-        return '<tr><td class="l">'+esc(r.n)+'</td><td class="l" style="color:#94a3b8;font-weight:400">'+
+      D.unitcost.map(function(r,i){
+        return '<tr class="pickable'+(i<6?' pick':'')+'" data-uc="'+i+'">'+
+          '<td class="l">'+esc(r.n)+'</td><td class="l" style="color:#94a3b8;font-weight:400">'+
           esc(r.u||'')+'</td>'+
           r.c.map(function(v){return '<td data-v="'+(v||0)+'">'+
             (v?fmt(v):'<span style="color:#475569">—</span>')+'</td>';}).join("")+
           '<td data-v="'+(r.d||0)+'" class="'+(r.d>0?'up':(r.d<0?'down':''))+'" style="font-weight:700">'+
-          (r.d>0?'+':'')+r.d+'%</td></tr>';
-      }).join("")+'</table></div></div>';
+          (r.d>0?'+':'')+pc(r.d)+'%</td></tr>';
+      }).join("")+'</table></div>'+
+      '<div class="cnt2">Показано <b class="cnt" data-t="tbUC">'+fmt(D.unitcost.length)+'</b> из '+
+      fmt(D.unitcost.length)+' · сортировка — клик по заголовку столбца</div></div>';
   }
 
   // ── разделка и переработка ───────────────────────────────────
@@ -358,19 +380,20 @@
       (R.in&&R.in.length? "Основное сырьё операции — <b>"+esc(R.in[0].n)+"</b>: "+mln(R.in[0].s)+
         " ("+pct(R.in[0].s,sum(R.in))+"% всей операции)." : "")
     ])+
-    (cid? '<div class="card"><div class="ct">Вошло и вышло — по единицам</div>'+
-      '<div class="cs">Каждая единица измерения своим столбиком. Правый столбик ниже левого — '+
-      'значит, часть веса не вернулась.</div>'+
+    (cid? '<div class="card"><div class="ct">Выход по единицам измерения</div>'+
+      '<div class="cs">За '+PER+'. Сколько процентов от того, что вошло, вернулось обратно. '+
+      '100% — ничего не потеряли. Наведите на полосу, чтобы увидеть килограммы. Единицы, '+
+      'у которых входа не было, на графике не показаны — считать выход не от чего.</div>'+
       '<div style="height:250px"><canvas id="'+cid+'"></canvas></div></div>' : '')+
     '<div class="card"><div class="ct">Вход и выход по единицам измерения</div>'+
-    '<div class="cs">Килограммы, литры и штуки считаются отдельно — сложить их в одно число нельзя. '+
-    'Минус в разнице означает, что вышло меньше, чем вошло.</div>'+unitRows+'</div>'+
+    '<div class="cs">За '+PER+'. Килограммы, литры и штуки считаются отдельно — сложить их '+
+    'в одно число нельзя. Минус в разнице означает, что вышло меньше, чем вошло.</div>'+unitRows+'</div>'+
     '<div class="two">'+
       '<div class="card"><div class="ct">Что уходит в операцию</div>'+
-      '<div class="cs">'+R.n_in+' позиций, показаны крупнейшие.</div>'+
+      '<div class="cs">Все '+R.n_in+' позиций за '+PER+'. Сумма — стоимость того, что списано в операцию.</div>'+
       rows(R.in,sum(R.in),false,true)+'</div>'+
       '<div class="card"><div class="ct">Что получается</div>'+
-      '<div class="cs">'+R.n_out+' позиций, показаны крупнейшие.</div>'+
+      '<div class="cs">Все '+R.n_out+' позиций за '+PER+'. Сумма — стоимость того, что получено.</div>'+
       rows(R.out,sum(R.out),false,true)+'</div>'+
     '</div>';
   }
@@ -419,15 +442,15 @@
     '<div style="height:250px"><canvas id="chWo"></canvas></div></div>'+
     '<div class="two">'+
       '<div class="card"><div class="ct">Что списываем</div>'+
-      '<div class="cs">Крупнейшие позиции по сумме списания.</div>'+
+      '<div class="cs">Все позиции за '+PER+', по сумме списания.</div>'+
       rows(W.by_product,sum(W.by_product),false,false)+'</div>'+
       '<div class="card"><div class="ct">Откуда списываем</div>'+
-      '<div class="cs">Склады и цеха. Здесь видно, где именно теряется товар.</div>'+
+      '<div class="cs">Склады и цеха за '+PER+'. Здесь видно, где именно теряется товар.</div>'+
       rows(W.by_store,sum(W.by_store),false,false)+'</div>'+
     '</div>'+
     (W.by_reason&&W.by_reason.length ?
       '<div class="card"><div class="ct">Почему списываем</div>'+
-      '<div class="cs">Причина списания в iiko — это счёт, на который его отнесли. '+
+      '<div class="cs">За '+PER+'. Причина списания в iiko — это счёт, на который его отнесли. '+
       'Счёт, названный так же, как склад, причиной не является: это просто «списано со склада N».</div>'+
       reasonTable(W)+'</div>' : '');
   }
@@ -562,14 +585,14 @@
     '<div style="height:250px"><canvas id="chInv"></canvas></div></div>'+
     histTable(V)+
     '<div class="card"><div class="ct">Где расходится учёт</div>'+
-    '<div class="cs">Сальдо по складам. Минус — недостача, плюс — излишек.</div>'+
+    '<div class="cs">Сальдо по складам за '+PER+'. Минус — недостача, плюс — излишек.</div>'+
     storeTable()+'</div>'+
     '<div class="two">'+
       '<div class="card"><div class="ct">Что теряем</div>'+
-      '<div class="cs">Чистая недостача по позициям с начала года.</div>'+
+      '<div class="cs">Чистая недостача по позициям за '+PER+'.</div>'+
       posTable(V.short,true)+'</div>'+
       '<div class="card"><div class="ct">Что находим</div>'+
-      '<div class="cs">Чистые излишки. Обычно это обратная сторона пересорта.</div>'+
+      '<div class="cs">Чистые излишки за '+PER+'. Обычно это обратная сторона пересорта.</div>'+
       posTable(V.over,false)+'</div>'+
     '</div>';
   }
@@ -731,10 +754,10 @@
     '<div style="height:290px"><canvas id="chGrp"></canvas></div></div>'+
     '<div class="two">'+
       '<div class="card"><div class="ct">Из чего производим</div>'+
-      '<div class="cs">Группы сырья и полуфабрикатов по стоимости списания с начала года.</div>'+
+      '<div class="cs">Группы сырья и полуфабрикатов по стоимости списания за '+PER+'.</div>'+
       rows(G.inp,sum(G.inp),true,false)+'</div>'+
       '<div class="card"><div class="ct">Что производим — по группам</div>'+
-      '<div class="cs">Выпуск по группам номенклатуры, включая внутренний передел.</div>'+
+      '<div class="cs">Выпуск по группам номенклатуры за '+PER+', включая внутренний передел.</div>'+
       rows(G.out,sum(G.out),false,false)+'</div>'+
     '</div>';
   }
@@ -824,41 +847,90 @@
     // Себестоимость единицы: у позиций разный масштаб (₸/кг и ₸/порц не
     // сравнить), поэтому каждую приводим к индексу — первый закрытый месяц
     // с данными равен 100. Тогда на одном графике видно, кто дорожает.
+    // График себестоимости единицы интерактивный: набор линий задаётся кликом
+    // по строке таблицы. Индекс (первый месяц = 100) нужен, потому что ₸/кг и
+    // ₸/порц на одной оси не сравнить; в подсказке при этом показываем и тенге.
     var cc=document.getElementById("chCost");
     if(cc&&D.unitcost&&D.unitcost.length){
-      var PAL2=["#7c3aed","#e0b13c","#34d399","#38bdf8","#f472b6","#fb923c"];
-      var dsC=D.unitcost.slice(0,6).map(function(r,i){
-        var base=null;
-        for(var k=0;k<=closed&&k<r.c.length;k++){ if(r.c[k]){ base=r.c[k]; break; } }
-        return {label:r.n.length>28? r.n.slice(0,28)+"…" : r.n,
-                data:r.c.map(function(v){return (v&&base)? Math.round(v/base*1000)/10 : null;}),
-                borderColor:PAL2[i],backgroundColor:PAL2[i],borderWidth:2,
-                pointRadius:2.5,tension:.3,spanGaps:true};
+      var PAL2=["#7c3aed","#e0b13c","#34d399","#38bdf8","#f472b6","#fb923c",
+                "#a3e635","#22d3ee","#fca5a5","#c084fc"];
+      var UCsel=[]; for(var i0=0;i0<Math.min(6,D.unitcost.length);i0++)UCsel.push(i0);
+      var ucChart=null;
+      function ucColor(i){ return PAL2[UCsel.indexOf(i)%PAL2.length]; }
+      function ucSets(){
+        return UCsel.map(function(idx,k){
+          var r=D.unitcost[idx], base=null;
+          for(var m=0;m<=closed&&m<r.c.length;m++){ if(r.c[m]){ base=r.c[m]; break; } }
+          return {label:r.n.length>30? r.n.slice(0,30)+"…" : r.n,
+                  _raw:r.c, _u:r.u||"",
+                  data:r.c.map(function(v){return (v&&base)? Math.round(v/base*1000)/10 : null;}),
+                  borderColor:PAL2[k%PAL2.length],backgroundColor:PAL2[k%PAL2.length],
+                  borderWidth:2,pointRadius:2.5,tension:.3,spanGaps:true};
+        });
+      }
+      function ucHint(){
+        var h=document.getElementById("ucHint"); if(!h)return;
+        h.innerHTML = UCsel.length
+          ? ("На графике "+UCsel.length+" позиц"+(UCsel.length===1?"ия":(UCsel.length<5?"ии":"ий"))+
+             ": "+UCsel.map(function(idx,k){
+                return '<span class="dot" style="background:'+PAL2[k%PAL2.length]+'"></span>'+
+                       esc(D.unitcost[idx].n);}).join(" &nbsp; ")+
+             " · чтобы убрать, кликните строку ещё раз")
+          : "Ни одной позиции не выбрано — кликните строку в таблице ниже.";
+      }
+      function ucDraw(){
+        if(ucChart){ ucChart.data.datasets=ucSets(); ucChart.update(); ucHint(); return; }
+        ucChart=new Chart(cc,{type:"line",data:{labels:D.mo_labels,datasets:ucSets()},
+          options:{maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+            plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:11,font:{size:10}}},
+              tooltip:{callbacks:{label:function(c){
+                var raw=(c.dataset._raw||[])[c.dataIndex];
+                return c.dataset.label+": "+c.parsed.y+" (100 = первый месяц)"+
+                  (raw? " · "+fmt(raw)+" ₸/"+c.dataset._u : "");}}}},
+            scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
+                    y:{ticks:{color:"#8091a8",font:{size:10}},grid:{color:"#1b2636"}}}}});
+        ucHint();
+      }
+      ucDraw();
+      var tb=document.getElementById("tbUC");
+      if(tb) tb.addEventListener("click",function(e){
+        var tr=e.target; while(tr&&tr.tagName!=="TR")tr=tr.parentNode;
+        if(!tr||!tr.getAttribute)return;
+        var a=tr.getAttribute("data-uc"); if(a===null)return;
+        var idx=parseInt(a,10), at=UCsel.indexOf(idx);
+        if(at>=0){ UCsel.splice(at,1); tr.classList.remove("pick"); }
+        else {
+          if(UCsel.length>=10){ UCsel.shift();
+            var old=tb.querySelector('tr.pick'); if(old)old.classList.remove("pick"); }
+          UCsel.push(idx); tr.classList.add("pick");
+        }
+        ucDraw();
       });
-      new Chart(cc,{type:"line",data:{labels:D.mo_labels,datasets:dsC},
-        options:{maintainAspectRatio:false,
-          plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:11,font:{size:10}}},
-            tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y+" (100 = "+
-              D.mo_labels[0]+")";}}}},
-          scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
-                  y:{ticks:{color:"#8091a8",font:{size:10},callback:function(v){return v;}},
-                     grid:{color:"#1b2636"}}}}});
     }
     // Разделка и переработка: вход против выхода по каждой единице
     ["chDis","chTr"].forEach(function(id){
       var el=document.getElementById(id); if(!el)return;
       var R=(id==="chDis")? D.disasm : D.transf;
       if(!R||!R.units||!R.units.length)return;
-      var U=R.units;
-      new Chart(el,{type:"bar",data:{labels:U.map(function(u){return u.u;}),datasets:[
-        {label:"Вошло",data:U.map(function(u){return u.in;}),backgroundColor:"#7c3aed",borderRadius:5},
-        {label:"Вышло",data:U.map(function(u){return u.out;}),backgroundColor:"#34d399",borderRadius:5}]},
-        options:{maintainAspectRatio:false,
-          plugins:{legend:{labels:{color:"#cbd5e1",boxWidth:12,font:{size:11}}},
-            tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+
-              Math.round(c.parsed.y).toLocaleString("ru-RU")+" "+c.label;}}}},
-          scales:{x:{ticks:{color:"#8091a8",font:{size:11}},grid:{display:false}},
-                  y:{type:"logarithmic",ticks:{color:"#8091a8",font:{size:10}},grid:{color:"#1b2636"}}}}});
+      var U=R.units.filter(function(u){return u.in>0;});
+      if(!U.length)return;
+      var vals=U.map(function(u){return Math.round(u.out/u.in*1000)/10;});
+      new Chart(el,{type:"bar",data:{labels:U.map(function(u){return u.u;}),
+        datasets:[{label:"Выход, % от входа",data:vals,
+          backgroundColor:vals.map(function(v){return v<100? "#f87171":"#34d399";}),
+          borderRadius:5}]},
+        options:{indexAxis:"y",maintainAspectRatio:false,
+          plugins:{legend:{display:false},
+            tooltip:{callbacks:{
+              title:function(c){return "Единица: "+c[0].label;},
+              label:function(c){var u=U[c.dataIndex];
+                return ["вошло  "+Math.round(u.in).toLocaleString("ru-RU")+" "+u.u,
+                        "вышло  "+Math.round(u.out).toLocaleString("ru-RU")+" "+u.u,
+                        "выход  "+String(c.parsed.x).replace(".",",")+"%"];}}}},
+          scales:{x:{beginAtZero:true,suggestedMax:110,
+                     ticks:{color:"#8091a8",font:{size:10},callback:function(v){return v+"%";}},
+                     grid:{color:"#1b2636"}},
+                  y:{ticks:{color:"#cbd5e1",font:{size:12}},grid:{display:false}}}}});
     });
     var ct=document.getElementById("chTc");
     if(ct&&D.techcard&&D.techcard.rows&&D.techcard.rows.length){
