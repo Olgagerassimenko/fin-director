@@ -60,8 +60,11 @@
   .note b{color:#f0d98c}
   canvas{max-width:100%}
   .pane{display:none} .pane.on{display:block}
-  .tall{max-height:520px;overflow:auto;border-radius:9px}
-  .tall table th{position:sticky;top:0;background:var(--card);z-index:2}
+  /* Внутренних полос прокрутки нет: две прокрутки в одном окне сбивают —
+     непонятно, что листаешь. Таблица разворачивается целиком, а шапка
+     прилипает к верху экрана, чтобы названия столбцов не терялись. */
+  .tall{border-radius:9px}
+  .tall table th{position:sticky;top:var(--stick,0px);background:var(--card);z-index:2}
   .flt{width:100%;box-sizing:border-box;background:#0f1830;border:1px solid var(--line);
        border-radius:9px;color:var(--txt);font-family:inherit;font-size:12.5px;
        padding:8px 11px;margin-bottom:9px;outline:none}
@@ -371,9 +374,31 @@
       if(r.d>0)upN++; else if(r.d<0)dnN++;
       if(!mxU||r.d>mxU.d)mxU=r; if(!mnU||r.d<mnU.d)mnU=r;
     });
-    return insight([
+    // Медиана честнее среднего: пара позиций с ростом в разы утащила бы
+    // среднее вверх и создала впечатление, что дорожает всё.
+    var ds=D.unitcost.map(function(r){return r.d;}).sort(function(a,b){return a-b;});
+    var med=ds.length? ds[Math.floor(ds.length/2)] : 0;
+    var big=D.unitcost.filter(function(r){return r.d>10;});
+    var bigS=big.reduce(function(a,r){return a+(r.s||0);},0);
+    var allS=D.unitcost.reduce(function(a,r){return a+(r.s||0);},0);
+
+    return '<div class="kpis">'+
+      kpi("hi",(med>0?"+":"")+pc(med)+"%","Медианное изменение",
+          "половина позиций изменилась сильнее, половина — слабее")+
+      kpi(upN>dnN?"warn":"",fmt(upN)+" / "+fmt(dnN),"Подорожало / подешевело",
+          "из "+fmt(D.unitcost.length)+" позиций с историей от 3 закрытых месяцев")+
+      kpi(big.length?"warn":"",fmt(big.length),"Выросли больше чем на 10%",
+          allS? ("на них приходится "+pct(bigS,allS)+"% товарного выпуска") : "")+
+      kpi("",D.mo_labels[0]+" → "+D.mo_labels[closed],"База сравнения",
+          "первый и последний закрытый месяц с данными")+
+    '</div>'+
+    insight([
       "Из "+D.unitcost.length+" позиций с историей подорожало <b>"+upN+"</b>, подешевело <b>"+dnN+
         "</b>. Это себестоимость одной единицы, объём тут ни при чём.",
+      "Медианное изменение — <b>"+(med>0?"+":"")+pc(med)+"%</b>. Если оно близко к нулю, а отдельные "+
+        "позиции улетели на десятки процентов, дорожает не производство целиком, а конкретные рецептуры.",
+      (big.length&&allS? "Позиций с ростом больше 10% — <b>"+big.length+"</b>, и на них приходится <b>"+
+        pct(bigS,allS)+"%</b> товарного выпуска. Это и есть список, с которым надо идти в закуп." : ""),
       mxU? "Сильнее всего выросла <b>"+esc(mxU.n)+"</b>: "+up(mxU.d)+" за период. "+
         "Такой скачок — это либо подорожавшее сырьё, либо изменённая рецептура; стоит проверить по закупу." : "",
       mnU&&mnU.d<0? "Сильнее всего подешевела <b>"+esc(mnU.n)+"</b>: "+dn(mnU.d)+
@@ -392,11 +417,13 @@
       '<input class="flt" data-t="tbUC" placeholder="Поиск по названию — всего '+
         fmt(D.unitcost.length)+' позиций">'+
       '<div class="tall"><table id="tbUC"><tr><th class="l">Позиция</th><th class="l">Ед.</th>'+
+      '<th>Выпуск за год</th>'+
       L.map(function(x){return '<th>'+x+'</th>';}).join("")+'<th>Изменение</th></tr>'+
       D.unitcost.map(function(r,i){
         return '<tr class="pickable'+(i<6?' pick':'')+'" data-uc="'+i+'">'+
           '<td class="l">'+esc(r.n)+'</td><td class="l" style="color:#94a3b8;font-weight:400">'+
           esc(r.u||'')+'</td>'+
+          '<td data-v="'+(r.s||0)+'" style="color:#94a3b8">'+mln(r.s||0)+'</td>'+
           r.c.map(function(v){return '<td data-v="'+(v||0)+'">'+
             (v?fmt(v):'<span style="color:#475569">—</span>')+'</td>';}).join("")+
           '<td data-v="'+(r.d||0)+'" class="'+(r.d>0?'up':(r.d<0?'down':''))+'" style="font-weight:700">'+
@@ -953,7 +980,19 @@
     var p=document.getElementById("p-"+CURTAB);
     if(p){ [].forEach.call(document.querySelectorAll(".pane"),function(x){x.classList.remove("on");});
            p.classList.add("on"); }
-    bindTabs(); makeSortable(); drawCharts();
+    bindTabs(); makeSortable(); drawCharts(); stickHead();
+  }
+
+  // Шапка длинной таблицы прилипает не к нулю, а под белую шапку страницы и
+  // строку вкладок — иначе названия столбцов уезжают под них и не читаются.
+  function stickHead(){
+    var top=0;
+    var tb=document.querySelector(".topbar,.topbar-new");
+    if(tb) top+=Math.round(tb.getBoundingClientRect().height);
+    var tabs=document.querySelector(".tabs");
+    if(tabs&&getComputedStyle(tabs).position==="sticky")
+      top+=Math.round(tabs.getBoundingClientRect().height);
+    document.documentElement.style.setProperty("--stick", top+"px");
   }
 
   function drawCharts(){
@@ -1124,6 +1163,9 @@
   }
 
   draw();
+  window.addEventListener("resize",stickHead);
+  window.addEventListener("load",stickHead);
+  setTimeout(stickHead,600); setTimeout(stickHead,1800);
   document.getElementById("upd").textContent="обновлено "+D.updated+" · данные по "+D.through;
 })();
 </script>
