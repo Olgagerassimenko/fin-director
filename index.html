@@ -106,14 +106,6 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 
 @media(max-width:600px){.cards{grid-template-columns:1fr;}}
 
-.girl-corner{
-  /* была fixed поверх страницы и накрывала левую колонку карточек —
-     теперь стоит внизу документа, рядом с подвалом */
-  position:absolute;bottom:0;left:10px;
-  height:300px;width:auto;
-  pointer-events:none;
-  z-index:1;
-}
 
 .fin-section{margin-bottom:32px;}
 .fin-section-hdr{display:flex;align-items:center;gap:14px;margin-bottom:14px;
@@ -148,8 +140,6 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
   .fin-section{margin-bottom:28px;}
   .fin-section-hdr{flex-wrap:wrap;gap:8px;padding:10px 13px;margin-bottom:14px;}
   .fin-sub{display:none;}
-  /* девушка — маленькая, вверху у шапки; absolute → уезжает при прокрутке, не перекрывает контент */
-  .girl-corner{position:absolute;top:2px;right:8px;left:auto;bottom:auto;height:78px;width:auto;z-index:10001;pointer-events:none;}
 }
 
 /* ── ПУЛЬС: строка ключевых цифр над разделами ──────────────────
@@ -554,7 +544,6 @@ a.card.key .card-title{padding-right:100px;}
   </div>
 
 </div>
-<img class="girl-corner" src="повар.webp" width="429" height="600" alt="Девушка-повар" loading="lazy" decoding="async">
 <script>
 /* Короткие цитаты о деньгах в шапке — меняются каждые 11 секунд. */
 (function(){
