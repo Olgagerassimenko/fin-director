@@ -11,6 +11,10 @@ opiu_iiko.py — тянет выручку ОПиУ НАПРЯМУЮ из iiko �
 """
 import os, re, json, time, hashlib, calendar, warnings
 from datetime import date, timedelta
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
+
 warnings.filterwarnings("ignore")
 import requests
 
@@ -78,7 +82,9 @@ def opiu_income(mi, last_full):
 def main():
     global TOK
     TOK = auth()
-    last_full = date.today() - timedelta(days=1)
+    # date.today() на раннере — это UTC: с 00:00 до 05:00 по Алматы
+    # «последний полный день» съезжал на сутки назад и терял день выручки.
+    last_full = almaty.today() - timedelta(days=1)
     print(f"iiko ok, ОПиУ по {last_full:%d.%m.%Y}")
     out = {}
     for mi in range(1, 13):
@@ -92,7 +98,7 @@ def main():
         d2 = min(date(YEAR, mi, calendar.monthrange(YEAR, mi)[1]), last_full)
         out[f"{YEAR}-{mi:02d}"] = {"trade": trade, "itogo": itogo, "through": d2.isoformat()}
         print(f"  {mi:02d}: торговая {trade:,}  итого {itogo:,}")
-    out["_pulled"] = date.today().strftime("%d.%m.%Y")
+    out["_pulled"] = almaty.today().strftime("%d.%m.%Y")
     out["_through"] = last_full.isoformat()
     with open(os.path.join(HERE, "opiu_rev.js"), "w", encoding="utf-8") as f:
         f.write("window.OPIU_REV=" + json.dumps(out, ensure_ascii=False) + ";\n")

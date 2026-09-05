@@ -8,6 +8,8 @@ iiko SKU Dashboard — автоматический генератор.
 
 import requests, hashlib, json, re, os, sys, warnings, glob
 from datetime import datetime, date
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import almaty  # время завода — Алматы (UTC+5), а не UTC раннера GitHub
 from collections import defaultdict
 
 warnings.filterwarnings("ignore")  # игнорируем SSL предупреждения
@@ -479,7 +481,9 @@ data = {
     'mo_keys':   mo_keys,
     'skus':      result,
     'склады':    склады_all,
-    'updated':   datetime.now().strftime("%d.%m.%Y %H:%M"),
+    # на раннере datetime.now() — это UTC: sku360 показывал «обновлено 03:38»,
+    # когда в Алматы было 08:38. Берём время завода.
+    'updated':   almaty.now().strftime("%d.%m.%Y %H:%M"),
     'source':    source,
 }
 new_json = json.dumps(data, ensure_ascii=False, separators=(',',':'))
@@ -533,7 +537,9 @@ def _guard(new_months, new_skus):
 _guard(N_MO, len(result))
 
 # sku_live.js — свежие живые данные для sku360.html (он их подхватит вместо зашитого снимка)
-_through = date.fromordinal(date.today().toordinal() - 1).strftime("%d.%m.%Y")
+# «данные по» — вчерашний день по Алматы. С date.today() раннера с 00:00 до 05:00
+# по заводу это ещё позавчера, и страница теряла целый день данных.
+_through = date.fromordinal(almaty.today().toordinal() - 1).strftime("%d.%m.%Y")
 _sku_meta = json.dumps({"pulled": data['updated'], "through": _through}, ensure_ascii=False)
 open(os.path.join(PARENT_DIR, 'sku_live.js'), 'w', encoding='utf-8').write(
     'window.SKU_DATA_LIVE=' + new_json + ';\nwindow.SKU_LIVE_META=' + _sku_meta + ';')
@@ -594,7 +600,7 @@ html = html.replace(
 html = html.replace('SKU Себестоимость', 'SKU Продажи (iiko)')
 
 # Отметка времени обновления
-updated_str = datetime.now().strftime("%d.%m.%Y %H:%M")
+updated_str = almaty.now().strftime("%d.%m.%Y %H:%M")
 html = html.replace(
     'class="live-pill"',
     f'class="live-pill" title="Обновлено {updated_str}"'

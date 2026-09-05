@@ -11,6 +11,10 @@
 Только чтение. Пишет zakup.json + zakup_LOG.txt.
 """
 import sys, os, re, json, hashlib, warnings, datetime, csv, io
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
+
 warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
 import requests
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +38,7 @@ def log(*a):
 
 s = requests.Session()
 tok = s.get(f"{URL}/resto/api/auth", params={"login": LOGIN, "pass": hashlib.sha1(PASS.encode()).hexdigest()}, verify=False, timeout=60).text.strip().strip('"')
-log("iiko auth ok", datetime.datetime.now().strftime("%H:%M:%S"))
+log("iiko auth ok", almaty.now().strftime("%H:%M:%S"))
 
 def olap(body):
     r = s.post(f"{URL}/resto/api/v2/reports/olap", headers={"Cookie": f"key={tok}", "Content-Type": "application/json"}, data=json.dumps(body), verify=False, timeout=300)
@@ -42,7 +46,8 @@ def olap(body):
         log("  OLAP ERR", r.status_code, r.text[:150]); return []
     return r.json().get("data", [])
 
-today = datetime.date.today()
+# время завода, а не раннера: иначе ночью дашборд считает вчерашним днём позавчера
+today = almaty.today()
 last_full = today - datetime.timedelta(days=1)
 lastm = last_full.month
 
@@ -449,7 +454,7 @@ log(f"   итог КЗ по листу: {kz_total:,.0f} · с долгом: {kz_
 mmeta = {f"{YEAR}-{mi:02d}": {"ru": f"{RUM[mi]} {YEAR}"} for mi in range(1, lastm + 1)}
 data = {
     "updated": today.strftime("%d.%m.%Y"),
-    "updatedFull": today.strftime("%d.%m.%Y ") + datetime.datetime.now().strftime("%H:%M"),
+    "updatedFull": today.strftime("%d.%m.%Y ") + almaty.now().strftime("%H:%M"),
     "through": last_full.strftime("%d.%m.%Y"),
     "months": [k for k, _, _ in months], "mmeta": mmeta,
     "weeks": [{"k": k, "label": lbl} for k, lbl, _, _ in weeks],

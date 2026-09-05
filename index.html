@@ -182,17 +182,56 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pt-fc{cursor:pointer;background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.35);}
 .pt-fc:hover{background:rgba(124,58,237,.28);}
 .fc-q{float:right;font-size:11px;font-weight:900;color:rgba(196,181,253,.9);letter-spacing:0;}
-.fc-box{margin-top:12px;background:rgba(255,255,255,.05);border:1px solid rgba(167,139,250,.28);
-  border-radius:14px;padding:13px 16px;font-size:12px;color:rgba(255,255,255,.72);line-height:1.5;}
+/* Метка «новое» на плитке прогноза: висит неделю с 05.09.2026, дата зашита
+   в pulseFcNew() — сама погаснет 12.09, руками убирать не нужно. */
+.fc-new{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:5px;
+  background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;font-size:8.5px;
+  font-weight:900;letter-spacing:.09em;vertical-align:2px;
+  box-shadow:0 0 0 rgba(167,139,250,.5);animation:fcpulse 2.2s ease-in-out infinite;}
+@keyframes fcpulse{0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,.45)}
+  50%{box-shadow:0 0 0 5px rgba(167,139,250,0)}}
+
+/* ── РАСЧЁТ ПРОГНОЗА ──────────────────────────────────────────────
+   Раскрывается по клику и объясняет цифру. Оформлен как отдельная
+   карточка-выписка: шапка с итогом, строки расчёта, полоса весов
+   и приписка. Смысл — чтобы цифру можно было показать собственнику,
+   не пересказывая её словами. */
+.fc-box{margin-top:12px;border-radius:16px;overflow:hidden;
+  background:linear-gradient(160deg,rgba(124,58,237,.20),rgba(255,255,255,.035) 55%);
+  border:1px solid rgba(167,139,250,.30);
+  box-shadow:0 18px 44px rgba(10,4,32,.45),inset 0 1px 0 rgba(255,255,255,.07);
+  font-size:12px;color:rgba(255,255,255,.72);line-height:1.5;}
 .fc-box b{color:#fff;}
-.fc-h{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-  color:#c4b5fd;margin-bottom:9px;}
-.fc-r{display:flex;gap:12px;padding:3px 0;}
+.fc-top{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;
+  padding:15px 20px 13px;border-bottom:1px solid rgba(255,255,255,.09);
+  background:linear-gradient(180deg,rgba(255,255,255,.05),transparent);}
+.fc-h{font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:#c4b5fd;margin-bottom:5px;}
+.fc-big{font-size:27px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1;
+  font-variant-numeric:tabular-nums;}
+.fc-top-side{margin-left:auto;text-align:right;font-size:11px;color:rgba(255,255,255,.5);}
+.fc-body{padding:13px 20px 16px;}
+.fc-r{display:flex;gap:12px;padding:4px 0;}
 .fc-r span:first-child{flex:1;color:rgba(255,255,255,.5);}
 .fc-r span:last-child{font-weight:700;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap;}
 .fc-r.dim span:last-child{color:rgba(255,255,255,.38);font-weight:600;}
-.fc-hr{height:1px;background:rgba(255,255,255,.12);margin:8px 0;}
-.fc-note{margin-top:9px;color:rgba(255,255,255,.5);font-size:11px;line-height:1.55;}
+/* Итоговая строка выделена: на неё смотрят первой */
+.fc-r.res{margin:8px -10px;padding:9px 10px;border-radius:10px;
+  background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.26);}
+.fc-r.res span:first-child{color:rgba(255,255,255,.78);font-weight:600;}
+.fc-r.res span:last-child{color:#ddd6fe;font-size:14px;font-weight:900;}
+.fc-hr{height:1px;background:rgba(255,255,255,.10);margin:9px 0;}
+.fc-sub{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:rgba(196,181,253,.6);margin:12px 0 5px;}
+/* Полоса весов: наглядно, сколько прогноз берёт от текущего месяца, а сколько от истории */
+.fc-mix{display:flex;height:7px;border-radius:4px;overflow:hidden;margin:7px 0 5px;
+  background:rgba(255,255,255,.07);}
+.fc-mix i{display:block;height:100%;}
+.fc-mix .cur{background:linear-gradient(90deg,#a78bfa,#7c3aed);}
+.fc-mix .his{background:rgba(255,255,255,.20);}
+.fc-mix-lbl{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.45);}
+.fc-note{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);
+  color:rgba(255,255,255,.48);font-size:11px;line-height:1.6;}
 
 /* ── КЛЮЧЕВЫЕ ОТЧЁТЫ ──────────────────────────────────────────
    Три отчёта, с которых начинается разбор: деньги, прибыль, продажи.
@@ -889,26 +928,51 @@ a.card.key .card-title{padding-right:100px;}
     b.style.display=open?'block':'none';
     var q=document.getElementById('p-fc-q'); if(q) q.textContent=open?'×':'?';
     if(!open) return;
-    var r=function(a,v,dimd){ return '<div class="fc-r'+(dimd?' dim':'')+'"><span>'+a+'</span><span>'+v+'</span></div>'; };
+    var r=function(a,v,cls){ return '<div class="fc-r'+(cls?' '+cls:'')+'"><span>'+a+'</span><span>'+v+'</span></div>'; };
     var t=function(x){ return num(x)+' ₸'; };
-    b.innerHTML='<div class="fc-h">Как посчитан прогноз · '+FC.lbl+'</div>'
-      +r('Отгружено с начала месяца, по '+FC.through, t(FC.rev))
-      +r('Прошло дней', FC.d+' из '+FC.D+', осталось '+FC.left)
+    var wc=Math.round(FC.w*100), wh=100-wc;
+    var dl=FC.prev>0?(FC.fc/FC.prev*100-100):null;
+    b.innerHTML=
+      '<div class="fc-top">'
+      + '<div><div class="fc-h">Прогноз · '+FC.lbl+'</div>'
+      +   '<div class="fc-big">'+num(FC.fc)+' ₸</div></div>'
+      + '<div class="fc-top-side">'
+      +   (dl===null?'':'<span class="'+(dl>=0?'up':'down')+'">'+(dl>=0?'+':'−')+Math.abs(dl).toFixed(1)+'%</span> к '+dat(FC.prevLbl)+'<br>')
+      +   'данные по '+FC.through+' · прошло '+FC.d+' дн. из '+FC.D
+      + '</div></div>'
+      +'<div class="fc-body">'
+      +'<div class="fc-sub">Что уже есть</div>'
+      +r('Отгружено с начала месяца', t(FC.rev))
+      +r('Осталось дней до конца месяца', FC.left)
+      +'<div class="fc-sub">С какой скоростью идём</div>'
       +r('Темп этого месяца, в день', t(FC.curDaily))
       +r('Темп '+FC.histN+' последних полных мес., в день', t(FC.histDaily))
-      +'<div class="fc-hr"></div>'
-      +r('Остаток месяца считаем по смеси', Math.round(FC.w*100)+'% текущий + '+Math.round((1-FC.w)*100)+'% история')
+      +'<div class="fc-sub">Чем считаем остаток месяца</div>'
+      +'<div class="fc-mix"><i class="cur" style="width:'+wc+'%"></i><i class="his" style="width:'+wh+'%"></i></div>'
+      +'<div class="fc-mix-lbl"><span>'+wc+'% темп этого месяца</span><span>'+wh+'% история</span></div>'
       +r('= в день на остаток', t(FC.restDaily))
-      +r('Прогноз: отгружено + '+FC.left+' дн. × темп', '<b>'+t(FC.fc)+'</b>')
+      +r('Прогноз: '+num(FC.rev)+' + '+FC.left+' дн. × '+num(FC.restDaily), t(FC.fc), 'res')
       +'<div class="fc-hr"></div>'
       +(FC.prev>0?r('Факт '+FC.prevLbl, t(FC.prev)):'')
-      +r('Если считать в лоб (темп × '+FC.D+' дн.)', t(FC.flat), 1)
+      +r('Если считать в лоб (темп × '+FC.D+' дн.)', t(FC.flat), 'dim')
       +'<div class="fc-note">Чем больше дней прошло, тем сильнее прогноз опирается на этот месяц'
       +' и слабее на историю — сейчас вес текущего месяца '+Math.round(FC.w*100)+'%.'
       +' Дни недели и праздники не учитываются.'
       +(FC.d<7?' Прошло меньше недели — цифра ещё грубая, надёжной станет примерно с 10-го числа.':'')
-      +'</div>';
+      +'</div></div>';
   };
+
+  /* Метка «новое» на плитке прогноза. Дату гасим руками один раз: плитка
+     появилась 05.09.2026, неделя — до 12.09, дальше метка исчезнет сама. */
+  function pulseFcNew(){
+    var el=document.querySelector('#p-fc .pt-l');
+    if(!el || new Date() >= new Date(2026,8,12)) return;
+    if(el.querySelector('.fc-new')) return;
+    var b=document.createElement('span'); b.className='fc-new'; b.textContent='NEW';
+    var q=el.querySelector('.fc-q');
+    el.insertBefore(b, q||null);
+  }
+  pulseFcNew();
 
   /* Возвраты живут в sales_meta.js, а доля от выручки — в sales_sum.js.
      Файлы грузятся параллельно, поэтому рисуем плитку только когда

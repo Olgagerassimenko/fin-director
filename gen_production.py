@@ -44,6 +44,10 @@
 Пишет production_data.js и production_LOG.txt.
 """
 import sys, os, re, json, hashlib, warnings, datetime, calendar
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import almaty  # время завода — Алматы (UTC+5), не UTC раннера
+
 warnings.filterwarnings("ignore")
 sys.stdout.reconfigure(encoding="utf-8")
 import requests
@@ -72,7 +76,7 @@ s = requests.Session()
 tok = s.get(f"{URL}/resto/api/auth",
             params={"login": LOGIN, "pass": hashlib.sha1(PASS.encode()).hexdigest()},
             verify=False, timeout=60).text.strip().strip('"')
-log("iiko auth ok", datetime.datetime.now().strftime("%H:%M:%S"))
+log("iiko auth ok", almaty.now().strftime("%H:%M:%S"))
 
 
 def olap(types, groups, d1, d2, aggs):
@@ -95,7 +99,8 @@ def olap(types, groups, d1, d2, aggs):
     return r.json().get("data", [])
 
 
-today = datetime.date.today()
+# время завода, а не раннера GitHub (UTC)
+today = almaty.today()
 last_full = today - datetime.timedelta(days=1)
 YSTART = datetime.date(YEAR, 1, 1)
 YEND = last_full + datetime.timedelta(days=1)
@@ -626,7 +631,7 @@ except Exception as e:
 
 
 data = {
-    "updated": datetime.datetime.now().strftime("%d.%m.%Y %H:%M"),
+    "updated": almaty.now().strftime("%d.%m.%Y %H:%M"),
     "through": last_full.strftime("%d.%m.%Y"),
     "mo_keys": mo_keys,
     "closed": closed_n,

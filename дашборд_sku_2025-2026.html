@@ -973,7 +973,10 @@ function buildInsights(){
   const mo26rev=IDX_2026.map(i=>AN_MO_REV[i]);
   const mo26vp =IDX_2026.map(i=>AN_MO_VP[i]);
   const mo26mg =mo26rev.map((r,i)=>r>0?+(mo26vp[i]/r*100).toFixed(1):0);
-  const moNames=['Янв','Фев','Мар','Апр','Май'];
+  // Раньше здесь было пять зашитых месяцев. Данные давно шире: в сентябре
+  // 2026 их девять, из-за чего на вкладке «Выводы» стояло «Пик — undefined»,
+  // а на графике подписывались только первые пять столбцов.
+  const moNames=IDX_2026.map(i=>MO[i]);
   const bestMoI=mo26rev.indexOf(Math.max(...mo26rev));
   const mgTrend=mo26mg[mo26mg.length-1]-mo26mg[0];
 
@@ -1039,7 +1042,7 @@ function buildInsights(){
     <div style="background:#fff;border:0.5px solid #e5e7eb;border-radius:12px;padding:14px 18px;width:100%">
       <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:#9ca3af;margin-bottom:10px">Итого 2026 · янв–май</div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
-        ${kpi('Выручка 2026',fmtM(REV26),'5 мес.')}
+        ${kpi('Выручка 2026',fmtM(REV26),IDX_2026.length+' мес.')}
         ${kpi('Маржа ВП',MG26.toFixed(1)+'%',mgS+mgDelta+' п.п. к 2025')}
         ${kpi('Активных SKU',active26,'из '+SKUS.length+' позиций')}
         ${kpi('Топ категория',topCat?.cat||'—',(topCat?((topCat.rev/REV26*100).toFixed(0)+'% выручки'):''))}
