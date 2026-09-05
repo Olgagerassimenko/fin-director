@@ -1,5 +1,5 @@
 window.DZ_KZ = {
-  "updated": "05.09.2026 09:05",
+  "updated": "05.09.2026 09:43",
   "kz": {
     "total": 202396438,
     "date": "04.09.2026",
@@ -582,7 +582,7 @@ window.DZ_KZ = {
       }
     ],
     "anaMeta": {
-      "period": "22.08–28.08",
+      "period": "29.08–04.09",
       "totalIn": 34040928,
       "totalPay": 31235326
     }
