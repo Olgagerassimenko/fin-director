@@ -1407,6 +1407,12 @@ async function recordView(p, request, env, trackUrl) {
   const chModel = ch("sec-ch-ua-model"); if (chModel) dv.chModel = chModel;
   const chPlat = ch("sec-ch-ua-platform"); if (chPlat) dv.chPlat = chPlat;
   const chPlatV = ch("sec-ch-ua-platform-version"); if (chPlatV) dv.chPlatV = chPlatV;
+  // Windows 10 и 11 неотличимы по User-Agent — обе пишутся как «Windows NT 10.0».
+  // Различает их только client hint: у одиннадцатой версия платформы 13 и выше.
+  if (dv.os === "Windows" && chPlatV) {
+    const maj = parseInt(String(chPlatV).split(".")[0], 10);
+    if (maj >= 13) dv.osv = "11"; else if (maj >= 1) dv.osv = "10";
+  }
   const chArch = ch("sec-ch-ua-arch"); if (chArch) dv.chArch = chArch;
   const chBits = ch("sec-ch-ua-bitness"); if (chBits) dv.chBits = chBits;
   // сеть и география — от Cloudflare
