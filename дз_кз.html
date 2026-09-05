@@ -76,6 +76,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .col-h.val{min-width:64px;text-align:right}
 
 /* ── ANALYTICS SECTION ── */
+/* Шапки таблиц были #334155 на почти чёрном фоне — контраст 1.9 при норме 4.5,
+   подписи колонок читались как тень. Стало #94a3b8 (7.5), наведение —
+   светлее, а не темнее, как было. */
 .analytics-wrap{margin:0 28px 28px;background:#0f172a;border:1px solid #1e293b;border-radius:14px;overflow:hidden}
 .analytics-tabs{display:flex;border-bottom:1px solid #1e293b}
 .atab{padding:10px 18px;font-size:12px;font-weight:600;color:#9db0c9;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
@@ -89,7 +92,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .a-card-val{font-size:18px;font-weight:800;color:#f1f5f9}
 .a-card-val.red{color:#f87171}.a-card-val.green{color:#4ade80}.a-card-val.yellow{color:#fbbf24}
 .a-table{width:100%;border-collapse:collapse;font-size:12px}
-.a-table th{padding:7px 10px;text-align:left;color:#334155;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1e293b;background:#070e1a}
+.a-table th{padding:7px 10px;text-align:left;color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1e293b;background:#0a1424}
 .a-table th.r{text-align:right}
 .a-table td{padding:8px 10px;border-bottom:1px solid #0f172a;color:#cbd5e1}
 .a-table td.r{text-align:right;font-variant-numeric:tabular-nums}
@@ -130,7 +133,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .a-table tfoot td{border-top:1px solid #1e293b;font-weight:800;color:#e2e8f0;padding:8px 10px}
 .a-table tfoot td.r{text-align:right;font-variant-numeric:tabular-nums}
 .a-table th{cursor:pointer;user-select:none;white-space:nowrap}
-.a-table th:hover{color:#64748b}
+.a-table th:hover{color:#e2e8f0}
 .a-table th .sa{margin-left:5px;font-size:9px;opacity:0;transition:opacity .12s}
 .a-table th:hover .sa{opacity:.4}
 .a-table th.sorted{color:#60a5fa}
