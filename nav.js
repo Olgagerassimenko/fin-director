@@ -1,6 +1,40 @@
 (function(){
-  // счётчик просмотров для вкладки «Метрики»
-  try{ fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true}); }catch(e){}
+  /* Счётчик просмотров для вкладки «Метрики».
+     Живёт именно здесь, а не в воркере: Cloudflare отдаёт статику (в том
+     числе HTML) в обход скрипта воркера, поэтому вставка счётчика через
+     HTMLRewriter до страницы не доезжает — nav.js подключён на каждом
+     дашборде и делает это надёжно.
+     Кроме адреса страницы отправляем паспорт устройства: экран, ядра,
+     память, язык, часовой пояс — чтобы в метриках было видно не только
+     «сколько открытий», но и какое устройство что смотрело. Постоянный
+     номер устройства случайный, лежит в localStorage этого браузера и
+     нужен только чтобы телефон не считался новым каждый раз, когда
+     оператор выдаёт другой адрес. */
+  try{
+    var K='pulse_did', d='';
+    try{
+      d = localStorage.getItem(K) || '';
+      if(!d){
+        d = (self.crypto && crypto.randomUUID) ? crypto.randomUUID()
+            : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+        localStorage.setItem(K, d);
+      }
+    }catch(e){}
+    var n = navigator, sc = screen, tzo = {};
+    try{ tzo = Intl.DateTimeFormat().resolvedOptions(); }catch(e){}
+    var q = 'p=' + encodeURIComponent(location.pathname)
+      + '&d='  + encodeURIComponent(String(d).slice(0,40))
+      + '&sw=' + (sc.width||0)  + '&sh=' + (sc.height||0)
+      + '&vw=' + (window.innerWidth||0) + '&vh=' + (window.innerHeight||0)
+      + '&dpr='+ (window.devicePixelRatio||1) + '&cd=' + (sc.colorDepth||0)
+      + '&cc=' + (n.hardwareConcurrency||0) + '&dm=' + (n.deviceMemory||0)
+      + '&tp=' + (n.maxTouchPoints||0)
+      + '&pf=' + encodeURIComponent(n.platform||'')
+      + '&lg=' + encodeURIComponent(n.language||'')
+      + '&tz=' + encodeURIComponent(tzo.timeZone||'')
+      + '&rf=' + encodeURIComponent((document.referrer||'').slice(0,120));
+    fetch('/track?' + q, {method:'GET', keepalive:true});
+  }catch(e){}
   var pages=[
     {href:'index.html',icon:'🏠',label:'Главная'},
     {href:'дашборд_ддс_прямой.html',icon:'💸',label:'ДДС 2026'},

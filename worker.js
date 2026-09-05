@@ -25,13 +25,12 @@ const DATA_FILES = new Set([
 const M_KEY = "metrics:v1";
 // SHA-256 пароля вкладки «Метрики» (сам пароль в репозиторий не попадает)
 const METRICS_HASH = "2391eadda6fbf6a5907d84883fdd4e84da1614f7de7db7dd74e4eb7e7ed1d67b";
-/* Счётчик просмотров. Раньше отправлял только адрес страницы, и в метриках
-   нельзя было ответить на простой вопрос: какое устройство что смотрело.
-   Теперь отправляет ещё паспорт устройства — экран, ядра, память, часовой
-   пояс, язык — и постоянный номер из localStorage. Номер случайный, живёт
-   только в браузере посетителя и ни с чем, кроме этой статистики, не связан;
-   он нужен, чтобы телефон не превращался в новое устройство каждый раз,
-   когда мобильный оператор выдаёт другой адрес. */
+/* Запасная вставка счётчика в <head>. На деле до страниц она не доезжает:
+   Cloudflare отдаёт файлы из [assets] в обход скрипта воркера, и HTMLRewriter
+   ниже срабатывает только для HTML, собранного самим воркером. Настоящий
+   счётчик живёт в nav.js, который подключён на каждом дашборде, — там же
+   собирается и паспорт устройства. Оставляем на случай, если маршрутизация
+   ассетов изменится и HTML снова пойдёт через воркер. */
 const METRICS_BEACON = `<script>try{(function(){
 var K='pulse_did',d='';
 try{d=localStorage.getItem(K)||'';if(!d){d=(self.crypto&&crypto.randomUUID?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2)));localStorage.setItem(K,d)}}catch(e){}
@@ -208,11 +207,6 @@ export default {
         .transform(_res);
       const _r = new Response(_t.body, _t);
       _r.headers.set("cache-control", "no-store, must-revalidate");
-      // Просим браузер присылать подробности об устройстве (client hints):
-      // модель, версию системы, разрядность. Chrome и Edge отдают их только
-      // после этого заголовка, и то со следующего запроса — поэтому в первый
-      // заход устройство определяется по User-Agent, а дальше точнее.
-      _r.headers.set("accept-ch", "sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, sec-ch-ua-platform-version, sec-ch-ua-model, sec-ch-ua-arch, sec-ch-ua-bitness, sec-ch-ua-full-version-list");
       return _r;
     }
     if (_noStore) {
@@ -1241,7 +1235,16 @@ async function handleTrack(url, request, env, ctx) {
     return new Response("", { status: 204 });
   }
   ctx.waitUntil(recordView(p, request, env, url).catch(() => {}));
-  return new Response("", { status: 204, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
+  // Client hints (модель телефона, версия системы, разрядность) браузер
+  // присылает только после заголовка Accept-CH, и просить их надо у того
+  // ответа, который реально проходит через воркер: статику Cloudflare
+  // отдаёт мимо скрипта, поэтому ставим заголовок здесь. Настройка живёт
+  // на весь домен, так что следующий заход придёт уже с подробностями.
+  return new Response("", { status: 204, headers: {
+    "cache-control": "no-store",
+    "access-control-allow-origin": "*",
+    "accept-ch": "sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, sec-ch-ua-platform-version, sec-ch-ua-model, sec-ch-ua-arch, sec-ch-ua-bitness",
+  } });
 }
 
 /* Разбор User-Agent: марка браузера, система, модель. Библиотеку сюда тянуть
