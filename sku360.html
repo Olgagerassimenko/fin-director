@@ -1286,6 +1286,107 @@ function buildInsights(){
   const top10risk=top10.filter(s=>s.vp/s.rev<0.35).length;
   const active26=SKUS.filter(s=>IDX_2026.some(i=>s.monthly_rev[i]>0)).length;
 
+  /* ─── Прогноз выручки за текущий месяц ──────────────────────────────────
+     Прямая экстраполяция «средний день × длина месяца» в начале месяца врёт
+     втрое: на 3-й день сентября она давала 675 млн против 297 млн факта
+     августа — просто потому, что первые дни оказались сильными.
+     Поэтому оставшиеся дни считаем не по темпу текущего месяца, а по смеси:
+        день_остатка = w × темп_месяца + (1−w) × темп_истории,   w = прошло/всего
+     В начале месяца вес истории почти 100 %, к концу — почти 0, и прогноз
+     плавно сходится к факту. История — средний день трёх последних полных
+     месяцев. Дата, по которую есть данные, берётся из выгрузки, а не из часов
+     браузера: иначе в день, когда прогон не отработал, прогноз занижался бы. */
+  const FC = (function(){
+    const idx = IDX_2026.length ? IDX_2026[IDX_2026.length-1] : (MO.length-1);
+    if(idx==null || idx<0) return null;
+    const revOf = i => SKUS.reduce((a,s)=>a+(s.monthly_rev[i]||0),0);
+    const rev = revOf(idx);
+    if(!(rev>0)) return null;
+
+    let d=null, m=null, y=null;
+    const th = (window.SKU_LIVE_META||{}).through;   // «03.09.2026»
+    if(th && /^\d{2}\.\d{2}\.\d{4}$/.test(th)){
+      const p=th.split('.'); d=+p[0]; m=+p[1]; y=+p[2];
+    } else {
+      const n=new Date(Date.now()+5*3600*1000);
+      n.setUTCDate(n.getUTCDate()-1);
+      d=n.getUTCDate(); m=n.getUTCMonth()+1; y=n.getUTCFullYear();
+    }
+    const dim  = new Date(Date.UTC(y,m,0)).getUTCDate();
+    const days = Math.max(1, Math.min(d, dim));
+    const left = Math.max(0, dim-days);
+
+    // сколько дней в месяце с индексом i (месяцы в MO идут подряд)
+    const dimOf = i => { const off=idx-i; let mm=m-off, yy=y;
+      while(mm<1){ mm+=12; yy--; } return new Date(Date.UTC(yy,mm,0)).getUTCDate(); };
+
+    // история: три последних ПОЛНЫХ месяца
+    const hist=[]; for(let i=idx-1;i>=0 && hist.length<3;i--) hist.push(i);
+    const histRev  = hist.reduce((a,i)=>a+revOf(i),0);
+    const histDays = hist.reduce((a,i)=>a+dimOf(i),0);
+    const histDaily = histDays ? histRev/histDays : 0;
+
+    const curDaily = rev/days;
+    const w = days/dim;
+    const restDaily = histDaily>0 ? (w*curDaily + (1-w)*histDaily) : curDaily;
+    const fc = rev + restDaily*left;
+    const flat = curDaily*dim;                       // что дала бы прямая экстраполяция
+
+    const prevIdx = idx-1;
+    const prev = prevIdx>=0 ? revOf(prevIdx) : 0;
+    return {idx:idx, rev:rev, days:days, dim:dim, left:left, curDaily:curDaily,
+            histDaily:histDaily, histN:hist.length, w:w, restDaily:restDaily,
+            fc:fc, flat:flat, prev:prev, prevLbl: prevIdx>=0?MO[prevIdx]:'',
+            lbl: MO[idx]||'', through:(d<10?'0':'')+d+'.'+(m<10?'0':'')+m};
+  })();
+
+  const kpiForecast = function(){
+    if(!FC) return kpi('Прогноз за месяц','—','нет данных за текущий месяц');
+    const dl = FC.prev>0 ? (FC.fc/FC.prev*100-100) : null;
+    const early = FC.days < 7;
+    const sub = 'по ' + FC.days + ' дн. из ' + FC.dim +
+      (dl===null ? '' : ' · ' + (dl>=0?'+':'−') + Math.abs(dl).toFixed(0) + '% к ' + FC.prevLbl);
+    return `
+      <div onclick="fcToggle()" title="Нажмите — покажу расчёт"
+           style="background:#f5f3ff;border-radius:8px;padding:12px 14px;border:0.5px solid #ddd6fe;cursor:pointer">
+        <div style="font-size:10px;color:#7c6ba8;margin-bottom:4px">Прогноз за месяц · ${FC.lbl}
+          <span style="float:right;font-weight:700" id="fc-caret">?</span></div>
+        <div style="font-size:20px;font-weight:500;color:#4c1d95">${fmtM(FC.fc)}</div>
+        <div style="font-size:10px;color:${early?'#b45309':'#9ca3af'};margin-top:3px">${early?'рано · ':''}${sub}</div>
+      </div>`;
+  };
+
+  window.fcToggle = function(){
+    const box=document.getElementById('fc-details'); if(!box||!FC) return;
+    const open = box.style.display==='none';
+    box.style.display = open ? 'block' : 'none';
+    const c=document.getElementById('fc-caret'); if(c) c.textContent = open ? '×' : '?';
+    if(!open) return;
+    const rub=v=>Math.round(v).toLocaleString('ru-RU');
+    const row=(a,b,dim)=>`<div style="display:flex;gap:10px;padding:3px 0"><span style="flex:1;color:#6b7280">${a}</span><span style="font-weight:600;color:${dim?'#9ca3af':'#111'};font-variant-numeric:tabular-nums">${b}</span></div>`;
+    box.innerHTML = `
+      <div style="margin-top:10px;padding:12px 14px;background:#faf9ff;border:0.5px solid #ddd6fe;border-radius:8px;font-size:11px">
+        <div style="font-weight:700;color:#4c1d95;margin-bottom:7px">Как посчитан прогноз ${FC.lbl}</div>
+        ${row('Отгружено с начала месяца, по '+FC.through, rub(FC.rev)+' ₸')}
+        ${row('Прошло дней', FC.days+' из '+FC.dim+', осталось '+FC.left)}
+        ${row('Темп этого месяца, в день', rub(FC.curDaily)+' ₸')}
+        ${row('Темп последних '+FC.histN+' полных мес., в день', rub(FC.histDaily)+' ₸')}
+        <div style="height:1px;background:#e9e4f8;margin:8px 0"></div>
+        ${row('Оставшиеся дни считаем по смеси', (FC.w*100).toFixed(0)+'% темп месяца + '+((1-FC.w)*100).toFixed(0)+'% история')}
+        ${row('= в день на остаток', rub(FC.restDaily)+' ₸')}
+        ${row('Прогноз: отгружено + '+FC.left+' дн. × темп', rub(FC.fc)+' ₸')}
+        <div style="height:1px;background:#e9e4f8;margin:8px 0"></div>
+        ${FC.prev>0 ? row('Факт '+FC.prevLbl, rub(FC.prev)+' ₸') : ''}
+        ${row('Если бы считали в лоб (темп × '+FC.dim+' дн.)', rub(FC.flat)+' ₸', true)}
+        <div style="margin-top:8px;color:#8b7fa8;line-height:1.55">
+          Чем больше дней прошло, тем сильнее прогноз опирается на этот месяц и слабее
+          на историю. Сейчас вес текущего месяца ${(FC.w*100).toFixed(0)} %.
+          Дни недели и праздники не учитываются — дневных данных на этой странице нет.
+          ${FC.days<7 ? 'Прошло меньше недели: цифра ещё грубая, ориентиром станет примерно с 10-го числа.' : ''}
+        </div>
+      </div>`;
+  };
+
   // Helpers
   const kpi=(label,val,sub,accent='#7c3aed')=>`
     <div style="background:#f9fafb;border-radius:8px;padding:12px 14px;border:0.5px solid #e5e7eb">
@@ -1321,9 +1422,10 @@ function buildInsights(){
         ${kpi('Выручка 2026',fmtM(REV26),IDX_2026.length+' мес.')}
         ${kpi('Маржа ВП',MG26.toFixed(1)+'%',mgS+mgDelta+' п.п. к 2025')}
         ${kpi('Активных SKU',active26,'из '+SKUS.length+' позиций')}
-        ${kpi('Топ категория',topCat?.cat||'—',(topCat?((topCat.rev/REV26*100).toFixed(0)+'% выручки'):''))}
+        ${kpiForecast()}
         ${kpi('Лучшая маржа',bestMgCat?.cat||'—',(bestMgCat?(bestMgCat.mg.toFixed(0)+'% ВП'):''))}
       </div>
+      <div id="fc-details" style="display:none"></div>
     </div>
   </div>`;
 
