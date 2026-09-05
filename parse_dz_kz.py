@@ -165,6 +165,30 @@ def parse_kz(rows):
     return {"total": round(latest_total), "date": last_date,
             "dynamics": dynamics, "top": top[:30]}
 
+# ── Контрагенты, снятые с учёта как безнадёжно просроченные ──────────────
+# Решение финдиректора от 05.09.2026. По каждому из них остаток не менялся
+# ни на тенге в течение месяцев: ни отгрузок, ни оплат. Держать их в общей
+# сумме «нам должны» — обманывать себя: это не оборотная дебиторка,
+# а замороженные деньги, по которым нужен резерв и взыскание.
+#   84-ТОО ГАМАУС      1 887 068 ₸ — не двигается с 01.03.2026
+#   89-ИП ЦОЙ Д.Л.     2 260 140 ₸ — не двигается с 21.12.2025
+#   95-ТОО ФУД ПИКАССО 9 987 253 ₸ — не двигается с 01.02.2026
+# Сопоставляем по коду в начале названия: имена в таблице пишут по-разному,
+# а код стабилен. Исключаем ВО ВСЕХ периодах, иначе на графике возник бы
+# фальшивый обвал ДЗ в день, когда их сняли.
+EXCLUDED_DZ_CODES = ("84", "89", "95")
+
+
+def dz_code(name):
+    """Код контрагента из начала строки: «95-ТОО ФУД ПИКАССО» -> «95»."""
+    m = re.match(r"\s*(\d{1,4})\s*[-–—.]", str(name or ""))
+    return m.group(1) if m else None
+
+
+def is_excluded_dz(name):
+    return dz_code(name) in EXCLUDED_DZ_CODES
+
+
 def parse_dz(rows):
     print("  Диагностика ДЗ (первые 5 строк):")
     debug_rows(rows, 5)
@@ -215,6 +239,17 @@ def parse_dz(rows):
         s = 0.0
         for row in data_rows:
             if not is_company(row[0] if row else ""): continue
+            if is_excluded_dz(row[0]): continue
+            v = num(row[col_i]) if col_i < len(row) else None
+            if v and v > 0: s += v
+        return s
+
+    def excluded_in(col_i):
+        """Сколько в этой колонке приходится на снятых контрагентов."""
+        s = 0.0
+        for row in data_rows:
+            if not is_company(row[0] if row else ""): continue
+            if not is_excluded_dz(row[0]): continue
             v = num(row[col_i]) if col_i < len(row) else None
             if v and v > 0: s += v
         return s
@@ -225,23 +260,32 @@ def parse_dz(rows):
     for col_i, lbl in dyn_cols:
         t = itogo_total(col_i)
         if t is None:
-            t = sum_companies(col_i)
+            t = sum_companies(col_i)          # уже без снятых
+        else:
+            t -= excluded_in(col_i)           # строка ИТОГО их содержит — вычитаем
         if t and t > 0:
             dynamics.append({"date": lbl, "total": round(t)})
 
     last_col_i, last_date = dz_cols[-1]
-    # общий итог ДЗ = строка ИТОГО последней колонки
+    # общий итог ДЗ = строка ИТОГО последней колонки за вычетом снятых
     latest_total = itogo_total(last_col_i)
+    excluded_total = excluded_in(last_col_i)
+    if latest_total is not None:
+        latest_total -= excluded_total
 
     # топ дебиторов — реальные контрагенты (служебные строки отсеяны в is_company)
-    top = []
+    top, excluded = [], []
     for row in data_rows:
         name = (row[0] if row else "").strip()
         if not is_company(name): continue
         v = num(row[last_col_i]) if last_col_i < len(row) else None
         if v and v > 0:
-            top.append({"name": name, "debt": round(v)})
+            if is_excluded_dz(name):
+                excluded.append({"name": name, "debt": round(v)})
+            else:
+                top.append({"name": name, "debt": round(v)})
     top.sort(key=lambda x: -x["debt"])
+    excluded.sort(key=lambda x: -x["debt"])
     if latest_total is None:
         latest_total = sum(x["debt"] for x in top)
 
@@ -267,6 +311,7 @@ def parse_dz(rows):
     for row in data_rows:
         name = (row[0] if row else "").strip()
         if not is_company(name): continue
+        if is_excluded_dz(name): continue      # сняты с учёта — не мешаем их в аналитику
         ship, shipPrev = val(row, ship_last), val(row, ship_prev)
         pay,  dzv      = val(row, pay_last),  val(row, last_col_i)
         if ship > 0 or pay > 0:
@@ -284,6 +329,11 @@ def parse_dz(rows):
 
     return {"total": round(latest_total), "date": last_date,
             "dynamics": dynamics, "top": top[:30],
+            # снятые с учёта — отдаём отдельно, страница показывает их примечанием
+            "excluded": excluded,
+            "excludedTotal": round(excluded_total),
+            "excludedNote": "сняты как безнадёжно просроченные: остаток не менялся месяцами, "
+                            "ни отгрузок, ни оплат",
             "ana": ana,
             "anaMeta": {"period": period_label(ship_last),
                         "totalShip": round(sum(a["kc"] for a in ana)),
