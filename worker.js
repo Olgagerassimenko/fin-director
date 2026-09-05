@@ -1228,8 +1228,23 @@ function nowStr() {
 }
 
 // ── Метрики посещений: запись просмотра и выдача статистики ──
+/* Один и тот же отчёт приходит под разными адресами: Cloudflare отдаёт
+   ассеты без «.html» (страница открыта как /путеводитель.html, а браузер
+   показывает /путеводитель), а главная — то «/», то «/index.html». Без
+   приведения к одному виду один отчёт разъезжался в метриках на две строки
+   с разными цифрами. */
+function normPath(raw) {
+  let p = String(raw || "/").split("?")[0].split("#")[0];
+  if (!p.startsWith("/")) p = "/" + p;
+  if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
+  if (p === "" || p === "/") return "/index.html";
+  const last = p.slice(p.lastIndexOf("/") + 1);
+  if (last && last.indexOf(".") < 0) p += ".html";
+  return p;
+}
+
 async function handleTrack(url, request, env, ctx) {
-  const p = (url.searchParams.get("p") || "/").slice(0, 160);
+  const p = normPath(url.searchParams.get("p")).slice(0, 160);
   const ua = request.headers.get("user-agent") || "";
   if (/bot|crawl|spider|slurp|preview|monitor|headless|curl|wget|python-requests|facebookexternalhit|whatsapp|telegrambot/i.test(ua)) {
     return new Response("", { status: 204 });
