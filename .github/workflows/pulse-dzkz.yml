@@ -64,9 +64,20 @@ jobs:
         run: |
           git config user.name "pulse-ci"
           git config user.email "ci@local"
+          # Сначала фиксируем свою свежую выгрузку коммитом и только потом
+          # перематываемся на main. Раньше здесь стоял «pull --rebase --autostash
+          # || true»: когда часовой прогон шёл следом за ежедневным, git не мог
+          # свести две версии dz_kz.js, оставлял в файле маркеры <<<<<<<,
+          # ошибку проглатывал «|| true», и шаг проверки падал на разборе JSON
+          # (05.09.2026, прогон в 04:13 UTC). -X theirs при rebase означает
+          # «наш коммит важнее»: свежая выгрузка побеждает то, что лежало в main.
           git add -f dz_kz.js "дз_кз_месяцы.json" 2>/dev/null || true
           git commit -m "ДЗ/КЗ: свежие данные [skip ci]" || echo "нет изменений"
-          git pull --rebase --autostash origin main || true
+          git pull --rebase -X theirs origin main || { git rebase --abort || true; }
+          if grep -q '^<<<<<<< ' dz_kz.js ; then
+            echo "::error::в dz_kz.js остались маркеры конфликта — push отменён"
+            exit 1
+          fi
           git push origin HEAD:main || echo "push не удался"
 
       # Проверяем не дату сборки, а саму цифру: если последняя колонка «ДЗ на …»
@@ -87,6 +98,12 @@ jobs:
               o = d.get(tag) or {}
               dyn = o.get("dynamics") or []
               print("%s: итог %s на %s" % (tag.upper(), f"{o.get('total',0):,}".replace(",", " "), o.get("date")))
+              am = o.get("anaMeta") or {}
+              if am:
+                  print("  неделя: %s | приход %s | оплата %s"
+                        % (am.get("period") or "?", am.get("totalIn"), am.get("totalPay")))
+                  if not am.get("period"):
+                      print("  ВНИМАНИЕ: не разобралась подпись недели — проверьте шапку листа")
               if len(dyn) >= 2 and dyn[-1]["total"] == dyn[-2]["total"]:
                   print("  ВНИМАНИЕ: %s на %s совпадает с %s до тенге — неделю в таблице,"
                         " похоже, ещё не заполнили" % (tag.upper(), dyn[-1]["date"], dyn[-2]["date"]))

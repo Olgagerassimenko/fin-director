@@ -168,18 +168,26 @@ def parse_kz(rows):
     # Берём последнюю неделю: приход — это новый долг перед поставщиком,
     # оплата — его погашение. Разрыв в плюс означает, что товар взяли,
     # а деньги не отдали.
-    def find_cols_kz(pat):
-        return [i for i, cell in enumerate(header)
-                if re.search(pat, str(cell), re.I | re.UNICODE)]
+    # Неделя, которая заканчивается последней датой, занимает колонки между
+    # предыдущей датированной колонкой и последней: «Приход товара за период»,
+    # «Оплата за период», «КЗ на <дата>». Ищем только в этом промежутке —
+    # тогда «ПОЛЕ ОБНОВЛЕНИЯ» с такими же подписями справа от таблицы
+    # отсекается само, без догадок про «последний минус один».
+    dated_idx = sorted(i for i, _ in debt_cols)
+    prev_i = -1
+    for i in dated_idx:
+        if i < last_col_i:
+            prev_i = i
+    span = list(range(prev_i + 1, last_col_i))
 
-    in_cols  = find_cols_kz(r"приход\s+товара")
-    pay_cols = find_cols_kz(r"оплата\s+за\s+период")
-    in_last  = in_cols[-1]  if in_cols  else None
-    pay_last = pay_cols[-1] if pay_cols else None
-    # «ПОЛЕ ОБНОВЛЕНИЯ» справа от основной таблицы содержит такие же подписи —
-    # отсекаем всё, что правее последней датированной колонки КЗ
-    if in_last  is not None and in_last  > last_col_i: in_last  = in_cols[-2]  if len(in_cols)  > 1 else None
-    if pay_last is not None and pay_last > last_col_i: pay_last = pay_cols[-2] if len(pay_cols) > 1 else None
+    def pick(pat):
+        for i in span:
+            if i < len(header) and re.search(pat, str(header[i]), re.I | re.UNICODE):
+                return i
+        return None
+
+    in_last  = pick(r"приход\s+товара")
+    pay_last = pick(r"оплата\s+за\s+период")
 
     def kval(row, i):
         v = num(row[i]) if (i is not None and i < len(row)) else None
@@ -197,14 +205,25 @@ def parse_kz(rows):
             kz_ana.append({"name": name, "kc": round(got), "kd": round(paid),
                            "debt": round(-kval(row, last_col_i))})
 
+    def two_dates(cell):
+        ds = re.findall(r"(\d{1,2}\.\d{2})", str(cell or ""))
+        return ds[0] + "–" + ds[1] if len(ds) >= 2 else None
+
     def kz_period(col_i):
-        """Подпись периода берём из строки выше: там «с 29.08.2026 по 04.09.2026»."""
-        if col_i is None or hi < 1: return ""
+        """Подпись недели («с 29.08.2026 по 04.09.2026») висит объединённой
+        ячейкой над тройкой колонок, и в выгрузке достаётся её середине —
+        колонке «Оплата». Смотреть влево нельзя: там подпись прошлой недели,
+        из-за чего страница месяц показывала бы чужой период."""
+        if col_i is None: return ""
+        # в старых неделях период иногда вписан прямо в заголовок колонки
+        own = two_dates(header[col_i]) if col_i < len(header) else None
+        if own: return own
+        if hi < 1: return ""
         up = rows[hi - 1] if hi - 1 < len(rows) else []
-        for j in range(col_i, max(-1, col_i - 3), -1):
-            if j < len(up):
-                ds = re.findall(r"(\d{1,2}\.\d{2})", str(up[j]))
-                if len(ds) >= 2: return ds[0] + "–" + ds[1]
+        for j in (col_i + 1, col_i, col_i + 2):
+            if 0 <= j < len(up):
+                d = two_dates(up[j])
+                if d: return d
         return ""
 
     return {"total": round(latest_total), "date": last_date,
