@@ -7,7 +7,7 @@
   :root{--bg:#0b1220;--card:#111a2e;--line:#243049;--mut:#8091a8;--txt:#e5edf7;--acc:#7c3aed}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif}
-  .wrap{max-width:1060px;margin:0 auto;padding:22px 16px 60px}
+  .wrap{max-width:1560px;margin:0 auto;padding:22px 20px 60px}
   h1{font-size:21px;margin:0 0 3px}
   .sub{color:var(--mut);font-size:12.5px;margin-bottom:16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
@@ -30,7 +30,16 @@
   .kpi .l{color:#f1f5f9;font-size:13px;font-weight:700;margin-top:6px}
   .kpi .n{color:var(--mut);font-size:11.5px;margin-top:3px;line-height:1.45}
 
-  .two{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));margin-bottom:12px}
+  .two{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));margin-bottom:12px}
+  /* Таблицы больше не сжимаются до переносов в каждой ячейке: колонки держат
+     свою ширину, а карточка при нехватке места прокручивается вбок. */
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tw>table{min-width:max-content}
+  /* «Что смотрели» и города — колонок мало, и на широком экране цифры
+     разъезжались к самому краю: держим таблицу в разумной ширине. */
+  #tPages table,#tCity table,#tCtry table{max-width:1000px}
+  th,td{white-space:nowrap}
+  td.l{max-width:340px;overflow:hidden;text-overflow:ellipsis}
   table{width:100%;border-collapse:collapse;font-size:13.5px}
   th{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;
      text-align:right;padding:7px 8px;border-bottom:1px solid var(--line)}
@@ -82,12 +91,14 @@
   <div class="kpis" id="kpis"></div>
 
   <!-- ЧТО СМОТРЕЛИ / ОТКУДА -->
+  <!-- «Что смотрели» — во всю ширину: колонок пять, и в трети экрана
+       названия отчётов ломались на две-три строки. -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="ct">Что смотрели</div>
+    <div class="cs" id="pgSub"></div>
+    <div id="tPages"></div>
+  </div>
   <div class="two">
-    <div class="card">
-      <div class="ct">Что смотрели</div>
-      <div class="cs" id="pgSub"></div>
-      <div id="tPages"></div>
-    </div>
     <div class="card">
       <div class="ct">Из каких городов</div>
       <div class="cs" id="cySub"></div>
@@ -194,6 +205,22 @@
   }
   function ctryName(cc){ return flag(cc)+(CTRY[cc]||cc); }
 
+  /* Один отчёт приходил в статистику под разными адресами: Cloudflare отдаёт
+     страницы без «.html», главная приходит то как «/», то как «/index.html».
+     В таблице от этого «Главная» стояла двумя строками с разными цифрами.
+     Воркер теперь пишет адрес в одном виде, но в уже накопленных днях лежат
+     оба — приводим при показе. */
+  function normP(path){
+    var p=String(path||"/").split("?")[0].split("#")[0];
+    if(p.charAt(0)!=="/") p="/"+p;
+    if(p.length>1&&p.slice(-1)==="/") p=p.slice(0,-1);
+    if(p===""||p==="/") return "/index.html";
+    var last=p.slice(p.lastIndexOf("/")+1);
+    if(last&&last.indexOf(".")<0) p+=".html";
+    return p;
+  }
+  function addTo(obj,key,n){ var k=normP(key); obj[k]=(obj[k]||0)+n; }
+
   function label(path){
     var f=decodeURIComponent(String(path||"").split("/").pop()||"").replace(/\.html$/,"");
     if(!f||f==="index") return "Главная";
@@ -233,13 +260,13 @@
       if(d.pu) out.nPU++;
       out.views+=d.v||0;
       (d.u||[]).forEach(function(x){ out.uniq[x]=1; });
-      for(var p in (d.p||{})) out.pages[p]=(out.pages[p]||0)+d.p[p];
+      for(var p in (d.p||{})) addTo(out.pages,p,d.p[p]);
       for(var c in (d.city||{})) out.city[c]=(out.city[c]||0)+d.city[c];
       // Устройства по страницам и городам считаются с того дня, как это
       // завели. За более ранние дни поля просто нет — там будет прочерк.
       if(d.pu){ if(!out.uSince||k<out.uSince) out.uSince=k;
         if(d.puFrom && (!out.puFrom || d.puFrom<out.puFrom)) out.puFrom=d.puFrom;
-        for(var pp in d.pu){ var a=out.pageU[pp]||(out.pageU[pp]={});
+        for(var pp in d.pu){ var np=normP(pp); var a=out.pageU[np]||(out.pageU[np]={});
           (d.pu[pp]||[]).forEach(function(x){a[x]=1; out.puDev[x]=1;}); } }
       if(d.cu){ for(var cc in d.cu){ var b=out.cityU[cc]||(out.cityU[cc]={});
           (d.cu[cc]||[]).forEach(function(x){b[x]=1;}); } }
@@ -270,12 +297,14 @@
     return many;
   }
   function tableRows(obj, nameFn, total, uniq){
+    // Раньше показывали двенадцать первых строк, и хвост отчётов пропадал
+    // без следа — теперь список полный, карточка просто становится длиннее.
     var rows=Object.keys(obj).map(function(k){return {k:k,n:obj[k]};})
-      .sort(function(a,b){return b.n-a.n;}).slice(0,12);
+      .sort(function(a,b){return b.n-a.n;});
     if(!rows.length) return '<div class="empty">За этот период заходов не было.</div>';
     var head = nameFn===label ? "Страница" : (nameFn===ctryName ? "Страна" : "Город");
     var hasU = !!uniq;
-    return '<table><tr><th class="l">'+head+'</th>'+
+    return '<div class="tw"><table><tr><th class="l">'+head+'</th>'+
       (hasU?'<th>Устройств</th>':'')+'<th>Открытий</th>'+
       (hasU?'<th>На одно</th>':'')+'<th>Доля</th></tr>'+
       rows.map(function(r){
@@ -287,7 +316,7 @@
           '<td>'+fmt(r.n)+'</td>'+
           (hasU?('<td style="color:#94a3b8">'+(u?String(per).replace(".",","):'—')+'</td>'):'')+
           '<td style="color:#94a3b8">'+pc+'%</td></tr>';
-      }).join("")+'</table>';
+      }).join("")+'</table></div>';
   }
 
   function render(){
@@ -364,18 +393,30 @@
     drawHours(S.hours);
 
     // ── таблица по числам ────────────────────────────────────────
-    var rows=Object.keys(DATA.days||{}).sort().reverse().slice(0,45);
+    var rows=Object.keys(DATA.days||{}).sort().reverse();
     document.getElementById("tDays").innerHTML = rows.length ?
-      '<table><tr><th class="l">Число</th><th class="l">День</th><th>Устройств</th><th>Открытий</th><th class="l">Больше всего смотрели</th></tr>'+
+      '<div class="tw"><table><tr><th class="l">Число</th><th class="l">День</th><th>Устройств</th>'+
+      '<th>Открытий</th><th>Отчётов</th><th>На одно устройство</th><th>Пик</th>'+
+      '<th class="l">Больше всего смотрели</th><th class="l">Города</th></tr>'+
       rows.map(function(k){
-        var d=DATA.days[k], top="—", mx=0;
-        for(var p in (d.p||{})) if(d.p[p]>mx){mx=d.p[p]; top=label(p);}
-        var uni = d.old ? '<span style="color:#64748b">—</span>' : fmt((d.u||[]).length);
+        var d=DATA.days[k], top="—", mx=0, pg={};
+        for(var p in (d.p||{})) { var np=normP(p); pg[np]=(pg[np]||0)+d.p[p]; }
+        for(var q in pg) if(pg[q]>mx){mx=pg[q]; top=label(q);}
+        var nU=(d.u||[]).length;
+        var uni = d.old ? '<span style="color:#64748b">—</span>' : fmt(nU);
+        var per = (!d.old&&nU) ? String(Math.round((d.v||0)/nU*10)/10).replace(".",",") : "—";
+        var pk=-1, pkI=null; (d.h||[]).forEach(function(v,i){ if(v>pk){pk=v; pkI=i;} });
+        var cities=Object.keys(d.city||{}).filter(function(c){return c!=="—";})
+          .sort(function(a,b){return d.city[b]-d.city[a];}).map(cityName).slice(0,3).join(", ")||"—";
         return '<tr style="cursor:pointer" data-day="'+k+'"><td class="l">'+ruDate(k)+'</td>'+
           '<td class="l" style="color:#94a3b8;font-weight:400">'+dayName(k)+'</td>'+
           '<td>'+uni+'</td><td>'+fmt(d.v||0)+'</td>'+
-          '<td class="l" style="font-weight:400;color:#cbd5e1">'+top+'</td></tr>';
-      }).join("")+'</table>'
+          '<td style="color:#94a3b8">'+Object.keys(pg).length+'</td>'+
+          '<td style="color:#94a3b8">'+per+'</td>'+
+          '<td style="color:#94a3b8">'+(pk>0?pad(pkI)+":00":"—")+'</td>'+
+          '<td class="l" style="font-weight:400;color:#cbd5e1">'+top+'</td>'+
+          '<td class="l" style="font-weight:400;color:#94a3b8">'+cities+'</td></tr>';
+      }).join("")+'</table></div>'
       : '<div class="empty">Пока нет ни одного дня с заходами.</div>';
     [].forEach.call(document.querySelectorAll("#tDays tr[data-day]"),function(tr){
       tr.addEventListener("click",function(){ setDay(tr.getAttribute("data-day")); });
@@ -398,20 +439,44 @@
   }
 
   function allPagesTable(periodPages){
-    var P=DATA.pages||{};
-    var rows=Object.keys(P).map(function(k){
-      return {k:k, name:label(k), t:P[k].t||0, per:periodPages[k]||0,
-              m:(P[k].dev&&P[k].dev.m)||0, d:(P[k].dev&&P[k].dev.d)||0, last:P[k].last||""};
+    // Один отчёт мог лежать под двумя адресами («/» и «/index.html») — сводим
+    // их в одну строку, иначе «Главная» дважды делила между собой свои же цифры.
+    var P=DATA.pages||{}, M={};
+    Object.keys(P).forEach(function(k){
+      var np=normP(k), o=P[k];
+      var r=M[np]||(M[np]={k:np, name:label(np), t:0, per:0, m:0, d:0, last:"", h:new Array(24).fill(0), c:{}});
+      r.t+=o.t||0;
+      r.m+=(o.dev&&o.dev.m)||0; r.d+=(o.dev&&o.dev.d)||0;
+      if((o.last||"")>r.last) r.last=o.last||"";
+      (o.h||[]).forEach(function(v,i){ r.h[i]+=v||0; });
+      for(var cc in (o.c||{})) r.c[cc]=(r.c[cc]||0)+o.c[cc];
+    });
+    var rows=Object.keys(M).map(function(k){
+      var r=M[k];
+      r.per=periodPages[k]||0;
+      var mx=-1; r.peak=null;
+      r.h.forEach(function(v,i){ if(v>mx){mx=v; r.peak=i;} });
+      if(!mx) r.peak=null;
+      r.ctry=Object.keys(r.c).length;
+      return r;
     }).sort(function(a,b){return b.t-a.t;});
     if(!rows.length) return '<div class="empty">Пока нет данных.</div>';
-    return '<table><tr><th class="l">Отчёт</th><th>Всего открытий</th><th>За период</th>'+
-      '<th>С компьютера</th><th>С телефона</th><th class="l">Последний заход</th></tr>'+
+    var totT=rows.reduce(function(a,r){return a+r.t;},0);
+    return '<div class="tw"><table><tr><th class="l">Отчёт</th><th class="l">Адрес</th>'+
+      '<th>Всего открытий</th><th>Доля</th><th>За период</th>'+
+      '<th>С компьютера</th><th>С телефона</th><th>Любимый час</th><th>Стран</th>'+
+      '<th class="l">Последний заход</th></tr>'+
       rows.map(function(r){
         var last=r.last?new Date(r.last).toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"—";
-        return '<tr><td class="l">'+r.name+'</td><td>'+fmt(r.t)+'</td>'+
+        var pc=totT?Math.round(r.t/totT*100):0;
+        return '<tr><td class="l">'+r.name+'</td>'+
+          '<td class="l" style="font-weight:400;color:#64748b">'+decodeURIComponent(r.k)+'</td>'+
+          '<td>'+fmt(r.t)+'</td><td style="color:#94a3b8">'+pc+'%</td>'+
           '<td style="color:#a78bfa">'+fmt(r.per)+'</td><td>'+fmt(r.d)+'</td><td>'+fmt(r.m)+'</td>'+
+          '<td style="color:#94a3b8">'+(r.peak==null?"—":pad(r.peak)+":00")+'</td>'+
+          '<td style="color:#94a3b8">'+(r.ctry||"—")+'</td>'+
           '<td class="l" style="font-weight:400;color:#94a3b8">'+last+'</td></tr>';
-      }).join("")+'</table>';
+      }).join("")+'</table></div>';
   }
 
   function kpi(v,l,n){
@@ -481,18 +546,25 @@
     var box=document.getElementById("devList"); if(!box) return;
     if(!ks.length){ box.innerHTML='<div class="empty">Устройства ещё не записаны. Разбивка появится после первых заходов — счётчик начал их различать 05.09.2026.</div>'; return; }
     ks.sort(function(a,b){ return (D[b].last||"").localeCompare(D[a].last||""); });
-    var h='<table><thead><tr><th class="l">Устройство</th><th class="l">Система и браузер</th>'
-      +'<th class="l">Откуда</th><th>Просмотров</th><th class="l">Последний заход</th></tr></thead><tbody>';
+    var h='<div class="tw"><table><thead><tr><th class="l">Устройство</th><th class="l">Система и браузер</th>'
+      +'<th class="l">Экран</th><th class="l">Железо</th><th class="l">Откуда</th><th class="l">Провайдер</th>'
+      +'<th>Просмотров</th><th class="l">Первый заход</th><th class="l">Последний заход</th></tr></thead><tbody>';
     ks.forEach(function(k){
       var d=D[k];
+      var hw=[]; if(d.cc) hw.push(d.cc+" ядер"); if(d.dm) hw.push(d.dm+" ГБ");
+      if(d.tp) hw.push("сенсор"); else if(d.tp===0) hw.push("мышь");
       h+='<tr style="cursor:pointer" data-vid="'+esc(k)+'">'
         +'<td class="l">'+devIcon(d)+' '+esc(devName(k))+'</td>'
         +'<td class="l" style="font-weight:400;color:#cbd5e1">'+esc((d.os||"—")+(d.osv?" "+d.osv:""))+' · '+esc(d.br||"—")+(d.bv?" "+esc(String(d.bv).split(".")[0]):"")+'</td>'
+        +'<td class="l" style="font-weight:400;color:#94a3b8">'+(d.sw?esc(d.sw+"×"+d.sh+(d.dpr&&d.dpr!==1?" @"+d.dpr+"×":"")):"—")+'</td>'
+        +'<td class="l" style="font-weight:400;color:#94a3b8">'+esc(hw.join(" · ")||"—")+'</td>'
         +'<td class="l" style="font-weight:400;color:#cbd5e1">'+esc(cityName(d.city||"—"))+'</td>'
+        +'<td class="l" style="font-weight:400;color:#94a3b8">'+esc(d.isp||"—")+'</td>'
         +'<td>'+fmt(d.n)+'</td>'
+        +'<td class="l" style="font-weight:400;color:#8091a8">'+esc(d.first?new Date(d.first).toLocaleDateString("ru-RU"):"—")+'</td>'
         +'<td class="l" style="font-weight:400;color:#8091a8">'+esc(ago(d.last))+'</td></tr>';
     });
-    h+='</tbody></table>';
+    h+='</tbody></table></div>';
     box.innerHTML=h;
     [].forEach.call(box.querySelectorAll("tr[data-vid]"),function(tr){
       tr.addEventListener("click",function(){ openDev(tr.getAttribute("data-vid")); });
@@ -650,13 +722,15 @@
     var srt=rows.slice().sort(function(a,b){ return a[0]-b[0]; });
     var h='<div class="ct" style="margin-bottom:6px">По минутам</div>'
       +'<div class="cs">'+srt.length+' '+plural(srt.length,"открытие","открытия","открытий")+' за '+ruDate(day)+'</div>'
-      +'<table><thead><tr><th class="l">Время</th><th class="l">Устройство</th><th class="l">Что открыли</th></tr></thead><tbody>';
+      +'<div class="tw"><table><thead><tr><th class="l">Время</th><th class="l">Устройство</th>'
+      +'<th class="l">Что открыли</th><th class="l">Адрес</th></tr></thead><tbody>';
     srt.forEach(function(e){
       h+='<tr><td class="l" style="width:70px">'+pad(Math.floor(e[0]/60))+":"+pad(e[0]%60)+'</td>'
         +'<td class="l" style="font-weight:400;color:#cbd5e1">'+devIcon(devs()[DV[e[1]]]||{})+' '+esc(devName(DV[e[1]]))+'</td>'
-        +'<td class="l">'+esc(label(PV[e[2]]))+'</td></tr>';
+        +'<td class="l">'+esc(label(PV[e[2]]))+'</td>'
+        +'<td class="l" style="font-weight:400;color:#64748b">'+esc(decodeURIComponent(normP(PV[e[2]])))+'</td></tr>';
     });
-    h+='</tbody></table>';
+    h+='</tbody></table></div>';
     tbl.innerHTML=h;
   }
 
