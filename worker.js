@@ -25,7 +25,26 @@ const DATA_FILES = new Set([
 const M_KEY = "metrics:v1";
 // SHA-256 пароля вкладки «Метрики» (сам пароль в репозиторий не попадает)
 const METRICS_HASH = "2391eadda6fbf6a5907d84883fdd4e84da1614f7de7db7dd74e4eb7e7ed1d67b";
-const METRICS_BEACON = '<script>try{fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true})}catch(e){}</script>';
+/* Счётчик просмотров. Раньше отправлял только адрес страницы, и в метриках
+   нельзя было ответить на простой вопрос: какое устройство что смотрело.
+   Теперь отправляет ещё паспорт устройства — экран, ядра, память, часовой
+   пояс, язык — и постоянный номер из localStorage. Номер случайный, живёт
+   только в браузере посетителя и ни с чем, кроме этой статистики, не связан;
+   он нужен, чтобы телефон не превращался в новое устройство каждый раз,
+   когда мобильный оператор выдаёт другой адрес. */
+const METRICS_BEACON = `<script>try{(function(){
+var K='pulse_did',d='';
+try{d=localStorage.getItem(K)||'';if(!d){d=(self.crypto&&crypto.randomUUID?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2)));localStorage.setItem(K,d)}}catch(e){}
+var n=navigator,s=screen,o={};try{o=Intl.DateTimeFormat().resolvedOptions()}catch(e){}
+var q='p='+encodeURIComponent(location.pathname)
++'&d='+encodeURIComponent(String(d).slice(0,40))
++'&sw='+(s.width||0)+'&sh='+(s.height||0)+'&vw='+(innerWidth||0)+'&vh='+(innerHeight||0)
++'&dpr='+(devicePixelRatio||1)+'&cd='+(s.colorDepth||0)
++'&cc='+(n.hardwareConcurrency||0)+'&dm='+(n.deviceMemory||0)+'&tp='+(n.maxTouchPoints||0)
++'&pf='+encodeURIComponent(n.platform||'')+'&lg='+encodeURIComponent(n.language||'')
++'&tz='+encodeURIComponent(o.timeZone||'')
++'&rf='+encodeURIComponent((document.referrer||'').slice(0,120));
+fetch('/track?'+q,{method:'GET',keepalive:true})})()}catch(e){}</script>`;
 
 
 // ── Личная галерея «Мальдивы» (доступ по коду) ───────────────────────────────
@@ -173,6 +192,7 @@ export default {
     }
     if (url.pathname === "/track") return handleTrack(url, request, env, ctx);
     if (url.pathname === "/mstats") return handleStats(url, env);
+    if (url.pathname === "/mlabel") return handleLabel(url, env);
     // отдаём статику, а в HTML тихо вставляем счётчик просмотров
     const _res = await env.ASSETS.fetch(request);
     const _ct = _res.headers.get("content-type") || "";
@@ -188,6 +208,11 @@ export default {
         .transform(_res);
       const _r = new Response(_t.body, _t);
       _r.headers.set("cache-control", "no-store, must-revalidate");
+      // Просим браузер присылать подробности об устройстве (client hints):
+      // модель, версию системы, разрядность. Chrome и Edge отдают их только
+      // после этого заголовка, и то со следующего запроса — поэтому в первый
+      // заход устройство определяется по User-Agent, а дальше точнее.
+      _r.headers.set("accept-ch", "sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, sec-ch-ua-platform-version, sec-ch-ua-model, sec-ch-ua-arch, sec-ch-ua-bitness, sec-ch-ua-full-version-list");
       return _r;
     }
     if (_noStore) {
@@ -1215,10 +1240,50 @@ async function handleTrack(url, request, env, ctx) {
   if (/bot|crawl|spider|slurp|preview|monitor|headless|curl|wget|python-requests|facebookexternalhit|whatsapp|telegrambot/i.test(ua)) {
     return new Response("", { status: 204 });
   }
-  ctx.waitUntil(recordView(p, request, env).catch(() => {}));
+  ctx.waitUntil(recordView(p, request, env, url).catch(() => {}));
   return new Response("", { status: 204, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
 }
-async function recordView(p, request, env) {
+
+/* Разбор User-Agent: марка браузера, система, модель. Библиотеку сюда тянуть
+   не за чем — на завод заходят с пяти-шести устройств, и этих правил хватает.
+   Порядок проверок важен: Яндекс.Браузер и Edge представляются Chrome, а
+   Chrome на айфоне — Safari, поэтому частное проверяем раньше общего. */
+function parseUA(ua) {
+  const u = String(ua || "");
+  let os = "", osv = "", model = "", br = "", bv = "", kind = "компьютер", eng = "";
+  let m;
+  if ((m = u.match(/iPhone OS (\d+[_\d]*)/))) { os = "iOS"; osv = m[1].replace(/_/g, "."); model = "iPhone"; kind = "телефон"; }
+  else if (/iPad/.test(u)) { os = "iPadOS"; model = "iPad"; kind = "планшет";
+    if ((m = u.match(/CPU OS (\d+[_\d]*)/))) osv = m[1].replace(/_/g, "."); }
+  else if ((m = u.match(/Android (\d+(?:\.\d+)*)/))) {
+    os = "Android"; osv = m[1]; kind = /Mobile/.test(u) ? "телефон" : "планшет";
+    const mm = u.match(/;\s*([^;()]+?)\s+Build\//) || u.match(/Android [^;]+;\s*([^;()]+?)\)/);
+    if (mm) model = mm[1].trim();
+  }
+  else if ((m = u.match(/Windows NT ([\d.]+)/))) {
+    os = "Windows"; osv = { "10.0": "10 или 11", "6.3": "8.1", "6.2": "8", "6.1": "7" }[m[1]] || m[1];
+  }
+  else if ((m = u.match(/Mac OS X (\d+[_\d]*)/))) { os = "macOS"; osv = m[1].replace(/_/g, "."); model = "Mac"; }
+  else if (/CrOS/.test(u)) { os = "ChromeOS"; }
+  else if (/Linux/.test(u)) { os = "Linux"; }
+
+  if ((m = u.match(/YaBrowser\/([\d.]+)/))) { br = "Яндекс.Браузер"; bv = m[1]; }
+  else if ((m = u.match(/(?:OPR|OPiOS|Opera)\/([\d.]+)/))) { br = "Opera"; bv = m[1]; }
+  else if ((m = u.match(/Edg(?:iOS|A)?\/([\d.]+)/))) { br = "Edge"; bv = m[1]; }
+  else if ((m = u.match(/SamsungBrowser\/([\d.]+)/))) { br = "Samsung Internet"; bv = m[1]; }
+  else if ((m = u.match(/(?:CriOS|Chrome)\/([\d.]+)/))) { br = "Chrome"; bv = m[1]; }
+  else if ((m = u.match(/(?:FxiOS|Firefox)\/([\d.]+)/))) { br = "Firefox"; bv = m[1]; }
+  else if ((m = u.match(/Version\/([\d.]+)[^)]*Safari/))) { br = "Safari"; bv = m[1]; }
+  else if (/Safari/.test(u)) { br = "Safari"; }
+
+  if (/Firefox|FxiOS/.test(u)) eng = "Gecko";
+  else if (/Chrome|CriOS|Edg|OPR|YaBrowser|SamsungBrowser/.test(u)) eng = "Blink";
+  else if (/AppleWebKit/.test(u)) eng = "WebKit";
+
+  return { os, osv, model, br, bv, eng, kind };
+}
+
+async function recordView(p, request, env, trackUrl) {
   const now = new Date();
   const alm = new Date(now.getTime() + 5 * 3600 * 1000); // Алматы UTC+5
   const day = alm.toISOString().slice(0, 10);
@@ -1234,7 +1299,15 @@ async function recordView(p, request, env) {
   // хэш: сам IP в базу не попадает, а одинаковые заходы с одной машины
   // схлопываются в одну запись за день.
   const ip = request.headers.get("cf-connecting-ip") || "";
-  const vid = (await sha256hex("pulse|" + ip + "|" + ua)).slice(0, 12);
+  const ipHash = (await sha256hex("pulse|" + ip)).slice(0, 8);
+  // Постоянный номер из localStorage надёжнее связки «адрес + браузер»:
+  // у телефона адрес меняется по дороге, и одна и та же трубка распадалась
+  // на три разных «устройства» за день. Если номера нет (старая вкладка,
+  // приватный режим) — как раньше, по хэшу адреса и браузера.
+  const qs = (trackUrl && trackUrl.searchParams) || new URLSearchParams();
+  const did = String(qs.get("d") || "").slice(0, 40).replace(/[^A-Za-z0-9_-]/g, "");
+  const vid = did ? "d" + did.slice(0, 11)
+                  : (await sha256hex("pulse|" + ip + "|" + ua)).slice(0, 12);
 
   const raw = await env.PLAN.get(M_KEY);
   const m = raw ? JSON.parse(raw) : { pages: {}, days: {}, updated: "" };
@@ -1278,6 +1351,86 @@ async function recordView(p, request, env) {
   dd.h[hour] = (dd.h[hour] || 0) + 1;
   if (isMob) dd.dev.m = (dd.dev.m || 0) + 1; else dd.dev.d = (dd.dev.d || 0) + 1;
 
+  // ── ПАСПОРТ УСТРОЙСТВА ──────────────────────────────────────────
+  // Сводные счётчики отвечали «сколько заходов», но не «кто именно смотрел».
+  // Здесь на каждое устройство копится карточка: что за техника, какой
+  // браузер, экран, откуда заходит и какие отчёты открывает.
+  if (!m.devs) m.devs = {};
+  const P = parseUA(ua);
+  const n0 = (v) => { const x = parseFloat(v); return isFinite(x) && x > 0 ? x : 0; };
+  const st = (v, lim) => String(v || "").slice(0, lim || 40);
+  const ch = (h) => st(request.headers.get(h) || "", 60).replace(/^"|"$/g, "");
+  const dv = m.devs[vid] || (m.devs[vid] = { name: "", first: now.toISOString(), n: 0, pages: {}, days: {} });
+  dv.n = (dv.n || 0) + 1;
+  dv.last = now.toISOString();
+  dv.pages[p] = (dv.pages[p] || 0) + 1;
+  dv.days[day] = (dv.days[day] || 0) + 1;
+  dv.kind = P.kind; dv.os = P.os; dv.osv = P.osv; dv.model = P.model;
+  dv.br = P.br; dv.bv = P.bv; dv.eng = P.eng;
+  dv.ua = st(ua, 300);
+  dv.mob = isMob;
+  dv.stable = !!did;                       // номер из localStorage, а не хэш адреса
+  dv.ipHash = ipHash;                      // сам адрес в базу не попадает
+  // то, что прислала страница о себе
+  const sw = n0(qs.get("sw")), sh = n0(qs.get("sh"));
+  if (sw && sh) { dv.sw = sw; dv.sh = sh; }
+  const vw = n0(qs.get("vw")), vh = n0(qs.get("vh"));
+  if (vw && vh) { dv.vw = vw; dv.vh = vh; }
+  const dpr = n0(qs.get("dpr")); if (dpr) dv.dpr = Math.round(dpr * 100) / 100;
+  const cd = n0(qs.get("cd")); if (cd) dv.cd = cd;
+  const cc = n0(qs.get("cc")); if (cc) dv.cc = cc;
+  const dm = n0(qs.get("dm")); if (dm) dv.dm = dm;
+  const tp = n0(qs.get("tp")); if (tp || tp === 0) dv.tp = tp;
+  const pf = st(qs.get("pf"), 40); if (pf) dv.pf = pf;
+  const lg = st(qs.get("lg"), 20); if (lg) dv.lg = lg;
+  const tz = st(qs.get("tz"), 40); if (tz) dv.tz = tz;
+  const rf = st(qs.get("rf"), 120); if (rf) dv.rf = rf;
+  // client hints — точнее User-Agent там, где браузер их отдаёт
+  const chModel = ch("sec-ch-ua-model"); if (chModel) dv.chModel = chModel;
+  const chPlat = ch("sec-ch-ua-platform"); if (chPlat) dv.chPlat = chPlat;
+  const chPlatV = ch("sec-ch-ua-platform-version"); if (chPlatV) dv.chPlatV = chPlatV;
+  const chArch = ch("sec-ch-ua-arch"); if (chArch) dv.chArch = chArch;
+  const chBits = ch("sec-ch-ua-bitness"); if (chBits) dv.chBits = chBits;
+  // сеть и география — от Cloudflare
+  dv.city = city; dv.ctry = country;
+  const reg = st(cf.region || "", 40); if (reg) dv.region = reg;
+  const isp = st(cf.asOrganization || "", 60); if (isp) dv.isp = isp;
+  if (cf.asn) dv.asn = cf.asn;
+  const colo = st(cf.colo || "", 8); if (colo) dv.colo = colo;
+  const proto = st(cf.httpProtocol || "", 12); if (proto) dv.proto = proto;
+  const tls = st(cf.tlsVersion || "", 12); if (tls) dv.tls = tls;
+  const al = st(request.headers.get("accept-language") || "", 40); if (al) dv.al = al;
+
+  // ── ЖУРНАЛ: во сколько какое устройство какую страницу открыло ───
+  // Пишем компактно: минута от начала суток и номера в словарях дня.
+  // Развёрнутые строки за две недели раздули бы запись в KV в разы.
+  if (!dd.dv) dd.dv = [];
+  if (!dd.pv) dd.pv = [];
+  if (!dd.ev) dd.ev = [];
+  let di = dd.dv.indexOf(vid); if (di < 0) { dd.dv.push(vid); di = dd.dv.length - 1; }
+  let pi = dd.pv.indexOf(p); if (pi < 0) { dd.pv.push(p); pi = dd.pv.length - 1; }
+  // Потолок на день: запись в KV читается и пишется на каждый просмотр,
+  // и раздувать её ради тысячного открытия одной и той же страницы незачем.
+  if (dd.ev.length < 2500) dd.ev.push([hour * 60 + alm.getUTCMinutes(), di, pi]);
+
+  // Подробный журнал держим десять дней: он нужен, чтобы разобрать «кто что
+  // смотрел вчера», а не для истории. Сводные цифры по дням живут полгода.
+  const evKeep = Object.keys(m.days).sort().slice(-10);
+  Object.keys(m.days).forEach(function (k) {
+    if (evKeep.indexOf(k) < 0 && m.days[k]) { delete m.days[k].ev; delete m.days[k].dv; delete m.days[k].pv; }
+  });
+  // Устройства, не заходившие два месяца, из списка убираем.
+  const cut = new Date(now.getTime() - 60 * 86400 * 1000).toISOString();
+  Object.keys(m.devs).forEach(function (k) {
+    const o = m.devs[k];
+    if ((o.last || "") < cut) { delete m.devs[k]; return; }
+    // у активного устройства список дней иначе рос бы бесконечно
+    if (o.days) {
+      const dk = Object.keys(o.days).sort();
+      if (dk.length > 90) { const t = {}; dk.slice(-90).forEach(function (x) { t[x] = o.days[x]; }); o.days = t; }
+    }
+  });
+
   // держим полгода, чтобы запись в KV не разрасталась
   const keep = Object.keys(m.days).sort().slice(-180);
   if (keep.length < Object.keys(m.days).length) {
@@ -1293,6 +1446,23 @@ async function sha256hex(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+/* Назвать устройство своими словами: «мой айфон», «ноут бухгалтерии».
+   Без этого в списке стоят обезличенные номера, и понять, чьё устройство
+   смотрело отчёт, нельзя. Пароль тот же, что и на саму страницу метрик. */
+async function handleLabel(url, env) {
+  const key = url.searchParams.get("key") || "";
+  if ((await sha256hex(key)) !== METRICS_HASH) return jsonResp({ error: "Неверный пароль" }, 401);
+  const vid = String(url.searchParams.get("vid") || "").slice(0, 40);
+  const name = String(url.searchParams.get("name") || "").slice(0, 40).trim();
+  if (!vid) return jsonResp({ error: "Не указано устройство" }, 400);
+  const raw = await env.PLAN.get(M_KEY);
+  const m = raw ? JSON.parse(raw) : null;
+  if (!m || !m.devs || !m.devs[vid]) return jsonResp({ error: "Устройство не найдено" }, 404);
+  m.devs[vid].name = name;
+  await env.PLAN.put(M_KEY, JSON.stringify(m));
+  return jsonResp({ ok: true, vid: vid, name: name });
+}
+
 async function handleStats(url, env) {
   const key = url.searchParams.get("key") || "";
   const h = await sha256hex(key);

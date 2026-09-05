@@ -100,6 +100,26 @@
     </div>
   </div>
 
+  <!-- УСТРОЙСТВА -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="ct">Устройства</div>
+    <div class="cs">Кто заходит на Пульс. Нажмите на строку — откроется паспорт устройства и всё, что оно смотрело.</div>
+    <div id="devList"></div>
+    <div id="devCard"></div>
+  </div>
+
+  <!-- ЧТО СМОТРЕЛИ ПО ЧАСАМ, ПО КАЖДОМУ УСТРОЙСТВУ -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="ct">Что смотрели и во сколько</div>
+    <div class="cs" id="tlSub">Каждая точка — открытие страницы. По горизонтали часы по Алматы, по вертикали устройства, цвет — отчёт.</div>
+    <div class="pick" style="margin-bottom:12px">
+      <b>День:</b><select id="tlDay"></select>
+      <b style="margin-left:6px">Устройство:</b><select id="tlDev"><option value="">все устройства</option></select>
+    </div>
+    <div style="height:330px"><canvas id="chTl"></canvas></div>
+    <div id="tlTable" style="margin-top:16px"></div>
+  </div>
+
   <!-- ПО ДНЯМ -->
   <div class="card" style="margin-bottom:12px">
     <div class="ct">По дням</div>
@@ -428,6 +448,213 @@
                 y:{beginAtZero:true,ticks:{color:"#8091a8",font:{size:10},precision:0},grid:{color:"#1b2636"}}}}});
   }
 
+  /* ═══════════════ УСТРОЙСТВА ═══════════════
+     Счётчик пишет на каждое устройство карточку (что за техника, экран,
+     браузер, откуда заходит) и журнал: во сколько какую страницу открыли.
+     Журнал живёт две недели — он нужен, чтобы разобрать «кто что смотрел
+     вчера», а не для истории. */
+  var PW="", chTl=null, curDev="";
+  var PAL=["#7c3aed","#22c55e","#f59e0b","#38bdf8","#f472b6","#a3e635",
+           "#fb7185","#2dd4bf","#c084fc","#facc15","#60a5fa","#fb923c"];
+
+  function devs(){ return DATA && DATA.devs ? DATA.devs : {}; }
+  function devIcon(d){ return d.kind==="телефон"?"📱":d.kind==="планшет"?"📲":"💻"; }
+  function devName(vid){
+    var d=devs()[vid]; if(!d) return "устройство "+String(vid).slice(0,6);
+    if(d.name) return d.name;
+    var left=d.chModel||d.model||((d.os||"устройство")+(d.osv?" "+d.osv:""));
+    return d.br ? left+" · "+d.br : left;
+  }
+  function ago(iso){
+    if(!iso) return "—";
+    var t=new Date(iso), diff=(Date.now()-t.getTime())/1000;
+    if(diff<90) return "только что";
+    if(diff<3600) return Math.round(diff/60)+" мин назад";
+    if(diff<86400) return Math.round(diff/3600)+" ч назад";
+    return t.toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+  }
+  function esc(x){ return String(x==null?"":x).replace(/[&<>"]/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+  function renderDevs(){
+    var D=devs(), ks=Object.keys(D);
+    var box=document.getElementById("devList"); if(!box) return;
+    if(!ks.length){ box.innerHTML='<div class="empty">Устройства ещё не записаны. Разбивка появится после первых заходов — счётчик начал их различать 05.09.2026.</div>'; return; }
+    ks.sort(function(a,b){ return (D[b].last||"").localeCompare(D[a].last||""); });
+    var h='<table><thead><tr><th class="l">Устройство</th><th class="l">Система и браузер</th>'
+      +'<th class="l">Откуда</th><th>Просмотров</th><th class="l">Последний заход</th></tr></thead><tbody>';
+    ks.forEach(function(k){
+      var d=D[k];
+      h+='<tr style="cursor:pointer" data-vid="'+esc(k)+'">'
+        +'<td class="l">'+devIcon(d)+' '+esc(devName(k))+'</td>'
+        +'<td class="l" style="font-weight:400;color:#cbd5e1">'+esc((d.os||"—")+(d.osv?" "+d.osv:""))+' · '+esc(d.br||"—")+(d.bv?" "+esc(String(d.bv).split(".")[0]):"")+'</td>'
+        +'<td class="l" style="font-weight:400;color:#cbd5e1">'+esc(cityName(d.city||"—"))+'</td>'
+        +'<td>'+fmt(d.n)+'</td>'
+        +'<td class="l" style="font-weight:400;color:#8091a8">'+esc(ago(d.last))+'</td></tr>';
+    });
+    h+='</tbody></table>';
+    box.innerHTML=h;
+    [].forEach.call(box.querySelectorAll("tr[data-vid]"),function(tr){
+      tr.addEventListener("click",function(){ openDev(tr.getAttribute("data-vid")); });
+    });
+  }
+
+  function openDev(vid){
+    var d=devs()[vid]; var box=document.getElementById("devCard"); if(!d||!box) return;
+    curDev=vid;
+    function row(k,v){ return v==null||v===""||v===0&&k!=="Сенсорных точек" ? "" :
+      '<div style="display:flex;gap:12px;padding:4px 0;border-bottom:1px solid #1b2636">'
+      +'<span style="flex:1;color:#8091a8;font-size:12px">'+k+'</span>'
+      +'<span style="font-size:12.5px;color:#e5edf7;font-weight:600;text-align:right;word-break:break-word">'+esc(v)+'</span></div>'; }
+    var scr = d.sw&&d.sh ? d.sw+"×"+d.sh+" точек"+(d.dpr?" · плотность "+d.dpr+"×":"") : "";
+    var win = d.vw&&d.vh ? d.vw+"×"+d.vh : "";
+    var pages=Object.keys(d.pages||{}).sort(function(a,b){return d.pages[b]-d.pages[a];});
+    var ph=pages.map(function(x){ return '<tr><td class="l">'+esc(label(x))+'</td><td>'+fmt(d.pages[x])+'</td></tr>'; }).join("");
+    box.innerHTML =
+      '<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">'
+      +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">'
+        +'<div style="font-size:22px">'+devIcon(d)+'</div>'
+        +'<input id="devNm" value="'+esc(d.name||"")+'" placeholder="'+esc(devName(vid))+'" '
+          +'style="flex:1;min-width:170px;background:#0f172a;border:1px solid var(--line);border-radius:9px;color:var(--txt);padding:8px 11px;font-size:13px;font-family:inherit">'
+        +'<button id="devSave" class="pb">Назвать</button>'
+        +'<button id="devClose" class="pb">Закрыть</button>'
+      +'</div>'
+      +'<div class="cs" id="devMsg">Имя видно только здесь и помогает не путать устройства.</div>'
+      +'<div class="two" style="margin-bottom:0">'
+        +'<div>'
+          +'<div class="ct" style="margin-bottom:8px">Паспорт</div>'
+          +row("Тип", d.kind)
+          +row("Модель", d.chModel||d.model)
+          +row("Система", (d.os||"")+(d.osv?" "+d.osv:"")+(d.chPlatV&&!d.osv?" "+d.chPlatV:""))
+          +row("Браузер", (d.br||"")+(d.bv?" "+d.bv:""))
+          +row("Движок", d.eng)
+          +row("Экран", scr)
+          +row("Окно браузера", win)
+          +row("Глубина цвета", d.cd?d.cd+" бит":"")
+          +row("Ядер процессора", d.cc)
+          +row("Оперативной памяти", d.dm?d.dm+" ГБ и больше":"")
+          +row("Сенсорных точек", d.tp===0?"нет (мышь)":d.tp)
+          +row("Архитектура", (d.chArch||"")+(d.chBits?" "+d.chBits+" бит":""))
+          +row("Платформа", d.pf)
+          +row("Язык", d.lg||d.al)
+          +row("Часовой пояс", d.tz)
+        +'</div>'
+        +'<div>'
+          +'<div class="ct" style="margin-bottom:8px">Сеть и заходы</div>'
+          +row("Город", cityName(d.city||"—"))
+          +row("Регион", d.region)
+          +row("Страна", d.ctry?ctryName(d.ctry):"")
+          +row("Провайдер", d.isp)
+          +row("Сеть (ASN)", d.asn?"AS"+d.asn:"")
+          +row("Узел Cloudflare", d.colo)
+          +row("Протокол", (d.proto||"")+(d.tls?" · "+d.tls:""))
+          +row("Отпечаток адреса", d.ipHash)
+          +row("Опознание", d.stable?"постоянный номер браузера":"по адресу и браузеру")
+          +row("Пришёл с", d.rf)
+          +row("Первый заход", d.first?new Date(d.first).toLocaleString("ru-RU"):"")
+          +row("Последний заход", d.last?new Date(d.last).toLocaleString("ru-RU"):"")
+          +row("Всего просмотров", fmt(d.n))
+          +'<div class="ct" style="margin:14px 0 6px">Что открывало</div>'
+          +'<table><tbody>'+(ph||'<tr><td class="l">—</td><td>0</td></tr>')+'</tbody></table>'
+        +'</div>'
+      +'</div>'
+      +'<div class="note" style="word-break:break-all">User-Agent: '+esc(d.ua||"—")+'</div>'
+      +'</div>';
+    document.getElementById("devClose").addEventListener("click",function(){ box.innerHTML=""; curDev=""; });
+    document.getElementById("devSave").addEventListener("click",function(){
+      var nm=document.getElementById("devNm").value.slice(0,40);
+      fetch("/mlabel?key="+encodeURIComponent(PW)+"&vid="+encodeURIComponent(vid)+"&name="+encodeURIComponent(nm))
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if(j && j.ok){ devs()[vid].name=nm; document.getElementById("devMsg").textContent="Сохранено.";
+                         renderDevs(); fillTlDev(); renderTimeline(); }
+          else document.getElementById("devMsg").textContent=(j&&j.error)||"Не сохранилось";
+        }).catch(function(){ document.getElementById("devMsg").textContent="Ошибка соединения"; });
+    });
+    // сразу показываем этот же аппарат на графике
+    var sel=document.getElementById("tlDev"); if(sel){ sel.value=vid; renderTimeline(); }
+    box.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+
+  /* Журнал за день. В KV он лежит сжато: [минута, номер устройства, номер
+     страницы] плюс словари дня — иначе запись раздувалась бы в разы. */
+  function tlDays(){
+    return Object.keys(DATA.days||{}).filter(function(k){ return (DATA.days[k].ev||[]).length; }).sort().reverse();
+  }
+  function fillTlDay(){
+    var sel=document.getElementById("tlDay"); if(!sel) return;
+    var ds=tlDays(); sel.innerHTML="";
+    if(!ds.length){ sel.innerHTML='<option value="">нет данных</option>'; return; }
+    ds.forEach(function(k){ var o=document.createElement("option"); o.value=k;
+      o.textContent=ruDate(k)+" · "+dayName(k); sel.appendChild(o); });
+  }
+  function fillTlDev(){
+    var sel=document.getElementById("tlDev"); if(!sel) return;
+    var day=document.getElementById("tlDay").value, dd=(DATA.days||{})[day];
+    var keep=sel.value;
+    sel.innerHTML='<option value="">все устройства</option>';
+    ((dd&&dd.dv)||[]).forEach(function(v){ var o=document.createElement("option"); o.value=v;
+      o.textContent=devName(v); sel.appendChild(o); });
+    sel.value=keep;
+  }
+  function renderTimeline(){
+    var day=document.getElementById("tlDay").value;
+    var dd=(DATA.days||{})[day]||{}, ev=dd.ev||[], DV=dd.dv||[], PV=dd.pv||[];
+    var only=document.getElementById("tlDev").value;
+    var rows=ev.filter(function(e){ return !only || DV[e[1]]===only; });
+    var el=document.getElementById("chTl");
+    var tbl=document.getElementById("tlTable");
+    if(chTl){ chTl.destroy(); chTl=null; }
+    if(!rows.length){
+      if(tbl) tbl.innerHTML='<div class="empty">За этот день записей нет.</div>';
+      return;
+    }
+    // ось Y: устройства, а если выбрано одно — страницы
+    var byDev=!only;
+    var yKeys=[];
+    rows.forEach(function(e){ var k=byDev?DV[e[1]]:PV[e[2]]; if(yKeys.indexOf(k)<0) yKeys.push(k); });
+    var yLab=yKeys.map(function(k){ return byDev?devName(k):label(k); });
+    // цвет — по странице (или по устройству, если смотрим одно устройство)
+    var cKeys=[];
+    rows.forEach(function(e){ var k=byDev?PV[e[2]]:DV[e[1]]; if(cKeys.indexOf(k)<0) cKeys.push(k); });
+    var sets=cKeys.map(function(k,i){
+      var pts=rows.filter(function(e){ return (byDev?PV[e[2]]:DV[e[1]])===k; }).map(function(e){
+        return {x:e[0]/60, y:yKeys.indexOf(byDev?DV[e[1]]:PV[e[2]]), _t:e[0], _p:PV[e[2]], _d:DV[e[1]]};
+      });
+      return {label: byDev?label(k):devName(k), data:pts, backgroundColor:PAL[i%PAL.length],
+              borderColor:PAL[i%PAL.length], pointRadius:5, pointHoverRadius:7};
+    });
+    chTl=new Chart(el,{type:"scatter",data:{datasets:sets},options:{
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:"#cbd5e1",boxWidth:10,font:{size:11}}},
+        tooltip:{callbacks:{label:function(c){
+          var r=c.raw;
+          return pad(Math.floor(r._t/60))+":"+pad(r._t%60)+" · "+label(r._p)+" · "+devName(r._d);
+        }}}
+      },
+      scales:{
+        x:{min:0,max:24,ticks:{stepSize:2,color:"#8091a8",font:{size:10},
+            callback:function(v){ return pad(v)+":00"; }},grid:{color:"#1b2636"}},
+        y:{min:-0.6,max:yKeys.length-1+0.6,ticks:{stepSize:1,color:"#cbd5e1",font:{size:11},
+            callback:function(v){ return yLab[v]!==undefined?String(yLab[v]).slice(0,26):""; }},
+           grid:{color:"#1b2636"}}
+      }}});
+
+    // хронология: во сколько какое устройство что открыло
+    var srt=rows.slice().sort(function(a,b){ return a[0]-b[0]; });
+    var h='<div class="ct" style="margin-bottom:6px">По минутам</div>'
+      +'<div class="cs">'+srt.length+' '+plural(srt.length,"открытие","открытия","открытий")+' за '+ruDate(day)+'</div>'
+      +'<table><thead><tr><th class="l">Время</th><th class="l">Устройство</th><th class="l">Что открыли</th></tr></thead><tbody>';
+    srt.forEach(function(e){
+      h+='<tr><td class="l" style="width:70px">'+pad(Math.floor(e[0]/60))+":"+pad(e[0]%60)+'</td>'
+        +'<td class="l" style="font-weight:400;color:#cbd5e1">'+devIcon(devs()[DV[e[1]]]||{})+' '+esc(devName(DV[e[1]]))+'</td>'
+        +'<td class="l">'+esc(label(PV[e[2]]))+'</td></tr>';
+    });
+    h+='</tbody></table>';
+    tbl.innerHTML=h;
+  }
+
   function setMode(m){
     cur={mode:m};
     [].forEach.call(document.querySelectorAll(".pb"),function(b){ b.classList.toggle("on", b.getAttribute("data-r")===m); });
@@ -469,8 +696,16 @@
     });
     sel.addEventListener("change",function(){ if(this.value) setDay(this.value); });
     [].forEach.call(document.querySelectorAll(".pb"),function(b){
-      b.addEventListener("click",function(){ setMode(b.getAttribute("data-r")); });
+      if(b.getAttribute("data-r")) b.addEventListener("click",function(){ setMode(b.getAttribute("data-r")); });
     });
+
+    // устройства и журнал «во сколько что смотрели»
+    renderDevs();
+    fillTlDay(); fillTlDev(); renderTimeline();
+    document.getElementById("tlDay").addEventListener("change",function(){
+      document.getElementById("tlDev").value=""; fillTlDev(); renderTimeline(); });
+    document.getElementById("tlDev").addEventListener("change",renderTimeline);
+
     setMode("7");
   }
 
@@ -478,7 +713,7 @@
     fetch("/mstats?key="+encodeURIComponent(pw)).then(function(r){
       if(r.status!==200){ if(!silent){document.getElementById("gerr").textContent="Неверный пароль";} sessionStorage.removeItem("mpw"); return null; }
       return r.json();
-    }).then(function(data){ if(data){ sessionStorage.setItem("mpw",pw); start(data); } })
+    }).then(function(data){ if(data){ sessionStorage.setItem("mpw",pw); PW=pw; start(data); } })
     .catch(function(){ if(!silent) document.getElementById("gerr").textContent="Ошибка соединения"; });
   }
   document.getElementById("go").addEventListener("click",function(){ login(document.getElementById("pw").value,false); });
