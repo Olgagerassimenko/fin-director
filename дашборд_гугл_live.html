@@ -23,6 +23,11 @@ body{
 /* TOPBAR — как на ПУЛЬС */
 .topbar{background:#fff;padding:16px 40px;display:flex;align-items:center;gap:20px;}
 .topbar img{width:130px;height:130px;object-fit:contain;flex-shrink:0;}
+.backbtn{display:inline-flex;align-items:center;flex-shrink:0;background:#f5f3ff;color:#7c3aed;
+  border:1px solid #ddd6fe;font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;
+  text-decoration:none;transition:.18s;white-space:nowrap}
+.backbtn:hover{background:#7c3aed;color:#fff;border-color:#7c3aed}
+
 .topbar-text h1{font-size:20px;font-weight:800;color:#111827;letter-spacing:-.3px;}
 .topbar-text p{font-size:12px;color:#6b7280;margin-top:3px;}
 .topbar-right{margin-left:auto;text-align:right;}
@@ -154,6 +159,7 @@ tr:hover td{background:#fafafa;}
 </head>
 <body>
 <div class="topbar">
+  <a class="backbtn" href="index.html">← Пульс</a>
   <div class="topbar-text">
     <h1 id="hdr-title">ДДС — планирование</h1>
     <p id="hdr-sub">Загрузка...</p>

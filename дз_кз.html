@@ -95,6 +95,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .a-table td.r{text-align:right;font-variant-numeric:tabular-nums}
 .a-table tr:hover td{background:#0a1929}
 .badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700}
+/* Пояснение под карточками: одна строка о том, что именно считает таблица,
+   чтобы цифру не приходилось расшифровывать по памяти. */
+.a-hint{font-size:11.5px;color:#9db0c9;margin-bottom:10px;line-height:1.5}
 .b-red{background:#450a0a;color:#f87171}.b-green{background:#052e16;color:#4ade80}.b-yellow{background:#422006;color:#fbbf24}
 
 /* ── NO DATA ── */
@@ -189,11 +192,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
   <!-- CHARTS -->
   <div class="charts-grid">
     <div class="chart-wrap">
-      <div class="sec-title">📈 ДЗ — нам должны</div>
+      <div class="sec-title">📈 Нам должны — растёт или падает</div>
       <canvas id="ch-dz" height="130"></canvas>
     </div>
     <div class="chart-wrap">
-      <div class="sec-title">📉 КЗ — мы должны</div>
+      <div class="sec-title">📉 Мы должны — растёт или падает</div>
       <canvas id="ch-kz" height="130"></canvas>
     </div>
   </div>
@@ -203,7 +206,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
     <div class="tbl-card">
       <div class="tbl-head">
         <div class="tbl-head-dot" style="background:#34d399"></div>
-        <div class="tbl-head-label">Топ дебиторов</div>
+        <div class="tbl-head-label">Кто нам должен больше всех</div>
         <div class="tbl-head-sum" id="dz-sum" style="color:#34d399"></div>
       </div>
       <div class="col-headers">
@@ -218,7 +221,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
     <div class="tbl-card">
       <div class="tbl-head">
         <div class="tbl-head-dot" style="background:#f87171"></div>
-        <div class="tbl-head-label">Топ кредиторов</div>
+        <div class="tbl-head-label">Кому мы должны больше всех</div>
         <div class="tbl-head-sum" id="kz-sum" style="color:#f87171"></div>
       </div>
       <div class="col-headers">
@@ -234,24 +237,46 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
   <!-- ANALYTICS: отгрузки/оплаты 04.07–10.07 -->
   <div class="analytics-wrap">
     <div class="analytics-tabs">
-      <div class="atab active" onclick="showAtab('mismatch',this)">⚠️ Нестыковки</div>
-      <div class="atab" onclick="showAtab('consign',this)">📅 Консигнация</div>
-      <div class="atab" onclick="showAtab('shares',this)">🥧 Доли</div>
-      <div class="atab" onclick="showAtab('kzana',this)">🧾 Аналитика КЗ</div>
+      <div class="atab active" onclick="showAtab('mismatch',this)">⚠️ Кто нам недоплатил</div>
+      <div class="atab" onclick="showAtab('kzmis',this)">⛔ Кому недоплатили мы</div>
+      <div class="atab" onclick="showAtab('consign',this)">📅 Кто просрочил консигнацию</div>
+      <div class="atab" onclick="showAtab('shares',this)">🥧 Кто держит оборот</div>
+      <div class="atab" onclick="showAtab('kzana',this)">🧾 Кому уходят деньги за закуп</div>
     </div>
 
     <!-- НЕСТЫКОВКИ -->
     <div id="atab-mismatch" class="apanel active">
       <div class="a-cards">
-        <div class="a-card"><div class="a-card-lbl">Отгрузка <span id="a-period">—</span></div><div class="a-card-val" id="a-ship">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Оплата <span id="a-period2">—</span></div><div class="a-card-val" id="a-pay">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Разрыв (недоплата)</div><div class="a-card-val red" id="a-gap">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Клиентов недоплатили</div><div class="a-card-val yellow" id="a-under-cnt">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Отгрузили <span id="a-period">—</span></div><div class="a-card-val" id="a-ship">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Забрали деньгами <span id="a-period2">—</span></div><div class="a-card-val" id="a-pay">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Не добрали</div><div class="a-card-val red" id="a-gap">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Клиентов в долгу</div><div class="a-card-val yellow" id="a-under-cnt">—</div></div>
       </div>
+      <p class="a-hint">Неделя к неделе: сколько клиенту отгрузили и сколько он за ту же неделю заплатил.
+        <b style="color:#f87171">Не добрали</b> — деньги, которые остались у клиента. Спрашивать по этому списку сверху вниз.</p>
       <table class="a-table">
-        <thead><tr><th>Контрагент</th><th class="r">Отгрузка, тнг</th><th class="r">Оплата, тнг</th><th class="r">Разрыв, тнг</th><th class="r">Покрытие</th><th>Статус</th></tr></thead>
+        <thead><tr><th>Контрагент</th><th class="r">Отгрузили, тнг</th><th class="r">Заплатил, тнг</th><th class="r">Не добрали, тнг</th><th class="r">Покрытие</th><th>Статус</th></tr></thead>
         <tbody id="a-mismatch-body"></tbody>
       </table>
+    </div>
+
+    <!-- НЕСТЫКОВКИ ПО КЗ: зеркало предыдущей вкладки, только с нашей стороны -->
+    <div id="atab-kzmis" class="apanel">
+      <div class="a-cards">
+        <div class="a-card"><div class="a-card-lbl">Приняли товар <span id="k-period">—</span></div><div class="a-card-val" id="k-in">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Заплатили <span id="k-period2">—</span></div><div class="a-card-val" id="k-pay">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Не заплатили</div><div class="a-card-val red" id="k-gap">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Поставщиков ждут денег</div><div class="a-card-val yellow" id="k-under-cnt">—</div></div>
+      </div>
+      <p class="a-hint">Та же неделя, но с нашей стороны: сколько товара приняли на склад и сколько за ту же неделю отдали деньгами.
+        <b style="color:#f87171">Не заплатили</b> — на столько за неделю вырос наш долг перед поставщиком.
+        <b style="color:#4ade80">Заплатили вперёд</b> — отдали больше, чем взяли: гасим старое или ушли в аванс.</p>
+      <table class="a-table" id="k-table">
+        <thead><tr><th>Поставщик</th><th class="r">Приняли, тнг</th><th class="r">Заплатили, тнг</th><th class="r">Не заплатили, тнг</th><th class="r">Покрытие</th><th class="r">Долг на <span id="k-debt-date">дату</span></th><th>Статус</th></tr></thead>
+        <tbody id="k-mismatch-body"></tbody>
+      </table>
+      <p class="a-hint" id="k-empty" style="display:none">Недельных колонок «Приход товара за период» и «Оплата за период»
+        в листе КЗ не нашлось — разбор появится после ближайшего обновления таблицы.</p>
     </div>
 
     <!-- КОНСИГНАЦИЯ -->
@@ -506,8 +531,8 @@ function showAtab(name,el){
     const diff=d.kc-d.kd;
     const cov=d.kc>0?(d.kd/d.kc*100).toFixed(0)+'%':'—';
     let badge,status;
-    if(diff>0){badge='b-red';status='⚠️ Недоплата';under++;}
-    else if(diff<0){badge='b-green';status='✅ Аванс';}
+    if(diff>0){badge='b-red';status='⚠️ Не добрали';under++;}
+    else if(diff<0){badge='b-green';status='✅ Заплатил вперёд';}
     else{badge='b-green';status='✅ Ровно';}
     mb.innerHTML+=`<tr>
       <td>${d.name}</td>
@@ -523,6 +548,9 @@ function showAtab(name,el){
 
   // КОНСИГНАЦИЯ — живая ДЗ из Google (worker → DZ_KZ.dz.consign)
   buildConsign();
+
+  // КОМУ НЕДОПЛАТИЛИ МЫ — то же самое, но с нашей стороны прилавка
+  buildKzMismatch();
 
   // ДОЛИ
   const sb=document.getElementById('a-shares-body');
@@ -546,6 +574,61 @@ function showAtab(name,el){
     </tr>`;
   });
 })();
+
+// ── КОМУ НЕДОПЛАТИЛИ МЫ: нестыковки по кредиторке ──────────────────────
+//  Зеркало вкладки «Кто нам недоплатил». В листе КЗ каждая неделя занимает
+//  три колонки: приход товара, оплата за период, остаток долга на дату.
+//  Приход — новый долг перед поставщиком, оплата — его погашение.
+//  Разрыв в плюс значит: товар взяли, деньги не отдали, долг за неделю вырос.
+//  Данные живые (parse_dz_kz.py → DZ_KZ.kz.ana); резервного списка здесь нет —
+//  если колонок в таблице не окажется, честнее показать пустую вкладку,
+//  чем прошлогодние цифры.
+function buildKzMismatch(){
+  const kz=(window.DZ_KZ&&window.DZ_KZ.kz)||{};
+  const src=Array.isArray(kz.ana)?kz.ana:[];
+  const rows=src.filter(d=>(+d.kc||0)>0||(+d.kd||0)>0);
+  const body=document.getElementById('k-mismatch-body');
+  const empty=document.getElementById('k-empty');
+  const setTx=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  const fmtM=n=>{const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1)+' млн':a>=1e3?Math.round(n/1e3)+' тыс':fmtN(n);};
+  if(!rows.length){
+    // Пустую таблицу и прочерки в карточках не показываем: пусть будет
+    // одно честное предложение, почему разбора пока нет.
+    if(empty) empty.style.display='block';
+    const pane=document.getElementById('atab-kzmis');
+    if(pane) pane.querySelectorAll('.a-cards,#k-table,.a-hint:not(#k-empty)')
+                 .forEach(e=>e.style.display='none');
+    return;
+  }
+  const meta=kz.anaMeta||{};
+  const IN=rows.reduce((s,d)=>s+(+d.kc||0),0);
+  const PAY=rows.reduce((s,d)=>s+(+d.kd||0),0);
+  setTx('k-period',meta.period||'за неделю');
+  setTx('k-period2',meta.period||'за неделю');
+  setTx('k-in',fmtM(IN)); setTx('k-pay',fmtM(PAY)); setTx('k-gap',fmtM(IN-PAY));
+  setTx('k-debt-date',kz.date||'дату');
+  let under=0,html='';
+  rows.slice().sort((a,b)=>((+b.kc||0)-(+b.kd||0))-((+a.kc||0)-(+a.kd||0))).forEach(d=>{
+    const got=+d.kc||0, paid=+d.kd||0, diff=got-paid, debt=+d.debt||0;
+    const cov=got>0?(paid/got*100).toFixed(0)+'%':'—';
+    let badge,status;
+    if(diff>0){badge='b-red';status='⚠️ Не заплатили';under++;}
+    else if(diff<0){badge='b-green';status='✅ Заплатили вперёд';}
+    else{badge='b-green';status='✅ Ровно';}
+    html+=`<tr>
+      <td>${d.name}</td>
+      <td class="r">${fmtN(got)}</td>
+      <td class="r">${fmtN(paid)}</td>
+      <td class="r" style="color:${diff>0?'#f87171':diff<0?'#4ade80':'#cbd5e1'}">${diff>0?'+':''}${fmtN(diff)}</td>
+      <td class="r">${cov}</td>
+      <td class="r" style="color:${debt>0?'#f87171':debt<0?'#4ade80':'#cbd5e1'}"
+          title="${debt<0?'у поставщика лежит наш аванс':'наш долг перед поставщиком'}">${fmtN(debt)}</td>
+      <td><span class="badge ${badge}">${status}</span></td>
+    </tr>`;
+  });
+  if(body) body.innerHTML=html;
+  setTx('k-under-cnt',under);
+}
 
 // ── КОНСИГНАЦИЯ: реальная ДЗ (14 дней) из Google-таблицы ──
 function buildConsign(){
@@ -690,17 +773,17 @@ function buildConsign(){
 
   box.innerHTML =
     '<p class="kz-note">Источник — закуп из iiko по '+A.through+'. Поступление на склад берётся по накладным, оплата — по платежам поставщикам. Собрано '+A.updated+'.</p>'
-   + sec('#f87171','Понедельно: поступило на склад ↔ оплачено', v1, t1)
-   + sec('#fbbf24','Перекос по поставщикам — кому недоплатили, кому переплатили',
+   + sec('#f87171','Считаем по неделям: взяли товар — отдали деньги', v1, t1)
+   + sec('#fbbf24','Разобраться с поставщиками: кому недоплатили, кому переплатили',
          'Перекос со знаком плюс — заплатили больше, чем приняли товара. Со знаком минус — приняли товара больше, чем заплатили: это и есть накопленный долг.', t2)
-   + sec('#60a5fa','Неоправданно много оплачено — платим вперёд',
+   + sec('#60a5fa','Кому платим вперёд без причины',
          'Деньги ушли, товара на эту сумму не поступило, и долга за поставщиком тоже нет. Всего авансом: <b>'+num(advSum)+' ₸</b>.', t3)
-   + sec('#a78bfa','Заказано выше среднего за 6 месяцев',
+   + sec('#a78bfa','Кто набрал больше, чем берём обычно',
          'Сравниваем '+A.curMonth+' со средним за '+(A.baseMonths[0]||'')+' – '+(A.baseMonths[1]||'')+'. Месяц ещё не закрыт, поэтому превышение занижено — реальный перебор больше. Всего сверх обычного: <b>'+num(ovSum)+' ₸</b>.', t4)
-   + sec('#fb923c','Взяли сверх обычного за неделю '+A.lastWeek, 'Сравнение с медианой предыдущих 8 недель по каждой позиции.', t5)
-   + sec('#22d3ee','Пропустили за неделю '+A.lastWeek,
+   + sec('#fb923c','Взяли сверх нормы за неделю '+A.lastWeek, 'Сравнение с медианой предыдущих 8 недель по каждой позиции.', t5)
+   + sec('#22d3ee','Что не заказали за неделю '+A.lastWeek,
          'Позиции, которые берут почти каждую неделю, но на этой не купили вовсе. Если остатка нет — цех встанет или будет докупать срочно и дороже.', t6)
-   + sec('#34d399','Замороженные остатки сырья', 'Хватит больше чем на 3 недели вперёд. Всего лежит: <b>'+num(frSum)+' ₸</b>.', t7);
+   + sec('#34d399','Деньги, замороженные на складе', 'Хватит больше чем на 3 недели вперёд. Всего лежит: <b>'+num(frSum)+' ₸</b>.', t7);
 })();
 
 </script>

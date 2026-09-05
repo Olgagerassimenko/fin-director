@@ -162,8 +162,57 @@ def parse_kz(rows):
             top.append({"name": name, "debt": round(-v)})
     top.sort(key=lambda x: -x["debt"])
 
+    # ── Нестыковки по КЗ: что приняли на склад против того, что оплатили ─────
+    # Зеркало такого же разбора по ДЗ. В листе КЗ каждая неделя занимает три
+    # колонки: «Приход товара за период», «Оплата за период», «КЗ на дату».
+    # Берём последнюю неделю: приход — это новый долг перед поставщиком,
+    # оплата — его погашение. Разрыв в плюс означает, что товар взяли,
+    # а деньги не отдали.
+    def find_cols_kz(pat):
+        return [i for i, cell in enumerate(header)
+                if re.search(pat, str(cell), re.I | re.UNICODE)]
+
+    in_cols  = find_cols_kz(r"приход\s+товара")
+    pay_cols = find_cols_kz(r"оплата\s+за\s+период")
+    in_last  = in_cols[-1]  if in_cols  else None
+    pay_last = pay_cols[-1] if pay_cols else None
+    # «ПОЛЕ ОБНОВЛЕНИЯ» справа от основной таблицы содержит такие же подписи —
+    # отсекаем всё, что правее последней датированной колонки КЗ
+    if in_last  is not None and in_last  > last_col_i: in_last  = in_cols[-2]  if len(in_cols)  > 1 else None
+    if pay_last is not None and pay_last > last_col_i: pay_last = pay_cols[-2] if len(pay_cols) > 1 else None
+
+    def kval(row, i):
+        v = num(row[i]) if (i is not None and i < len(row)) else None
+        return v or 0.0
+
+    kz_ana = []
+    for row in data_rows:
+        name = (row[0] if row else "").strip()
+        if not is_company(name): continue
+        got, paid = kval(row, in_last), kval(row, pay_last)
+        if got > 0 or paid > 0:
+            # в колонке «КЗ на дату» наш долг записан отрицательным числом,
+            # аванс поставщику — положительным. На странице удобнее наоборот:
+            # debt > 0 — мы должны, debt < 0 — у поставщика лежит наш аванс.
+            kz_ana.append({"name": name, "kc": round(got), "kd": round(paid),
+                           "debt": round(-kval(row, last_col_i))})
+
+    def kz_period(col_i):
+        """Подпись периода берём из строки выше: там «с 29.08.2026 по 04.09.2026»."""
+        if col_i is None or hi < 1: return ""
+        up = rows[hi - 1] if hi - 1 < len(rows) else []
+        for j in range(col_i, max(-1, col_i - 3), -1):
+            if j < len(up):
+                ds = re.findall(r"(\d{1,2}\.\d{2})", str(up[j]))
+                if len(ds) >= 2: return ds[0] + "–" + ds[1]
+        return ""
+
     return {"total": round(latest_total), "date": last_date,
-            "dynamics": dynamics, "top": top[:30]}
+            "dynamics": dynamics, "top": top[:30],
+            "ana": kz_ana,
+            "anaMeta": {"period": kz_period(in_last),
+                        "totalIn":  round(sum(a["kc"] for a in kz_ana)),
+                        "totalPay": round(sum(a["kd"] for a in kz_ana))}}
 
 # ── Контрагенты, снятые с учёта как безнадёжно просроченные ──────────────
 # Решение финдиректора от 05.09.2026. По каждому из них остаток не менялся

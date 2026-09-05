@@ -15,6 +15,10 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;background:#1a1035;height:100vh;overflow:hidden;display:flex;flex-direction:column;color:#1e1b4b}
 .topbar{background:#fff;padding:0 28px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 16px rgba(0,0,0,.2);flex-shrink:0;z-index:10;min-height:72px;overflow:hidden}.topbar img{width:auto;height:72px;object-fit:contain;flex-shrink:0;max-width:180px}
+.backbtn{display:inline-flex;align-items:center;flex-shrink:0;background:#f5f3ff;color:#7c3aed;
+  border:1px solid #ddd6fe;font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;
+  text-decoration:none;transition:.18s;white-space:nowrap}
+.backbtn:hover{background:#7c3aed;color:#fff;border-color:#7c3aed}
 .logo{font-weight:800;font-size:17px;letter-spacing:-.3px}.logo span{color:#7c3aed}
 .topbar-text h1{font-size:20px;font-weight:900;color:#111827;letter-spacing:-.3px;line-height:1.1}
 .topbar-text p{font-size:12px;color:#6b7280;margin-top:3px;font-weight:400}
@@ -128,6 +132,10 @@ thead th{top:0}
 </head>
 <body>
 <div class="topbar">
+  <!-- Боковое меню «Пульса» подставляет nav.js, но шапка страницы лежит поверх него
+       (z-index 10000 против 9999) и закрывает домик у верхнего края. Явная кнопка
+       возврата стоит на всех остальных дашбордах — здесь её не было. -->
+  <a class="backbtn" href="index.html">← Пульс</a>
   <div class="topbar-text">
     <h1>SKU-аналитика 360°</h1>
     <p>Фуд Завод · готовая продукция 2025–2026</p>
