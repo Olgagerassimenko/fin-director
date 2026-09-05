@@ -47,6 +47,15 @@
   td{padding:7px 8px;border-bottom:1px solid #1b2636;text-align:right;font-variant-numeric:tabular-nums}
   td.l{color:#f1f5f9;font-weight:600}
   .empty{color:var(--mut);font-size:13px;padding:14px 2px}
+  /* Сортировка по клику на заголовок. Даты сортируются по настоящему
+     времени, а не по подписи: «4 ч назад» и «5 сент., 23:36» как строки
+     встали бы в алфавитном порядке. */
+  th{cursor:pointer;user-select:none}
+  th:hover{color:#cbd5e1}
+  th .sa{margin-left:5px;font-size:9px;opacity:0;transition:opacity .12s}
+  th:hover .sa{opacity:.45}
+  th.sorted{color:#a78bfa}
+  th.sorted .sa{opacity:1}
   .note{color:var(--mut);font-size:11.5px;line-height:1.55;margin-top:10px}
 
   #gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
@@ -408,7 +417,7 @@
         var pk=-1, pkI=null; (d.h||[]).forEach(function(v,i){ if(v>pk){pk=v; pkI=i;} });
         var cities=Object.keys(d.city||{}).filter(function(c){return c!=="—";})
           .sort(function(a,b){return d.city[b]-d.city[a];}).map(cityName).slice(0,3).join(", ")||"—";
-        return '<tr style="cursor:pointer" data-day="'+k+'"><td class="l">'+ruDate(k)+'</td>'+
+        return '<tr style="cursor:pointer" data-day="'+k+'"><td class="l" data-sort="'+k+'">'+ruDate(k)+'</td>'+
           '<td class="l" style="color:#94a3b8;font-weight:400">'+dayName(k)+'</td>'+
           '<td>'+uni+'</td><td>'+fmt(d.v||0)+'</td>'+
           '<td style="color:#94a3b8">'+Object.keys(pg).length+'</td>'+
@@ -475,7 +484,7 @@
           '<td style="color:#a78bfa">'+fmt(r.per)+'</td><td>'+fmt(r.d)+'</td><td>'+fmt(r.m)+'</td>'+
           '<td style="color:#94a3b8">'+(r.peak==null?"—":pad(r.peak)+":00")+'</td>'+
           '<td style="color:#94a3b8">'+(r.ctry||"—")+'</td>'+
-          '<td class="l" style="font-weight:400;color:#94a3b8">'+last+'</td></tr>';
+          '<td class="l" data-sort="'+(r.last||"")+'" style="font-weight:400;color:#94a3b8">'+last+'</td></tr>';
       }).join("")+'</table></div>';
   }
 
@@ -556,13 +565,13 @@
       h+='<tr style="cursor:pointer" data-vid="'+esc(k)+'">'
         +'<td class="l">'+devIcon(d)+' '+esc(devName(k))+'</td>'
         +'<td class="l" style="font-weight:400;color:#cbd5e1">'+esc((d.os||"—")+(d.osv?" "+d.osv:""))+' · '+esc(d.br||"—")+(d.bv?" "+esc(String(d.bv).split(".")[0]):"")+'</td>'
-        +'<td class="l" style="font-weight:400;color:#94a3b8">'+(d.sw?esc(d.sw+"×"+d.sh+(d.dpr&&d.dpr!==1?" @"+d.dpr+"×":"")):"—")+'</td>'
+        +'<td class="l" data-sort="'+((d.sw||0)*(d.sh||0))+'" style="font-weight:400;color:#94a3b8">'+(d.sw?esc(d.sw+"×"+d.sh+(d.dpr&&d.dpr!==1?" @"+d.dpr+"×":"")):"—")+'</td>'
         +'<td class="l" style="font-weight:400;color:#94a3b8">'+esc(hw.join(" · ")||"—")+'</td>'
         +'<td class="l" style="font-weight:400;color:#cbd5e1">'+esc(cityName(d.city||"—"))+'</td>'
         +'<td class="l" style="font-weight:400;color:#94a3b8">'+esc(d.isp||"—")+'</td>'
         +'<td>'+fmt(d.n)+'</td>'
-        +'<td class="l" style="font-weight:400;color:#8091a8">'+esc(d.first?new Date(d.first).toLocaleDateString("ru-RU"):"—")+'</td>'
-        +'<td class="l" style="font-weight:400;color:#8091a8">'+esc(ago(d.last))+'</td></tr>';
+        +'<td class="l" data-sort="'+esc(d.first||"")+'" style="font-weight:400;color:#8091a8">'+esc(d.first?new Date(d.first).toLocaleDateString("ru-RU"):"—")+'</td>'
+        +'<td class="l" data-sort="'+esc(d.last||"")+'" style="font-weight:400;color:#8091a8">'+esc(ago(d.last))+'</td></tr>';
     });
     h+='</tbody></table></div>';
     box.innerHTML=h;
@@ -725,7 +734,7 @@
       +'<div class="tw"><table><thead><tr><th class="l">Время</th><th class="l">Устройство</th>'
       +'<th class="l">Что открыли</th><th class="l">Адрес</th></tr></thead><tbody>';
     srt.forEach(function(e){
-      h+='<tr><td class="l" style="width:70px">'+pad(Math.floor(e[0]/60))+":"+pad(e[0]%60)+'</td>'
+      h+='<tr><td class="l" data-sort="'+e[0]+'" style="width:70px">'+pad(Math.floor(e[0]/60))+":"+pad(e[0]%60)+'</td>'
         +'<td class="l" style="font-weight:400;color:#cbd5e1">'+devIcon(devs()[DV[e[1]]]||{})+' '+esc(devName(DV[e[1]]))+'</td>'
         +'<td class="l">'+esc(label(PV[e[2]]))+'</td>'
         +'<td class="l" style="font-weight:400;color:#64748b">'+esc(decodeURIComponent(normP(PV[e[2]])))+'</td></tr>';
@@ -788,6 +797,75 @@
     setMode("7");
   }
 
+  /* ═══ СОРТИРОВКА ТАБЛИЦ ═══
+     Клик по заголовку сортирует таблицу; повторный клик разворачивает,
+     третий возвращает исходный порядок. Числовые колонки при первом клике
+     идут по убыванию — крупное сверху. Значение берётся из data-sort, если
+     оно есть: для дат это метка времени, для экрана — число точек. Иначе —
+     первое число в ячейке («12,7», «68%»), иначе текст. Прочерки всегда
+     внизу, каким бы ни было направление. */
+  function sortable(root){
+    [].forEach.call((root||document).querySelectorAll("table"),function(tb){
+      if(tb.__srt) return; tb.__srt=1;
+      var hr = tb.tHead ? tb.tHead.rows[0] : tb.rows[0];
+      var body = tb.tBodies[0];
+      if(!hr||!body) return;
+      // если <thead> нет, первая строка таблицы — это шапка, её не двигаем
+      var skipFirst = !tb.tHead;
+      var dataRows = function(){
+        var rs=[].slice.call(body.rows);
+        return skipFirst ? rs.slice(1) : rs;
+      };
+      dataRows().forEach(function(r,i){ r.__i=i; });
+      [].forEach.call(hr.cells,function(th,ci){
+        if(th.querySelector(".sa")) return;
+        var sa=document.createElement("span"); sa.className="sa"; sa.textContent="↕";
+        th.appendChild(sa);
+        th.addEventListener("click",function(){
+          var cur=+(th.getAttribute("data-d")||0);
+          var numeric = !/\bl\b/.test(th.className);
+          var first = numeric ? -1 : 1;
+          var dir = cur===0 ? first : (cur===first ? -first : 0);
+          [].forEach.call(hr.cells,function(o){
+            o.removeAttribute("data-d"); o.classList.remove("sorted");
+            var x=o.querySelector(".sa"); if(x) x.textContent="↕";
+          });
+          var rows=dataRows();
+          if(dir===0){ rows.sort(function(a,b){ return a.__i-b.__i; }); }
+          else{
+            th.setAttribute("data-d",dir); th.classList.add("sorted");
+            sa.textContent = dir>0?"▲":"▼";
+            rows.sort(function(a,b){
+              var x=cellVal(a.cells[ci]), y=cellVal(b.cells[ci]);
+              if(x===null&&y===null) return a.__i-b.__i;
+              if(x===null) return 1;
+              if(y===null) return -1;
+              if(typeof x==="number"&&typeof y==="number") return x===y ? a.__i-b.__i : dir*(x-y);
+              return dir*String(x).localeCompare(String(y),"ru");
+            });
+          }
+          var f=document.createDocumentFragment();
+          rows.forEach(function(r){ f.appendChild(r); });
+          body.appendChild(f);
+        });
+      });
+    });
+  }
+  function cellVal(td){
+    if(!td) return null;
+    var ds=td.getAttribute("data-sort");
+    if(ds!==null&&ds!==""){
+      // дата в формате ISO — переводим в число, иначе сравнение было бы строковым
+      var t=Date.parse(ds); if(!isNaN(t)) return t;
+      var n=parseFloat(ds); return isNaN(n)?String(ds).toLowerCase():n;
+    }
+    var s=td.textContent.replace(/[\s\u00a0\u2009]/g," ").trim();
+    if(!s||s==="—"||s==="–") return null;
+    var m=s.replace(/\u2212/g,"-").replace(/[\s\u00a0]/g,"").match(/-?\d+(?:[.,]\d+)?/);
+    if(!m) return s.toLowerCase();
+    return parseFloat(m[0].replace(",","."));
+  }
+
   function login(pw,silent){
     fetch("/mstats?key="+encodeURIComponent(pw)).then(function(r){
       if(r.status!==200){ if(!silent){document.getElementById("gerr").textContent="Неверный пароль";} sessionStorage.removeItem("mpw"); return null; }
@@ -798,6 +876,12 @@
   document.getElementById("go").addEventListener("click",function(){ login(document.getElementById("pw").value,false); });
   document.getElementById("pw").addEventListener("keydown",function(e){ if(e.key==="Enter") login(this.value,false); });
   var saved=sessionStorage.getItem("mpw"); if(saved) login(saved,true);
+
+  // Таблицы пересобираются при каждой смене периода — навешиваем сортировку
+  // на всё новое, что появилось в разметке.
+  sortable();
+  new MutationObserver(function(){ sortable(); })
+    .observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
 </body></html>
