@@ -133,11 +133,29 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
 .pu-table tbody tr.open td{background:#141f38}
 .pu-t-ok{background:#0c1f3d;color:#7dd3fc}
 
-/* Сразу видно, кому поднимаем, а кого не трогаем */
-.pu-th-row{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.pu-sum{margin-left:auto;font-size:12.5px;color:#8ea3bd;background:#0f1a2e;border:1px solid #1e293b;
-  border-radius:999px;padding:5px 13px;white-space:nowrap}
-.pu-sum b{color:#e2e8f0}
+/* Шапка таблицы: слева что это, справа сколько денег — крупно */
+.pu-head{display:flex;align-items:stretch;gap:18px;flex-wrap:wrap;padding:16px 18px 14px;
+  border-bottom:1px solid #1a2740;
+  background:linear-gradient(120deg,rgba(34,197,94,.07),transparent 46%),#101a2d}
+.pu-head-l{flex:1 1 320px;min-width:0}
+.pu-head-t{font-size:19px;font-weight:900;letter-spacing:-.3px;color:#f1f5f9}
+.pu-head-s{font-size:11.5px;color:#8ea3bd;line-height:1.55;margin-top:5px;max-width:640px}
+.pu-sum{flex:0 0 auto;align-self:center;text-align:right;padding:12px 20px;border-radius:16px;
+  background:linear-gradient(140deg,rgba(34,197,94,.16),rgba(21,128,61,.07));
+  border:1px solid rgba(34,197,94,.42);min-width:270px}
+.pu-sum .v{font-size:31px;font-weight:900;letter-spacing:-.8px;line-height:1.05;color:#4ade80}
+.pu-sum .l{font-size:12.5px;font-weight:700;color:#dcfce7;margin-top:3px}
+.pu-sum .n{font-size:11.5px;color:#93b8a3;margin-top:5px;line-height:1.45}
+.pu-sum .n b{color:#eafff2}
+.pu-sum.empty{background:#0f1a2e;border-color:#1e293b}
+.pu-sum.empty .v{color:#64748b}
+.pu-sum.empty .l{color:#94a3b8}
+.pu-sum.empty .n{color:#64748b}
+@media (max-width:900px){
+  .pu-head{padding:14px 13px 12px}
+  .pu-sum{width:100%;min-width:0;text-align:left}
+  .pu-sum .v{font-size:26px}
+}
 .pu-table tbody tr.up td:first-child{box-shadow:inset 3px 0 0 #22c55e}
 .pu-table tbody tr.keep td{opacity:.62}
 .pu-table tbody tr.keep td.l{color:#93a3b8}
@@ -306,14 +324,14 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
 
   <!-- Таблица: по каждой позиции свой процент -->
   <div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
-    <div style="padding:12px 16px 10px">
-      <div class="pu-th-row">
-        <div class="card-title">Каким позициям поднимать</div>
-        <div class="pu-sum" id="pu-sum"></div>
+    <div class="pu-head">
+      <div class="pu-head-l">
+        <div class="pu-head-t">Каким позициям поднимать</div>
+        <div class="pu-head-s">Кликните по названию — раскроется история цены, кто берёт позицию и что
+          будет при разных процентах. Заголовок колонки сортирует, галочка слева убирает позицию из расчёта.</div>
       </div>
-      <div class="pu-note" style="margin:2px 0 0">Кликните по названию — раскроется история цены, кто берёт
-        позицию и что будет при разных процентах. Заголовок колонки сортирует. Галочка слева включает
-        позицию в общий расчёт.</div>
+      <div class="pu-sum" id="pu-sum"></div>
+    </div>
       <div class="pu-cols" id="pu-cols"></div>
     </div>
     <div class="pu-wrap"><table class="pu-table" id="pu-table"></table></div>
@@ -897,10 +915,16 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
       return s + (isOn(r) && pctFor(r) > 0 ? effect(r, pctFor(r)).dVp : 0);
     }, 0);
     var ps = document.getElementById('pu-sum');
-    if (ps) ps.innerHTML = nUp
-      ? '<b>Поднимаем ' + nUp + '</b> из ' + sum.on + ' · <b class="pu-up">+' + f0(upVp)
-        + ' ₸</b> прибыли в месяц'
-      : 'Ни одной позиции к подъёму не выбрано';
+    if (ps) {
+      ps.className = 'pu-sum' + (nUp ? '' : ' empty');
+      ps.innerHTML = nUp
+        ? '<div class="v">+' + f0(upVp) + ' ₸</div>'
+          + '<div class="l">валовой прибыли в месяц</div>'
+          + '<div class="n">поднимаем <b>' + nUp + '</b> позиций из ' + sum.on
+          + ' · <b>' + money(upVp * 12) + ' ₸</b> за год</div>'
+        : '<div class="v">—</div><div class="l">ни одной позиции не выбрано</div>'
+          + '<div class="n">поставьте процент в колонке «Поднять на» или нажмите «Проставить рекомендованные»</div>';
+    }
 
     document.getElementById('pu-lead').innerHTML =
       'Поднимаем цену в среднем на <b>' + pc(avgP) + '</b> по <b>' + sum.on + '</b> позициям с выручкой <b>'
