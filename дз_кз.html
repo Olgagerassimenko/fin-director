@@ -169,6 +169,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
   padding:4px 7px;font-size:12px;text-align:right;font-family:inherit;font-variant-numeric:tabular-nums}
 .c-in:focus{outline:none;border-color:#60a5fa}
 .c-in.own{border-color:#a16207;background:#1a1508;color:#fcd34d}
+.c-day{display:flex;align-items:center;justify-content:flex-end;gap:7px}
+.c-same{background:transparent;border:1px solid #2a3a58;color:#8ea3bd;border-radius:6px;
+  padding:3px 7px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.c-same:hover{border-color:#60a5fa;color:#e8eef6}
+.c-btn.dirty{background:linear-gradient(135deg,#b45309,#7c2d12);border-color:#a16207;color:#fde68a}
+.c-btn.dirty:hover{filter:brightness(1.12);color:#fff}
+.c-btn:disabled{opacity:.5;cursor:default}
+.c-btn:disabled:hover{background:#16233c;color:#cbd5e1}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
 </head>
@@ -322,6 +330,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
           <input id="c-days-all" type="number" min="1" max="120" step="1" value="14">
         </label>
         <button class="c-btn" id="c-apply">Применить ко всем</button>
+        <button class="c-btn" id="c-save" disabled>Правки сохранены</button>
         <button class="c-btn" id="c-reset">Сбросить мои правки</button>
         <span class="c-ctl-note" id="c-custom">—</span>
       </div>
@@ -367,8 +376,21 @@ try{
   const raw=localStorage.getItem(CONS_KEY);
   if(raw){const o=JSON.parse(raw); CONS_DEF=+o.def||14; CONS_OWN=o.own||{};}
 }catch(e){}
+let CONS_DIRTY=false;
 function consSave(){
   try{localStorage.setItem(CONS_KEY,JSON.stringify({def:CONS_DEF,own:CONS_OWN}));}catch(e){}
+  CONS_DIRTY=false; consBtn('Сохранено');
+}
+// правки применяются к расчёту сразу, а в память браузера — только по кнопке:
+// иначе непонятно, что уже сохранено, а что нет
+function consTouch(){ CONS_DIRTY=true; consBtn(); }
+function consBtn(text){
+  const b=document.getElementById('c-save');
+  if(!b) return;
+  b.textContent = text || (CONS_DIRTY ? 'Сохранить мои правки' : 'Правки сохранены');
+  b.className = 'c-btn' + (CONS_DIRTY ? ' dirty' : '');
+  b.disabled = !CONS_DIRTY;
+  if(text) setTimeout(()=>{ if(!CONS_DIRTY) consBtn(); }, 1800);
 }
 function consDays(name){
   const v=CONS_OWN[name];
@@ -804,8 +826,10 @@ function buildConsign(){
       <td class="r">${fmtN(d.ship)}</td>
       <td class="r">${fmtN(d.pay)}</td>
       <td class="r" style="font-weight:800;color:#e8eef6">${fmtN(d.dz)}</td>
-      <td class="r"><input class="c-in${own?' own':''}" type="number" min="1" max="${maxDays}" step="1"
-        value="${days}" data-cons="${String(d.name).replace(/"/g,'&quot;')}"></td>
+      <td class="r"><div class="c-day"><input class="c-in${own?' own':''}" type="number" min="1" max="${maxDays}" step="1"
+        value="${days}" data-cons="${String(d.name).replace(/"/g,'&quot;')}">${own
+        ? `<button class="c-same" title="вернуть строку к общему сроку ${CONS_DEF} дней"
+             data-same="${String(d.name).replace(/"/g,'&quot;')}">как все</button>` : ''}</div></td>
       <td class="r" style="color:${interm>0?'#4ade80':'#64748b'}">${interm>0?fmtN(interm):'—'}</td>
       <td class="r" style="color:${over>0?'#f87171':'#64748b'};font-weight:${over>0?'800':'400'}">${over>0?fmtN(over):'—'}</td>
       <td class="r" style="color:${age===null?'#f87171':age>days?'#fbbf24':'#9db0c9'}">${age===null?'>'+maxDays+' дн':age+' дн'}</td>
@@ -845,9 +869,17 @@ function buildConsign(){
       if(!isFinite(v)||v<1) v=1;
       if(v>maxDays) v=maxDays;
       if(v===CONS_DEF) delete CONS_OWN[nm]; else CONS_OWN[nm]=v;
-      consSave(); buildConsign();
+      consTouch(); buildConsign();
     });
   });
+  // вернуть строку к общему сроку
+  cb.querySelectorAll('[data-same]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      delete CONS_OWN[b.getAttribute('data-same')];
+      consTouch(); buildConsign();
+    });
+  });
+  consBtn();
 }
 
 // управление сроком — вешаем один раз
@@ -859,11 +891,13 @@ function buildConsign(){
     let v=parseFloat(String(all.value).replace(',','.'));
     if(!isFinite(v)||v<1) v=1;
     if(v>120) v=120;
-    CONS_DEF=v; all.value=v; consSave(); buildConsign();
+    CONS_DEF=v; all.value=v; consTouch(); buildConsign();
   };
   all.addEventListener('change',apply);
   const ap=document.getElementById('c-apply');
-  if(ap) ap.addEventListener('click',()=>{CONS_OWN={};apply();});
+  if(ap) ap.addEventListener('click',()=>{CONS_OWN={};apply();});   // всем один срок
+  const sv=document.getElementById('c-save');
+  if(sv) sv.addEventListener('click',()=>{consSave();buildConsign();});
   const rs=document.getElementById('c-reset');
   if(rs) rs.addEventListener('click',()=>{CONS_OWN={};CONS_DEF=14;all.value=14;consSave();buildConsign();});
 })();
