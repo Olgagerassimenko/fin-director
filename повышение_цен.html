@@ -321,6 +321,84 @@ body{
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ПАНЕЛЬ ФИЛЬТРОВ
+   Было восемь одинаковых выпадающих списков в ряд: чтобы понять текущие
+   настройки, приходилось читать все восемь. Теперь панель разложена на
+   три полосы с подписями слева — «что считаем», «что показываем», «что
+   делаем», — а короткие взаимоисключающие настройки стали видимыми
+   переключателями. Ни одна цифра от этого не меняется.
+   ═══════════════════════════════════════════════════════════════════════ */
+.pu-panel{position:relative;overflow:hidden;
+  background:linear-gradient(180deg,#101b31,#0d1526);
+  border:1px solid #22304d;
+  box-shadow:0 24px 56px -44px #000, inset 0 1px 0 rgba(255,255,255,.04)}
+.pu-panel:before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(620px 200px at 82% -40%,rgba(124,58,237,.16),transparent 68%)}
+.pu-fbar{position:relative;display:grid;gap:1px;background:#1b2740;
+  border:1px solid #1f2c47;border-radius:15px;overflow:hidden}
+.pu-frow{display:grid;grid-template-columns:132px minmax(0,1fr);align-items:center;gap:14px;
+  padding:12px 15px;background:#0d1729}
+.pu-frow-act{background:linear-gradient(90deg,rgba(124,58,237,.13),rgba(124,58,237,.03) 55%,transparent)}
+.pu-fl{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#61708c;
+  line-height:1.35}
+.pu-ff{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pu-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* выпадающие списки со своей стрелкой — родная у Chrome и Firefox разная */
+.pu-sel{position:relative;flex:1 1 210px;min-width:0}
+.pu-sel:after{content:"";position:absolute;right:12px;top:50%;width:7px;height:7px;
+  border-right:1.8px solid #7c8aa5;border-bottom:1.8px solid #7c8aa5;
+  transform:translateY(-70%) rotate(45deg);pointer-events:none;transition:.16s}
+.pu-sel:hover:after{border-color:#c4b5fd}
+.pu-sel select{-webkit-appearance:none;appearance:none;width:100%;
+  background:#0a1222;border:1px solid #26334d;color:#e5edf7;border-radius:10px;
+  padding:9px 32px 9px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;transition:.16s;
+  text-overflow:ellipsis}
+.pu-sel select:hover{border-color:#3b4a6b;background:#0c1526}
+.pu-sel select:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.22)}
+
+/* переключатели вместо списков там, где вариантов два-три */
+.pu-seg{display:inline-flex;background:#0a1222;border:1px solid #26334d;border-radius:11px;padding:3px;gap:3px}
+.pu-seg button{background:transparent;border:0;color:#8ea3bd;font-family:inherit;font-size:12.5px;
+  font-weight:700;padding:7px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:.16s}
+.pu-seg button:hover{color:#e5edf7;background:rgba(255,255,255,.05)}
+.pu-seg button.on{color:#fff;background:linear-gradient(135deg,#7c3aed,#5b21b6);
+  box-shadow:0 6px 18px -8px rgba(124,58,237,1)}
+.pu-seg-n button{min-width:44px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* поиск с лупой */
+.pu-find{position:relative;flex:1 1 200px;min-width:0;display:block}
+.pu-find:before{content:"⌕";position:absolute;left:11px;top:50%;transform:translateY(-52%);
+  font-size:16px;color:#61708c;pointer-events:none}
+.pu-find .pu-search{padding-left:31px;border-radius:10px;background:#0a1222}
+
+/* ползунок: заполненная часть подсвечена, значение — крупной плашкой */
+.pu-slider{display:flex;align-items:center;gap:14px;flex:0 1 520px;min-width:240px}
+.pu-slider input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:6px;border-radius:99px;
+  background:linear-gradient(90deg,#7c3aed 0%,#a78bfa var(--p,25%),#1b2740 var(--p,25%),#1b2740 100%);
+  outline:none;cursor:pointer}
+.pu-slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+  width:18px;height:18px;border-radius:50%;background:#fff;cursor:pointer;
+  border:3px solid #7c3aed;box-shadow:0 0 0 4px rgba(124,58,237,.2),0 4px 12px -3px #000;transition:.14s}
+.pu-slider input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.14)}
+.pu-slider input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;
+  border:3px solid #7c3aed;cursor:pointer;box-shadow:0 0 0 4px rgba(124,58,237,.2)}
+.pu-slider b{font-size:18px;font-weight:900;color:#fff;min-width:72px;text-align:center;
+  font-variant-numeric:tabular-nums;letter-spacing:-.4px;flex:none;
+  background:rgba(124,58,237,.18);border:1px solid rgba(167,139,250,.42);border-radius:9px;
+  padding:5px 10px;text-shadow:0 0 20px rgba(167,139,250,.75)}
+.pu-fbtns{display:flex;align-items:center;gap:9px;margin-left:auto;flex-wrap:wrap}
+.pu-btn-go{background:linear-gradient(135deg,#7c3aed,#5b21b6);border-color:transparent;color:#fff;
+  box-shadow:0 10px 26px -14px rgba(124,58,237,1)}
+.pu-btn-go:hover{filter:brightness(1.1);color:#fff;background:linear-gradient(135deg,#7c3aed,#5b21b6)}
+
+@media (max-width:900px){
+  .pu-frow{grid-template-columns:1fr;gap:9px;padding:12px 13px}
+  .pu-fbtns{margin-left:0}
+  .pu-slider{flex:1 1 100%}
+}
 </style></head>
 <body>
 
@@ -338,57 +416,87 @@ body{
      странице из contractor_items.js (что и почём берёт каждый контрагент) и
      sku_margin.js (маржа по позициям). Ничего нового с сервера не грузим. -->
 <div class="section" id="price-up-section">
-  <!-- Управление: период, общий процент, ожидаемая реакция объёма -->
-  <div class="card" style="margin-bottom:12px">
-    <div class="pu-ctl">
-      <div><label>Считаем по</label>
-        <select id="pu-per">
-          <option value="3">трём последним полным месяцам</option>
-          <option value="1">последнему полному месяцу</option>
-          <option value="6">шести последним полным месяцам</option>
-        </select>
-      </div>
-      <div><label>Категория</label>
-        <select id="pu-cat"><option value="">все категории</option></select>
-      </div>
-      <div><label>Отбор позиций</label>
-        <select id="pu-pick">
-          <option value="rev">по выручке — самые крупные</option>
-          <option value="mg">по марже — самые тонкие</option>
-          <option value="both">и то и другое в одной таблице</option>
-        </select>
-      </div>
-      <div><label>Сколько позиций</label>
-        <select id="pu-top">
-          <option value="20">20</option>
-          <option value="30">30</option>
-          <option value="50">50</option>
-        </select>
-      </div>
-      <div><label>Поднять всем на</label>
-        <div class="pu-inline">
-          <input id="pu-pct" type="range" min="0" max="20" step="0.5" value="5">
-          <b id="pu-pct-v">5,0%</b>
+  <!-- Управление: период, общий процент, ожидаемая реакция объёма.
+       Панель разбита на три полосы: «что считаем» → «что показываем» →
+       «что делаем». Короткие взаимоисключающие настройки сделаны
+       переключателями, а не выпадающими списками: выбранное видно, не
+       раскрывая. Сами select-ы остались в разметке скрытыми — на них
+       завязана вся логика, и клавиатура с телефоном работают как прежде. -->
+  <div class="card pu-panel" style="margin-bottom:12px">
+    <div class="pu-fbar">
+
+      <div class="pu-frow">
+        <div class="pu-fl">Считаем по</div>
+        <div class="pu-ff">
+          <div class="pu-sel">
+            <select id="pu-per">
+              <option value="3">трём последним полным месяцам</option>
+              <option value="1">последнему полному месяцу</option>
+              <option value="6">шести последним полным месяцам</option>
+            </select>
+          </div>
+          <div class="pu-sel">
+            <select id="pu-cat"><option value="">все категории</option></select>
+          </div>
+          <div class="pu-sel">
+            <select id="pu-el">
+              <option value="0">никто не уйдёт (0)</option>
+              <option value="-0.5">слабая реакция: −0,5% объёма на 1% цены</option>
+              <option value="-0.8" selected>обычная реакция: −0,8% объёма на 1% цены</option>
+              <option value="-1.2">острая реакция: −1,2% объёма на 1% цены</option>
+              <option value="-2">жёсткая реакция: −2% объёма на 1% цены</option>
+            </select>
+          </div>
         </div>
       </div>
-      <div><label>Реакция объёма</label>
-        <select id="pu-el">
-          <option value="0">никто не уйдёт (0)</option>
-          <option value="-0.5">слабая: −0,5% объёма на 1% цены</option>
-          <option value="-0.8" selected>обычная: −0,8% объёма на 1% цены</option>
-          <option value="-1.2">острая: −1,2% объёма на 1% цены</option>
-          <option value="-2">жёсткая: −2% объёма на 1% цены</option>
-        </select>
-      </div>
-      <div><label>Найти позицию</label>
-        <input id="pu-q" class="pu-search" type="search" placeholder="часть названия…">
-      </div>
-      <div><label>&nbsp;</label>
-        <div class="pu-inline">
-          <button class="pu-btn" id="pu-rec">Проставить рекомендованные</button>
-          <button class="pu-btn" id="pu-reset">Сбросить</button>
+
+      <div class="pu-frow">
+        <div class="pu-fl">Показываем</div>
+        <div class="pu-ff">
+          <div class="pu-seg" data-for="pu-pick" role="group" aria-label="Отбор позиций">
+            <button type="button" data-v="rev">по выручке</button>
+            <button type="button" data-v="mg">тонкая маржа</button>
+            <button type="button" data-v="both">и то и другое</button>
+          </div>
+          <div class="pu-seg pu-seg-n" data-for="pu-top" role="group" aria-label="Сколько позиций">
+            <button type="button" data-v="20">20</button>
+            <button type="button" data-v="30">30</button>
+            <button type="button" data-v="50">50</button>
+          </div>
+          <label class="pu-find">
+            <input id="pu-q" class="pu-search" type="search" placeholder="найти позицию…">
+          </label>
         </div>
       </div>
+
+      <div class="pu-frow pu-frow-act">
+        <div class="pu-fl">Поднять всем на</div>
+        <div class="pu-ff">
+          <div class="pu-slider">
+            <input id="pu-pct" type="range" min="0" max="20" step="0.5" value="5">
+            <b id="pu-pct-v">5,0%</b>
+          </div>
+          <div class="pu-fbtns">
+            <button class="pu-btn pu-btn-go" id="pu-rec">Проставить рекомендованные</button>
+            <button class="pu-btn" id="pu-reset">Сбросить</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- Селекты, на которых висит логика: переключатели выше только
+         передают в них значение и шлют change. -->
+    <div class="pu-hidden">
+      <select id="pu-pick">
+        <option value="rev">по выручке — самые крупные</option>
+        <option value="mg">по марже — самые тонкие</option>
+        <option value="both">и то и другое в одной таблице</option>
+      </select>
+      <select id="pu-top">
+        <option value="20">20</option>
+        <option value="30">30</option>
+        <option value="50">50</option>
+      </select>
     </div>
     <details class="pu-more">
       <summary>Как это считается и что означают колонки</summary>
@@ -1520,7 +1628,49 @@ body{
       + '% в год плюс надбавки за тонкую маржу и растущий спрос. Разовый шаг не больше ' + STEP_CAP + '%.</div>';
   }
 
+  /* Переключатели поверх скрытых select-ов: кнопка кладёт значение в
+     select и шлёт change — вся логика ниже не знает, что интерфейс
+     изменился. Синхронизация двусторонняя, чтобы работали и клавиатура,
+     и «Сбросить». */
+  function segments() {
+    [].forEach.call(document.querySelectorAll('.pu-seg'), function (sg) {
+      var sel = document.getElementById(sg.getAttribute('data-for'));
+      if (!sel) return;
+      function sync() {
+        [].forEach.call(sg.children, function (b) {
+          var on = b.getAttribute('data-v') === String(sel.value);
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+      }
+      sg.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('button') : null;
+        if (!b || !sg.contains(b)) return;
+        if (sel.value === b.getAttribute('data-v')) return;
+        sel.value = b.getAttribute('data-v');
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        sync();
+      });
+      sel.addEventListener('change', sync);
+      sync();
+    });
+  }
+  /* Заливка ползунка до бегунка: без неё не видно, много это или мало */
+  function sliderFill() {
+    var r = document.getElementById('pu-pct');
+    if (!r) return;
+    function up() {
+      var mn = +r.min || 0, mx = +r.max || 100;
+      r.style.setProperty('--p', ((r.value - mn) / (mx - mn) * 100).toFixed(1) + '%');
+    }
+    r.addEventListener('input', up);
+    r.addEventListener('change', up);
+    up();
+  }
+
   ctl();
+  segments();
+  sliderFill();
   render();
 })();
 </script>
