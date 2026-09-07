@@ -43,6 +43,15 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
 .pu-xls{background:linear-gradient(135deg,#16a34a,#065f46);border-color:transparent;color:#eafff2}
 .pu-xls:hover{filter:brightness(1.12);background:linear-gradient(135deg,#16a34a,#065f46);color:#fff}
 .pu-note{font-size:11.5px;color:#8ea3bd;line-height:1.55;margin-top:10px}
+/* Пояснения свёрнуты: каждый день они не нужны, а место занимают */
+.pu-more{margin-top:12px;border-top:1px solid #1e293b;padding-top:10px}
+.pu-more summary{cursor:pointer;font-size:11.5px;font-weight:700;color:#8ea3bd;list-style:none;
+  display:flex;align-items:center;gap:7px;user-select:none;width:fit-content}
+.pu-more summary::-webkit-details-marker{display:none}
+.pu-more summary:before{content:'▸';color:#7c3aed;font-size:10px;transition:.15s}
+.pu-more[open] summary:before{transform:rotate(90deg)}
+.pu-more summary:hover{color:#cbd5e1}
+.pu-more .pu-legend{border-top:none;padding-top:6px;margin-top:8px}
 
 .pu-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:11px;margin-bottom:12px}
 .pu-kpi{background:#111a2e;border:1px solid #1e293b;border-radius:14px;padding:14px 16px}
@@ -255,8 +264,11 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
         </div>
       </div>
     </div>
-    <div class="pu-note" id="pu-help"></div>
-    <div class="pu-legend" id="pu-legend"></div>
+    <details class="pu-more">
+      <summary>Как это считается и что означают колонки</summary>
+      <div class="pu-note" id="pu-help"></div>
+      <div class="pu-legend" id="pu-legend"></div>
+    </details>
   </div>
 
   <!-- Итог одной фразой -->

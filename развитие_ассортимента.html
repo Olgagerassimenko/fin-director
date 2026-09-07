@@ -70,6 +70,16 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
 .inline b{font-size:15px;font-weight:900;color:var(--gold);min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
 .note{font-size:11.5px;color:var(--mut);line-height:1.6;margin-top:12px}
 .note b{color:var(--ink2)}
+/* Методика свёрнута: нужна редко, а места занимает много */
+.ra-more{margin-top:14px;border-top:1px solid var(--line);padding-top:11px}
+.ra-more summary{cursor:pointer;font-size:11px;font-weight:800;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--dim);list-style:none;display:flex;align-items:center;
+  gap:8px;user-select:none;width:fit-content}
+.ra-more summary::-webkit-details-marker{display:none}
+.ra-more summary:before{content:'▸';color:var(--gold);font-size:10px;transition:.15s}
+.ra-more[open] summary:before{transform:rotate(90deg)}
+.ra-more summary:hover{color:var(--ink2)}
+.ra-more .note{margin-top:9px}
 
 /* ── ВКЛАДКИ ── */
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 14px}
@@ -236,7 +246,10 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
         <select id="ra-cat"><option value="">все категории</option></select>
       </div>
     </div>
-    <div class="note" id="ra-help"></div>
+    <details class="ra-more">
+      <summary>Как это считается</summary>
+      <div class="note" id="ra-help"></div>
+    </details>
   </div>
 
   <div class="tabs" id="ra-tabs">
