@@ -428,21 +428,51 @@ kz_rows = []; kz_date = ""
 try:
     gr = requests.get(f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={KZ_GID}", timeout=30)
     grows = list(csv.reader(io.StringIO(gr.content.decode("utf-8-sig"))))
-    if len(grows) > 2 and grows[2]:
-        kz_date = (grows[2][0] or "").strip()
     hdr = grows[3] if len(grows) > 3 else []
     log("   заголовки листа:", " | ".join((c or "")[:24] for c in hdr[:8]))
-    # колонки: 0=Поставщик, 1=Задолженность перед поставщиками, 2=Приход товара, 3=Оплата
+
+    # Долг брали из колонки B — а это «Задолженность перед поставщиками на
+    # 01.03.02», самый первый, мартовский 2025 года остаток, и колонки C и D
+    # рядом с ней — приход и оплата той же давней недели. Дашборд показывал
+    # позапрошлогодние цифры как сегодняшние: у «Succes овощи» стояло
+    # 16 220 297 ₸ вместо 364 467 ₸, у «Кокрекбай овощи» 9 584 891 вместо
+    # 1 278 764. Теперь берём последнюю датированную колонку «КЗ на …»,
+    # а приход и оплату — за неделю, которая ею заканчивается.
+    dated = []
+    for i, cell in enumerate(hdr):
+        c = str(cell or "")
+        if re.search(r"(?:задолженность|кз)\s*на\s*\d", c, re.I | re.UNICODE):
+            m = re.search(r"(\d{1,2}\.\d{2}\.\d{2,4})", c)
+            if m:
+                dated.append((i, m.group(1)))
+    if not dated:
+        raise RuntimeError("в листе КЗ не нашлось ни одной колонки «КЗ на <дата>»")
+    i_debt, kz_date = dated[-1]
+    i_prev = dated[-2][0] if len(dated) > 1 else 0
+    i_prih = i_opl = None
+    for j in range(i_prev + 1, i_debt):
+        if j >= len(hdr): break
+        c = str(hdr[j] or "")
+        if i_prih is None and re.search(r"приход\s+товара", c, re.I | re.UNICODE): i_prih = j
+        if i_opl is None and re.search(r"оплата", c, re.I | re.UNICODE): i_opl = j
+    log(f"   долг берём из колонки {i_debt} «{str(hdr[i_debt])[:28]}», "
+        f"приход {i_prih}, оплата {i_opl}")
+
+    def cell(row, i):
+        return num(row[i]) if (i is not None and i < len(row)) else 0.0
+
     for row in grows[4:]:
         nm = (row[0] if row else "").strip()
         if not nm or re.sub(r"[^0-9a-zа-яё]", "", nm.lower()) == "": continue
         if re.match(r"^[\d\s.,\-]+$", nm): continue  # строки-числа/итоги
         if re.match(r"^\s*(итого|итог|всего|total|остаток|баланс|сумма|результат)\b", nm, re.I): continue  # итоговые строки — не поставщики
-        debt = num(row[1]) if len(row) > 1 else 0
-        prihod = num(row[2]) if len(row) > 2 else 0
-        oplata = num(row[3]) if len(row) > 3 else 0
+        # В листе наш долг записан отрицательным числом, аванс поставщику —
+        # положительным. На дашборде удобнее наоборот: долг — положительный.
+        debt = -cell(row, i_debt)
+        prihod = cell(row, i_prih)
+        oplata = cell(row, i_opl)
         kz_rows.append({"name": nm, "debt": round(debt), "prihod": round(prihod), "oplata": round(oplata)})
-    log(f"   компаний в листе: {len(kz_rows)} · дата листа: {kz_date}")
+    log(f"   компаний в листе: {len(kz_rows)} · долг на: {kz_date}")
 except Exception as e:
     log("   Google КЗ err:", e)
 kz_rows.sort(key=lambda x: -x["debt"])
