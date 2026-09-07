@@ -76,6 +76,12 @@ jobs:
         continue-on-error: true
         timeout-minutes: 9
         run: python SKU_iiko/generate.py
+      # Справочник маржи по позициям для раздела «Повышение цен» на дашборде
+      # продаж. Сжимает sku_live.js (больше мегабайта) до шестидесяти килобайт:
+      # имя позиции, маржа и выручка за последние закрытые месяцы.
+      - name: "9б. Маржа по позициям (для повышения цен)"
+        continue-on-error: true
+        run: python gen_sku_margin.py
       - name: "10. Закуп из iiko"
         continue-on-error: true
         timeout-minutes: 9
@@ -164,7 +170,7 @@ jobs:
         run: |
           git config user.name "pulse-ci"
           git config user.email "ci@local"
-          git add -f продажи_2026.html дашборд_ддс.html дашборд_ддс_прямой.html склады.html "дашборд_себестоимость_2025-2026.html" закуп.html zakup_data.js dz_kz.js рычаги.html дашборд_sku_iiko.html *_meta.js ddsp_days.js kz_ana.js opiu_audit.js opiu_iiko.js sales_sum.js sku_live.js contractor_items.js opiu_rev.js production_data.js production_LOG.txt 2>/dev/null || true
+          git add -f продажи_2026.html sku_margin.js дашборд_ддс.html дашборд_ддс_прямой.html склады.html "дашборд_себестоимость_2025-2026.html" закуп.html zakup_data.js dz_kz.js рычаги.html дашборд_sku_iiko.html *_meta.js ddsp_days.js kz_ana.js opiu_audit.js opiu_iiko.js sales_sum.js sku_live.js contractor_items.js opiu_rev.js production_data.js production_LOG.txt 2>/dev/null || true
           git commit -m "Свежие данные дашбордов [skip ci]" || echo "нет изменений"
           # Здесь тоже стоял --autostash, и это была вторая точка порчи данных:
           # при конфликте stash pop писал маркеры <<<<<<< прямо в файлы, а
