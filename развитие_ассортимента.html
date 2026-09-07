@@ -134,7 +134,7 @@ table.t tfoot td{border-top:1px solid var(--line2);background:#0b1424;font-weigh
 .cli h3{font-size:19px;font-weight:900;letter-spacing:-.3px;margin-bottom:3px}
 .cli .meta{font-size:11.5px;color:var(--mut);line-height:1.6}
 .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
-.kv div{background:rgba(255,255,255,.026);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kv>div{background:rgba(255,255,255,.026);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .kv .v{font-size:17px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums}
 .kv .l{font-size:10.5px;color:var(--mut);margin-top:3px;line-height:1.35}
 .mix{display:flex;height:11px;border-radius:6px;overflow:hidden;background:#16203a;margin-top:6px}
@@ -187,6 +187,141 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
   .topbar{padding:12px 14px;gap:10px}
   .ordbar{margin:14px -12px -34px;padding:11px 14px;gap:10px}
   table.mxt th.cor,table.mxt td.rh{min-width:150px;max-width:150px}
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   СОБСТВЕННОЕ ЛИЦО РАЗДЕЛА
+   Все дашборды Пульса тёмно-синие и похожи друг на друга — открыв
+   вкладку, не сразу понимаешь, где ты. Этот раздел про рост, поэтому
+   у него своя гамма: изумруд как «прибавка» и золото как деньги.
+   Меняется только оформление, ни одна цифра от этого не двигается.
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  --em:#34d399; --em2:#0f9f74; --emd:#0b3b30;
+}
+body{background:#050f14}
+body:before{
+  background:
+    radial-gradient(1000px 520px at 8% -10%,rgba(52,211,153,.17),transparent 60%),
+    radial-gradient(820px 460px at 94% -2%,rgba(232,182,76,.11),transparent 58%),
+    radial-gradient(1100px 700px at 50% 108%,rgba(15,159,116,.08),transparent 62%)}
+/* Тонкая диагональная штриховка — фактура, которой нет у других страниц */
+body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:repeating-linear-gradient(58deg,rgba(52,211,153,.045) 0 1px,transparent 1px 76px)}
+
+.topbar{background:rgba(6,18,24,.9);border-bottom:1px solid rgba(52,211,153,.2);
+  box-shadow:0 10px 34px -22px rgba(52,211,153,.8)}
+/* Метка раздела слева от заголовка: видно с первого взгляда, что это «рост» */
+.topbar h1{display:flex;align-items:center;gap:9px}
+.topbar h1:before{content:"";width:9px;height:9px;border-radius:3px;flex:none;
+  background:linear-gradient(135deg,var(--em),var(--gold));
+  box-shadow:0 0 0 3px rgba(52,211,153,.14),0 0 16px rgba(52,211,153,.8)}
+.backbtn:hover{background:var(--em2);border-color:var(--em2)}
+.live{color:#b9f4dc;background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.35)}
+
+.card,.hero{box-shadow:0 26px 60px -46px rgba(0,0,0,.95)}
+.hero{background:linear-gradient(150deg,#0b2a25 0%,#08171f 52%,#071019 100%);
+  border-color:rgba(52,211,153,.24);
+  box-shadow:0 0 0 1px rgba(52,211,153,.05),0 34px 90px -58px rgba(52,211,153,.85)}
+.hero:before{background:
+  radial-gradient(600px 260px at 90% 4%,rgba(232,182,76,.16),transparent 64%),
+  radial-gradient(520px 300px at 2% 96%,rgba(52,211,153,.16),transparent 66%)}
+/* Восходящая дуга в фоне героя — про рост говорит сама форма */
+.hero:after{content:"";position:absolute;right:-90px;bottom:-150px;width:430px;height:430px;
+  border-radius:50%;border:1.5px solid rgba(52,211,153,.16);
+  border-right-color:transparent;border-bottom-color:transparent;
+  transform:rotate(-28deg);pointer-events:none}
+.hero h2{color:var(--em);text-shadow:0 0 26px rgba(52,211,153,.4)}
+.hero .big{background:linear-gradient(112deg,#fff 4%,#a9f0d3 40%,#e8b64c 96%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 6px 34px rgba(52,211,153,.3))}
+.hs{border-color:rgba(52,211,153,.16);background:rgba(52,211,153,.045);
+  position:relative;overflow:hidden;transition:.18s}
+.hs:before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:linear-gradient(180deg,var(--em),transparent)}
+.hs:hover{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.085);transform:translateX(2px)}
+
+.eyebrow{color:#5d8f80}
+.eyebrow:after{background:linear-gradient(90deg,rgba(52,211,153,.35),transparent)}
+.ctl select,.ctl input[type=search]{background:#07161c;border-color:rgba(52,211,153,.2)}
+.ctl select:focus,.ctl input:focus{border-color:var(--em);box-shadow:0 0 0 3px rgba(52,211,153,.13)}
+.ctl input[type=range]{accent-color:var(--em)}
+.inline b{color:var(--em)}
+.ra-more summary:before{color:var(--em)}
+
+.tab:hover{border-color:rgba(52,211,153,.35);color:#cfeee1}
+.tab.on{background:linear-gradient(135deg,rgba(52,211,153,.2),rgba(232,182,76,.14));
+  border-color:rgba(52,211,153,.55);box-shadow:0 0 24px -6px rgba(52,211,153,.55)}
+
+.pick{transition:.16s}
+.pick:hover{border-color:rgba(52,211,153,.35);box-shadow:0 14px 30px -22px rgba(52,211,153,.9)}
+.pick.on{border-color:rgba(52,211,153,.55);
+  background:linear-gradient(150deg,rgba(52,211,153,.12),transparent 72%);
+  box-shadow:inset 3px 0 0 var(--em),0 16px 34px -22px rgba(52,211,153,.9)}
+.pick .bar i{background:linear-gradient(90deg,var(--em2),var(--em))}
+
+.cell:hover{outline-color:var(--em)}
+.cell.gap{box-shadow:inset 0 0 0 1.5px var(--em)}
+.p-new{background:rgba(52,211,153,.16);color:#8df0c6;box-shadow:0 0 14px -4px rgba(52,211,153,.8)}
+.up{color:var(--em)}
+.chk input{accent-color:var(--em)}
+
+.ordbar{background:rgba(6,18,24,.95);border-top:1px solid rgba(52,211,153,.28);
+  box-shadow:0 -14px 40px -26px rgba(52,211,153,.9)}
+.btn:hover{background:#12312a;border-color:rgba(52,211,153,.4);color:#fff}
+.btn.pri{background:linear-gradient(135deg,var(--em),var(--em2));color:#04231a;
+  box-shadow:0 10px 28px -12px rgba(52,211,153,.85)}
+.btn.pri:hover{color:#04231a}
+table.t tbody tr:hover td{background:#0c2229}
+footer{border-top-color:rgba(52,211,153,.14)}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ДВИЖЕНИЕ
+   Отчёт пересчитывается на каждое движение ползунка, и статичные цифры
+   этого не показывают: непонятно, изменилось что-то или нет. Поэтому
+   числа доезжают до нового значения, блоки въезжают по очереди, полосы
+   растут из нуля. Анимация здесь не украшение — она показывает, что
+   именно поменялось от вашего действия.
+   ═══════════════════════════════════════════════════════════════════ */
+@keyframes ra-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes ra-pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+@keyframes ra-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes ra-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes ra-flash{0%{filter:drop-shadow(0 6px 34px rgba(52,211,153,.3))}
+  35%{filter:drop-shadow(0 6px 54px rgba(52,211,153,.95))}
+  100%{filter:drop-shadow(0 6px 34px rgba(52,211,153,.3))}}
+@keyframes ra-sheen{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+
+#ra-body.ra-anim{animation:ra-in .38s cubic-bezier(.22,.9,.3,1)}
+.hero .big.flash{animation:ra-flash .75s ease}
+.tn{font-variant-numeric:tabular-nums}
+
+.picks .pick{animation:ra-rise .42s cubic-bezier(.22,.9,.3,1) both}
+.hero-side .hs{animation:ra-rise .46s cubic-bezier(.22,.9,.3,1) both}
+.kv>div{animation:ra-rise .4s cubic-bezier(.22,.9,.3,1) both}
+table.t tbody tr{animation:ra-rise .32s ease both}
+.cell{animation:ra-pop .3s ease both}
+.pick .bar i,.mix i{transform-origin:left;animation:ra-grow .8s cubic-bezier(.16,.84,.24,1) both}
+
+/* Блик по кнопке выгрузки — единственный по-настоящему конечный шаг */
+.btn.pri{position:relative;overflow:hidden}
+.btn.pri:after{content:"";position:absolute;top:-40%;bottom:-40%;left:0;width:38%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);
+  animation:ra-sheen 3.4s linear infinite;pointer-events:none}
+
+.hs,.pick,.tab,.btn{will-change:transform}
+.tab{transition:transform .16s,background .18s,border-color .18s,color .18s,box-shadow .18s}
+.tab:active{transform:scale(.96)}
+.pick:active{transform:translateY(0) scale(.985)}
+.cell{transition:transform .12s,outline-color .12s}
+.cell:hover{transform:scale(1.22);position:relative;z-index:3}
+
+@media (prefers-reduced-motion:reduce){
+  .hs:hover{transform:none}
+  #ra-body.ra-anim,.picks .pick,.hero-side .hs,.kv div,table.t tbody tr,.cell,
+  .pick .bar i,.mix i,.hero .big.flash,.btn.pri:after{animation:none!important}
+  .pick .bar i,.mix i{transform:none}
+  .cell:hover{transform:none}
 }
 </style></head>
 <body><div class="wrap">
@@ -323,6 +458,9 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
   var BAD = { 'Сырье': 1, 'Несъедобные': 1, 'Упаковка': 1, 'Овощной цех': 1, 'Мясной цех': 1,
     'ПП*': 1, 'Прочее': 1 };
   var MIN_CLIENT = 300000;   // клиенты мельче 300 тыс ₸/мес в расчёт не идут
+  /* Контрагенты, которых не разбираем: ассортимент им подбирают не по этой
+     логике, а их профиль ещё и искажает группы «похожих» клиентов. */
+  var SKIP_CLI = /o-?live/i;
 
   var state = { per: 3, real: 0.5, cap: 0.10, min: 30000, cat: '',
     tab: 'who', who: null, what: null, q: '', sort: 'profit', dir: -1, drop: {} };
@@ -382,6 +520,7 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     var cl = {};
     ms.forEach(function (m) {
       (CTR[m] || []).forEach(function (c) {
+        if (SKIP_CLI.test(c.name || '')) return;
         var t = cl[c.name] || (cl[c.name] = { name: c.name, rev: 0, it: {}, cat: {}, pts: c.points || 1 });
         if (c.points) t.pts = Math.max(t.pts, c.points);
         (c.items || []).forEach(function (it) {
@@ -510,8 +649,60 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     return p.length === 1 ? nm(p[0]) : nm(p[0]) + ' – ' + nm(p[p.length - 1]);
   }
 
-  var PALETTE = ['#8b7cf6', '#e8b64c', '#4ade80', '#38bdf8', '#f472b6', '#fb923c',
-    '#a3e635', '#22d3ee', '#c084fc', '#facc15'];
+  var PALETTE = ['#34d399', '#e8b64c', '#38bdf8', '#a3e635', '#f472b6', '#fb923c',
+    '#8b7cf6', '#22d3ee', '#c084fc', '#facc15'];
+
+  /* ── ЖИВЫЕ ЦИФРЫ ────────────────────────────────────────────────────
+     Ползунок «реалистичность» пересчитывает весь отчёт на каждое
+     движение. Если цифра просто подменяется, глаз не успевает поймать,
+     что она вообще поменялась. Поэтому число доезжает от прошлого
+     значения к новому: видно и направление, и масштаб изменения.      */
+  var SLOW = window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var TWPREV = {};
+  var FMT = {
+    f0p: function (v) { return '+' + f0(v) + ' ₸'; },
+    mon: function (v) { return '+' + money(v); },
+    monp: function (v) { return '+' + money(v) + ' ₸'; },
+    mo: function (v) { return money(v); },
+    int: function (v) { return f0(v); },
+    pc1: function (v) { return pc(v, 1); }
+  };
+  /* Разметка одного «доезжающего» числа. tk — ключ, по которому помним
+     прошлое значение; без него анимировать не от чего. */
+  function tn(v, f, tk) {
+    return '<span class="tn" data-v="' + (isFinite(v) ? v : 0) + '" data-f="' + f
+      + '" data-tk="' + esc(tk || '') + '"></span>';
+  }
+  function runTn(root) {
+    [].forEach.call((root || document).querySelectorAll('.tn[data-v]'), function (el) {
+      var to = parseFloat(el.getAttribute('data-v')) || 0;
+      var fn = FMT[el.getAttribute('data-f')] || FMT.int;
+      var k = el.getAttribute('data-tk');
+      var from = (k && TWPREV[k] !== undefined) ? TWPREV[k] : 0;
+      if (k) TWPREV[k] = to;
+      if (SLOW || from === to) { el.textContent = fn(to); return; }
+      var t0 = 0, dur = ANIM ? 560 : 170;   // при таскании ползунка догоняем быстро
+      (function step(ts) {
+        if (!t0) t0 = ts || 0;
+        var p = Math.min(1, ((ts || 0) - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = fn(from + (to - from) * e);
+        if (p < 1) requestAnimationFrame(step);
+      })(0);
+    });
+  }
+  /* Появление по очереди: сначала то, что выше, потом остальное.
+     При таскании ползунка пересчёт идёт десятки раз в секунду — если
+     каждый раз заново проигрывать въезд, страница будет мигать. Поэтому
+     на «непрерывных» перерисовках ANIM выключается. */
+  var ANIM = true;
+  function stagger(root, sel, step, cap) {
+    var i = 0;
+    [].forEach.call((root || document).querySelectorAll(sel), function (el) {
+      if (!ANIM) { el.style.animation = 'none'; return; }
+      el.style.animation = '';
+      el.style.animationDelay = Math.min(i++ * step, cap) + 'ms';
+    });
+  }
 
   /* ── ГЕРОЙ ── */
   function hero() {
@@ -523,7 +714,12 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     var kinds = {};
     live.forEach(function (r) { kinds[r.kind] = (kinds[r.kind] || 0) + r.profit; });
 
-    document.getElementById('ra-big').textContent = '+' + f0(profit) + ' ₸';
+    var big = document.getElementById('ra-big');
+    big.innerHTML = tn(profit, 'f0p', 'big');
+    /* вспышка только если сумма реально сдвинулась */
+    if (ANIM && TWPREV.big !== undefined && TWPREV.big !== profit && !SLOW) {
+      big.classList.remove('flash'); void big.offsetWidth; big.classList.add('flash');
+    }
     document.getElementById('ra-sub').innerHTML =
       'валовой прибыли в месяц — столько добавят <b>' + live.length + '</b> связок «клиент × позиция» '
       + 'у <b>' + Object.keys(cl).length + '</b> клиентов. Это <b>' + money(rev) + ' ₸</b> дополнительной '
@@ -538,9 +734,11 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     ];
     document.getElementById('ra-side').innerHTML = side.map(function (k) {
       var n = live.filter(function (r) { return r.kind === k[0]; }).length;
-      return '<div class="hs"><span class="v">+' + money(kinds[k[0]] || 0) + '</span>'
+      return '<div class="hs"><span class="v">' + tn(kinds[k[0]] || 0, 'mon', 'k' + k[0]) + '</span>'
         + '<span class="l"><b style="color:#c3d0e2">' + k[1] + '</b> · ' + n + ' шт<br>' + k[2] + '</span></div>';
     }).join('');
+    stagger(document.getElementById('ra-side'), '.hs', 70, 420);
+    runTn(document.querySelector('.hero'));
   }
 
   function confDots(r) {
@@ -601,10 +799,10 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
             return esc(cliName(g.n)) + ' <span class="mut">' + (g.s * 100).toFixed(0) + '%</span>';
           }).join(', ') + '</div>'
       +   '<div class="kv">'
-      +     '<div><div class="v">' + money(b.revM) + '</div><div class="l">₸ выручки в месяц</div></div>'
-      +     '<div><div class="v">' + skuCount + '</div><div class="l">позиций возит сейчас</div></div>'
-      +     '<div><div class="v gold">+' + money(pot) + '</div><div class="l">₸ прибыли в месяц можно добрать</div></div>'
-      +     '<div><div class="v">' + pc(b.revM ? b.list.reduce(function (s, r) { return s + r.gap; }, 0) / b.revM * 100 : 0, 1)
+      +     '<div><div class="v">' + tn(b.revM, 'mo', 'cRev') + '</div><div class="l">₸ выручки в месяц</div></div>'
+      +     '<div><div class="v">' + tn(skuCount, 'int', 'cSku') + '</div><div class="l">позиций возит сейчас</div></div>'
+      +     '<div><div class="v gold">' + tn(pot, 'mon', 'cPot') + '</div><div class="l">₸ прибыли в месяц можно добрать</div></div>'
+      +     '<div><div class="v">' + tn(b.revM ? b.list.reduce(function (s, r) { return s + r.gap; }, 0) / b.revM * 100 : 0, 'pc1', 'cGro')
       +       '</div><div class="l">рост выручки клиента</div></div>'
       +   '</div></div>'
       + '<div><div class="eyebrow" style="margin-bottom:6px">Из чего состоит его закуп</div>'
@@ -746,7 +944,7 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     var gapKey = {};
     IDX.recs.forEach(function (r) { gapKey[r.c + '|' + r.s] = r; });
 
-    var h = '<div class="eyebrow">Кто что возит · ярче — плотнее берут, золотая рамка — есть разрыв</div>'
+    var h = '<div class="eyebrow">Кто что возит · ярче — плотнее берут, изумрудная рамка — есть разрыв</div>'
       + '<div class="mx"><table class="mxt"><thead><tr><th class="cor"></th>'
       + sku.map(function (s) {
           return '<th class="rot"><div title="' + esc(s) + '">' + esc(shortName(s)).slice(0, 26) + '</div></th>';
@@ -756,7 +954,7 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
             + sku.map(function (s) {
                 var v = shareOf(n, s) / mxs[s], g = gapKey[n + '|' + s];
                 var A = IDX.A[n], rev = A.it[s] ? A.it[s].r / K : 0;
-                var bg = rev ? 'rgba(139,124,246,' + (0.14 + v * 0.72).toFixed(2) + ')' : '#0e1728';
+                var bg = rev ? 'rgba(52,211,153,' + (0.14 + v * 0.72).toFixed(2) + ')' : '#0e1728';
                 var txt = rev >= 1e6 ? (rev / 1e6).toFixed(1).replace('.', ',') + 'м'
                   : rev >= 1e3 ? Math.round(rev / 1e3) + 'к' : '';
                 return '<td class="c"><div class="cell' + (g ? ' gap' : '') + '" style="background:' + bg
@@ -768,9 +966,9 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
         }).join('')
       + '</tbody></table></div>'
       + '<div class="mxleg"><span><u style="background:#0e1728"></u>не возит</span>'
-      + '<span><u style="background:rgba(139,124,246,.3)"></u>берёт мало</span>'
-      + '<span><u style="background:rgba(139,124,246,.86)"></u>берёт плотно</span>'
-      + '<span><u style="background:transparent;box-shadow:inset 0 0 0 1.5px #e8b64c"></u>есть разрыв — клик открывает связку</span>'
+      + '<span><u style="background:rgba(52,211,153,.3)"></u>берёт мало</span>'
+      + '<span><u style="background:rgba(52,211,153,.86)"></u>берёт плотно</span>'
+      + '<span><u style="background:transparent;box-shadow:inset 0 0 0 1.5px #34d399"></u>есть разрыв — клик открывает связку</span>'
       + '<span class="mut">в ячейке — ₸ в месяц</span></div>';
     return h;
   }
@@ -850,6 +1048,14 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     else if (state.tab === 'what') body.innerHTML = viewWhat();
     else if (state.tab === 'mx') body.innerHTML = viewMx();
     else body.innerHTML = viewOrder();
+    /* перезапуск въезда содержимого: снимаем класс и ставим заново */
+    body.classList.remove('ra-anim');
+    if (ANIM) { void body.offsetWidth; body.classList.add('ra-anim'); }
+    stagger(body, '.picks .pick', 26, 620);
+    stagger(body, '.kv>div', 60, 300);
+    stagger(body, 'table.t tbody tr', 14, 420);
+    stagger(body, '.cell', 3, 500);
+    runTn(body);
     bar();
     bind();
   }
@@ -857,13 +1063,15 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
   function bar() {
     var live = IDX.recs.filter(function (r) { return !state.drop[r.c + '|' + r.s]; });
     var p = live.reduce(function (s, r) { return s + r.profit; }, 0);
-    document.getElementById('ra-bar').innerHTML =
+    var el = document.getElementById('ra-bar');
+    el.innerHTML =
       '<span class="n">В плане <b>' + live.length + '</b> связок · исполнение <b>'
       + Math.round(state.real * 100) + '%</b></span>'
-      + '<span class="v">+' + f0(p) + ' ₸ прибыли в месяц</span>'
-      + '<span class="n" style="margin-right:auto">+' + money(p * 12) + ' ₸ за год</span>'
+      + '<span class="v">' + tn(p, 'f0p', 'barP') + ' прибыли в месяц</span>'
+      + '<span class="n" style="margin-right:auto">' + tn(p * 12, 'monp', 'barY') + ' за год</span>'
       + '<button class="btn" id="ra-all">Вернуть все</button>'
       + '<button class="btn pri" id="ra-csv">Скачать наряд CSV</button>';
+    runTn(el);
     var a = document.getElementById('ra-all');
     if (a) a.addEventListener('click', function () { state.drop = {}; render(); });
     var c = document.getElementById('ra-csv');
@@ -935,7 +1143,8 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     var rl = document.getElementById('ra-real'), rv = document.getElementById('ra-real-v');
     rl.addEventListener('input', function () {
       state.real = parseInt(rl.value, 10) / 100;
-      rv.textContent = rl.value + '%'; render();
+      rv.textContent = rl.value + '%';
+      ANIM = false; render(); ANIM = true;
     });
     document.getElementById('ra-cap').addEventListener('change', function () {
       state.cap = parseFloat(this.value); render();
