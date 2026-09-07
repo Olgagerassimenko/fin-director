@@ -68,10 +68,22 @@ def load(fn, var):
 
 
 def short(s):
+    """Базовое имя позиции.
+
+    «RP*» — та же позиция под другой карточкой iiko: под этим именем её берёт
+    сеть АЗС. Считать карточки порознь нельзя: один товар распадается на две
+    строки с разной историей цены, и в ТОП-20 попадают обе половинки. Сводим
+    к базовому имени. «Сырая» и «готовая» — разные товары, регулярка их не
+    трогает.
+    """
     s = re.sub(r"^RP\*\s*", "", str(s or ""))
     s = re.sub(r"^Упак\s+", "", s, flags=re.I)
-    s = re.sub(r"\s+готов(ый)?\s+(ФЗ\s+СМ|СМ)\s*", " ", s, flags=re.I)
+    s = re.sub(r"\s+готов(ый)?\s+(ФЗ\s+СМ|СМ|ФЗ)\s*", " ", s, flags=re.I)
     return re.sub(r"\s{2,}", " ", s).strip()
+
+
+def key(s):
+    return short(s).lower()
 
 
 def median(v):
@@ -85,7 +97,7 @@ def collect():
     MG = load("sku_margin.js", "SKU_MARGIN")
     months = sorted(k for k in CTR if re.match(r"^\d{4}-\d{2}$", k))
     full = months[:-1]          # последний месяц незакрытый, себестоимость не разнесена
-    bym = {}
+    bym, cards = {}, {}
     for m in full:
         a = {}
         for c in CTR[m]:
@@ -94,15 +106,29 @@ def collect():
                 r = it.get("r") or 0
                 if q <= 0 or r <= 0:
                     continue
-                t = a.setdefault(it["n"], {"q": 0, "r": 0})
+                k = key(it["n"])
+                t = a.setdefault(k, {"q": 0, "r": 0})
                 t["q"] += q
                 t["r"] += r
+                cards.setdefault(k, {})
+                cards[k][it["n"]] = cards[k].get(it["n"], 0) + r
         bym[m] = a
-    return bym, full, MG
+    # маржа приходит по карточкам — сводим её к базовым именам, взвешивая выручкой
+    mgb = {}
+    for n, g in MG.items():
+        k = key(n)
+        x = mgb.setdefault(k, {"r": 0.0, "vp": 0.0, "c": ""})
+        x["r"] += g.get("r") or 0
+        x["vp"] += (g.get("r") or 0) * (g.get("m") or 0) / 100.0
+        if not x["c"] and g.get("c"):
+            x["c"] = g["c"]
+    for k, x in mgb.items():
+        x["m"] = x["vp"] / x["r"] * 100 if x["r"] else MARGIN_DEFAULT
+    return bym, full, mgb, cards
 
 
 def build():
-    bym, full, MG = collect()
+    bym, full, MG, cards = collect()
     per = full[-MONTHS:]
     agg = {}
     for m in per:
@@ -131,8 +157,10 @@ def build():
         s1 = sum(qs[-6:-3]) / 3.0
         trend = (s2 / s1 - 1) * 100 if s1 > 0 else None
         g = MG.get(n)
+        vs = sorted(cards.get(n, {}).items(), key=lambda kv: -kv[1])
         rows.append({
-            "n": n, "name": short(n), "cat": (g or {}).get("c", ""),
+            "n": n, "name": short(vs[0][0]) if vs else n, "cat": (g or {}).get("c", ""),
+            "cards": [v[0] for v in vs],
             "rev": t["r"] / len(per), "qty": t["q"] / len(per), "price": t["r"] / t["q"],
             "ser": ser, "qs": qs, "yoy": yoy, "ym": len(win), "trend": trend,
             "mg": g["m"] if g else MARGIN_DEFAULT,
@@ -238,7 +266,7 @@ def sheet_plan(wb, rows, built):
             ("Рекомендуем", 11), ("ПОДНЯТЬ, %", 11), ("Новая цена, ₸", 12),
             ("Выручка, +₸/мес", 14), ("Вал. прибыль, +₸/мес", 16),
             ("Вал. прибыль, +₸/год", 16), ("Запас по объёму", 12),
-            ("Ожидаем объём", 12), ("Обоснование", 58)]
+            ("Ожидаем объём", 12), ("Обоснование", 58), ("Карточки в iiko", 46)]
     head_row(ws, H, cols)
     NC = len(cols)
 
@@ -271,6 +299,7 @@ def sheet_plan(wb, rows, built):
         ws.cell(row=row, column=17,
                 value="=IF(L{r}=0,\"\",L{r}/(I{r}+L{r}))".format(r=row))
         ws.cell(row=row, column=18, value="=$D$4*L{r}".format(r=row))
+        ws.cell(row=row, column=20, value=" · ".join(r.get("cards") or []))
         ws.cell(row=row, column=19, value=r["why"] + (
             ". Расчёт просит %.1f%% — остальное вторым шагом через квартал" % r["need"]
             if r["need"] > r["rec"] else ""))
@@ -284,8 +313,8 @@ def sheet_plan(wb, rows, built):
                 cell.number_format = '#,##0'
             if c in (7, 9, 10, 11, 12, 17, 18):
                 cell.number_format = '0.0%'
-            if c in (1, 2, 3, 19):
-                cell.alignment = Alignment(vertical="center", wrap_text=(c == 19))
+            if c in (1, 2, 3, 19, 20):
+                cell.alignment = Alignment(vertical="center", wrap_text=(c in (19, 20)))
             else:
                 cell.alignment = Alignment(horizontal="right", vertical="center")
         # очередь — цветом, чтобы список читался сверху вниз
@@ -435,6 +464,13 @@ def sheet_method(wb, rows, built):
          "в k раз: новая выручка = R×k×(1+p), новая валовая прибыль = R×k×(m+p).", "p"),
         ("Отсюда «Запас по объёму» = p ÷ (m+p): настолько количество может упасть, прежде чем "
          "валовая прибыль вернётся к нынешней. Пока ожидаемое падение меньше запаса, подъём в плюсе.", "p"),
+        ("", "p"),
+        ("Почему позиций двадцать, а карточек в iiko больше", "h"),
+        ("Часть позиций ведётся в iiko под двумя именами: обычным и с приставкой «RP*» — под ней ту же "
+         "позицию берёт сеть АЗС. Это одно и то же изделие, поэтому в отчёте оно сведено в одну строку, "
+         "а из каких карточек оно собрано, написано в последней колонке. Если считать карточки порознь, "
+         "один товар распадается на две строки с разной историей цены, и в ТОП-20 попадают обе половинки. "
+         "«Сырая» и «готовая» при этом остаются разными позициями.", "p"),
         ("", "p"),
         ("Как считается «Цена ±»", "h"),
         ("Медиана цены последних месяцев против медианы начала окна. Медиана, а не крайние точки, "

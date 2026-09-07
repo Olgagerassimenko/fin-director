@@ -84,6 +84,7 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
 .pu-table td.c,.pu-table th.c{text-align:center}
 .pu-cat{font-size:10px;color:#64748b;font-weight:500;margin-top:1px}
 .pu-spark{display:block;margin:0 auto}
+.pu-table td.c .pu-spark{margin-bottom:1px}
 
 /* Подпись под названием колонки: сама колонка называется коротко,
    а единица измерения и база расчёта — мелким текстом под ней. */
@@ -356,13 +357,36 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
   }
-  /* «RP* Упак Сосиска в тесте  готов СМ (30шт гофра)» → читаемое имя */
-  function shortName(s) {
+  /* «RP*» — это та же позиция под другим именем: сеть АЗС берёт её по своей
+     карточке в iiko. Считать карточки порознь нельзя — один товар распадается
+     на две строки с разной историей цены, и в ТОП-20 попадают обе половинки.
+     Сводим по базовому имени, а разбивку по карточкам показываем в раскрытой
+     строке. «Сырая» и «готовая» — разные товары, их регулярка не трогает. */
+  function baseName(s) {
     return String(s || '').replace(/^RP\*\s*/, '').replace(/^Упак\s+/i, '')
-      .replace(/\s+готов(ый)?\s+(СМ|ФЗ\s+СМ)\s*/i, ' ').replace(/\s{2,}/g, ' ').trim();
+      .replace(/\s+готов(ый)?\s+(ФЗ\s+СМ|СМ|ФЗ)\s*/i, ' ')
+      .replace(/\s{2,}/g, ' ').trim();
   }
+  function baseKey(s) { return baseName(s).toLowerCase(); }
+  var shortName = baseName;
 
-  /* Помесячно складываем позиции по всем клиентам: количество и сумма */
+  /* Справочник маржи приходит по карточкам — сводим его к базовым именам,
+     маржа взвешивается по выручке карточек. */
+  var MGB = (function () {
+    var b = {};
+    for (var k in (MG || {})) {
+      var g = MG[k], id = baseKey(k);
+      var t = b[id] || (b[id] = { r: 0, vp: 0, c: '' });
+      t.r += g.r || 0; t.vp += (g.r || 0) * (g.m || 0) / 100;
+      if (!t.c && g.c) t.c = g.c;
+    }
+    for (var id2 in b) b[id2].m = b[id2].r ? b[id2].vp / b[id2].r * 100 : MARGIN_DEFAULT;
+    return b;
+  })();
+
+  /* Помесячно складываем позиции по всем клиентам: количество и сумма.
+     Ключ — базовое имя, карточки iiko запоминаем отдельно (VARS). */
+  var VARS = {};
   function collect() {
     var by = {};
     FULL.forEach(function (m) {
@@ -371,8 +395,11 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
         (c.items || []).forEach(function (it) {
           var q = Math.abs(it.q || 0), r = it.r || 0;
           if (q <= 0 || r <= 0) return;
-          var t = a[it.n] || (a[it.n] = { q: 0, r: 0 });
+          var id = baseKey(it.n);
+          var t = a[id] || (a[id] = { q: 0, r: 0 });
           t.q += q; t.r += r;
+          var v = VARS[id] || (VARS[id] = {});
+          v[it.n] = (v[it.n] || 0) + r;
         });
       });
     });
@@ -389,7 +416,7 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
     per.forEach(function (m) {
       (CTR[m] || []).forEach(function (c) {
         (c.items || []).forEach(function (it) {
-          if (it.n !== n) return;
+          if (baseKey(it.n) !== n) return;      // n — базовое имя, карточек может быть две
           var q = Math.abs(it.q || 0), r = it.r || 0;
           if (q <= 0 || r <= 0) return;
           var t = acc[c.name] || (acc[c.name] = { name: c.name, q: 0, r: 0 });
@@ -415,7 +442,7 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
     });
 
     var rows = Object.keys(agg).map(function (n) {
-      var t = agg[n], g = MG && MG[n];
+      var t = agg[n], g = MGB[n];
       var price = t.q > 0 ? t.r / t.q : 0;
       var series = FULL.map(function (m) {
         var s = (BYM[m] || {})[n];
@@ -455,8 +482,12 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
       var s1 = qs.slice(-2 * h, -h).reduce(function (a, b) { return a + b; }, 0) / h;
       var trend = s1 > 0 ? (s2 / s1 - 1) * 100 : null;
 
+      // как позиция называется в iiko: берём самую денежную карточку
+      var vs = Object.keys(VARS[n] || {}).sort(function (a, b) {
+        return VARS[n][b] - VARS[n][a];
+      });
       return {
-        n: n, name: shortName(n), cat: (g && g.c) || '',
+        n: n, name: baseName(vs[0] || n), cat: (g && g.c) || '', vars: vs,
         base: t.r / per.length, qty: t.q / per.length,
         price: price, pLast: pLast, series: series, qs: qs,
         flat: flat, yoy: yoy, yoyM: yoyM, trend: trend,
@@ -535,22 +566,40 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
     return '<span class="pu-tag pu-t-mid">в общем порядке</span>';
   }
 
-  /* Мини-график цены: видно, ступеньками её поднимали или она стоит ровно */
-  function spark(series) {
+  /* Мини-график в строке — уменьшенная копия того, что в раскрытой позиции:
+     столбики это количество, линия это цена. Одной линии мало: цена, которая
+     стоит на месте при растущем объёме, и цена, которая стоит при падающем, —
+     это два разных разговора с клиентом, а на голой линии они выглядят
+     одинаково. */
+  function spark(series, qs) {
     var v = series.filter(function (x) { return x !== null; });
     if (v.length < 2) return '<span class="pu-mut">—</span>';
     var mn = Math.min.apply(null, v), mx = Math.max.apply(null, v);
-    var rng = mx - mn || 1, W = 84, H = 20, n = series.length, pts = [], i, x, y;
+    var rng = mx - mn || 1, W = 100, H = 34, PB = 2, n = series.length;
+    var qmx = 0, i;
+    for (i = 0; i < n; i++) qmx = Math.max(qmx, (qs && qs[i]) || 0);
+    var step = n > 1 ? W / (n - 1) : W, bw = Math.max(3, Math.min(9, step * 0.56));
+    var bars = '', pts = [], x, y, bh;
     for (i = 0; i < n; i++) {
-      if (series[i] === null) continue;
-      x = (i / (n - 1)) * W;
-      y = H - 2 - ((series[i] - mn) / rng) * (H - 4);
-      pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+      x = n > 1 ? (i / (n - 1)) * (W - bw) + bw / 2 : W / 2;
+      if (qmx > 0) {
+        bh = ((qs && qs[i]) || 0) / qmx * (H - PB * 2) * 0.72;
+        if (bh > 0.4) bars += '<rect x="' + (x - bw / 2).toFixed(1) + '" y="' + (H - PB - bh).toFixed(1)
+          + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="1.5" fill="#25335a"/>';
+      }
+      if (series[i] !== null) {
+        y = PB + 1 + (1 - (series[i] - mn) / rng) * (H - PB * 2 - 8);
+        pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+      }
     }
-    var up = v[v.length - 1] >= v[0];
+    var up = v[v.length - 1] >= v[0], col = up ? '#4ade80' : '#f87171';
+    var last = pts.length ? pts[pts.length - 1].split(',') : null;
     return '<svg class="pu-spark" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">'
-      + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + (up ? '#4ade80' : '#f87171')
-      + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+      + bars
+      + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + col
+      + '" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'
+      + (last ? '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.2" fill="' + col + '"/>' : '')
+      + '</svg>';
   }
 
   /* Крупный график в раскрытой строке: столбики — объём, линия — цена */
@@ -632,6 +681,13 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
       + (safe ? '#22c55e' : '#ef4444') + '"></i></div></div>';
 
     var why = r.why && r.why.length ? r.why.join('; ') : 'признаков отставания цены нет';
+    // если позиция ведётся в iiko под несколькими карточками — показываем, под какими
+    var vs = (r.vars || []).length > 1
+      ? '<div class="pu-det-n" style="margin-top:6px"><b style="color:#cbd5e1">Карточки в iiko:</b> '
+        + r.vars.map(function (v) { return esc(v); }).join(' · ')
+        + '. Это одна позиция под разными именами — считаем её целиком, иначе один товар '
+        + 'распадается на две строки с разной историей цены.</div>'
+      : '';
 
     return '<div class="pu-det-in">'
       + '<div class="pu-det-g">'
@@ -651,6 +707,7 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
       +   (r.rec ? 'рекомендуем ' + pc(r.rec) : 'не трогаем') + ':</b> ' + esc(why)
       +   (r.need > r.rec ? '. Расчёт просит ' + pc(r.need) + ', но за один раз больше '
         + pc(STEP_CAP, 0) + ' клиент не принимает — остальное вторым шагом через квартал' : '') + '.</div>'
+      + vs
       + '</div>';
   }
 
@@ -679,7 +736,7 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
       case 'base':  return f0(r.base);
       case 'share': return '<span class="pu-mut">' + r.share.toFixed(1).replace('.', ',') + '%</span>';
       case 'price': return f0(r.price) + (p ? '<span class="sub pu-arrow">→ ' + f0(r.price * (1 + p / 100)) + '</span>' : '');
-      case 'hist':  return spark(r.series) + '<span class="sub">'
+      case 'hist':  return spark(r.series, r.qs) + '<span class="sub">'
         + (r.yoy === null ? 'мало истории'
           : '<b class="' + (r.yoy >= 5 ? 'pu-up' : r.yoy < 3 ? 'pu-dn' : '') + '">' + pc(r.yoy, 1)
             + '</b> за ' + r.yoyM + ' мес') + '</span>';
@@ -873,15 +930,15 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
   function csv() {
     var head = ['Позиция', 'Категория', 'Выручка ₸/мес', 'Цена ₸', 'Новая цена ₸', 'Цена ± %',
       'За мес', 'Маржа %', 'Объём %', 'Рекомендуем %', 'Поднимаем %', 'Прибыль ₸/мес',
-      'Выручка ₸/мес', 'Запас по объёму %'];
+      'Выручка ₸/мес', 'Запас по объёму %', 'Карточки в iiko'];
     var lines = [head.join(';')];
     sortRows(DATA.rows).forEach(function (r) {
       if (!isOn(r)) return;
       var p = pctFor(r), e = effect(r, p);
-      lines.push([r.n, r.cat, Math.round(r.base), Math.round(r.price), Math.round(r.price * (1 + p / 100)),
+      lines.push([r.name, r.cat, Math.round(r.base), Math.round(r.price), Math.round(r.price * (1 + p / 100)),
         r.yoy === null ? '' : r.yoy.toFixed(1), r.yoyM, r.mg.toFixed(1),
         r.trend === null ? '' : r.trend.toFixed(1), r.rec, p, Math.round(e.dVp), Math.round(e.dRev),
-        e.breakeven.toFixed(1)].map(function (x) {
+        e.breakeven.toFixed(1), (r.vars || []).join(' | ')].map(function (x) {
           return String(x).replace(/;/g, ',').replace(/\./g, ',');
         }).join(';'));
     });

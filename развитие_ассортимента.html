@@ -342,14 +342,35 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
   }
-  function shortName(s) {
+  /* «RP*» — та же позиция под другой карточкой iiko: так её берёт сеть АЗС.
+     Если считать карточки порознь, один товар выглядит как два разных, и
+     «завести с нуля» предлагается там, где он уже возится под другим именем.
+     Сводим всё к базовому имени. «Сырая» и «готовая» — разные товары. */
+  function baseName(s) {
     return String(s || '').replace(/^RP\*\s*/, '').replace(/^Упак\s+/i, '')
-      .replace(/\s+готов(ый)?\s+(ФЗ\s+СМ|СМ)\s*/i, ' ').replace(/\s{2,}/g, ' ').trim();
+      .replace(/\s+готов(ый)?\s+(ФЗ\s+СМ|СМ|ФЗ)\s*/i, ' ')
+      .replace(/\s{2,}/g, ' ').trim();
   }
+  function baseKey(s) { return baseName(s).toLowerCase(); }
+  var shortName = baseName;
+
+  /* Справочник маржи приходит по карточкам — сводим к базовым именам */
+  var MGB = (function () {
+    var b = {};
+    for (var k in (MG || {})) {
+      var g = MG[k], id = baseKey(k);
+      var x = b[id] || (b[id] = { r: 0, vp: 0, c: '' });
+      x.r += g.r || 0; x.vp += (g.r || 0) * (g.m || 0) / 100;
+      if (!x.c && g.c) x.c = g.c;
+    }
+    for (var i in b) b[i].m = b[i].r ? b[i].vp / b[i].r * 100 : MARGIN_DEFAULT;
+    return b;
+  })();
+  var DISP = {};   // базовое имя → как показывать
   function cliName(s) { return String(s || '').replace(/^\d+\s*-\s*/, ''); }
-  function cat(s) { return (MG[s] && MG[s].c) || '—'; }
-  function marg(s) { return MG[s] ? MG[s].m : MARGIN_DEFAULT; }
-  function offerable(s) { return !/^RP\*/.test(s) && !BAD[cat(s)]; }
+  function cat(s) { return (MGB[s] && MGB[s].c) || '—'; }
+  function marg(s) { return MGB[s] ? MGB[s].m : MARGIN_DEFAULT; }
+  function offerable(s) { return !BAD[cat(s)]; }
   function med(a) {
     if (!a.length) return 0;
     var v = a.slice().sort(function (x, y) { return x - y; });
@@ -366,9 +387,11 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
         (c.items || []).forEach(function (it) {
           var q = Math.abs(it.q || 0), r = it.r || 0;
           if (q <= 0 || r <= 0) return;
-          var s = t.it[it.n] || (t.it[it.n] = { q: 0, r: 0 });
+          var id = baseKey(it.n);
+          if (!DISP[id] || (DISP[id].r || 0) < r) DISP[id] = { n: it.n, r: r };
+          var s = t.it[id] || (t.it[id] = { q: 0, r: 0 });
           s.q += q; s.r += r; t.rev += r;
-          var ct = cat(it.n);
+          var ct = cat(id);
           t.cat[ct] = (t.cat[ct] || 0) + r;
         });
       });
@@ -457,7 +480,7 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
         var x = cand[k2], gap = x.gap * scale * state.real;
         if (gap < state.min) continue;
         if (state.cat && cat(k2) !== state.cat) continue;
-        var rec = { c: c, s: k2, name: shortName(k2), cat: cat(k2), kind: x.kind,
+        var rec = { c: c, s: k2, name: baseName((DISP[k2] || {}).n || k2), cat: cat(k2), kind: x.kind,
           gap: gap, cur: x.cur, exp: x.exp * scale * state.real, marg: marg(k2),
           profit: gap * marg(k2) / 100, have: x.have, grp: x.grp, was: x.was || 0,
           conf: x.grp ? x.have.length / x.grp : 1 };
