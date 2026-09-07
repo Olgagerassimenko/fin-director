@@ -277,7 +277,7 @@ function renderKZ(){
   <div class="k"><div class="l">Поставщиков с долгом</div><div class="v">${owe.length}</div><div class="u">из ${rows.length} в списке</div></div>
   <div class="k"><div class="l">Крупнейший долг</div><div class="v">${MLN(owe[0]?owe[0].debt:0)}</div><div class="u">${(owe[0]||{}).name||''}</div></div>
   <div class="k"><div class="l">Компаний в списке</div><div class="v">${rows.length}</div><div class="u">лист КЗ</div></div></div>`;
- let note=`<div class="note">Список поставщиков и суммы долга — из файла <b>ДЗ КЗ (лист КЗ)</b> на Google Диске${k.date?', на <b>'+k.date+'</b>':''} (колонка «Задолженность перед поставщиками»). Это основа плана оплат: кому и сколько должны.</div>`;
+ let note=`<div class="note">Список поставщиков и суммы долга — из файла <b>ДЗ КЗ (лист КЗ)</b> на Google Диске${k.date?', на <b>'+k.date+'</b>':''} (последняя колонка «КЗ на …»). Это основа плана оплат: кому и сколько должны.</div>`;
  let rr=owe.map((r,i)=>`<tr><td class="rk">${i+1}</td><td class="nm bar"><div class="fill" style="width:${Math.round(r.debt/mx*100)}%;background:#fb7185"></div><span>${r.name}</span></td>${hasFlow?`<td>${r.prihod?PR(r.prihod):'—'}</td><td class="pos">${r.oplata?PR(r.oplata):'—'}</td>`:''}<td class="neg">${PR(r.debt)}</td></tr>`).join('');
  const zero=rows.filter(r=>r.debt<=0);
  let tbl=`<div class="card"><div class="hd"><h3>План оплат · кому и сколько должны</h3><span class="sub">${owe.length} с долгом · отсортировано по сумме</span></div>

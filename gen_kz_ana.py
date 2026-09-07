@@ -39,7 +39,19 @@ def build(D):
     po_w = D["prihodOplata"]["weeks"]
     tv_w = D["tovary"]["weeks"]
     tv_m = D["tovary"]["months"]
-    debt = {r["name"]: r.get("debt", 0) for r in D.get("kz", {}).get("rows", [])}
+    # Имена поставщиков в iiko и в листе КЗ пишут по-разному: «Кокрекбай овощи
+    # (Габит) Barys group» против «КОКРЕКБАЙ ОВОЩИ (ГАБИТ) BARYS GROUP».
+    # При точном сравнении такие поставщики теряли долг и показывались с нулём,
+    # хотя в закупе у них миллион с лишним. Сравниваем по приведённому имени:
+    # без регистра, лишних пробелов и знаков.
+    def keyname(x):
+        return re.sub(r"[^0-9a-zа-яё]+", "", str(x or "").lower())
+
+    debt = {}
+    for r in D.get("kz", {}).get("rows", []):
+        k = keyname(r.get("name"))
+        if k:
+            debt[k] = r.get("debt", 0)
 
     # ── закупки по позициям и неделям
     per = {}
@@ -90,7 +102,7 @@ def build(D):
             a = agg.setdefault(x["name"], [0, 0])
             a[0] += x["prihod"]; a[1] += x["oplata"]
     sup_rows = [{"name": n, "prihod": round(v[0]), "oplata": round(v[1]),
-                 "delta": round(v[1] - v[0]), "debt": round(debt.get(n, 0))}
+                 "delta": round(v[1] - v[0]), "debt": round(debt.get(keyname(n), 0))}
                 for n, v in agg.items() if v[0] or v[1]]
     sup_rows.sort(key=lambda r: -abs(r["delta"]))
 
