@@ -181,6 +181,19 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 @keyframes fcpulse{0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,.45)}
   50%{box-shadow:0 0 0 5px rgba(167,139,250,0)}}
 
+/* Метка «новое» на карточке раздела. Дата ставится в data-new, метка живёт
+   три дня и гаснет сама — снимать руками не нужно. Цвет берётся из самой
+   карточки, поэтому подходит любому разделу. */
+.card-new{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:6px;
+  background:linear-gradient(135deg,var(--c1,#a855f7),var(--c2,#6d28d9));color:#fff;
+  font-size:9px;font-weight:900;letter-spacing:.1em;vertical-align:3px;white-space:nowrap;
+  animation:cardnew 1.5s ease-in-out infinite;}
+@keyframes cardnew{
+  0%,100%{box-shadow:0 0 0 0 rgba(var(--cr,168,85,247),.8), 0 0 9px 1px rgba(var(--cr,168,85,247),.55);}
+  50%{box-shadow:0 0 0 9px rgba(var(--cr,168,85,247),0), 0 0 20px 6px rgba(var(--cr,168,85,247),.9);}}
+@media(prefers-reduced-motion:reduce){.card-new{animation:none;
+  box-shadow:0 0 12px 3px rgba(var(--cr,168,85,247),.7);}}
+
 /* ── РАСЧЁТ ПРОГНОЗА ──────────────────────────────────────────────
    Раскрывается по клику и объясняет цифру. Оформлен как отдельная
    карточка-выписка: шапка с итогом, строки расчёта, полоса весов
@@ -489,7 +502,7 @@ a.card.key .card-title{padding-right:100px;}
       <div class="fin-sub">Где взять деньги, которых сейчас нет</div>
     </div>
     <div class="cards">
-      <a class="card" style="--c1:#a855f7;--c2:#6d28d9;--cr:168,85,247" href="повышение_цен.html">
+      <a class="card" data-new="2026-09-07" style="--c1:#a855f7;--c2:#6d28d9;--cr:168,85,247" href="повышение_цен.html">
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">💹</div><div class="card-title">Повышение цен</div></div>
         <div class="card-desc">Кому из клиентов можно поднять цену и что это даст. Кто платит ниже средней по заводу, сколько недобираем в месяц, и до какого падения объёма повышение остаётся в плюсе. Процент можно задать каждому.</div>
@@ -498,7 +511,7 @@ a.card.key .card-title{padding-right:100px;}
           <span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">💹 расчёт эффекта на месте</span>
         </div>
       </a>
-      <a class="card" style="--c1:#2fa39a;--c2:#5aa15f;--cr:47,163,154" href="развитие_ассортимента.html">
+      <a class="card" data-new="2026-09-07" style="--c1:#2fa39a;--c2:#5aa15f;--cr:47,163,154" href="развитие_ассортимента.html">
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">🧬</div><div class="card-title">Развитие ассортимента</div></div>
         <div class="card-desc">Кому что везти: по каждой паре «клиент × позиция» считается разрыв — сколько он недобирает против похожих клиентов. Выбираете клиента и видите список позиций с деньгами, или выбираете позицию и видите, кому её продать. Плюс матрица покрытия и готовый наряд менеджерам.</div>
@@ -1032,6 +1045,26 @@ a.card.key .card-title{padding-right:100px;}
       '<span style="font-size:16px">ДЗ '+money(Z.dz.total)+'</span><br>'
       +'<span style="font-size:16px">КЗ '+money(Z.kz.total)+'</span>',
       'за неделю ДЗ '+pct(Z.dz,-1)+' · КЗ '+pct(Z.kz,-1)+' · на '+(Z.dz.date||'—'));
+  });
+})();
+</script>
+<script>
+/* Метка NEW на карточках разделов. Дата появления раздела стоит в атрибуте
+   data-new, метка держится три дня и пропадает сама: иначе её забывают снять
+   и «новое» висит месяцами, переставая что-либо значить. */
+(function cardNew(){
+  var now=new Date();
+  [].forEach.call(document.querySelectorAll('a.card[data-new]'),function(a){
+    var p=String(a.getAttribute('data-new')).split('-');
+    if(p.length!==3) return;
+    var till=new Date(+p[0],+p[1]-1,+p[2]);
+    till.setDate(till.getDate()+3);
+    if(!(now<till)) return;
+    var t=a.querySelector('.card-title');
+    if(!t || t.querySelector('.card-new')) return;
+    var b=document.createElement('span');
+    b.className='card-new'; b.textContent='NEW';
+    t.appendChild(b);
   });
 })();
 </script>
