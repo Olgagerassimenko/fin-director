@@ -375,6 +375,11 @@ def parse_dz(rows):
     # один день, кому-то семь. Отдаём восемь недель, страница берёт столько,
     # сколько нужно под выставленный срок, а неполную неделю делит по дням.
     ship_hist = ship_cols[-8:]
+    # История поступлений теми же неделями. Без неё по клиенту не видно
+    # главного в работе с просрочкой: когда он платил последний раз и платит
+    # ли вообще. Долг сам по себе ещё не проблема — проблема, когда он есть,
+    # а платежей нет.
+    pay_hist = pay_cols[-8:]
 
     def val(row, i):
         v = num(row[i]) if (i is not None and i < len(row)) else None
@@ -393,7 +398,8 @@ def parse_dz(rows):
             consign.append({"name": name, "ship": round(ship), "shipPrev": round(shipPrev),
                             "pay": round(pay), "dz": round(dzv),
                             # от свежей недели к старым
-                            "ships": [round(val(row, i)) for i in reversed(ship_hist)]})
+                            "ships": [round(val(row, i)) for i in reversed(ship_hist)],
+                            "pays": [round(val(row, i)) for i in reversed(pay_hist)]})
 
     def period_label(col_i):
         if col_i is None: return ""
@@ -416,7 +422,8 @@ def parse_dz(rows):
             "consign": consign,
             "consignMeta": {"date": last_date, "prevDate": prev_dz_lbl,
                             # подписи недель в том же порядке, что и ships
-                            "weeks": [period_label(i) for i in reversed(ship_hist)]}}
+                            "weeks": [period_label(i) for i in reversed(ship_hist)],
+                            "payWeeks": [period_label(i) for i in reversed(pay_hist)]}}
 
 def main():
     print("=" * 50)

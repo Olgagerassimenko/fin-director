@@ -1,0 +1,774 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Работа с просрочкой · Фуд Завод</title>
+<!-- Автор и разработчик: Ольга Герасименко · Фуд Завод · © 2026. Все права защищены. -->
+<meta name="author" content="Ольга Герасименко">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- Дебиторка по контрагентам: отгрузки и поступления по неделям, долг на дату -->
+<script src="dz_kz.js" onerror="window.DZ_KZ=null"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070c17; --card:#0d1526; --line:#1c2740; --line2:#26334d;
+  --ink:#eef3fb; --ink2:#c3d0e2; --mut:#7b8ca6; --dim:#546279;
+  --red:#f87171; --amb:#fbbf24; --grn:#4ade80; --vio:#8b7cf6;
+}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(940px 520px at 8% -10%, rgba(248,113,113,.16), transparent 60%),
+    radial-gradient(820px 460px at 96% 0%, rgba(124,58,237,.14), transparent 60%),
+    radial-gradient(700px 500px at 55% 112%, rgba(56,189,248,.06), transparent 62%),
+    var(--bg);
+  background-attachment:fixed}
+
+.topbar{display:flex;align-items:center;gap:16px;padding:15px 30px;position:sticky;top:0;z-index:60;
+  background:rgba(10,16,29,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+  box-shadow:0 10px 30px -24px #000}
+.backbtn{display:inline-flex;align-items:center;flex-shrink:0;background:#16203a;color:var(--ink2);
+  border:1px solid var(--line2);font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;
+  text-decoration:none;transition:.18s;white-space:nowrap}
+.backbtn:hover{background:var(--vio);color:#fff;border-color:var(--vio);box-shadow:0 0 18px -4px rgba(124,58,237,.8)}
+.topbar h1{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;font-size:11.5px;color:#fecaca;background:rgba(248,113,113,.11);
+  border:1px solid rgba(248,113,113,.4);border-radius:999px;padding:6px 13px;font-weight:700;white-space:nowrap;
+  box-shadow:0 0 20px -7px rgba(248,113,113,.8)}
+
+.section{padding:22px 30px 40px;max-width:1500px;margin:0 auto}
+.card{background:linear-gradient(180deg,#111c31,#0e1728);border:1px solid var(--line);border-radius:18px;
+  padding:18px 20px;box-shadow:0 18px 40px -28px #000, inset 0 1px 0 rgba(255,255,255,.035)}
+
+/* ── ГЕРОЙ ── */
+.hero{position:relative;overflow:hidden;border-radius:22px;padding:24px 28px;margin-bottom:14px;
+  border:1px solid var(--line2);
+  background:linear-gradient(140deg,rgba(248,113,113,.14),transparent 48%),linear-gradient(180deg,#121c31,#0d1526);
+  box-shadow:0 22px 50px -34px #000}
+.hero-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:center}
+.hero h2{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#fca5a5;margin-bottom:10px}
+.hero .big{font-size:50px;font-weight:900;letter-spacing:-1.6px;line-height:1;color:#fca5a5;
+  text-shadow:0 0 34px rgba(248,113,113,.55)}
+.hero .sub{font-size:14px;color:var(--ink2);line-height:1.65;margin-top:11px;max-width:620px}
+.hero .sub b{color:#fff}
+.hero-side{display:grid;gap:9px}
+.hs{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:11px 14px;
+  display:flex;align-items:baseline;gap:10px}
+.hs .v{font-size:20px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;min-width:96px;text-align:right}
+.hs .l{font-size:11.5px;color:var(--mut);line-height:1.4}
+
+/* ── УПРАВЛЕНИЕ ── */
+.ctl{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.ctl label{display:block;font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:7px}
+.ctl select,.ctl input[type=search],.ctl input[type=number]{background:#0a1222;border:1px solid var(--line2);
+  color:var(--ink);border-radius:11px;padding:9px 11px;font-size:12.5px;font-family:inherit;transition:.16s}
+.ctl select:focus,.ctl input:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3px rgba(124,58,237,.22)}
+.ctl input[type=number]{width:78px;text-align:right;font-weight:800}
+.ctl input[type=search]{min-width:230px}
+.btn{background:#16233c;border:1px solid var(--line2);color:var(--ink2);border-radius:11px;padding:9px 14px;
+  font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.16s}
+.btn:hover{background:#1e2f4d;color:#fff;box-shadow:0 0 18px -5px rgba(124,58,237,.8)}
+.btn.pri{background:linear-gradient(135deg,#16a34a,#065f46);border-color:transparent;color:#eafff2;
+  box-shadow:0 0 22px -7px rgba(22,163,74,.9)}
+.btn.pri:hover{filter:brightness(1.1);color:#fff}
+.note{font-size:11.5px;color:var(--mut);line-height:1.6;margin-top:12px}
+.note b{color:var(--ink2)}
+.more{margin-top:13px;border-top:1px solid var(--line);padding-top:11px}
+.more summary{cursor:pointer;font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim);list-style:none;display:flex;align-items:center;gap:8px;user-select:none;width:fit-content}
+.more summary::-webkit-details-marker{display:none}
+.more summary:before{content:'▸';color:var(--vio);font-size:10px;transition:.15s}
+.more[open] summary:before{transform:rotate(90deg)}
+.more summary:hover{color:var(--ink2)}
+
+/* ── КАРТОЧКА ДОЛЖНИКА ── */
+.deb{position:relative;border-radius:16px;border:1px solid var(--line);margin-bottom:11px;overflow:hidden;
+  background:linear-gradient(180deg,#111c31,#0e1728);box-shadow:0 16px 34px -30px #000}
+.deb:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#334155}
+.deb.r1:before{background:#ef4444;box-shadow:0 0 20px 2px rgba(239,68,68,.65)}
+.deb.r2:before{background:#f59e0b;box-shadow:0 0 18px 2px rgba(245,158,11,.5)}
+.deb.r3:before{background:#22c55e}
+.deb-h{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(4,minmax(0,1fr));gap:14px;
+  align-items:center;padding:14px 18px 12px}
+.deb-nm{font-size:14px;font-weight:800;color:var(--ink);line-height:1.3}
+.deb-tag{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800}
+.t-red{background:rgba(239,68,68,.15);color:#fca5a5}
+.t-amb{background:rgba(245,158,11,.15);color:#fcd34d}
+.t-grn{background:rgba(34,197,94,.14);color:#86efac}
+.deb-f{text-align:right}
+.deb-f .v{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--ink)}
+.deb-f .v.red{color:#fca5a5;text-shadow:0 0 18px rgba(248,113,113,.5)}
+.deb-f .l{font-size:10.5px;color:var(--mut);margin-top:3px}
+.deb-b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;
+  padding:0 18px 15px;align-items:start}
+.spark{display:block}
+.spark-l{font-size:10.5px;color:var(--dim);margin-top:5px;line-height:1.5}
+.spark-l b{color:var(--ink2)}
+
+/* работа с клиентом */
+.work{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:13px;padding:11px 13px}
+.work-t{font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:9px}
+.work-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
+.work-g label{display:block;font-size:9.5px;color:var(--dim);font-weight:700;margin-bottom:4px}
+.work input,.work select{width:100%;background:#0a1222;border:1px solid var(--line2);color:var(--ink);
+  border-radius:9px;padding:7px 9px;font-size:12px;font-family:inherit}
+.work input:focus,.work select:focus{outline:none;border-color:var(--vio)}
+.work-r{display:flex;align-items:center;gap:9px;margin-top:9px;flex-wrap:wrap}
+.work-s{font-size:11px;color:var(--dim);margin-left:auto}
+.work-s.ok{color:#86efac}
+.chip{display:inline-block;padding:3px 9px;border-radius:7px;font-size:10.5px;font-weight:700}
+.c-wait{background:rgba(245,158,11,.14);color:#fcd34d}
+.c-bad{background:rgba(239,68,68,.16);color:#fca5a5}
+.c-ok{background:rgba(34,197,94,.14);color:#86efac}
+
+.empty{padding:26px;text-align:center;color:var(--mut);font-size:13px}
+footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24px 16px 40px;
+  border-top:1px solid var(--line);margin-top:10px}
+.fix{position:sticky;bottom:0;z-index:40;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  margin:16px -30px -40px;padding:13px 30px;background:rgba(9,14,26,.93);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line2)}
+.fix .v{font-size:18px;font-weight:900;color:#fca5a5;letter-spacing:-.3px}
+.fix .n{font-size:12px;color:var(--mut)}
+.fix .n b{color:var(--ink)}
+
+@media (max-width:1000px){
+  .hero-in{grid-template-columns:1fr}.hero .big{font-size:38px}
+  .deb-h{grid-template-columns:1fr 1fr;gap:10px}
+  .deb-b{grid-template-columns:1fr}
+  .section{padding:16px 12px 34px}.topbar{padding:12px 14px}
+  .fix{margin:14px -12px -34px;padding:11px 14px;gap:10px}
+}
+</style></head>
+<body>
+
+<div class="topbar">
+  <a class="backbtn" href="дз_кз.html">← К ДЗ / КЗ</a>
+  <div>
+    <h1>Работа с просрочкой</h1>
+    <p>Кому звонить сегодня, что обещали и кто обещание нарушил</p>
+  </div>
+  <span class="live" id="p-live">⚡ из Google-таблицы</span>
+</div>
+
+<div class="section" id="pr">
+  <div class="hero"><div class="hero-in">
+    <div>
+      <h2>Просрочено на сегодня</h2>
+      <div class="big" id="h-sum">—</div>
+      <div class="sub" id="h-sub"></div>
+    </div>
+    <div class="hero-side" id="h-side"></div>
+  </div></div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="ctl">
+      <div><label>Срок консигнации, дней</label>
+        <input id="p-days" type="number" min="1" max="120" step="1" value="14"></div>
+      <div><label>Показывать</label>
+        <select id="p-filter">
+          <option value="over">только с просрочкой</option>
+          <option value="broken">нарушенные обещания</option>
+          <option value="promise">кто что-то обещал</option>
+          <option value="all">всех должников</option>
+        </select></div>
+      <div><label>Сортировка</label>
+        <select id="p-sort">
+          <option value="prio">по приоритету обзвона</option>
+          <option value="over">по сумме просрочки</option>
+          <option value="age">по возрасту долга</option>
+          <option value="quiet">кто дольше не платил</option>
+        </select></div>
+      <div><label>Найти клиента</label>
+        <input id="p-q" type="search" placeholder="часть названия…"></div>
+      <div><label>&nbsp;</label><button class="btn" id="p-reset">Сбросить мои записи</button></div>
+    </div>
+    <details class="more">
+      <summary>Как считается приоритет и возраст</summary>
+      <div class="note" id="p-help"></div>
+    </details>
+  </div>
+
+  <div id="p-list"></div>
+  <div class="fix" id="p-fix"></div>
+</div>
+
+<div id="p-nodata" class="section" style="display:none">
+  <div class="card">Данные по дебиторке не загрузились. Обновите страницу после ближайшего обновления таблицы.</div>
+</div>
+
+<footer>Система «Пульс» · Фуд Завод<br><b style="color:#8494ad">Ольга Герасименко</b> · финансовый директор · данные из Google-таблицы, обновляются каждый час</footer>
+
+<script>
+/* ═══════════════ РАБОТА С ПРОСРОЧКОЙ ═══════════════
+   Отчёт ДЗ/КЗ отвечает на вопрос «сколько просрочено». Этот — на вопрос
+   «что с этим делать сегодня»: кому звонить, в каком порядке, что человек
+   обещал в прошлый раз и сдержал ли слово.
+
+   Что считаем из данных таблицы:
+     • просрочено — часть долга сверх отгрузок за срок консигнации;
+     • возраст — сколько дней самым старым неоплаченным деньгам: идём от
+       свежих отгрузок к старым, пока не наберём сумму долга;
+     • тишина — сколько недель клиент вообще ничего не платил.
+
+   Приоритет обзвона — не просто сумма. Долг в миллион, по которому клиент
+   платит каждую неделю, ждёт; долг в двести тысяч, по которому три месяца
+   тишина, не ждёт. Поэтому приоритет = просрочка × возраст × тишина.
+
+   Обещания вводятся руками и живут в этом браузере: в учётной системе их
+   нет, а без них работа с должником превращается в разговор заново каждый
+   раз. Нарушенное обещание — отдельный сигнал: клиент не «не может», а
+   «не собирается», и разговор должен быть другим.                        */
+(function () {
+  'use strict';
+  var D = window.DZ_KZ, dz = D && D.dz;
+  if (!D || !dz || !dz.consign) {
+    var s = document.getElementById('pr'); if (s) s.style.display = 'none';
+    var n = document.getElementById('p-nodata'); if (n) n.style.display = 'block';
+    return;
+  }
+  var CON = dz.consign || [];
+  var META = dz.consignMeta || {};
+  var WEEKS = META.weeks || [];
+
+  /* Срок консигнации общий с отчётом ДЗ/КЗ — там он уже настраивается,
+     второй раз заводить настройку незачем. */
+  var CONS_KEY = 'pulse_consign_days';
+  var WORK_KEY = 'pulse_debt_work';
+  var DEF = 14, OWN = {}, WORK = {};
+  try {
+    var raw = localStorage.getItem(CONS_KEY);
+    if (raw) { var o = JSON.parse(raw); DEF = +o.def || 14; OWN = o.own || {}; }
+  } catch (e) {}
+  try { WORK = JSON.parse(localStorage.getItem(WORK_KEY) || '{}') || {}; } catch (e) { WORK = {}; }
+  function saveWork() { try { localStorage.setItem(WORK_KEY, JSON.stringify(WORK)); } catch (e) {} }
+
+  var state = { days: DEF, filter: 'over', sort: 'prio', q: '' };
+
+  function f0(n) { return Math.round(n || 0).toLocaleString('ru-RU'); }
+  function money(n) {
+    var a = Math.abs(n);
+    if (a >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',') + ' млн';
+    if (a >= 1e3) return Math.round(n / 1e3) + ' тыс';
+    return f0(n);
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function nm(s) { return String(s || '').replace(/^\d+\s*-\s*/, ''); }
+  function today() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+  function parseDate(s) {
+    if (!s) return null;
+    var p = String(s).split('-');
+    if (p.length !== 3) return null;
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return isNaN(d) ? null : d;
+  }
+
+  /* «1 клиентов» режет глаз в отчёте, который читают каждый день */
+  function plc(n) {
+    var a = n % 100, b = n % 10;
+    if (a >= 11 && a <= 14) return 'клиентов';
+    if (b === 1) return 'клиента';
+    if (b >= 2 && b <= 4) return 'клиентов';
+    return 'клиентов';
+  }
+  function plW(n) {
+    var a = n % 100, b = n % 10;
+    if (a >= 11 && a <= 14) return 'недель';
+    if (b === 1) return 'неделю';
+    if (b >= 2 && b <= 4) return 'недели';
+    return 'недель';
+  }
+  /* input type=date отдаёт ISO — показываем по-человечески */
+  function dmy(s) {
+    var d = parseDate(s);
+    if (!d) return String(s || '');
+    var z = function (x) { return (x < 10 ? '0' : '') + x; };
+    return z(d.getDate()) + '.' + z(d.getMonth() + 1) + '.' + String(d.getFullYear()).slice(2);
+  }
+
+  function days(name) {
+    var v = OWN[name];
+    return (v === undefined || v === null || !isFinite(v)) ? state.days : v;
+  }
+  function ships(d) { return (d.ships && d.ships.length) ? d.ships : [d.ship || 0, d.shipPrev || 0]; }
+  function pays(d) { return (d.pays && d.pays.length) ? d.pays : [d.pay || 0]; }
+
+  /* сумма отгрузок за N дней; неполная неделя — пропорционально */
+  function windowSum(d, n) {
+    var w = ships(d), left = n, s = 0;
+    for (var i = 0; i < w.length && left > 0; i++) {
+      var take = Math.min(7, left);
+      s += (+w[i] || 0) * take / 7;
+      left -= take;
+    }
+    return s;
+  }
+  /* возраст самых старых неоплаченных денег, в днях */
+  function age(d) {
+    var w = ships(d), cum = 0;
+    for (var i = 0; i < w.length; i++) {
+      var x = +w[i] || 0;
+      if (cum + x >= d.dz) {
+        var f = x > 0 ? (d.dz - cum) / x : 0;
+        return i * 7 + Math.max(1, Math.round(f * 7));
+      }
+      cum += x;
+    }
+    return null;                               // старше всей истории
+  }
+  /* сколько недель подряд не было ни одного поступления */
+  function quiet(d) {
+    var p = pays(d);
+    for (var i = 0; i < p.length; i++) if ((+p[i] || 0) > 0) return i;
+    return p.length;
+  }
+
+  function build() {
+    var maxAge = ships(CON[0] || {}).length * 7 || 56;
+    return CON.filter(function (d) { return d.dz > 0; }).map(function (d) {
+      var n = days(d.name);
+      var win = windowSum(d, n);
+      var over = Math.max(0, d.dz - win);
+      var a = age(d);
+      var q = quiet(d);
+      var p = pays(d), paid = p.reduce(function (s, x) { return s + (+x || 0); }, 0);
+      /* Приоритет: сумма просрочки, помноженная на то, насколько давно эти
+         деньги висят и насколько давно клиент вообще платил. Логарифм —
+         чтобы один крупный долг не вытеснил из списка всё остальное. */
+      var aa = a === null ? maxAge + 14 : a;
+      var prio = over * Math.log(1 + aa / 14) * (1 + q / 4);
+      var w = WORK[d.name] || {};
+      var pd = parseDate(w.date);
+      var broken = !!(pd && w.status !== 'paid' && pd < today());
+      return { d: d, name: d.name, dz: d.dz, over: over, interm: d.dz - over,
+        age: a, ageDays: aa, quiet: q, paid8: paid, days: n, prio: prio,
+        work: w, broken: broken, maxAge: maxAge };
+    });
+  }
+
+  function riskClass(r) {
+    if (r.over <= 0) return 'r3';
+    if (r.broken || r.age === null || r.ageDays > 42) return 'r1';
+    return 'r2';
+  }
+  function statusChip(r) {
+    var w = r.work;
+    if (w.status === 'paid') return '<span class="chip c-ok">рассчитались</span>';
+    if (r.broken) return '<span class="chip c-bad">обещание нарушено ' + esc(dmy(w.date)) + '</span>';
+    if (w.date) return '<span class="chip c-wait">обещал ' + esc(dmy(w.date))
+      + (w.sum ? ' · ' + f0(+w.sum) + ' ₸' : '') + '</span>';
+    return '';
+  }
+
+  /* Мини-график: столбики отгрузок и точки оплат по неделям — сразу видно,
+     возит ли клиент товар и платит ли за него. */
+  function spark(r) {
+    var sh = ships(r.d), pa = pays(r.d), n = Math.max(sh.length, pa.length);
+    if (n < 2) return '';
+    var mx = 0, i;
+    for (i = 0; i < n; i++) mx = Math.max(mx, +sh[i] || 0, +pa[i] || 0);
+    if (!mx) return '';
+    var W = 260, H = 54, PB = 4, step = W / n, bw = Math.max(4, step * 0.42);
+    var bars = '', dots = '', pts = [];
+    for (i = 0; i < n; i++) {
+      var x = W - (i + 0.5) * step;                 // свежая неделя справа
+      var hs = (+sh[i] || 0) / mx * (H - PB * 2);
+      if (hs > 0.5) bars += '<rect x="' + (x - bw / 2).toFixed(1) + '" y="' + (H - PB - hs).toFixed(1)
+        + '" width="' + bw.toFixed(1) + '" height="' + hs.toFixed(1) + '" rx="2" fill="#24334f"/>';
+      var hp = (+pa[i] || 0) / mx * (H - PB * 2);
+      var y = H - PB - hp;
+      pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+      if ((+pa[i] || 0) > 0) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1)
+        + '" r="3" fill="#4ade80"/>';
+    }
+    return '<svg class="spark" width="100%" height="' + H + '" viewBox="0 0 ' + W + ' ' + H
+      + '" preserveAspectRatio="none">' + bars
+      + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="rgba(74,222,128,.55)" stroke-width="1.6"/>'
+      + dots + '</svg>';
+  }
+
+  function card(r) {
+    var w = r.work || {};
+    var ag = r.age === null ? '&gt;' + r.maxAge + ' дн' : r.age + ' дн';
+    /* Пока пайплайн не пересобрал историю поступлений, недель может быть
+       меньше двух — тогда честнее ничего не утверждать, чем писать
+       «не платил ни разу» по одной неделе. */
+    var pl = pays(r.d).length;
+    var last = pl < 2 ? 'история оплат обновится с утренним пересчётом'
+      : r.quiet === 0 ? 'платил на этой неделе'
+      : (r.quiet >= pl ? 'не платил ни разу за ' + pl + ' ' + plW(pl)
+        : 'последняя оплата ' + r.quiet + ' нед. назад');
+    return '<div class="deb ' + riskClass(r) + '">'
+      + '<div class="deb-h">'
+      +   '<div><div class="deb-nm">' + esc(nm(r.name)) + '</div>'
+      +     '<div>' + statusChip(r) + '</div></div>'
+      +   '<div class="deb-f"><div class="v">' + f0(r.dz) + '</div><div class="l">долг всего, ₸</div></div>'
+      +   '<div class="deb-f"><div class="v' + (r.over > 0 ? ' red' : '') + '">'
+      +     (r.over > 0 ? f0(r.over) : '—') + '</div><div class="l">просрочено, ₸</div></div>'
+      +   '<div class="deb-f"><div class="v">' + ag + '</div><div class="l">возраст долга</div></div>'
+      +   '<div class="deb-f"><div class="v">' + money(r.paid8) + '</div>'
+      +     '<div class="l">оплачено за ' + pays(r.d).length + ' нед.</div></div>'
+      + '</div>'
+      + '<div class="deb-b">'
+      +   '<div>' + spark(r)
+      +     '<div class="spark-l">Столбики — отгрузки по неделям, точки — оплаты. Справа свежая неделя.<br>'
+      +     '<b>' + last + '</b> · срок консигнации ' + r.days + ' дн.</div></div>'
+      +   '<div class="work">'
+      +     '<div class="work-t">Что решили с клиентом</div>'
+      +     '<div class="work-g">'
+      +       '<div><label>Обещал заплатить</label>'
+      +         '<input type="date" data-f="date" data-n="' + esc(r.name) + '" value="' + esc(w.date || '') + '"></div>'
+      +       '<div><label>Сумму, ₸</label>'
+      +         '<input type="number" step="1000" data-f="sum" data-n="' + esc(r.name) + '" value="' + esc(w.sum || '') + '"></div>'
+      +       '<div><label>Состояние</label>'
+      +         '<select data-f="status" data-n="' + esc(r.name) + '">'
+      +           '<option value=""' + (!w.status ? ' selected' : '') + '>не звонили</option>'
+      +           '<option value="talk"' + (w.status === 'talk' ? ' selected' : '') + '>говорили</option>'
+      +           '<option value="promise"' + (w.status === 'promise' ? ' selected' : '') + '>обещал</option>'
+      +           '<option value="paid"' + (w.status === 'paid' ? ' selected' : '') + '>заплатил</option>'
+      +         '</select></div>'
+      +     '</div>'
+      +     '<div class="work-r">'
+      +       '<input type="text" data-f="note" data-n="' + esc(r.name) + '" placeholder="комментарий: с кем говорили, что сказал"'
+      +         ' value="' + esc(w.note || '') + '" style="flex:1 1 220px">'
+      +       '<span class="work-s' + (w.saved ? ' ok' : '') + '">'
+      +         (w.saved ? 'записано ' + esc(w.saved) : 'записи нет') + '</span>'
+      +     '</div>'
+      +   '</div>'
+      + '</div></div>';
+  }
+
+  function render() {
+    var all = build();
+    var q = state.q.toLowerCase();
+    var list = all.filter(function (r) {
+      if (q && r.name.toLowerCase().indexOf(q) < 0) return false;
+      if (state.filter === 'over') return r.over > 0;
+      if (state.filter === 'broken') return r.broken;
+      if (state.filter === 'promise') return !!(r.work && r.work.date);
+      return true;
+    });
+    var key = { prio: 'prio', over: 'over', age: 'ageDays', quiet: 'quiet' }[state.sort] || 'prio';
+    list.sort(function (a, b) { return b[key] - a[key]; });
+
+    var sOver = all.reduce(function (s, r) { return s + r.over; }, 0);
+    var sDz = all.reduce(function (s, r) { return s + r.dz; }, 0);
+    var nOver = all.filter(function (r) { return r.over > 0; }).length;
+    var dead = all.filter(function (r) { return r.over > 0 && (r.age === null || r.ageDays > 42); });
+    var sDead = dead.reduce(function (s, r) { return s + r.over; }, 0);
+    var broken = all.filter(function (r) { return r.broken; });
+    var sBroken = broken.reduce(function (s, r) { return s + r.over; }, 0);
+    var prom = all.filter(function (r) { return r.work && r.work.date && !r.broken && r.work.status !== 'paid'; });
+    var sProm = prom.reduce(function (s, r) { return s + (+(r.work.sum) || r.over); }, 0);
+
+    document.getElementById('h-sum').textContent = f0(sOver) + ' ₸';
+    document.getElementById('h-sub').innerHTML =
+      'у <b>' + nOver + '</b> ' + plc(nOver) + ' из ' + all.length + ' при сроке консигнации <b>' + state.days
+      + ' дней</b>. Это <b>' + (sDz ? (sOver / sDz * 100).toFixed(1).replace('.', ',') : 0)
+      + '%</b> всей дебиторки — она составляет ' + money(sDz) + ' ₸.';
+    document.getElementById('h-side').innerHTML =
+      '<div class="hs"><span class="v" style="color:#fca5a5">' + money(sDead) + '</span>'
+      + '<span class="l"><b style="color:#c3d0e2">Старше шести недель</b> · ' + dead.length + ' ' + plc(dead.length) + '<br>'
+      + 'здесь деньги уже не «задерживаются», а зависли</span></div>'
+      + '<div class="hs"><span class="v" style="color:#fcd34d">' + money(sBroken) + '</span>'
+      + '<span class="l"><b style="color:#c3d0e2">Нарушенные обещания</b> · ' + broken.length + ' ' + plc(broken.length) + '<br>'
+      + 'срок обещанной оплаты прошёл, денег нет</span></div>'
+      + '<div class="hs"><span class="v" style="color:#86efac">' + money(sProm) + '</span>'
+      + '<span class="l"><b style="color:#c3d0e2">Обещали заплатить</b> · ' + prom.length + ' ' + plc(prom.length) + '<br>'
+      + 'срок ещё не наступил</span></div>';
+
+    var box = document.getElementById('p-list');
+    box.innerHTML = list.length ? list.map(card).join('')
+      : '<div class="card empty">Никто под этот фильтр не подходит.</div>';
+
+    var top = list.slice(0, 5).reduce(function (s, r) { return s + r.over; }, 0);
+    document.getElementById('p-fix').innerHTML =
+      '<span class="n">В списке <b>' + list.length + '</b> ' + plc(list.length) + ' · первые пять держат <b>'
+      + money(top) + ' ₸</b></span>'
+      + '<span class="v">' + f0(sOver) + ' ₸ просрочено</span>'
+      + '<span class="n" style="margin-right:auto">возраст считается по отгрузкам, а не по датам счетов</span>'
+      + '<button class="btn pri" id="p-csv">⬇ Список на обзвон · Excel</button>';
+    var b = document.getElementById('p-csv');
+    if (b) b.addEventListener('click', function () { exportList(list); });
+    bind();
+  }
+
+  function bind() {
+    var box = document.getElementById('p-list');
+    [].forEach.call(box.querySelectorAll('[data-f]'), function (el) {
+      el.addEventListener('change', function () {
+        var n = el.getAttribute('data-n'), f = el.getAttribute('data-f');
+        var w = WORK[n] || (WORK[n] = {});
+        w[f] = el.value;
+        var d = new Date();
+        w.saved = ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.'
+          + String(d.getFullYear()).slice(2);
+        if (!w.date && !w.sum && !w.note && !w.status) delete WORK[n];
+        saveWork(); render();
+      });
+    });
+  }
+
+  /* ── Выгрузка списка на обзвон ────────────────────────────────────────
+     Раньше здесь был csv, но Excel открывает его сырым текстом в одну
+     колонку — менеджеру такой файл бесполезен. Собираем настоящий xlsx
+     руками: это zip из нескольких XML, библиотека ради одной кнопки не
+     нужна. Ниже — сам сборщик, за ним то, что попадает в книгу. */
+  function crc32(buf) {
+    var c, t = crc32.t;
+    if (!t) {
+      t = crc32.t = [];
+      for (var n = 0; n < 256; n++) {
+        c = n;
+        for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        t[n] = c >>> 0;
+      }
+    }
+    c = 0xFFFFFFFF;
+    for (var i = 0; i < buf.length; i++) c = t[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function zip(files) {                       // без сжатия: метод STORE
+    var enc = new TextEncoder(), parts = [], central = [], off = 0;
+    function u16(n) { return [n & 255, (n >> 8) & 255]; }
+    function u32(n) { return [n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255]; }
+    files.forEach(function (f) {
+      var name = enc.encode(f.name), data = enc.encode(f.data), cr = crc32(data);
+      var loc = [].concat([80, 75, 3, 4], u16(20), u16(0x800), u16(0), u16(0), u16(0),
+        u32(cr), u32(data.length), u32(data.length), u16(name.length), u16(0));
+      parts.push(new Uint8Array(loc), name, data);
+      central.push([].concat([80, 75, 1, 2], u16(20), u16(20), u16(0x800), u16(0), u16(0), u16(0),
+        u32(cr), u32(data.length), u32(data.length), u16(name.length),
+        u16(0), u16(0), u16(0), u16(0), u32(0), u32(off)), name);
+      off += loc.length + name.length + data.length;
+    });
+    var cd = [], cdLen = 0;
+    for (var i = 0; i < central.length; i += 2) {
+      cd.push(new Uint8Array(central[i]), central[i + 1]);
+      cdLen += central[i].length + central[i + 1].length;
+    }
+    var end = new Uint8Array([].concat([80, 75, 5, 6], u16(0), u16(0),
+      u16(files.length), u16(files.length), u32(cdLen), u32(off), u16(0)));
+    return new Blob(parts.concat(cd, [end]), { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
+  function xesc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  /* Стили: 0 обычный · 1 шапка · 2 текст · 3 целое · 4 процент · 5 деньги-жирно
+     6 итог-текст · 7 итог-целое · 8 процент (выделен) · 9 текст мелкий · 10 просрочка */
+  var XSTYLES =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0"/>' +
+    '<numFmt numFmtId="165" formatCode="0.0%"/></numFmts>' +
+    '<fonts count="6">' +
+    '<font><sz val="10.5"/><color rgb="FF1F2937"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="10.5"/><color rgb="FF13233F"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="10.5"/><color rgb="FF166534"/><name val="Calibri"/></font>' +
+    '<font><sz val="9.5"/><color rgb="FF6B7280"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="10.5"/><color rgb="FFB91C1C"/><name val="Calibri"/></font>' +
+    '</fonts>' +
+    '<fills count="4"><fill><patternFill patternType="none"/></fill>' +
+    '<fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FF13233F"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFEEF2F8"/><bgColor indexed="64"/></patternFill></fill>' +
+    '</fills>' +
+    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left style="thin"><color rgb="FFD6DCE6"/></left><right style="thin"><color rgb="FFD6DCE6"/></right>' +
+    '<top style="thin"><color rgb="FFD6DCE6"/></top><bottom style="thin"><color rgb="FFD6DCE6"/></bottom>' +
+    '<diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="11">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="164" fontId="3" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>' +
+    '<xf numFmtId="164" fontId="2" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="165" fontId="2" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="164" fontId="5" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+  function colName(i) {
+    var s = '';
+    for (i++; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + (i - 1) % 26) + s;
+    return s;
+  }
+  function sheetXml(sh) {
+    var cols = '<cols>' + sh.cols.map(function (c, i) {
+      return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + c.w + '" customWidth="1"/>';
+    }).join('') + '</cols>';
+    var rows = sh.rows.map(function (row, ri) {
+      var cells = row.map(function (c, ci) {
+        if (c == null || c.v === '' || c.v === null || c.v === undefined)
+          return '<c r="' + colName(ci) + (ri + 1) + '" s="' + (c && c.s != null ? c.s : 0) + '"/>';
+        var ref = colName(ci) + (ri + 1), st = c.s != null ? c.s : 0;
+        if (typeof c.v === 'number')
+          return '<c r="' + ref + '" s="' + st + '"><v>' + c.v + '</v></c>';
+        return '<c r="' + ref + '" s="' + st + '" t="inlineStr"><is><t xml:space="preserve">'
+          + xesc(c.v) + '</t></is></c>';
+      }).join('');
+      return '<row r="' + (ri + 1) + '"' + (sh.hRows && sh.hRows[ri] ? ' ht="' + sh.hRows[ri] + '" customHeight="1"' : '') + '>' + cells + '</row>';
+    }).join('');
+    var last = colName(sh.cols.length - 1) + sh.rows.length;
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +
+      '<dimension ref="A1:' + last + '"/>' +
+      '<sheetViews><sheetView showGridLines="0"' + (sh.first ? ' tabSelected="1"' : '') + ' workbookViewId="0">' +
+      '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+      '<sheetFormatPr defaultRowHeight="15"/>' + cols +
+      '<sheetData>' + rows + '</sheetData>' +
+      '<autoFilter ref="A1:' + colName(sh.cols.length - 1) + sh.rows.length + '"/>' +
+      '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>' +
+      '<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>' +
+      '</worksheet>';
+  }
+  function saveXlsx(sheets, filename) {
+    var files = [
+      { name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+        sheets.map(function (s, i) {
+          return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+        }).join('') +
+        '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>' },
+      { name: '_rels/.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>' },
+      { name: 'xl/workbook.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+        sheets.map(function (s, i) {
+          return '<sheet name="' + xesc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
+        }).join('') + '</sheets></workbook>' },
+      { name: 'xl/_rels/workbook.xml.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        sheets.map(function (s, i) {
+          return '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>';
+        }).join('') +
+        '<Relationship Id="rId' + (sheets.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '</Relationships>' },
+      { name: 'xl/styles.xml', data: XSTYLES }
+    ];
+    sheets.forEach(function (s, i) {
+      files.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: sheetXml(s) });
+    });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(zip(files));
+    a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+
+  /* Один лист: сверху вниз — кому звонить в первую очередь. Всё, что
+     менеджеру нужно для разговора, уже в строке: сколько должен, сколько
+     из этого просрочено, когда платил последний раз и что обещал. */
+  function exportList(list) {
+    var st = { '': 'не звонили', talk: 'говорили', promise: 'обещал', paid: 'заплатил' };
+    var head = ['№', 'Клиент', 'Долг всего, ₸', 'Просрочено, ₸', 'Возраст долга, дней',
+      'Последняя оплата', 'Оплачено за ' + pays(CON[0] || {}).length + ' нед., ₸',
+      'Срок консигнации, дней', 'Обещал заплатить', 'Обещал сумму, ₸', 'Состояние',
+      'Комментарий'];
+    var rows = [head.map(function (h) { return { v: h, s: 1 }; })];
+    list.forEach(function (r, i) {
+      var w = r.work || {};
+      rows.push([
+        { v: i + 1, s: 3 },
+        { v: nm(r.name), s: 2 },
+        { v: Math.round(r.dz), s: 3 },
+        { v: Math.round(r.over), s: r.over > 0 ? 10 : 3 },
+        { v: r.age === null ? 'старше ' + r.maxAge : r.age, s: r.age === null ? 2 : 3 },
+        { v: pays(r.d).length < 2 ? '—'
+          : r.quiet === 0 ? 'на этой неделе' : r.quiet + ' нед. назад', s: 2 },
+        { v: Math.round(r.paid8), s: 3 },
+        { v: r.days, s: 3 },
+        { v: w.date ? dmy(w.date) : '', s: 2 },
+        { v: w.sum ? Math.round(+w.sum) || '' : '', s: 3 },
+        { v: st[w.status || ''] || '', s: 2 },
+        { v: w.note || '', s: 9 }
+      ]);
+    });
+    var sDz = list.reduce(function (a, r) { return a + r.dz; }, 0);
+    var sOv = list.reduce(function (a, r) { return a + r.over; }, 0);
+    var sPd = list.reduce(function (a, r) { return a + r.paid8; }, 0);
+    rows.push([{ v: '', s: 6 }, { v: 'Итого · ' + list.length + ' ' + plc(list.length), s: 6 },
+      { v: Math.round(sDz), s: 7 }, { v: Math.round(sOv), s: 7 }, { v: '', s: 6 }, { v: '', s: 6 },
+      { v: Math.round(sPd), s: 7 }, { v: '', s: 6 }, { v: '', s: 6 }, { v: '', s: 6 },
+      { v: '', s: 6 }, { v: '', s: 6 }]);
+    var sheet = {
+      name: 'На обзвон', first: true,
+      cols: [{ w: 5 }, { w: 42 }, { w: 15 }, { w: 15 }, { w: 12 }, { w: 17 }, { w: 16 },
+        { w: 13 }, { w: 15 }, { w: 15 }, { w: 13 }, { w: 46 }],
+      hRows: { 0: 34 },
+      rows: rows
+    };
+    var d = new Date();
+    var z = function (x) { return (x < 10 ? '0' : '') + x; };
+    saveXlsx([sheet], 'список_на_обзвон_' + d.getFullYear() + '-' + z(d.getMonth() + 1)
+      + '-' + z(d.getDate()) + '.xlsx');
+  }
+
+  function ctl() {
+    var d = document.getElementById('p-days');
+    d.value = state.days;
+    d.addEventListener('change', function () {
+      var v = parseFloat(String(d.value).replace(',', '.'));
+      if (!isFinite(v) || v < 1) v = 1;
+      if (v > 120) v = 120;
+      state.days = v; d.value = v; render();
+    });
+    document.getElementById('p-filter').addEventListener('change', function () {
+      state.filter = this.value; render();
+    });
+    document.getElementById('p-sort').addEventListener('change', function () {
+      state.sort = this.value; render();
+    });
+    var q = document.getElementById('p-q');
+    q.addEventListener('input', function () {
+      state.q = q.value.trim(); render();
+      var e = document.getElementById('p-q');
+      if (e) { e.focus(); e.setSelectionRange(e.value.length, e.value.length); }
+    });
+    document.getElementById('p-reset').addEventListener('click', function () {
+      if (!Object.keys(WORK).length) return;
+      WORK = {}; saveWork(); render();
+    });
+    var lv = document.getElementById('p-live');
+    if (lv && META.date) lv.textContent = '⚡ данные на ' + META.date;
+    document.getElementById('p-help').innerHTML =
+      '<b>Просрочено</b> — часть долга сверх отгрузок за срок консигнации: если клиент должен больше, '
+      + 'чем мы отгрузили ему за этот срок, разница должна была вернуться раньше. Срок общий с отчётом '
+      + 'ДЗ / КЗ, включая индивидуальные сроки, выставленные там по клиентам.<br>'
+      + '<b>Возраст</b> — сколько дней самым старым неоплаченным деньгам: идём от свежих отгрузок к '
+      + 'старым, пока не наберём сумму долга. Это точнее, чем считать по датам счетов: деньги гасят '
+      + 'старые поставки первыми.<br>'
+      + '<b>Приоритет обзвона</b> — не просто сумма. Долг в миллион, по которому клиент платит каждую '
+      + 'неделю, подождёт; долг в двести тысяч, по которому три месяца тишина, не подождёт. Поэтому '
+      + 'приоритет складывается из суммы просрочки, возраста долга и того, сколько недель клиент '
+      + 'вообще ничего не платил.<br>'
+      + '<b>Обещания</b> вводятся руками и хранятся в этом браузере: в учётной системе их нет. Как '
+      + 'только обещанная дата прошла, а состояние не «заплатил», клиент попадает в «нарушенные '
+      + 'обещания» — это уже другой разговор.';
+  }
+
+  ctl();
+  render();
+})();
+</script>
+<script src="nav.js"></script>
+</body></html>
