@@ -39,6 +39,9 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
 .pu-btn{background:#16203a;border:1px solid #26334d;color:#cbd5e1;border-radius:9px;padding:8px 12px;
   font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
 .pu-btn:hover{background:#1d2947;color:#fff}
+a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
+.pu-xls{background:linear-gradient(135deg,#16a34a,#065f46);border-color:transparent;color:#eafff2}
+.pu-xls:hover{filter:brightness(1.12);background:linear-gradient(135deg,#16a34a,#065f46);color:#fff}
 .pu-note{font-size:11.5px;color:#8ea3bd;line-height:1.55;margin-top:10px}
 
 .pu-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:11px;margin-bottom:12px}
@@ -73,6 +76,123 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
 .pu-cat{font-size:10px;color:#64748b;font-weight:500;margin-top:1px}
 .pu-spark{display:block;margin:0 auto}
 
+/* Подпись под названием колонки: сама колонка называется коротко,
+   а единица измерения и база расчёта — мелким текстом под ней. */
+.pu-table th .sub{display:block;text-transform:none;letter-spacing:0;font-size:9.5px;
+  font-weight:600;color:#64748b;margin-top:2px}
+.pu-table td .sub{display:block;font-size:10px;color:#64748b;margin-top:2px;font-weight:500}
+.pu-arrow{color:#4ade80;font-weight:700}
+/* «рек. 4%» под полем ввода — кликабельно, подставляет рекомендацию */
+.pu-hint{display:block;margin-top:4px;font-size:10px;color:#a78bfa;cursor:pointer;white-space:nowrap}
+.pu-hint:hover{color:#c4b5fd;text-decoration:underline}
+.pu-hint.off{color:#475569;cursor:default;text-decoration:none}
+
+/* Итог одной фразой над цифрами */
+.pu-lead{background:#111a2e;border:1px solid #26334d;border-radius:14px;padding:15px 18px;
+  font-size:14.5px;line-height:1.65;color:#cbd5e1;margin-bottom:12px}
+.pu-lead b{color:#f1f5f9}
+/* Расшифровка колонок — наверху, а не в самом низу страницы */
+.pu-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:9px 24px;
+  margin-top:12px;padding-top:12px;border-top:1px solid #1e293b}
+.pu-legend div{font-size:11.5px;color:#8ea3bd;line-height:1.5}
+.pu-legend b{color:#cbd5e1}
+
+/* Поиск и выбор колонок */
+.pu-search{width:100%;background:#0f172a;border:1px solid #26334d;color:#e5edf7;border-radius:9px;
+  padding:8px 10px;font-size:12.5px;font-family:inherit}
+.pu-search:focus{outline:none;border-color:#7c3aed}
+.pu-cols{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.pu-chip{background:#0f172a;border:1px solid #1e293b;color:#64748b;border-radius:999px;
+  padding:4px 11px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.pu-chip.on{background:#1b2a4a;border-color:#3b4b6d;color:#cbd5e1}
+.pu-chip:hover{border-color:#7c3aed}
+
+/* Заголовок-сортировщик */
+.pu-table th.pu-th{cursor:pointer;user-select:none;transition:color .15s}
+.pu-table th.pu-th:hover{color:#e2e8f0}
+.pu-ar{font-style:normal;font-size:9px;margin-left:4px;color:#a78bfa}
+.pu-ar.off{color:#334155}
+.pu-table th.pu-chk,.pu-table td.pu-chk{width:34px;text-align:center;padding-left:12px;padding-right:0}
+.pu-chk input{accent-color:#7c3aed;width:15px;height:15px;cursor:pointer}
+.pu-name{cursor:pointer}
+.pu-name:hover{color:#c4b5fd}
+.pu-car{display:inline-block;width:13px;color:#7c3aed;font-size:10px}
+.pu-table tbody tr.off td{opacity:.38}
+.pu-table tbody tr.open td{background:#141f38}
+.pu-t-ok{background:#0c1f3d;color:#7dd3fc}
+
+/* Самое денежное — подсвечиваем */
+.pu-table tbody tr.hot td{background:#141326}
+.pu-table tbody tr.hot td.l{box-shadow:inset 3px 0 0 #f59e0b}
+.pu-best{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:5px;font-size:10px;
+  font-weight:800;background:linear-gradient(135deg,#f59e0b,#b45309);color:#1a1206;white-space:nowrap}
+.pu-plan tr.hot td{background:#141326}
+.pu-plan tr.hot td.l:first-child{box-shadow:inset 3px 0 0 #f59e0b}
+
+/* Раскрытая строка */
+.pu-table tr.pu-det td{padding:0;background:#0a1424;border-bottom:1px solid #1e293b}
+.pu-det-in{padding:16px 18px 18px}
+.pu-det-g{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:start}
+.pu-det-h{font-size:12px;font-weight:800;color:#e2e8f0;text-transform:uppercase;letter-spacing:.04em;
+  margin-bottom:9px}
+.pu-det-n{font-size:11px;color:#64748b;line-height:1.5;margin-top:7px}
+.pu-mini{width:100%;border-collapse:collapse;font-size:12px}
+.pu-mini th{background:#0d182b;color:#8ea3bd;font-size:9.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.04em;text-align:right;padding:6px 9px;white-space:nowrap;border-bottom:1px solid #1e293b}
+.pu-mini th.l,.pu-mini td.l{text-align:left}
+.pu-mini td{padding:6px 9px;text-align:right;border-bottom:1px solid #131e30;color:#cbd5e1;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.pu-mini tr.on td{background:#1c1740;color:#e9d5ff;font-weight:700}
+.pu-mini tr.tot td{border-top:1px solid #26334d;background:#0c1526;font-weight:800;color:#e2e8f0}
+.pu-plan td.l{white-space:normal}
+.pu-safe{margin-top:12px}
+.pu-safe-t{font-size:11.5px;color:#8ea3bd;line-height:1.5;margin-bottom:6px}
+.pu-safe-t b{color:#e2e8f0}
+.pu-safe-b{height:8px;border-radius:5px;background:#1e293b;overflow:hidden}
+.pu-safe-b i{display:block;height:100%;border-radius:5px}
+
+/* Итог, который всегда перед глазами */
+.pu-fix{position:sticky;bottom:0;z-index:30;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  margin:14px -28px -40px;padding:12px 28px;background:rgba(15,23,42,.94);
+  backdrop-filter:blur(10px);border-top:1px solid #26334d}
+.pu-fix-n{font-size:12px;color:#8ea3bd}
+.pu-fix-n b{color:#e2e8f0}
+.pu-fix-v{font-size:17px;font-weight:900;color:#4ade80;letter-spacing:-.2px}
+.pu-fix-y{font-size:12px;color:#8ea3bd;margin-right:auto}
+
+/* На узком экране таблица становится карточками: подпись слева, число справа.
+   Горизонтальная прокрутка на телефоне нечитаема — от колонок видно по два знака. */
+@media (max-width:900px){
+  .section{padding:14px 10px 34px}
+  .topbar{padding:12px 14px;gap:10px}
+  .pu-wrap{overflow:visible}
+  .pu-table{min-width:0;display:block}
+  .pu-table thead,.pu-table tfoot{display:none}
+  .pu-table tbody,.pu-table tr,.pu-table td{display:block;width:100%}
+  .pu-table tbody tr{border:1px solid #1e293b;border-radius:12px;margin:10px 12px;
+    background:#0e1729;overflow:hidden}
+  .pu-table tbody tr:hover td{background:transparent}
+  .pu-table td{display:flex;align-items:center;justify-content:space-between;gap:14px;
+    text-align:right;white-space:normal;padding:9px 13px;border-bottom:1px solid #131e30}
+  .pu-table td:before{content:attr(data-l);flex:0 0 auto;text-align:left;font-size:10.5px;
+    font-weight:700;color:#8ea3bd;text-transform:uppercase;letter-spacing:.03em}
+  .pu-table td:last-child{border-bottom:none}
+  .pu-table td.l{display:block;text-align:left;background:#12203a;font-size:13.5px;padding:11px 13px}
+  .pu-table td.l:before{content:none}
+  .pu-table td .sub{display:inline;margin-left:6px}
+  .pu-spark{margin:0}
+  .pu-table tbody tr.hot{border-color:#f59e0b}
+  .pu-table tbody tr.hot td.l{box-shadow:none;background:#2a2110}
+  .pu-table tr.pu-det{margin:0 12px 10px;border:1px solid #1e293b;border-radius:12px}
+  .pu-table tr.pu-det td{display:block;padding:0}
+  .pu-det-in{padding:12px}
+  .pu-det-g{grid-template-columns:1fr;gap:16px}
+  .pu-mini{font-size:11.5px}
+  .pu-mini th,.pu-mini td{padding:5px 6px}
+  .pu-fix{margin:14px -10px -34px;padding:10px 12px;gap:10px}
+  .pu-fix-v{font-size:15px}
+  .pu-fix-y{margin-right:0}
+}
 </style></head>
 <body>
 
@@ -125,6 +245,9 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
           <option value="-2">жёсткая: −2% объёма на 1% цены</option>
         </select>
       </div>
+      <div><label>Найти позицию</label>
+        <input id="pu-q" class="pu-search" type="search" placeholder="часть названия…">
+      </div>
       <div><label>&nbsp;</label>
         <div class="pu-inline">
           <button class="pu-btn" id="pu-rec">Проставить рекомендованные</button>
@@ -133,22 +256,32 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
       </div>
     </div>
     <div class="pu-note" id="pu-help"></div>
+    <div class="pu-legend" id="pu-legend"></div>
   </div>
+
+  <!-- Итог одной фразой -->
+  <div class="pu-lead" id="pu-lead"></div>
 
   <!-- Крупные цифры -->
   <div class="pu-kpis" id="pu-kpis"></div>
 
-  <!-- Таблица: по каждому клиенту свой процент -->
+  <!-- Таблица: по каждой позиции свой процент -->
   <div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
-    <div style="padding:12px 16px 6px">
+    <div style="padding:12px 16px 10px">
       <div class="card-title">Каким позициям поднимать</div>
-      <div class="pu-note" style="margin:2px 0 0">Процент в колонке «Моё, %» можно менять по каждой позиции — расчёт пересчитается сразу.</div>
+      <div class="pu-note" style="margin:2px 0 0">Кликните по названию — раскроется история цены, кто берёт
+        позицию и что будет при разных процентах. Заголовок колонки сортирует. Галочка слева включает
+        позицию в общий расчёт.</div>
+      <div class="pu-cols" id="pu-cols"></div>
     </div>
     <div class="pu-wrap"><table class="pu-table" id="pu-table"></table></div>
   </div>
 
   <!-- Вывод -->
   <div class="card" id="pu-verdict"></div>
+
+  <!-- Итог всегда перед глазами -->
+  <div class="pu-fix" id="pu-fix"></div>
 
 <div id="pu-nodata" class="section" style="display:none">
   <div class="card">Данные по контрагентам не загрузились. Обновите страницу после утренней сборки.</div>
@@ -158,7 +291,7 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
 
 <script>
 /* ══════════════════ ПОВЫШЕНИЕ ЦЕН ПО ПОЗИЦИЯМ ══════════════════
-   Отвечает на вопрос «каким SKU поднять цену и что это даст».
+   Отвечает на вопрос «каким SKU поднять цену, на сколько и что это даст».
 
    Откуда цифры. window.CTR — что и почём забрал каждый контрагент по месяцам:
    там есть количество и сумма по каждой позиции, а значит и цена. Складываем
@@ -166,15 +299,14 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
    маржа и категория позиции за последние закрытые месяцы.
 
    Главный признак кандидата — не «дорого или дёшево» (сравнивать не с чем,
-   прайса конкурентов у нас нет), а СКОЛЬКО МЕСЯЦЕВ ЦЕНУ НЕ ТРОГАЛИ. Пока
-   цена стоит, сырьё и зарплата дорожают, и маржа тает сама собой. Поэтому
-   считаем, когда цену меняли последний раз и на сколько она выросла за год.
+   прайса конкурентов у нас нет), а НАСКОЛЬКО ЦЕНА ОТСТАЛА ОТ ИНФЛЯЦИИ. Пока
+   цена стоит, сырьё и зарплата дорожают, и маржа тает сама собой.
 
    Эффект считаем честно: подъём цены не меняет себестоимость, поэтому весь
    прирост уходит в валовую прибыль, но часть объёма уходит вместе с ним.
    При выручке R, марже m, подъёме p и изменении объёма в k раз
        новая выручка = R·k·(1+p),   новая валовая прибыль = R·k·(m+p).
-   Отсюда порог: объём может упасть на p/(m+p) — дальше прибыль станет меньше
+   Отсюда запас: объём может упасть на p/(m+p) — дальше прибыль станет меньше
    нынешней. Незакрытый месяц в расчёт не берём вовсе.                     */
 (function () {
   'use strict';
@@ -189,8 +321,15 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
   var FULL = ALL.slice(0, -1);      // последний месяц идёт живым, он неполный
   if (!FULL.length) return;
 
-  var state = { per: 3, pct: 5, el: -0.8, cat: '', top: 20, own: {} };
-  var BYM = null, DATA = null;
+  var MO = { '01': 'янв', '02': 'фев', '03': 'мар', '04': 'апр', '05': 'май', '06': 'июн',
+    '07': 'июл', '08': 'авг', '09': 'сен', '10': 'окт', '11': 'ноя', '12': 'дек' };
+  var MOL = { '01': 'январь', '02': 'февраль', '03': 'март', '04': 'апрель', '05': 'май',
+    '06': 'июнь', '07': 'июль', '08': 'август', '09': 'сентябрь', '10': 'октябрь',
+    '11': 'ноябрь', '12': 'декабрь' };
+
+  var state = { per: 3, pct: 5, el: -0.8, cat: '', top: 20, own: {}, off: {},
+                sort: 'dVp', dir: -1, q: '', open: null };
+  var BYM = null, DATA = null, BUY = {}, BUYKEY = '', BEST = {};
 
   function f0(n) { return Math.round(n || 0).toLocaleString('ru-RU'); }
   function money(n) {
@@ -220,21 +359,35 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
         (c.items || []).forEach(function (it) {
           var q = Math.abs(it.q || 0), r = it.r || 0;
           if (q <= 0 || r <= 0) return;
-          var t = a[it.n] || (a[it.n] = { q: 0, r: 0, low: 0 });
+          var t = a[it.n] || (a[it.n] = { q: 0, r: 0 });
           t.q += q; t.r += r;
-        });
-      });
-      // сколько выручки прошло по цене ниже средней по позиции за этот месяц
-      (CTR[m] || []).forEach(function (c) {
-        (c.items || []).forEach(function (it) {
-          var q = Math.abs(it.q || 0), r = it.r || 0;
-          if (q <= 0 || r <= 0) return;
-          var t = a[it.n], avg = t.r / t.q;
-          if (r / q < avg * 0.97) t.low += r;
         });
       });
     });
     return by;
+  }
+
+  /* Кто берёт позицию: по клиентам за выбранный период. Нужно, чтобы видеть,
+     кому именно цена уходит дешевле средней — с них подъём и начинают. */
+  function buyers(n) {
+    var key = state.per + '|' + n;
+    if (BUYKEY !== String(state.per)) { BUY = {}; BUYKEY = String(state.per); }
+    if (BUY[key]) return BUY[key];
+    var per = FULL.slice(-state.per), acc = {};
+    per.forEach(function (m) {
+      (CTR[m] || []).forEach(function (c) {
+        (c.items || []).forEach(function (it) {
+          if (it.n !== n) return;
+          var q = Math.abs(it.q || 0), r = it.r || 0;
+          if (q <= 0 || r <= 0) return;
+          var t = acc[c.name] || (acc[c.name] = { name: c.name, q: 0, r: 0 });
+          t.q += q; t.r += r;
+        });
+      });
+    });
+    var list = Object.keys(acc).map(function (k) { return acc[k]; })
+      .sort(function (a, b) { return b.r - a.r; });
+    return (BUY[key] = list);
   }
 
   function build() {
@@ -244,41 +397,33 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
     per.forEach(function (m) {
       var a = BYM[m] || {};
       for (var n in a) {
-        var t = agg[n] || (agg[n] = { n: n, q: 0, r: 0, low: 0 });
-        t.q += a[n].q; t.r += a[n].r; t.low += a[n].low;
+        var t = agg[n] || (agg[n] = { n: n, q: 0, r: 0 });
+        t.q += a[n].q; t.r += a[n].r;
       }
     });
 
     var rows = Object.keys(agg).map(function (n) {
       var t = agg[n], g = MG && MG[n];
       var price = t.q > 0 ? t.r / t.q : 0;
-      // помесячная цена — для графика и для «сколько месяцев цену не трогали»
       var series = FULL.map(function (m) {
         var s = (BYM[m] || {})[n];
         return s && s.q > 0 ? s.r / s.q : null;
       });
+      var qs = FULL.map(function (m) { var s = (BYM[m] || {})[n]; return s ? s.q : 0; });
       var lastI = -1;
       for (var i = series.length - 1; i >= 0; i--) if (series[i] !== null) { lastI = i; break; }
       var pLast = lastI >= 0 ? series[lastI] : price;
-      // Как менялась цена. Сравниваем медиану трёх последних месяцев с медианой
-      // трёх месяцев в начале окна. Медиана, а не крайние точки: у новой позиции
-      // первый месяц — пробная партия в сорок штук по розничной цене, и разница
-      // с оптовой выглядела бы обвалом цены на две трети, хотя цену никто не
-      // снижал. На год не пересчитываем: истории пока меньше года.
-      // Месяцы, где позицию брали единицами, из сравнения цен выбрасываем:
-      // это пробные партии по розничной цене. У «Брецель-дога» первые сорок
-      // штук ушли по 11 525, потом пошёл опт по 7 000 — без этой отсечки
-      // выходило, что цену уронили на четверть, хотя её никто не снижал.
-      var qm = FULL.map(function (m) { var x = (BYM[m] || {})[n]; return x ? x.q : 0; })
-                   .filter(function (x) { return x > 0; }).sort(function (a, b) { return a - b; });
+      // Как менялась цена. Медиана последних месяцев против медианы начала окна.
+      // Медиана, а не крайние точки: у новой позиции первый месяц — пробная
+      // партия по розничной цене, и выход на опт выглядел бы обвалом цены.
+      // Месяцы, где брали единицами (меньше четверти медианного объёма), из
+      // сравнения выбрасываем по той же причине.
+      var qm = qs.filter(function (x) { return x > 0; }).sort(function (a, b) { return a - b; });
       var qMed = qm.length ? qm[Math.floor(qm.length / 2)] : 0;
       var known = series.map(function (x, i) {
-        if (x === null) return null;
-        var st = (BYM[FULL[i]] || {})[n];
-        return (st && st.q >= qMed * 0.25) ? i : null;
+        return (x !== null && qs[i] >= qMed * 0.25) ? i : null;
       }).filter(function (x) { return x !== null; });
-      var span = Math.min(known.length, 9);
-      var win = known.slice(-span);
+      var win = known.slice(-9);
       function med(idx) {
         var v = idx.map(function (i) { return series[i]; }).sort(function (a, b) { return a - b; });
         return v.length ? v[Math.floor(v.length / 2)] : null;
@@ -294,7 +439,6 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
         if (Math.abs(series[j] / pLast - 1) <= 0.03) flat++; else break;
       }
       // тренд объёма: последние три месяца против трёх предыдущих
-      var qs = FULL.map(function (m) { var s = (BYM[m] || {})[n]; return s ? s.q : 0; });
       var h = 3, s2 = qs.slice(-h).reduce(function (a, b) { return a + b; }, 0) / h;
       var s1 = qs.slice(-2 * h, -h).reduce(function (a, b) { return a + b; }, 0) / h;
       var trend = s1 > 0 ? (s2 / s1 - 1) * 100 : null;
@@ -302,10 +446,9 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
       return {
         n: n, name: shortName(n), cat: (g && g.c) || '',
         base: t.r / per.length, qty: t.q / per.length,
-        price: price, pLast: pLast, series: series,
+        price: price, pLast: pLast, series: series, qs: qs,
         flat: flat, yoy: yoy, yoyM: yoyM, trend: trend,
-        mg: g ? g.m : MARGIN_DEFAULT, known: !!g,
-        lowShare: t.r > 0 ? t.low / t.r * 100 : 0
+        mg: g ? g.m : MARGIN_DEFAULT, known: !!g
       };
     }).filter(function (r) { return r.base > 0 && (!state.cat || r.cat === state.cat); })
       .sort(function (a, b) { return b.base - a.base; }).slice(0, state.top);
@@ -313,26 +456,49 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
     var tot = rows.reduce(function (s, r) { return s + r.base; }, 0);
     rows.forEach(function (r) {
       r.share = tot > 0 ? r.base / tot * 100 : 0;
-      r.rec = recommend(r);
+      var rc = recommend(r);
+      r.rec = rc.rec; r.need = rc.need; r.why = rc.why;
     });
     return { per: per, rows: rows, total: tot };
   }
 
-  /* Рекомендация. Отправная точка — сколько месяцев цена стоит на месте:
-     примерно семь десятых процента за месяц простоя. Низкая маржа добавляет,
-     падающий объём всё сбивает до символических двух процентов. */
-  var TARGET_PER_YEAR = 8;    // на столько цена должна расти хотя бы за год
+  /* ── Рекомендация ────────────────────────────────────────────────
+     Логика такая. Цена обязана расти хотя бы на продуктовую инфляцию,
+     иначе маржа тает сама собой: сырьё и зарплата дорожают каждый месяц.
+     Берём ориентир 8% в год и смотрим, насколько позиция от него отстала
+     за то время, что мы её наблюдаем. Отставание — это и есть база подъёма.
+
+     Дальше две надбавки и один стоп-кран:
+       • маржа ниже 45% — добавляем 3 пункта: на тонкой марже процент цены
+         даёт максимальный прирост прибыли, и запас по объёму там больше;
+       • объём растёт больше чем на 30% — добавляем 1,5 пункта: спрос явно
+         опережает предложение, подъём проглотят;
+       • объём падает больше чем на 15% — потолок 2%: цену такой позиции
+         трогать нельзя, добьём остатки.
+     Позиции, которым цену уже подняли выше ориентира с запасом (больше чем
+     цель + 3 пункта), не трогаем вовсе — надбавки к ним не применяются.
+
+     Разовый шаг ограничиваем восемью процентами: больше клиент за один раз
+     не принимает. Если расчёт требует больше — показываем «в два захода». */
+  var TARGET_PER_YEAR = 8;    // ориентир роста цены за год
+  var STEP_CAP = 8;           // сколько можно поднять за один раз
   function recommend(r) {
-    // Отправная точка — насколько цена отстала от целевого роста за то же
-    // время. Дальше поправки: тонкая маржа добавляет, падающий объём сбивает.
-    var target = TARGET_PER_YEAR / 12 * (r.yoyM || 6);
-    var rec = 0;
-    if (r.yoy !== null && r.yoy < target) rec = Math.min(10, target - r.yoy);
-    else if (r.yoy === null && r.flat >= 4) rec = 3;
-    if (r.mg < MARGIN_DEFAULT - 6) rec += 3;
-    if (r.trend !== null && r.trend > 20) rec += 1;       // берут больше — стерпят
-    if (r.trend !== null && r.trend < -15) rec = Math.min(rec, 2);
-    return Math.min(15, Math.round(rec * 2) / 2);
+    var tgt = TARGET_PER_YEAR / 12 * (r.yoyM || 6);
+    var hot = r.yoy !== null && r.yoy >= tgt + 3;   // цену уже подняли с запасом
+    var v = 0, why = [];
+    if (hot) return { rec: 0, need: 0, why: ['цену уже подняли на ' + pc(r.yoy, 1) + ' — этого хватает'] };
+    if (r.yoy !== null) {
+      v = Math.min(10, Math.max(0, tgt - r.yoy));
+      if (v > 0) why.push('за ' + r.yoyM + ' мес цена ' + (r.yoy < 0 ? 'упала на ' + pc(-r.yoy, 1)
+        : 'выросла на ' + pc(r.yoy, 1)) + ' при ориентире ' + pc(tgt, 1));
+    } else if (r.flat >= 4) { v = 3; why.push('цена стоит ' + r.flat + ' мес подряд'); }
+    if (r.mg < 45) { v += 3; why.push('маржа ' + r.mg.toFixed(0) + '% — тоньше заводской'); }
+    if (r.trend !== null && r.trend > 30) { v += 1.5; why.push('берут на ' + pc(r.trend, 0) + ' больше'); }
+    if (r.trend !== null && r.trend < -15) {
+      v = Math.min(v, 2); why = ['объём падает на ' + pc(-r.trend, 0) + ' — только символический шаг'];
+    }
+    var need = Math.min(15, Math.round(v * 2) / 2);
+    return { rec: Math.min(STEP_CAP, need), need: need, why: why };
   }
 
   function effect(r, p) {
@@ -350,9 +516,10 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
   function tag(r) {
     if (r.trend !== null && r.trend < -15) return '<span class="pu-tag pu-t-no">объём падает</span>';
     if (r.yoy !== null && r.yoy < -1) return '<span class="pu-tag pu-t-go">цена снижается</span>';
-    if (r.mg < MARGIN_DEFAULT - 6) return '<span class="pu-tag pu-t-go">маржа ниже средней</span>';
-    if (r.yoy !== null && r.yoy < 3) return '<span class="pu-tag pu-t-go">цена стоит на месте</span>';
-    if (r.trend !== null && r.trend > 20) return '<span class="pu-tag pu-t-go">берут всё больше</span>';
+    if (r.mg < 45) return '<span class="pu-tag pu-t-go">тонкая маржа</span>';
+    if (r.yoy !== null && r.yoy < 3) return '<span class="pu-tag pu-t-go">цена стоит</span>';
+    if (r.trend !== null && r.trend > 30) return '<span class="pu-tag pu-t-go">берут всё больше</span>';
+    if (r.rec === 0) return '<span class="pu-tag pu-t-ok">цена в порядке</span>';
     return '<span class="pu-tag pu-t-mid">в общем порядке</span>';
   }
 
@@ -374,85 +541,344 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
       + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>';
   }
 
+  /* Крупный график в раскрытой строке: столбики — объём, линия — цена */
+  function bigChart(r) {
+    var W = 660, H = 170, L = 54, R = 12, T = 14, B = 26;
+    var iw = W - L - R, ih = H - T - B;
+    var pv = r.series.filter(function (x) { return x !== null; });
+    if (pv.length < 2) return '<div class="pu-note">Истории по этой позиции слишком мало для графика.</div>';
+    var pmn = Math.min.apply(null, pv), pmx = Math.max.apply(null, pv);
+    var pad = (pmx - pmn) * 0.25 || pmx * 0.05 || 1;
+    pmn -= pad; pmx += pad;
+    var qmx = Math.max.apply(null, r.qs) || 1;
+    var n = r.series.length, bw = iw / n * 0.56, s = '', i, x, y, cy;
+    var pts = [], dots = '';
+    for (i = 0; i < n; i++) {
+      x = L + iw * (n === 1 ? 0.5 : i / (n - 1));
+      // столбик объёма
+      var bh = r.qs[i] / qmx * ih * 0.45;
+      s += '<rect x="' + (x - bw / 2).toFixed(1) + '" y="' + (T + ih - bh).toFixed(1)
+        + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1)
+        + '" rx="2" fill="#1e2f52"><title>' + esc(MOL[FULL[i].slice(5)] || FULL[i]) + ': '
+        + f0(r.qs[i]) + ' шт</title></rect>';
+      if (r.series[i] !== null) {
+        cy = T + ih - (r.series[i] - pmn) / (pmx - pmn) * ih;
+        pts.push(x.toFixed(1) + ',' + cy.toFixed(1));
+        dots += '<circle cx="' + x.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="3.4" fill="#a78bfa">'
+          + '<title>' + esc(MOL[FULL[i].slice(5)] || FULL[i]) + ': ' + f0(r.series[i]) + ' ₸ · '
+          + f0(r.qs[i]) + ' шт</title></circle>';
+      }
+      s += '<text x="' + x.toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10.5" '
+        + 'fill="#64748b">' + esc(MO[FULL[i].slice(5)] || '') + '</text>';
+    }
+    // ось цены
+    var ax = '';
+    [0, 0.5, 1].forEach(function (t) {
+      var vv = pmn + (pmx - pmn) * t, yy = T + ih - t * ih;
+      ax += '<line x1="' + L + '" y1="' + yy.toFixed(1) + '" x2="' + (W - R) + '" y2="' + yy.toFixed(1)
+        + '" stroke="#1a2437" stroke-width="1"/>'
+        + '<text x="' + (L - 8) + '" y="' + (yy + 3.5).toFixed(1) + '" text-anchor="end" font-size="10.5" '
+        + 'fill="#64748b">' + f0(vv) + '</text>';
+    });
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block">'
+      + ax + s
+      + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#a78bfa" stroke-width="2.2" '
+      + 'stroke-linejoin="round" stroke-linecap="round"/>' + dots + '</svg>';
+  }
+
+  /* Раскрытая строка: график, кто берёт, что будет при разных процентах */
+  function detail(r) {
+    var p = pctFor(r), e = effect(r, p);
+    var bs = buyers(r.n), sumR = bs.reduce(function (s, b) { return s + b.r; }, 0) || 1;
+    var avg = r.price;
+    var bh = bs.slice(0, 6).map(function (b) {
+      var pr = b.r / b.q, d = (pr / avg - 1) * 100;
+      return '<tr><td class="l">' + esc(b.name) + '</td>'
+        + '<td>' + f0(b.r / state.per) + '</td>'
+        + '<td class="pu-mut">' + (b.r / sumR * 100).toFixed(1).replace('.', ',') + '%</td>'
+        + '<td>' + f0(pr) + '</td>'
+        + '<td class="' + (d < -1.5 ? 'pu-dn' : d > 1.5 ? 'pu-up' : 'pu-mut') + '">' + pc(d, 1) + '</td></tr>';
+    }).join('');
+
+    var sc = [0, 2, 3, 5, 7, 10].map(function (x) {
+      var ee = effect(r, x);
+      return '<tr' + (Math.abs(x - p) < 0.01 ? ' class="on"' : '') + '><td class="l">' + pc(x) + '</td>'
+        + '<td>' + f0(r.price * (1 + x / 100)) + '</td>'
+        + '<td class="' + (ee.dVp >= 0 ? 'pu-up' : 'pu-dn') + '">' + (ee.dVp >= 0 ? '+' : '−') + f0(Math.abs(ee.dVp)) + '</td>'
+        + '<td class="pu-mut">' + (x ? pc(ee.dQty, 1) : '—') + '</td>'
+        + '<td class="pu-mut">' + (x ? pc(-ee.breakeven, 1) : '—') + '</td></tr>';
+    }).join('');
+
+    // полоса «запас прочности»: ожидаемая потеря объёма против порога
+    var lose = Math.abs(e.dQty), be = e.breakeven, w = be > 0 ? Math.min(100, lose / be * 100) : 0;
+    var safe = lose < be;
+    var bar = '<div class="pu-safe"><div class="pu-safe-t">'
+      + (p ? (safe ? 'Запас есть: ' : 'Запаса нет: ') + 'ждём падение объёма на <b>' + pc(lose, 1)
+             + '</b>, прибыль уйдёт в ноль при <b>' + pc(be, 1) + '</b>'
+           : 'Процент не выставлен — эффекта нет') + '</div>'
+      + '<div class="pu-safe-b"><i style="width:' + w.toFixed(1) + '%;background:'
+      + (safe ? '#22c55e' : '#ef4444') + '"></i></div></div>';
+
+    var why = r.why && r.why.length ? r.why.join('; ') : 'признаков отставания цены нет';
+
+    return '<div class="pu-det-in">'
+      + '<div class="pu-det-g">'
+      +   '<div><div class="pu-det-h">Цена и объём по месяцам</div>' + bigChart(r)
+      +     '<div class="pu-det-n">Линия — средняя цена, ₸ за штуку. Столбики — количество. '
+      +     'Наведите на точку, чтобы увидеть месяц.</div></div>'
+      +   '<div><div class="pu-det-h">Что будет при разных процентах</div>'
+      +     '<table class="pu-mini"><thead><tr><th class="l">Подъём</th><th>Цена</th>'
+      +     '<th>Прибыль, ₸/мес</th><th>Объём</th><th>Порог</th></tr></thead><tbody>' + sc + '</tbody></table>'
+      +     bar + '</div>'
+      + '</div>'
+      + '<div class="pu-det-h" style="margin-top:14px">Кто берёт эту позицию · '
+      +   esc(periodText()) + '</div>'
+      + '<table class="pu-mini"><thead><tr><th class="l">Клиент</th><th>Выручка, ₸/мес</th>'
+      +   '<th>Доля</th><th>Его цена, ₸</th><th>К средней</th></tr></thead><tbody>' + bh + '</tbody></table>'
+      + '<div class="pu-det-n" style="margin-top:8px"><b style="color:#cbd5e1">Почему '
+      +   (r.rec ? 'рекомендуем ' + pc(r.rec) : 'не трогаем') + ':</b> ' + esc(why)
+      +   (r.need > r.rec ? '. Расчёт просит ' + pc(r.need) + ', но за один раз больше '
+        + pc(STEP_CAP, 0) + ' клиент не принимает — остальное вторым шагом через квартал' : '') + '.</div>'
+      + '</div>';
+  }
+
   function pctFor(r) { var v = state.own[r.n]; return v === undefined ? state.pct : v; }
+  function isOn(r) { return !state.off[r.n]; }
+
+  /* ── Колонки. Каждую можно выключить галочкой ── */
+  var COLS = [
+    { k: 'base',  t: 'Выручка',   sub: '₸ в месяц',        on: 1, v: function (r) { return r.base; } },
+    { k: 'share', t: 'Доля',      sub: 'от отобранных',    on: 0, v: function (r) { return r.share; } },
+    { k: 'price', t: 'Цена',      sub: '₸ за штуку',       on: 1, v: function (r) { return r.price; } },
+    { k: 'hist',  t: 'Что было с ценой', sub: 'по месяцам', cls: 'c', on: 1,
+      v: function (r) { return r.yoy === null ? -999 : r.yoy; } },
+    { k: 'mg',    t: 'Маржа',     sub: 'валовая',          on: 1, v: function (r) { return r.mg; } },
+    { k: 'trend', t: 'Объём',     sub: '3 мес к 3 мес',    on: 1, v: function (r) { return r.trend === null ? -999 : r.trend; } },
+    { k: 'pct',   t: 'Поднять на', sub: '%, меняется',  cls: 'c', on: 1, v: function (r) { return pctFor(r); } },
+    { k: 'dVp',   t: 'Прибыль',   sub: '+ ₸ в месяц',      on: 1, v: function (r) { return effect(r, pctFor(r)).dVp; } },
+    { k: 'be',    t: 'Запас',     sub: 'объём выдержит',   on: 1, v: function (r) { return effect(r, pctFor(r)).breakeven; } }
+  ];
+  var vis = {};
+  COLS.forEach(function (c) { vis[c.k] = !!c.on; });
+
+  function cell(c, r) {
+    var p = pctFor(r), e = effect(r, p);
+    switch (c.k) {
+      case 'base':  return f0(r.base);
+      case 'share': return '<span class="pu-mut">' + r.share.toFixed(1).replace('.', ',') + '%</span>';
+      case 'price': return f0(r.price) + (p ? '<span class="sub pu-arrow">→ ' + f0(r.price * (1 + p / 100)) + '</span>' : '');
+      case 'hist':  return spark(r.series) + '<span class="sub">'
+        + (r.yoy === null ? 'мало истории'
+          : '<b class="' + (r.yoy >= 5 ? 'pu-up' : r.yoy < 3 ? 'pu-dn' : '') + '">' + pc(r.yoy, 1)
+            + '</b> за ' + r.yoyM + ' мес') + '</span>';
+      case 'mg':    return '<span class="' + (r.mg < 45 ? 'pu-dn' : '') + '">' + r.mg.toFixed(0) + '%</span>';
+      case 'trend': return r.trend === null ? '<span class="pu-mut">—</span>'
+        : '<span class="' + (r.trend >= 0 ? 'pu-up' : 'pu-dn') + '">' + pc(r.trend, 0) + '</span>';
+      case 'pct':   return '<input class="pu-in" type="number" step="0.5" min="0" max="50" value="'
+        + p + '" data-n="' + esc(r.n) + '">'
+        + '<span class="pu-hint' + (r.rec ? '' : ' off') + '" data-rec="' + esc(r.n) + '">'
+        + (r.rec ? 'рек. ' + pc(r.rec) : 'не трогать') + '</span>';
+      case 'dVp':   return '<b class="' + (e.dVp >= 0 ? 'pu-up' : 'pu-dn') + '">'
+        + (e.dVp >= 0 ? '+' : '−') + f0(Math.abs(e.dVp)) + '</b>'
+        + '<span class="sub">выручка ' + (e.dRev >= 0 ? '+' : '−') + f0(Math.abs(e.dRev)) + '</span>';
+      case 'be':    return p ? '<span class="pu-mut">до ' + pc(e.breakeven, 1) + '</span>'
+        + '<span class="sub">ждём ' + pc(e.dQty, 1) + '</span>' : '<span class="pu-mut">—</span>';
+    }
+    return '';
+  }
+
+  function sortRows(rows) {
+    var c = null;
+    COLS.forEach(function (x) { if (x.k === state.sort) c = x; });
+    var f = c ? c.v : function (r) { return r.base; };
+    if (state.sort === 'name') f = function (r) { return r.name.toLowerCase(); };
+    return rows.slice().sort(function (a, b) {
+      var x = f(a), y = f(b);
+      if (typeof x === 'string') return state.dir * x.localeCompare(y, 'ru');
+      return state.dir * ((x || 0) - (y || 0));
+    });
+  }
 
   function render() {
     DATA = build();
     var rows = DATA.rows;
-    var sum = { base: 0, dRev: 0, dVp: 0, vpOld: 0, stale: 0, staleRev: 0 };
-    var body = '';
+    var sum = { base: 0, dRev: 0, dVp: 0, vpOld: 0, stale: 0, staleRev: 0, on: 0, wpct: 0 };
 
     rows.forEach(function (r) {
+      if (!isOn(r)) return;
       var p = pctFor(r), e = effect(r, p);
-      sum.base += r.base; sum.dRev += e.dRev; sum.dVp += e.dVp;
-      sum.vpOld += r.base * r.mg / 100;
+      sum.on++; sum.base += r.base; sum.dRev += e.dRev; sum.dVp += e.dVp;
+      sum.vpOld += r.base * r.mg / 100; sum.wpct += p * r.base;
       if (r.yoy !== null && r.yoy < 3) { sum.stale++; sum.staleRev += r.base; }
+    });
+    var avgP = sum.base ? sum.wpct / sum.base : 0;
 
-      var tr = r.trend === null ? '<span class="pu-mut">—</span>'
-        : '<span class="' + (r.trend >= 0 ? 'pu-up' : 'pu-dn') + '">' + pc(r.trend, 0) + '</span>';
-      var yo = r.yoy === null ? '<span class="pu-mut">мало истории</span>'
-        : '<span class="' + (r.yoy >= 5 ? 'pu-up' : r.yoy < 3 ? 'pu-dn' : '') + '">' + pc(r.yoy, 1) + '</span>';
+    // Самое денежное: три позиции, которые по рекомендации дают больше всего
+    // валовой прибыли. Их и подсвечиваем — с них начинают разговор с клиентом.
+    var best = {};
+    rows.filter(function (r) { return r.rec > 0 && isOn(r); })
+      .sort(function (a, b) { return effect(b, b.rec).dVp - effect(a, a.rec).dVp; })
+      .slice(0, 3).forEach(function (r, i) { best[r.n] = i + 1; });
+    BEST = best;
 
-      body += '<tr>'
-        + '<td class="l" title="' + esc(r.n) + '">' + esc(r.name).slice(0, 40)
-          + '<div class="pu-cat">' + esc(r.cat || '—') + '</div></td>'
-        + '<td>' + f0(r.base) + '</td>'
-        + '<td class="pu-mut">' + r.share.toFixed(1).replace('.', ',') + '%</td>'
-        + '<td>' + f0(r.price) + '</td>'
-        + '<td class="c">' + spark(r.series) + '</td>'
-        + '<td>' + yo + '</td>'
-        + '<td class="pu-mut">' + (r.yoy === null ? '—' : 'за ' + r.yoyM + ' мес') + '</td>'
-        + '<td class="' + (r.mg < MARGIN_DEFAULT - 6 ? 'pu-dn' : '') + '">' + r.mg.toFixed(0) + '%</td>'
-        + '<td>' + tr + '</td>'
-        + '<td class="pu-mut">' + (r.rec ? pc(r.rec) : '—') + '</td>'
-        + '<td><input class="pu-in" type="number" step="0.5" min="0" max="50" value="'
-          + String(p).replace('.', ',') + '" data-n="' + esc(r.n) + '"></td>'
-        + '<td class="' + (e.dRev >= 0 ? 'pu-up' : 'pu-dn') + '">' + (e.dRev >= 0 ? '+' : '−') + f0(Math.abs(e.dRev)) + '</td>'
-        + '<td class="' + (e.dVp >= 0 ? 'pu-up' : 'pu-dn') + '">' + (e.dVp >= 0 ? '+' : '−') + f0(Math.abs(e.dVp)) + '</td>'
-        + '<td class="pu-mut">' + (p ? '−' + e.breakeven.toFixed(1).replace('.', ',') + '%' : '—') + '</td>'
-        + '<td class="l">' + tag(r) + '</td>'
-        + '</tr>';
+    var q = state.q.toLowerCase();
+    var show = sortRows(rows).filter(function (r) {
+      return !q || r.n.toLowerCase().indexOf(q) >= 0 || (r.cat || '').toLowerCase().indexOf(q) >= 0;
     });
 
-    var head = '<thead><tr>'
-      + '<th class="l">Позиция</th><th>Выручка, ₸/мес</th><th>Доля</th><th>Цена, ₸</th>'
-      + '<th class="c" title="Как менялась цена по месяцам">Цена по месяцам</th>'
-      + '<th title="Медиана цены последних месяцев против медианы начала окна">Цена ±</th>'
-      + '<th title="За какой срок измерено изменение цены">Период</th>'
-      + '<th>Маржа</th><th title="Количество: последние три месяца против трёх предыдущих">Объём</th>'
-      + '<th>Рек., %</th><th>Моё, %</th>'
-      + '<th>+ Выручка</th><th>+ Вал. прибыль</th>'
-      + '<th title="Насколько объём может упасть, прежде чем валовая прибыль вернётся к нынешней">Порог</th>'
-      + '<th class="l">Оценка</th></tr></thead>';
+    var live = COLS.filter(function (c) { return vis[c.k]; });
+    var span = live.length + 2;
 
-    var foot = '<tfoot><tr><td class="l">ИТОГО · ' + rows.length + ' позиций</td>'
-      + '<td>' + f0(sum.base) + '</td><td>100%</td><td colspan="4"></td>'
-      + '<td>' + (sum.base ? (sum.vpOld / sum.base * 100).toFixed(0) : 0) + '%</td>'
-      + '<td colspan="3"></td>'
-      + '<td class="' + (sum.dRev >= 0 ? 'pu-up' : 'pu-dn') + '">' + (sum.dRev >= 0 ? '+' : '−') + f0(Math.abs(sum.dRev)) + '</td>'
-      + '<td class="' + (sum.dVp >= 0 ? 'pu-up' : 'pu-dn') + '">' + (sum.dVp >= 0 ? '+' : '−') + f0(Math.abs(sum.dVp)) + '</td>'
-      + '<td colspan="2"></td></tr></tfoot>';
+    var head = '<thead><tr><th class="pu-chk"><input type="checkbox" id="pu-all"></th>'
+      + '<th class="l pu-th" data-k="name">Позиция' + arrow('name') + '</th>'
+      + live.map(function (c) {
+          return '<th class="pu-th ' + (c.cls || '') + '" data-k="' + c.k + '">' + c.t + arrow(c.k)
+            + (c.sub ? '<span class="sub">' + c.sub + '</span>' : '') + '</th>';
+        }).join('') + '</tr></thead>';
+
+    var body = show.map(function (r) {
+      var on = isOn(r), op = state.open === r.n, bs = best[r.n];
+      var tr = '<tr class="' + (on ? '' : 'off') + (op ? ' open' : '') + (bs ? ' hot' : '')
+        + '" data-row="' + esc(r.n) + '">'
+        + '<td class="pu-chk"><input type="checkbox" data-on="' + esc(r.n) + '"' + (on ? ' checked' : '') + '></td>'
+        + '<td class="l pu-name" data-open="' + esc(r.n) + '" title="' + esc(r.n) + '">'
+        +   '<span class="pu-car">' + (op ? '▾' : '▸') + '</span>' + esc(r.name)
+        +   (bs ? '<span class="pu-best">🔥 ' + bs + '-е по деньгам</span>' : '')
+        +   '<div class="pu-cat">' + tag(r) + ' ' + esc(r.cat || '') + '</div></td>'
+        + live.map(function (c) {
+            return '<td class="' + (c.cls || '') + '" data-l="' + c.t + '">' + cell(c, r) + '</td>';
+          }).join('')
+        + '</tr>';
+      if (op) tr += '<tr class="pu-det"><td colspan="' + span + '">' + detail(r) + '</td></tr>';
+      return tr;
+    }).join('');
+
+    var foot = '<tfoot><tr><td></td><td class="l">ИТОГО · ' + sum.on + ' из ' + rows.length + ' позиций</td>'
+      + live.map(function (c) {
+          if (c.k === 'base') return '<td>' + f0(sum.base) + '</td>';
+          if (c.k === 'mg') return '<td>' + (sum.base ? (sum.vpOld / sum.base * 100).toFixed(0) : 0) + '%</td>';
+          if (c.k === 'pct') return '<td class="c">' + pc(avgP) + '</td>';
+          if (c.k === 'dVp') return '<td class="' + (sum.dVp >= 0 ? 'pu-up' : 'pu-dn') + '"><b>'
+            + (sum.dVp >= 0 ? '+' : '−') + f0(Math.abs(sum.dVp)) + '</b></td>';
+          return '<td></td>';
+        }).join('') + '</tr></tfoot>';
 
     document.getElementById('pu-table').innerHTML = head + '<tbody>' + body + '</tbody>' + foot;
 
+    document.getElementById('pu-lead').innerHTML =
+      'Поднимаем цену в среднем на <b>' + pc(avgP) + '</b> по <b>' + sum.on + '</b> позициям с выручкой <b>'
+      + money(sum.base) + ' ₸</b> в месяц. Валовая прибыль вырастет на <b class="pu-up">'
+      + f0(sum.dVp) + ' ₸ в месяц</b> — это <b>' + money(sum.dVp * 12) + ' ₸ за год</b>'
+      + (sum.vpOld ? ' и <b>' + pc(sum.dVp / sum.vpOld * 100) + '</b> к нынешней валовой прибыли этих позиций' : '')
+      + '. В расчёте уже заложено, что часть покупателей уйдёт: ' + reactionText() + '.';
+
     document.getElementById('pu-kpis').innerHTML =
-      kpi(money(sum.base) + ' ₸', 'Выручка отобранных позиций', 'в месяц, по ' + periodText(), '')
-      + kpi(sum.stale + ' из ' + rows.length, 'Цена стоит или снижается',
+      kpi(money(sum.base) + ' ₸', 'Выручка выбранных позиций', 'в месяц, по ' + periodText(), '')
+      + kpi(sum.stale + ' из ' + sum.on, 'Цена стоит или снижается',
             'на них ' + money(sum.staleRev) + ' ₸ выручки в месяц', sum.stale ? 'warn' : 'good')
-      + kpi((sum.dRev >= 0 ? '+' : '−') + money(Math.abs(sum.dRev)) + ' ₸', 'Выручка в месяц',
-            'с учётом ухода части объёма', sum.dRev >= 0 ? 'good' : 'bad')
-      + kpi((sum.dVp >= 0 ? '+' : '−') + money(Math.abs(sum.dVp)) + ' ₸', 'Валовая прибыль в месяц',
+      + kpi((sum.dRev >= 0 ? '+' : '−') + money(Math.abs(sum.dRev)) + ' ₸', 'Выручка вырастет за месяц',
+            'подъём цены минус ушедший объём', sum.dRev >= 0 ? 'good' : 'bad')
+      + kpi((sum.dVp >= 0 ? '+' : '−') + money(Math.abs(sum.dVp)) + ' ₸', 'Валовая прибыль вырастет за месяц',
             (sum.dVp >= 0 ? '+' : '−') + money(Math.abs(sum.dVp * 12)) + ' ₸ за год', sum.dVp >= 0 ? 'good' : 'bad');
 
+    document.getElementById('pu-fix').innerHTML =
+      '<span class="pu-fix-n">В расчёте <b>' + sum.on + '</b> из ' + rows.length + ' позиций · средний подъём <b>'
+      + pc(avgP) + '</b></span>'
+      + '<span class="pu-fix-v">+' + f0(sum.dVp) + ' ₸ прибыли в месяц</span>'
+      + '<span class="pu-fix-y">+' + money(sum.dVp * 12) + ' ₸ за год</span>'
+      + '<button class="pu-btn" id="pu-rec2">Рекомендованные</button>'
+      + '<a class="pu-btn pu-xls" href="план_повышения_цен.xlsx" download>⬇ Excel с формулами</a>'
+      + '<button class="pu-btn" id="pu-csv">CSV сценария</button>';
+
     verdict(rows, sum);
-    [].forEach.call(document.querySelectorAll('#pu-table .pu-in'), function (inp) {
+    bindTable();
+  }
+
+  function arrow(k) {
+    return state.sort === k ? '<i class="pu-ar">' + (state.dir < 0 ? '▼' : '▲') + '</i>' : '<i class="pu-ar off">▾</i>';
+  }
+
+  function bindTable() {
+    var t = document.getElementById('pu-table');
+    [].forEach.call(t.querySelectorAll('.pu-in'), function (inp) {
       inp.addEventListener('change', function () {
         var v = parseFloat(String(inp.value).replace(',', '.'));
         if (isNaN(v) || v < 0) v = 0; if (v > 50) v = 50;
         state.own[inp.getAttribute('data-n')] = v;
         render();
       });
+      inp.addEventListener('click', function (e) { e.stopPropagation(); });
     });
+    [].forEach.call(t.querySelectorAll('.pu-hint'), function (h) {
+      h.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var n = h.getAttribute('data-rec');
+        DATA.rows.forEach(function (r) { if (r.n === n) state.own[n] = r.rec; });
+        render();
+      });
+    });
+    [].forEach.call(t.querySelectorAll('[data-on]'), function (c) {
+      c.addEventListener('change', function () {
+        var n = c.getAttribute('data-on');
+        if (c.checked) delete state.off[n]; else state.off[n] = 1;
+        render();
+      });
+    });
+    var all = document.getElementById('pu-all');
+    if (all) {
+      all.checked = DATA.rows.every(isOn);
+      all.addEventListener('change', function () {
+        DATA.rows.forEach(function (r) { if (all.checked) delete state.off[r.n]; else state.off[r.n] = 1; });
+        render();
+      });
+    }
+    [].forEach.call(t.querySelectorAll('.pu-th'), function (th) {
+      th.addEventListener('click', function () {
+        var k = th.getAttribute('data-k');
+        if (state.sort === k) state.dir = -state.dir;
+        else { state.sort = k; state.dir = (k === 'name') ? 1 : -1; }
+        render();
+      });
+    });
+    [].forEach.call(t.querySelectorAll('[data-open]'), function (td) {
+      td.addEventListener('click', function () {
+        var n = td.getAttribute('data-open');
+        state.open = (state.open === n) ? null : n;
+        render();
+      });
+    });
+    var b1 = document.getElementById('pu-rec2');
+    if (b1) b1.addEventListener('click', applyRec);
+    var b2 = document.getElementById('pu-csv');
+    if (b2) b2.addEventListener('click', csv);
+  }
+
+  function applyRec() {
+    DATA.rows.forEach(function (r) { state.own[r.n] = r.rec; });
+    render();
+  }
+
+  function csv() {
+    var head = ['Позиция', 'Категория', 'Выручка ₸/мес', 'Цена ₸', 'Новая цена ₸', 'Цена ± %',
+      'За мес', 'Маржа %', 'Объём %', 'Рекомендуем %', 'Поднимаем %', 'Прибыль ₸/мес',
+      'Выручка ₸/мес', 'Запас по объёму %'];
+    var lines = [head.join(';')];
+    sortRows(DATA.rows).forEach(function (r) {
+      if (!isOn(r)) return;
+      var p = pctFor(r), e = effect(r, p);
+      lines.push([r.n, r.cat, Math.round(r.base), Math.round(r.price), Math.round(r.price * (1 + p / 100)),
+        r.yoy === null ? '' : r.yoy.toFixed(1), r.yoyM, r.mg.toFixed(1),
+        r.trend === null ? '' : r.trend.toFixed(1), r.rec, p, Math.round(e.dVp), Math.round(e.dRev),
+        e.breakeven.toFixed(1)].map(function (x) {
+          return String(x).replace(/;/g, ',').replace(/\./g, ',');
+        }).join(';'));
+    });
+    var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'повышение_цен.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 400);
   }
 
   function kpi(v, l, n, cls) {
@@ -461,60 +887,74 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
   }
 
   function periodText() {
-    var ru = { '01': 'январь', '02': 'февраль', '03': 'март', '04': 'апрель', '05': 'май',
-      '06': 'июнь', '07': 'июль', '08': 'август', '09': 'сентябрь', '10': 'октябрь',
-      '11': 'ноябрь', '12': 'декабрь' };
-    var p = DATA.per, nm = function (k) { return ru[k.slice(5)] || k; };
+    var p = DATA.per, nm = function (k) { return MOL[k.slice(5)] || k; };
     return p.length === 1 ? nm(p[0]) : nm(p[0]) + ' – ' + nm(p[p.length - 1]);
   }
 
   function reactionText() {
-    return state.el ? 'минус ' + Math.abs(state.el).toFixed(1).replace('.', ',')
-      + '% объёма на каждый процент цены' : 'объём не меняется';
+    return state.el ? 'на каждый процент цены уходит ' + Math.abs(state.el).toFixed(1).replace('.', ',')
+      + '% количества' : 'объём не меняется';
   }
 
   function verdict(rows, sum) {
-    // Первыми идут те, где цена стоит дольше всего, а объём не падает:
-    // такие позиции терпят подъём легче всего.
-    var cand = rows.filter(function (r) {
-      return ((r.yoy !== null && r.yoy < 3) || r.mg < MARGIN_DEFAULT - 6)
-        && !(r.trend !== null && r.trend < -15) && r.rec > 0;
-    }).sort(function (a, b) { return effect(b, b.rec).dVp - effect(a, a.rec).dVp; }).slice(0, 5);
+    var cand = rows.filter(function (r) { return isOn(r) && r.rec > 0; })
+      .sort(function (a, b) { return effect(b, b.rec).dVp - effect(a, a.rec).dVp; });
+    var keep = rows.filter(function (r) { return isOn(r) && r.rec === 0; });
+    var recSum = cand.reduce(function (s, r) { return s + effect(r, r.rec).dVp; }, 0);
 
-    var risky = rows.filter(function (r) { return r.trend !== null && r.trend < -15; })
-      .sort(function (a, b) { return b.base - a.base; }).slice(0, 3);
-    var recSum = rows.reduce(function (s, r) { return s + effect(r, r.rec).dVp; }, 0);
+    var h = '<div class="card-title">План повышения — по позициям</div>'
+      + '<div class="pu-note" style="margin-top:6px">Ровно то, что предлагает расчёт: кому, на сколько и что это даст. '
+      + 'Кнопка «Рекомендованные» внизу подставляет эти проценты в таблицу.</div>';
 
-    var h = '<div class="card-title">С чего начинать</div><div class="pu-note" style="margin-top:8px">';
     if (cand.length) {
-      cand.forEach(function (r) {
-        var e = effect(r, r.rec), why = [];
-        if (r.yoy !== null && r.yoy < -1) why.push('за ' + r.yoyM + ' месяцев цена снизилась на ' + pc(-r.yoy, 1));
-        else if (r.yoy !== null && r.yoy < 3) why.push('за ' + r.yoyM + ' месяцев цена выросла всего на ' + pc(r.yoy, 1));
-        if (r.mg < MARGIN_DEFAULT - 6) why.push('маржа ' + r.mg.toFixed(0) + '% при заводской ' + MARGIN_DEFAULT + '%');
-        if (r.trend !== null && r.trend > 10) why.push('берут на ' + pc(r.trend, 0) + ' больше');
-        h += '&nbsp;• <b style="color:#f1f5f9">' + esc(r.name) + '</b> — ' + why.join(', ')
-          + '. Подъём на <b>' + pc(r.rec) + '</b> (с ' + f0(r.price) + ' до ' + f0(r.price * (1 + r.rec / 100))
-          + ' ₸) даёт <b class="pu-up">+' + f0(e.dVp) + ' ₸</b> валовой прибыли в месяц.<br>';
+      var recRev = cand.reduce(function (s, r) { return s + effect(r, r.rec).dRev; }, 0);
+      var recBase = cand.reduce(function (s, r) { return s + r.base; }, 0);
+      var recVp = cand.reduce(function (s, r) { return s + r.base * r.mg / 100; }, 0);
+      h += '<div class="pu-wrap" style="margin-top:10px"><table class="pu-mini pu-plan"><thead><tr>'
+        + '<th class="l">Очередь</th><th class="l">Позиция</th><th>Выручка<br>₸/мес</th>'
+        + '<th>Объём<br>шт/мес</th><th>Цена сейчас</th><th>Цена станет</th><th>Поднять</th>'
+        + '<th>Прибыль<br>+₸/мес</th><th>Прибыль<br>+₸/год</th><th>Запас<br>по объёму</th>'
+        + '<th class="l">Почему именно столько</th></tr></thead><tbody>';
+      cand.forEach(function (r, i) {
+        var e = effect(r, r.rec);
+        var wave = i < 3 ? '<b style="color:#4ade80">1 — сейчас</b>' : '2 — следом';
+        if (r.need > r.rec) wave += '<span class="sub">+ 2-й шаг</span>';
+        h += '<tr' + (BEST[r.n] ? ' class="hot"' : '') + '><td class="l pu-mut">' + wave + '</td>'
+          + '<td class="l">' + esc(r.name)
+          + (BEST[r.n] ? ' <span class="pu-best">🔥 ' + BEST[r.n] + '-е</span>' : '')
+          + '<div class="sub">' + esc(r.cat || '') + ' · маржа ' + r.mg.toFixed(0) + '%</div></td>'
+          + '<td>' + f0(r.base) + '</td>'
+          + '<td>' + f0(r.qty) + '</td>'
+          + '<td>' + f0(r.price) + '</td>'
+          + '<td class="pu-arrow">' + f0(r.price * (1 + r.rec / 100)) + '</td>'
+          + '<td><b class="pu-up">' + pc(r.rec) + '</b></td>'
+          + '<td class="pu-up"><b>+' + f0(e.dVp) + '</b></td>'
+          + '<td class="pu-up">+' + f0(e.dVp * 12) + '</td>'
+          + '<td class="pu-mut">до ' + pc(e.breakeven, 1) + '<span class="sub">ждём '
+          + pc(e.dQty, 1) + '</span></td>'
+          + '<td class="l pu-mut">' + esc((r.why || []).join('; '))
+          + (r.need > r.rec ? '. Расчёт просит ' + pc(r.need) + ' — остальное вторым шагом через квартал' : '')
+          + '</td></tr>';
       });
+      h += '<tr class="tot"><td class="l">Итого</td><td class="l">' + cand.length + ' позиций</td>'
+        + '<td>' + f0(recBase) + '</td><td colspan="3"></td>'
+        + '<td>' + pc(recBase ? cand.reduce(function (s, r) { return s + r.rec * r.base; }, 0) / recBase : 0) + '</td>'
+        + '<td class="pu-up">+' + f0(recSum) + '</td>'
+        + '<td class="pu-up">+' + f0(recSum * 12) + '</td><td></td>'
+        + '<td class="l pu-mut">выручка +' + f0(recRev) + ' ₸/мес · это '
+        + pc(recVp ? recSum / recVp * 100 : 0) + ' к валовой прибыли этих позиций</td></tr>';
+      h += '</tbody></table></div>';
     } else {
-      h += 'Позиций с отставшей ценой среди отобранных нет.<br>';
+      h += '<div class="pu-note">Позиций с отставшей ценой среди выбранных нет.</div>';
     }
-    h += '<br><b style="color:#e2e8f0">Не трогать:</b> ';
-    h += risky.length
-      ? risky.map(function (r) { return esc(r.name) + ' (объём ' + pc(r.trend, 0) + ')'; }).join(', ')
-        + ' — количество и так падает, подъём цены добьёт.'
-      : 'позиций с падающим объёмом среди отобранных нет.';
-    h += '<br><br>Если поднять всё по рекомендации, валовая прибыль вырастет примерно на <b class="pu-up">'
-      + f0(recSum) + ' ₸ в месяц</b> — ' + f0(recSum * 12) + ' ₸ за год при выбранной реакции объёма ('
-      + reactionText() + ').';
-    h += '<br><br><span style="color:#64748b">Как читать. «Цена ±» — насколько изменилась цена: медиана '
-      + 'последних месяцев против медианы начала окна, без пусковых партий. Медиана, а не крайние точки, потому '
-      + 'что первый месяц новой позиции — это сорок штук по розничной цене, и выход на опт выглядел бы обвалом. '
-      + 'Пока цена стоит на месте, сырьё и зарплата дорожают, и маржа тает сама собой. '
-      + '«Порог» — насколько объём может упасть, прежде чем валовая прибыль вернётся к нынешней; пока прогноз '
-      + 'меньше порога, подъём в плюсе. Цена считается как выручка, делённая на количество, по всем клиентам '
-      + 'сразу' + (MGM ? ', маржа — за ' + esc((MGM.months || []).join(', ')) : '') + '.</span></div>';
+
+    h += '<div class="pu-note" style="margin-top:12px"><b style="color:#e2e8f0">Не трогаем ('
+      + keep.length + '):</b> '
+      + (keep.length ? keep.map(function (r) {
+          return esc(r.name) + ' <span class="pu-mut">(' + (r.why && r.why[0] ? esc(r.why[0])
+            : 'цена в порядке') + ')</span>';
+        }).join(', ') : 'таких нет') + '.</div>';
+
     document.getElementById('pu-verdict').innerHTML = h;
   }
 
@@ -533,12 +973,13 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
     document.getElementById('pu-top').addEventListener('change', function () {
       state.top = parseInt(this.value, 10) || 20; render();
     });
-    document.getElementById('pu-rec').addEventListener('click', function () {
-      DATA.rows.forEach(function (r) { state.own[r.n] = r.rec; }); render();
-    });
+    document.getElementById('pu-rec').addEventListener('click', applyRec);
     document.getElementById('pu-reset').addEventListener('click', function () {
-      state.own = {}; render();
+      state.own = {}; state.off = {}; render();
     });
+    var q = document.getElementById('pu-q');
+    q.addEventListener('input', function () { state.q = q.value.trim(); render(); });
+
     // категории — из справочника маржи
     var sel = document.getElementById('pu-cat');
     if (sel && MG) {
@@ -550,12 +991,42 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
       sel.addEventListener('change', function () { state.cat = this.value; state.own = {}; render(); });
     }
     pv.textContent = pc(state.pct);
+
+    // выбор колонок
+    var cw = document.getElementById('pu-cols');
+    cw.innerHTML = COLS.map(function (c) {
+      return '<button class="pu-chip' + (vis[c.k] ? ' on' : '') + '" data-c="' + c.k + '">'
+        + (vis[c.k] ? '☑' : '☐') + ' ' + c.t + '</button>';
+    }).join('');
+    cw.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('.pu-chip') : null;
+      if (!b) return;
+      var k = b.getAttribute('data-c');
+      vis[k] = !vis[k];
+      b.className = 'pu-chip' + (vis[k] ? ' on' : '');
+      b.textContent = (vis[k] ? '☑ ' : '☐ ') + b.textContent.slice(2);
+      render();
+    });
+
     document.getElementById('pu-help').innerHTML =
       'Подъём цены не меняет себестоимость, поэтому весь прирост уходит в валовую прибыль — но часть объёма '
-      + 'при этом обычно уходит. Выберите, насколько чувствителен покупатель, и смотрите на «Порог»: пока '
-      + 'ожидаемое падение объёма меньше порога, подъём в плюсе.'
+      + 'при этом обычно уходит. Выберите, насколько чувствителен покупатель, и смотрите на «Запас»: пока '
+      + 'ожидаемое падение объёма меньше запаса, подъём в плюсе.'
       + (MG ? '' : ' <b style="color:#fbbf24">Справочник маржи не загрузился</b> — маржа взята средней по заводу ('
               + MARGIN_DEFAULT + '%).');
+
+    document.getElementById('pu-legend').innerHTML =
+      '<div><b>Что было с ценой</b> — насколько изменилась цена: медиана последних месяцев против медианы '
+      + 'начала окна. Пусковые партии по розничной цене из сравнения выброшены.</div>'
+      + '<div><b>Объём</b> — количество за последние три месяца против трёх предыдущих. Растёт — подъём стерпят.</div>'
+      + '<div><b>Маржа</b> — валовая по позиции' + (MGM ? ' за ' + esc((MGM.months || []).join(', ')) : '')
+      + '. Ниже 45% считаем тонкой.</div>'
+      + '<div><b>Запас</b> — насколько может упасть количество, прежде чем прибыль вернётся к нынешней. '
+      + 'Пока ожидаемое падение меньше запаса, подъём в плюсе.</div>'
+      + '<div><b>Цена</b> — выручка, делённая на количество, по всем клиентам сразу: это фактическая цена '
+      + 'отгрузки со всеми скидками, а не прайс.</div>'
+      + '<div><b>Рекомендуем</b> — отставание цены от ориентира ' + TARGET_PER_YEAR
+      + '% в год плюс надбавки за тонкую маржу и растущий спрос. Разовый шаг не больше ' + STEP_CAP + '%.</div>';
   }
 
   ctl();

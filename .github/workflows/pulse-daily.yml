@@ -82,6 +82,12 @@ jobs:
       - name: "9б. Маржа по позициям (для повышения цен)"
         continue-on-error: true
         run: python gen_sku_margin.py
+      # Рабочая книга Excel «План повышения цен»: та же логика, что на странице,
+      # но с живыми формулами — процент можно менять прямо в файле, и прибыль
+      # пересчитается. Плюс график цены по каждой позиции.
+      - name: "9в. Книга Excel «План повышения цен»"
+        continue-on-error: true
+        run: python gen_price_xlsx.py
       - name: "10. Закуп из iiko"
         continue-on-error: true
         timeout-minutes: 9

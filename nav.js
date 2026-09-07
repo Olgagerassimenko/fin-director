@@ -43,6 +43,7 @@
     {href:'дз_кз.html',icon:'⚖️',label:'ДЗ / КЗ'},
     {href:'продажи_2026.html',icon:'🛒',label:'Продажи'},
     {href:'повышение_цен.html',icon:'💹',label:'Повышение цен'},
+    {href:'развитие_ассортимента.html',icon:'🧬',label:'Развитие ассортимента'},
     {href:'закуп.html',icon:'📦',label:'Закуп'},
     {href:'производство.html',icon:'🏭',label:'Производство'},
     {href:'sku360.html',icon:'🧩',label:'SKU 360'},

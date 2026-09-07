@@ -1,0 +1,941 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Развитие ассортимента · Фуд Завод</title>
+<!-- Автор и разработчик: Ольга Герасименко · Фуд Завод · © 2026. Все права защищены. -->
+<meta name="author" content="Ольга Герасименко">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- Что и почём забрал каждый контрагент по месяцам -->
+<script src="contractor_items.js" onerror="window.CTR=null"></script>
+<!-- Маржа и категория по позициям -->
+<script src="sku_margin.js?v=1" onerror="window.SKU_MARGIN=null"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070c17; --card:#0d1526; --card2:#101b30; --line:#1c2740; --line2:#26334d;
+  --ink:#eef3fb; --ink2:#c3d0e2; --mut:#7b8ca6; --dim:#546279;
+  --gold:#e8b64c; --gold2:#a97c1e; --vio:#8b7cf6; --grn:#4ade80; --red:#f87171;
+}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);
+  min-height:100vh;-webkit-font-smoothing:antialiased}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 480px at 12% -8%,rgba(139,124,246,.16),transparent 62%),
+             radial-gradient(760px 420px at 92% 2%,rgba(232,182,76,.10),transparent 60%)}
+.wrap{position:relative;z-index:1}
+
+.topbar{display:flex;align-items:center;gap:16px;padding:15px 30px;background:rgba(10,16,29,.86);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:60}
+.backbtn{display:inline-flex;align-items:center;flex-shrink:0;background:#16203a;color:var(--ink2);
+  border:1px solid var(--line2);font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;
+  text-decoration:none;transition:.18s;white-space:nowrap}
+.backbtn:hover{background:var(--vio);color:#fff;border-color:var(--vio)}
+.topbar h1{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;font-size:11.5px;color:#e9d9ae;background:rgba(232,182,76,.10);
+  border:1px solid rgba(232,182,76,.35);border-radius:999px;padding:6px 13px;font-weight:700;white-space:nowrap}
+
+.section{padding:22px 30px 40px;max-width:1720px;margin:0 auto}
+.eyebrow{font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+  display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.eyebrow:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 20px}
+
+/* ── ГЕРОЙ ── */
+.hero{position:relative;overflow:hidden;background:linear-gradient(150deg,#101b30 0%,#0c1425 55%,#0d1526 100%);
+  border:1px solid var(--line2);border-radius:22px;padding:26px 28px;margin-bottom:16px}
+.hero:before{content:"";position:absolute;inset:0;
+  background:radial-gradient(560px 240px at 88% 8%,rgba(232,182,76,.15),transparent 65%);pointer-events:none}
+.hero-in{position:relative;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:26px;align-items:center}
+.hero h2{font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+.hero .big{font-size:52px;font-weight:900;letter-spacing:-1.6px;line-height:1;
+  background:linear-gradient(120deg,#fff 10%,#e8b64c 92%);-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent}
+.hero .sub{font-size:14px;color:var(--ink2);line-height:1.65;margin-top:12px;max-width:640px}
+.hero .sub b{color:#fff}
+.hero-side{display:grid;gap:10px}
+.hs{background:rgba(255,255,255,.028);border:1px solid var(--line);border-radius:14px;padding:12px 15px;
+  display:flex;align-items:baseline;gap:10px}
+.hs .v{font-size:21px;font-weight:900;color:#fff;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+.hs .l{font-size:11.5px;color:var(--mut);line-height:1.4}
+
+/* ── УПРАВЛЕНИЕ ── */
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px;align-items:end}
+.ctl label{display:block;font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:7px}
+.ctl select,.ctl input[type=search]{width:100%;background:#0a1222;border:1px solid var(--line2);color:var(--ink);
+  border-radius:11px;padding:9px 11px;font-size:12.5px;font-family:inherit}
+.ctl select:focus,.ctl input:focus{outline:none;border-color:var(--vio)}
+.ctl input[type=range]{width:100%}
+.inline{display:flex;align-items:center;gap:11px}
+.inline b{font-size:15px;font-weight:900;color:var(--gold);min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+.note{font-size:11.5px;color:var(--mut);line-height:1.6;margin-top:12px}
+.note b{color:var(--ink2)}
+
+/* ── ВКЛАДКИ ── */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 14px}
+.tab{background:transparent;border:1px solid var(--line);color:var(--mut);border-radius:999px;
+  padding:9px 18px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:.18s}
+.tab:hover{border-color:var(--line2);color:var(--ink2)}
+.tab.on{background:linear-gradient(135deg,rgba(232,182,76,.16),rgba(139,124,246,.14));
+  border-color:rgba(232,182,76,.5);color:#fff}
+
+/* ── СПИСОК КЛИЕНТОВ ── */
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(226px,1fr));gap:10px}
+.pick{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
+  cursor:pointer;font-family:inherit;transition:.16s;position:relative;overflow:hidden}
+.pick:hover{border-color:var(--line2);transform:translateY(-1px)}
+.pick.on{border-color:rgba(232,182,76,.55);background:linear-gradient(150deg,rgba(232,182,76,.09),transparent 70%)}
+.pick .nm{font-size:12.5px;font-weight:800;color:var(--ink);line-height:1.35}
+.pick .rw{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;gap:8px}
+.pick .p{font-size:15px;font-weight:900;color:var(--gold);font-variant-numeric:tabular-nums}
+.pick .m{font-size:10.5px;color:var(--dim)}
+.pick .bar{height:3px;border-radius:3px;background:#16203a;margin-top:8px;overflow:hidden}
+.pick .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold))}
+
+/* ── ТАБЛИЦЫ ── */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.t{width:100%;min-width:max-content;border-collapse:collapse;font-size:12.5px}
+table.t th{background:#0a1222;color:var(--mut);font-size:9.5px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.09em;text-align:right;padding:9px 11px;white-space:nowrap;border-bottom:1px solid var(--line)}
+table.t th.l,table.t td.l{text-align:left}
+table.t th.sortable{cursor:pointer;user-select:none}
+table.t th.sortable:hover{color:var(--ink2)}
+table.t td{padding:9px 11px;text-align:right;border-bottom:1px solid #121c2e;color:var(--ink2);
+  white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t td.l{color:var(--ink);font-weight:600;white-space:normal}
+table.t tbody tr:hover td{background:#101c31}
+table.t tfoot td{border-top:1px solid var(--line2);background:#0b1424;font-weight:800;color:var(--ink)}
+.ar{font-style:normal;font-size:9px;margin-left:4px;color:var(--gold)}
+.ar.off{color:#2f3b52}
+
+.pill{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;white-space:nowrap}
+.p-new{background:rgba(74,222,128,.13);color:#6ee7a0}
+.p-up{background:rgba(139,124,246,.15);color:#b5a9ff}
+.p-back{background:rgba(232,182,76,.14);color:#f0cd7e}
+.p-fall{background:rgba(248,113,113,.14);color:#fca5a5}
+.up{color:var(--grn)}.dn{color:var(--red)}.mut{color:var(--dim)}
+.gold{color:var(--gold)}
+.conf{display:inline-flex;gap:2px;vertical-align:middle}
+.conf i{width:5px;height:5px;border-radius:50%;background:#2c3a52;display:block}
+.conf i.on{background:var(--gold)}
+
+/* ── КАРТОЧКА КЛИЕНТА ── */
+.cli{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:20px;align-items:start;margin-bottom:14px}
+.cli h3{font-size:19px;font-weight:900;letter-spacing:-.3px;margin-bottom:3px}
+.cli .meta{font-size:11.5px;color:var(--mut);line-height:1.6}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
+.kv div{background:rgba(255,255,255,.026);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kv .v{font-size:17px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums}
+.kv .l{font-size:10.5px;color:var(--mut);margin-top:3px;line-height:1.35}
+.mix{display:flex;height:11px;border-radius:6px;overflow:hidden;background:#16203a;margin-top:6px}
+.mix i{display:block;height:100%}
+.mixleg{display:flex;flex-wrap:wrap;gap:9px 16px;margin-top:9px}
+.mixleg span{font-size:11px;color:var(--mut);display:flex;align-items:center;gap:6px}
+.mixleg u{width:8px;height:8px;border-radius:2px;display:block;text-decoration:none}
+
+/* ── МАТРИЦА ── */
+.mx{overflow:auto;max-height:74vh;border:1px solid var(--line);border-radius:14px}
+table.mxt{border-collapse:separate;border-spacing:0;font-size:11px}
+table.mxt th.rot{height:196px;vertical-align:bottom;padding:0 0 8px;background:#0a1222;position:sticky;top:0;z-index:5}
+table.mxt th.rot div{transform:rotate(-56deg);transform-origin:left bottom;width:22px;white-space:nowrap;
+  font-size:10.5px;font-weight:700;color:var(--mut);margin-left:17px}
+table.mxt th.cor{position:sticky;left:0;top:0;z-index:7;background:#0a1222;min-width:210px}
+table.mxt td.rh{position:sticky;left:0;z-index:4;background:#0b1424;color:var(--ink);font-weight:700;
+  font-size:11.5px;padding:6px 12px;border-right:1px solid var(--line);white-space:nowrap;max-width:230px;
+  overflow:hidden;text-overflow:ellipsis}
+table.mxt td.c{padding:3px}
+.cell{width:30px;height:26px;border-radius:6px;background:#0e1728;display:flex;align-items:center;
+  justify-content:center;font-size:9px;font-weight:800;color:#0b1220;cursor:pointer;transition:.12s}
+.cell:hover{outline:2px solid var(--gold);outline-offset:1px}
+.cell.gap{box-shadow:inset 0 0 0 1.5px var(--gold)}
+.mxleg{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:11px;color:var(--mut);align-items:center}
+.mxleg u{width:22px;height:11px;border-radius:4px;display:inline-block;text-decoration:none;margin-right:5px;vertical-align:-1px}
+
+/* ── НАРЯД ── */
+.ordbar{position:sticky;bottom:0;z-index:40;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  margin:16px -30px -40px;padding:13px 30px;background:rgba(10,16,29,.95);backdrop-filter:blur(12px);
+  border-top:1px solid var(--line2)}
+.ordbar .v{font-size:18px;font-weight:900;color:var(--gold);letter-spacing:-.3px}
+.ordbar .n{font-size:12px;color:var(--mut)}
+.ordbar .n b{color:var(--ink)}
+.btn{background:#16203a;border:1px solid var(--line2);color:var(--ink2);border-radius:11px;padding:9px 14px;
+  font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn:hover{background:#1d2947;color:#fff}
+.btn.pri{background:linear-gradient(135deg,var(--gold),var(--gold2));border-color:transparent;color:#20170a}
+.btn.pri:hover{filter:brightness(1.08);color:#20170a}
+.chk input{accent-color:var(--gold);width:15px;height:15px;cursor:pointer}
+
+footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24px 16px 40px;
+  border-top:1px solid var(--line);margin-top:10px}
+.hide{display:none}
+
+@media (max-width:1000px){
+  .hero-in{grid-template-columns:1fr;gap:18px}
+  .hero .big{font-size:38px}
+  .cli{grid-template-columns:1fr}
+  .section{padding:16px 12px 34px}
+  .topbar{padding:12px 14px;gap:10px}
+  .ordbar{margin:14px -12px -34px;padding:11px 14px;gap:10px}
+  table.mxt th.cor,table.mxt td.rh{min-width:150px;max-width:150px}
+}
+</style></head>
+<body><div class="wrap">
+
+<div class="topbar">
+  <a class="backbtn" href="index.html">← На Пульс</a>
+  <div>
+    <h1>Развитие ассортимента</h1>
+    <p>Кому что везти: разрывы по парам «клиент × позиция» · только закрытые месяцы</p>
+  </div>
+  <span class="live">⚡ iiko · каждое утро</span>
+</div>
+
+<div class="section" id="ra">
+
+  <!-- ГЕРОЙ -->
+  <div class="hero"><div class="hero-in">
+    <div>
+      <h2>Сколько лежит на столе</h2>
+      <div class="big" id="ra-big">—</div>
+      <div class="sub" id="ra-sub"></div>
+    </div>
+    <div class="hero-side" id="ra-side"></div>
+  </div></div>
+
+  <!-- УПРАВЛЕНИЕ -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="ctl">
+      <div><label>Считаем по</label>
+        <select id="ra-per">
+          <option value="3">трём последним полным месяцам</option>
+          <option value="2">двум последним</option>
+          <option value="6">шести последним</option>
+        </select>
+      </div>
+      <div><label>Реалистичность исполнения</label>
+        <div class="inline"><input id="ra-real" type="range" min="20" max="100" step="5" value="50">
+          <b id="ra-real-v">50%</b></div>
+      </div>
+      <div><label>Потолок роста на клиента</label>
+        <select id="ra-cap">
+          <option value="0.06">6% его выручки</option>
+          <option value="0.1" selected>10% его выручки</option>
+          <option value="0.15">15% его выручки</option>
+          <option value="0.25">25% — агрессивно</option>
+        </select>
+      </div>
+      <div><label>Минимальный размер сделки</label>
+        <select id="ra-min">
+          <option value="30000">от 30 тыс ₸ в месяц</option>
+          <option value="80000">от 80 тыс ₸</option>
+          <option value="200000">от 200 тыс ₸</option>
+          <option value="10000">от 10 тыс ₸ — всё подряд</option>
+        </select>
+      </div>
+      <div><label>Категория</label>
+        <select id="ra-cat"><option value="">все категории</option></select>
+      </div>
+    </div>
+    <div class="note" id="ra-help"></div>
+  </div>
+
+  <div class="tabs" id="ra-tabs">
+    <button class="tab on" data-t="who">Клиент → что везти</button>
+    <button class="tab" data-t="what">Позиция → кому везти</button>
+    <button class="tab" data-t="mx">Матрица покрытия</button>
+    <button class="tab" data-t="ord">Наряд на месяц</button>
+  </div>
+
+  <div id="ra-body"></div>
+  <div class="ordbar" id="ra-bar"></div>
+</div>
+
+<div id="ra-nodata" class="section hide">
+  <div class="card">Данные по контрагентам не загрузились. Обновите страницу после утренней сборки.</div>
+</div>
+
+<footer>Система «Пульс» · Фуд Завод<br><b style="color:#8494ad">Ольга Герасименко</b> · финансовый директор · данные из iiko, обновляются ежедневно</footer>
+</div>
+
+<script>
+/* ═══════════════ РАЗВИТИЕ АССОРТИМЕНТА ═══════════════
+   Вопрос, на который отвечает страница: какую позицию какому клиенту начать
+   возить (или довезти до нормы), и сколько это стоит в деньгах.
+
+   Метод. Клиенты у нас разные по профилю: дистрибьютор, сеть АЗС, доставка,
+   кафе. Сравнивать их «в лоб» нельзя, поэтому для каждого клиента строим
+   группу похожих — по структуре выручки в разрезе категорий (косинусная
+   близость). Дальше для каждой позиции смотрим, какую долю ОТ СВОЕЙ КАТЕГОРИИ
+   она занимает у похожих клиентов, и переносим эту долю на нашего клиента:
+       ожидание = медианная доля в категории × выручка клиента в этой категории
+   Долю берём именно внутри категории, а не от всей выручки: у дистрибьютора
+   четыреста позиций, у АЗС — сорок, и доля одной позиции от всей выручки у них
+   структурно несравнима. Ожидание умножаем на проникновение — какая часть
+   похожих клиентов позицию вообще берёт: если из четырёх берёт один, ожидание
+   делится на четыре.
+
+   Разрыв = ожидание минус то, что клиент берёт сейчас. Разрывы по клиенту
+   складываем и упираем в потолок: нельзя всерьёз обещать рост ассортимента
+   больше чем на десять процентов выручки клиента за квартал. Если сумма
+   разрывов потолок превышает, все разрывы по этому клиенту пропорционально
+   ужимаются.
+
+   Отдельно два типа, которые не гипотеза, а факт:
+     • «вернуть» — позицию брали в прошлом окне и перестали;
+     • «падает» — берут, но объём просел больше чем на треть.
+   Их берём от фактических прошлых сумм с коэффициентом 0,7.
+
+   Наконец, весь итог умножается на «реалистичность исполнения» — ползунок
+   наверху. Полный расчёт это верхняя граница, а не план продаж.          */
+(function () {
+  'use strict';
+  if (!window.CTR) {
+    var s = document.getElementById('ra'); if (s) s.classList.add('hide');
+    var n = document.getElementById('ra-nodata'); if (n) n.classList.remove('hide');
+    return;
+  }
+  var MG = window.SKU_MARGIN || {};
+  var MGM = window.SKU_MARGIN_META || null;
+  var MARGIN_DEFAULT = 51;
+
+  var ALL = Object.keys(CTR).filter(function (k) { return /^\d{4}-\d{2}$/.test(k); }).sort();
+  var FULL = ALL.slice(0, -1);
+  if (FULL.length < 2) return;
+
+  var MOL = { '01': 'январь', '02': 'февраль', '03': 'март', '04': 'апрель', '05': 'май',
+    '06': 'июнь', '07': 'июль', '08': 'август', '09': 'сентябрь', '10': 'октябрь',
+    '11': 'ноябрь', '12': 'декабрь' };
+
+  /* позиции, которые не предлагают: сырьё, упаковка и приватная линейка сети */
+  var BAD = { 'Сырье': 1, 'Несъедобные': 1, 'Упаковка': 1, 'Овощной цех': 1, 'Мясной цех': 1,
+    'ПП*': 1, 'Прочее': 1 };
+  var MIN_CLIENT = 300000;   // клиенты мельче 300 тыс ₸/мес в расчёт не идут
+
+  var state = { per: 3, real: 0.5, cap: 0.10, min: 30000, cat: '',
+    tab: 'who', who: null, what: null, q: '', sort: 'profit', dir: -1, drop: {} };
+
+  var IDX = null;
+
+  function f0(n) { return Math.round(n || 0).toLocaleString('ru-RU'); }
+  function money(n) {
+    var a = Math.abs(n);
+    if (a >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',') + ' млн';
+    if (a >= 1e3) return Math.round(n / 1e3) + ' тыс';
+    return f0(n);
+  }
+  function pc(n, d) { return (n >= 0 ? '' : '−') + Math.abs(n).toFixed(d === undefined ? 1 : d).replace('.', ',') + '%'; }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function shortName(s) {
+    return String(s || '').replace(/^RP\*\s*/, '').replace(/^Упак\s+/i, '')
+      .replace(/\s+готов(ый)?\s+(ФЗ\s+СМ|СМ)\s*/i, ' ').replace(/\s{2,}/g, ' ').trim();
+  }
+  function cliName(s) { return String(s || '').replace(/^\d+\s*-\s*/, ''); }
+  function cat(s) { return (MG[s] && MG[s].c) || '—'; }
+  function marg(s) { return MG[s] ? MG[s].m : MARGIN_DEFAULT; }
+  function offerable(s) { return !/^RP\*/.test(s) && !BAD[cat(s)]; }
+  function med(a) {
+    if (!a.length) return 0;
+    var v = a.slice().sort(function (x, y) { return x - y; });
+    return v[Math.floor(v.length / 2)];
+  }
+
+  /* Сворачиваем окно месяцев в клиентов: выручка, позиции, категории */
+  function window_(ms) {
+    var cl = {};
+    ms.forEach(function (m) {
+      (CTR[m] || []).forEach(function (c) {
+        var t = cl[c.name] || (cl[c.name] = { name: c.name, rev: 0, it: {}, cat: {}, pts: c.points || 1 });
+        if (c.points) t.pts = Math.max(t.pts, c.points);
+        (c.items || []).forEach(function (it) {
+          var q = Math.abs(it.q || 0), r = it.r || 0;
+          if (q <= 0 || r <= 0) return;
+          var s = t.it[it.n] || (t.it[it.n] = { q: 0, r: 0 });
+          s.q += q; s.r += r; t.rev += r;
+          var ct = cat(it.n);
+          t.cat[ct] = (t.cat[ct] || 0) + r;
+        });
+      });
+    });
+    return cl;
+  }
+
+  function cos(a, b) {
+    var k, na = 0, nb = 0, d = 0, keys = {};
+    for (k in a) keys[k] = 1; for (k in b) keys[k] = 1;
+    for (k in keys) {
+      var x = a[k] || 0, y = b[k] || 0;
+      na += x * x; nb += y * y; d += x * y;
+    }
+    return (na && nb) ? d / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
+  }
+
+  function compute() {
+    var K = state.per;
+    var per = FULL.slice(-K), prev = FULL.slice(-2 * K, -K);
+    var A = window_(per), B = window_(prev.length ? prev : per);
+
+    var names = Object.keys(A).filter(function (n) { return A[n].rev / K >= MIN_CLIENT; })
+      .sort(function (a, b) { return A[b].rev - A[a].rev; });
+
+    // профиль по категориям
+    var P = {};
+    names.forEach(function (n) {
+      var p = {}, tot = A[n].rev || 1;
+      for (var c in A[n].cat) p[c] = A[n].cat[c] / tot;
+      P[n] = p;
+    });
+
+    var recs = [], byCli = {}, sim = {};
+    names.forEach(function (c) {
+      var v = A[c], revM = v.rev / K;
+      var sims = names.filter(function (o) { return o !== c; })
+        .map(function (o) { return { n: o, s: cos(P[c], P[o]) }; })
+        .sort(function (a, b) { return b.s - a.s; });
+      sim[c] = sims;
+      var grp = sims.filter(function (x) { return x.s >= 0.5; }).slice(0, 6);
+      if (grp.length < 2) grp = sims.filter(function (x) { return x.s >= 0.3; }).slice(0, 6);
+      if (grp.length < 2) return;
+      var G = grp.map(function (x) { return x.n; });
+
+      var cand = {};
+      // 1. то, что берут похожие
+      var pool = {};
+      G.forEach(function (o) { for (var s in A[o].it) pool[s] = 1; });
+      for (var s in pool) {
+        if (!offerable(s)) continue;
+        var ct = cat(s), cRev = (v.cat[ct] || 0) / K;
+        if (cRev < 50000) continue;                 // клиент эту категорию не возит
+        var have = G.filter(function (o) { return A[o].it[s] && A[o].cat[ct]; });
+        if (have.length < 2) continue;              // одна точка — это не закономерность
+        var sh = med(have.map(function (o) { return A[o].it[s].r / A[o].cat[ct]; }));
+        var exp = sh * cRev * (have.length / G.length);
+        var cur = (v.it[s] ? v.it[s].r : 0) / K;
+        var gap = exp - cur;
+        if (gap < 20000) continue;
+        cand[s] = { gap: gap, kind: v.it[s] ? 'дотянуть' : 'новая', have: have,
+          grp: G.length, cur: cur, exp: exp, sh: sh };
+      }
+      // 2. вернуть и удержать — это факт, а не гипотеза
+      var pv = B[c] || { it: {} };
+      for (var s2 in pv.it) {
+        if (!offerable(s2)) continue;
+        var was = pv.it[s2].r / K, now = (v.it[s2] ? v.it[s2].r : 0) / K;
+        if (was < 50000) continue;
+        var g2 = 0, kd = '';
+        if (now === 0) { g2 = was * 0.7; kd = 'вернуть'; }
+        else if (now < was * 0.7) { g2 = (was - now) * 0.7; kd = 'падает'; }
+        else continue;
+        if (!cand[s2] || cand[s2].gap < g2) {
+          cand[s2] = { gap: g2, kind: kd, have: [], grp: 0, cur: now, exp: was, sh: 0, was: was };
+        }
+      }
+      // 3. потолок: нельзя обещать рост больше чем на N% выручки клиента
+      var tot = 0, k2;
+      for (k2 in cand) tot += cand[k2].gap;
+      var scale = tot > 0 ? Math.min(1, state.cap * revM / tot) : 1;
+
+      byCli[c] = { name: c, revM: revM, pts: v.pts, cat: v.cat, K: K, it: v.it,
+        grp: grp, potential: 0, list: [] };
+      for (k2 in cand) {
+        var x = cand[k2], gap = x.gap * scale * state.real;
+        if (gap < state.min) continue;
+        if (state.cat && cat(k2) !== state.cat) continue;
+        var rec = { c: c, s: k2, name: shortName(k2), cat: cat(k2), kind: x.kind,
+          gap: gap, cur: x.cur, exp: x.exp * scale * state.real, marg: marg(k2),
+          profit: gap * marg(k2) / 100, have: x.have, grp: x.grp, was: x.was || 0,
+          conf: x.grp ? x.have.length / x.grp : 1 };
+        recs.push(rec); byCli[c].list.push(rec); byCli[c].potential += rec.profit;
+      }
+      byCli[c].list.sort(function (a, b) { return b.profit - a.profit; });
+    });
+
+    recs.sort(function (a, b) { return b.profit - a.profit; });
+
+    // сводка по позициям — для вкладки «Позиция → кому»
+    var bySku = {};
+    recs.forEach(function (r) {
+      var t = bySku[r.s] || (bySku[r.s] = { s: r.s, name: r.name, cat: r.cat, profit: 0, list: [] });
+      t.profit += r.profit; t.list.push(r);
+    });
+    Object.keys(bySku).forEach(function (k) {
+      bySku[k].list.sort(function (a, b) { return b.profit - a.profit; });
+    });
+
+    return { A: A, B: B, K: K, per: per, names: names, recs: recs, byCli: byCli,
+      bySku: bySku, sim: sim, P: P };
+  }
+
+  function periodText() {
+    var p = IDX.per, nm = function (k) { return MOL[k.slice(5)] || k; };
+    return p.length === 1 ? nm(p[0]) : nm(p[0]) + ' – ' + nm(p[p.length - 1]);
+  }
+
+  var PALETTE = ['#8b7cf6', '#e8b64c', '#4ade80', '#38bdf8', '#f472b6', '#fb923c',
+    '#a3e635', '#22d3ee', '#c084fc', '#facc15'];
+
+  /* ── ГЕРОЙ ── */
+  function hero() {
+    var live = IDX.recs.filter(function (r) { return !state.drop[r.c + '|' + r.s]; });
+    var profit = live.reduce(function (s, r) { return s + r.profit; }, 0);
+    var rev = live.reduce(function (s, r) { return s + r.gap; }, 0);
+    var cl = {}, sk = {};
+    live.forEach(function (r) { cl[r.c] = 1; sk[r.s] = 1; });
+    var kinds = {};
+    live.forEach(function (r) { kinds[r.kind] = (kinds[r.kind] || 0) + r.profit; });
+
+    document.getElementById('ra-big').textContent = '+' + f0(profit) + ' ₸';
+    document.getElementById('ra-sub').innerHTML =
+      'валовой прибыли в месяц — столько добавят <b>' + live.length + '</b> связок «клиент × позиция» '
+      + 'у <b>' + Object.keys(cl).length + '</b> клиентов. Это <b>' + money(rev) + ' ₸</b> дополнительной '
+      + 'выручки в месяц и <b>' + money(profit * 12) + ' ₸</b> прибыли за год при исполнении на '
+      + Math.round(state.real * 100) + '%.';
+
+    var side = [
+      ['новая', 'Завести с нуля', 'позиции, которых у клиента нет, а похожие берут'],
+      ['дотянуть', 'Дотянуть до нормы', 'берёт, но заметно меньше похожих'],
+      ['вернуть', 'Вернуть', 'брал в прошлом окне и перестал'],
+      ['падает', 'Удержать', 'берёт, но объём просел больше трети']
+    ];
+    document.getElementById('ra-side').innerHTML = side.map(function (k) {
+      var n = live.filter(function (r) { return r.kind === k[0]; }).length;
+      return '<div class="hs"><span class="v">+' + money(kinds[k[0]] || 0) + '</span>'
+        + '<span class="l"><b style="color:#c3d0e2">' + k[1] + '</b> · ' + n + ' шт<br>' + k[2] + '</span></div>';
+    }).join('');
+  }
+
+  function confDots(r) {
+    if (!r.grp) return '<span class="mut" title="факт прошлых отгрузок">факт</span>';
+    var on = Math.round(r.conf * 4), s = '';
+    for (var i = 0; i < 4; i++) s += '<i class="' + (i < on ? 'on' : '') + '"></i>';
+    return '<span class="conf" title="' + r.have.length + ' из ' + r.grp + ' похожих клиентов уже берут">'
+      + s + '</span>';
+  }
+  function kindPill(k) {
+    var m = { 'новая': 'p-new', 'дотянуть': 'p-up', 'вернуть': 'p-back', 'падает': 'p-fall' };
+    return '<span class="pill ' + (m[k] || '') + '">' + k + '</span>';
+  }
+
+  /* ── ВКЛАДКА «КЛИЕНТ → ЧТО» ── */
+  function viewWho() {
+    var names = IDX.names.filter(function (n) { return IDX.byCli[n] && IDX.byCli[n].list.length; })
+      .sort(function (a, b) { return IDX.byCli[b].potential - IDX.byCli[a].potential; });
+    if (!state.who || !IDX.byCli[state.who]) state.who = names[0];
+    var mx = Math.max.apply(null, names.map(function (n) { return IDX.byCli[n].potential; })) || 1;
+
+    var h = '<div class="eyebrow">Шаг 1 · выберите клиента</div><div class="picks">'
+      + names.map(function (n) {
+          var b = IDX.byCli[n];
+          return '<button class="pick' + (n === state.who ? ' on' : '') + '" data-who="' + esc(n) + '">'
+            + '<div class="nm">' + esc(cliName(n)) + '</div>'
+            + '<div class="rw"><span class="p">+' + money(b.potential) + ' ₸</span>'
+            + '<span class="m">' + b.list.length + ' поз.</span></div>'
+            + '<div class="bar"><i style="width:' + (b.potential / mx * 100).toFixed(1) + '%"></i></div>'
+            + '</button>';
+        }).join('') + '</div>';
+
+    var b = IDX.byCli[state.who];
+    if (!b) return h;
+    var A = IDX.A[state.who];
+
+    // микс по категориям
+    var cats = Object.keys(b.cat).map(function (c) { return { c: c, r: b.cat[c] / b.K }; })
+      .sort(function (x, y) { return y.r - x.r; });
+    var ctot = cats.reduce(function (s, x) { return s + x.r; }, 0) || 1;
+    var top = cats.slice(0, 7), rest = cats.slice(7).reduce(function (s, x) { return s + x.r; }, 0);
+    var mixBar = top.map(function (x, i) {
+        return '<i style="width:' + (x.r / ctot * 100).toFixed(2) + '%;background:' + PALETTE[i] + '"></i>';
+      }).join('') + (rest ? '<i style="width:' + (rest / ctot * 100).toFixed(2) + '%;background:#334155"></i>' : '');
+    var mixLeg = top.map(function (x, i) {
+        return '<span><u style="background:' + PALETTE[i] + '"></u>' + esc(x.c) + ' · '
+          + (x.r / ctot * 100).toFixed(0) + '%</span>';
+      }).join('');
+
+    var skuCount = Object.keys(A.it).length;
+    var pot = b.potential;
+
+    h += '<div class="eyebrow" style="margin-top:22px">Шаг 2 · что ему везти</div>'
+      + '<div class="card cli">'
+      + '<div><h3>' + esc(cliName(state.who)) + '</h3>'
+      +   '<div class="meta">' + esc(periodText()) + ' · ' + (b.pts > 1 ? b.pts + ' точек' : 'одна точка')
+      +   '<br>Похожие по профилю: ' + b.grp.map(function (g) {
+            return esc(cliName(g.n)) + ' <span class="mut">' + (g.s * 100).toFixed(0) + '%</span>';
+          }).join(', ') + '</div>'
+      +   '<div class="kv">'
+      +     '<div><div class="v">' + money(b.revM) + '</div><div class="l">₸ выручки в месяц</div></div>'
+      +     '<div><div class="v">' + skuCount + '</div><div class="l">позиций возит сейчас</div></div>'
+      +     '<div><div class="v gold">+' + money(pot) + '</div><div class="l">₸ прибыли в месяц можно добрать</div></div>'
+      +     '<div><div class="v">' + pc(b.revM ? b.list.reduce(function (s, r) { return s + r.gap; }, 0) / b.revM * 100 : 0, 1)
+      +       '</div><div class="l">рост выручки клиента</div></div>'
+      +   '</div></div>'
+      + '<div><div class="eyebrow" style="margin-bottom:6px">Из чего состоит его закуп</div>'
+      +   '<div class="mix">' + mixBar + '</div><div class="mixleg">' + mixLeg + '</div>'
+      +   '<div class="note" style="margin-top:14px">Группа похожих собрана по структуре категорий: '
+      +   'сравниваем не «в лоб», а с теми, кто возит примерно тот же набор. Ожидание по позиции берём '
+      +   'как её долю внутри своей категории у похожих клиентов.</div></div>'
+      + '</div>';
+
+    h += tableRecs(b.list, 'позиция');
+    return h;
+  }
+
+  /* ── ВКЛАДКА «ПОЗИЦИЯ → КОМУ» ── */
+  function viewWhat() {
+    var list = Object.keys(IDX.bySku).map(function (k) { return IDX.bySku[k]; })
+      .sort(function (a, b) { return b.profit - a.profit; });
+    var q = state.q.toLowerCase();
+    var shown = list.filter(function (x) { return !q || x.s.toLowerCase().indexOf(q) >= 0; });
+    if (!state.what || !IDX.bySku[state.what]) state.what = (shown[0] || list[0] || {}).s;
+
+    var h = '<div class="card" style="margin-bottom:14px"><div class="ctl">'
+      + '<div style="grid-column:1/-1"><label>Найдите позицию</label>'
+      + '<input id="ra-q" type="search" placeholder="часть названия, например «онигири»" value="'
+      + esc(state.q) + '"></div></div></div>';
+
+    var mx = Math.max.apply(null, list.map(function (x) { return x.profit; })) || 1;
+    h += '<div class="eyebrow">Шаг 1 · выберите позицию · ' + shown.length + ' с потенциалом</div>'
+      + '<div class="picks">' + shown.slice(0, 60).map(function (x) {
+          return '<button class="pick' + (x.s === state.what ? ' on' : '') + '" data-what="' + esc(x.s) + '">'
+            + '<div class="nm">' + esc(x.name) + '</div>'
+            + '<div class="rw"><span class="p">+' + money(x.profit) + ' ₸</span>'
+            + '<span class="m">' + x.list.length + ' клиент.</span></div>'
+            + '<div class="bar"><i style="width:' + (x.profit / mx * 100).toFixed(1) + '%"></i></div>'
+            + '</button>';
+        }).join('') + '</div>';
+
+    var t = IDX.bySku[state.what];
+    if (!t) return h;
+
+    // кто уже берёт эту позицию — для контекста
+    var has = IDX.names.filter(function (n) { return IDX.A[n].it[state.what]; })
+      .map(function (n) {
+        return { n: n, r: IDX.A[n].it[state.what].r / IDX.K, q: IDX.A[n].it[state.what].q / IDX.K };
+      }).sort(function (a, b) { return b.r - a.r; });
+    var hasTot = has.reduce(function (s, x) { return s + x.r; }, 0);
+
+    h += '<div class="eyebrow" style="margin-top:22px">Шаг 2 · кому её везти</div>'
+      + '<div class="card cli">'
+      + '<div><h3>' + esc(t.name) + '</h3>'
+      +   '<div class="meta">' + esc(t.cat) + ' · маржа ' + marg(t.s).toFixed(0) + '%<br>'
+      +   esc(t.s) + '</div>'
+      +   '<div class="kv">'
+      +     '<div><div class="v">' + money(hasTot) + '</div><div class="l">₸ в месяц берут сейчас</div></div>'
+      +     '<div><div class="v">' + has.length + ' из ' + IDX.names.length + '</div><div class="l">клиентов возят</div></div>'
+      +     '<div><div class="v gold">+' + money(t.profit) + '</div><div class="l">₸ прибыли в месяц можно добрать</div></div>'
+      +   '</div></div>'
+      + '<div><div class="eyebrow" style="margin-bottom:6px">Кто берёт сейчас</div>'
+      +   '<div class="tw"><table class="t"><thead><tr><th class="l">Клиент</th>'
+      +   '<th>₸ в месяц</th><th>шт в месяц</th><th>Цена, ₸</th><th>Доля позиции</th></tr></thead><tbody>'
+      +   (has.length ? has.map(function (x) {
+            return '<tr><td class="l">' + esc(cliName(x.n)) + '</td><td>' + f0(x.r) + '</td>'
+              + '<td>' + f0(x.q) + '</td><td>' + f0(x.r / (x.q || 1)) + '</td>'
+              + '<td class="mut">' + (x.r / (hasTot || 1) * 100).toFixed(1).replace('.', ',') + '%</td></tr>';
+          }).join('') : '<tr><td class="l mut" colspan="5">пока никто</td></tr>')
+      +   '</tbody></table></div></div>'
+      + '</div>';
+
+    h += tableRecs(t.list, 'клиент');
+    return h;
+  }
+
+  /* Общая таблица рекомендаций. mode = что показывать в первой колонке */
+  function tableRecs(list, mode) {
+    if (!list.length) return '<div class="card"><div class="note">Разрывов не нашлось — либо всё уже возят, '
+      + 'либо порог отсечки выше найденных сумм.</div></div>';
+    var sum = list.reduce(function (s, r) { return s + r.profit; }, 0);
+    var sumR = list.reduce(function (s, r) { return s + r.gap; }, 0);
+    var h = '<div class="card" style="padding:0;overflow:hidden">'
+      + '<div style="padding:14px 18px 8px"><div style="font-size:13.5px;font-weight:800">'
+      + (mode === 'позиция' ? 'Что везти этому клиенту' : 'Кому везти эту позицию') + '</div>'
+      + '<div class="note" style="margin-top:3px">Галочка слева выключает связку из общего итога и из наряда. '
+      + 'Точки в «Уверенности» — сколько похожих клиентов уже берут позицию.</div></div>'
+      + '<div class="tw"><table class="t"><thead><tr>'
+      + '<th class="chk"></th>'
+      + '<th class="l">' + (mode === 'позиция' ? 'Позиция' : 'Клиент') + '</th>'
+      + '<th class="l">Что делать</th><th>Берёт сейчас<br>₸/мес</th><th>Ожидание<br>₸/мес</th>'
+      + '<th>Разрыв<br>₸/мес</th><th>Маржа</th><th>Прибыль<br>+₸/мес</th><th class="l">Уверенность</th>'
+      + '</tr></thead><tbody>'
+      + list.map(function (r) {
+          var key = r.c + '|' + r.s, on = !state.drop[key];
+          return '<tr style="' + (on ? '' : 'opacity:.4') + '">'
+            + '<td class="chk"><input type="checkbox" data-k="' + esc(key) + '"' + (on ? ' checked' : '') + '></td>'
+            + '<td class="l">' + esc(mode === 'позиция' ? r.name : cliName(r.c))
+            +   '<div class="mut" style="font-size:10.5px;font-weight:500">'
+            +   esc(mode === 'позиция' ? r.cat : r.name) + '</div></td>'
+            + '<td class="l">' + kindPill(r.kind) + '</td>'
+            + '<td>' + (r.cur ? f0(r.cur) : '<span class="mut">—</span>') + '</td>'
+            + '<td>' + f0(r.exp) + '</td>'
+            + '<td class="gold">+' + f0(r.gap) + '</td>'
+            + '<td>' + r.marg.toFixed(0) + '%</td>'
+            + '<td class="up"><b>+' + f0(r.profit) + '</b></td>'
+            + '<td class="l">' + confDots(r)
+            +   (r.grp ? ' <span class="mut" style="font-size:10.5px">' + r.have.length + '/' + r.grp + '</span>'
+                : (r.was ? ' <span class="mut" style="font-size:10.5px">брал ' + f0(r.was) + ' ₸/мес</span>' : ''))
+            + '</td></tr>';
+        }).join('')
+      + '</tbody><tfoot><tr><td></td><td class="l">Итого · ' + list.length + '</td><td colspan="3"></td>'
+      + '<td class="gold">+' + f0(sumR) + '</td><td></td><td class="up">+' + f0(sum) + '</td><td></td>'
+      + '</tr></tfoot></table></div></div>';
+    return h;
+  }
+
+  /* ── ВКЛАДКА «МАТРИЦА» ── */
+  function viewMx() {
+    var K = IDX.K;
+    // топ позиций по суммарной выручке среди «предлагаемых»
+    var tot = {};
+    IDX.names.forEach(function (n) {
+      var it = IDX.A[n].it;
+      for (var s in it) { if (offerable(s)) tot[s] = (tot[s] || 0) + it[s].r; }
+    });
+    var sku = Object.keys(tot).filter(function (s) { return !state.cat || cat(s) === state.cat; })
+      .sort(function (a, b) { return tot[b] - tot[a]; }).slice(0, 34);
+    var cls = IDX.names.filter(function (n) { return IDX.byCli[n]; })
+      .sort(function (a, b) { return IDX.byCli[b].potential - IDX.byCli[a].potential; });
+
+    // для окраски: доля позиции в своей категории у клиента, нормированная
+    // на максимум по колонке — видно, кто везёт позицию плотнее всех
+    var shareOf = function (n, s) {
+      var A = IDX.A[n], ct = cat(s);
+      if (!A.it[s] || !A.cat[ct]) return 0;
+      return A.it[s].r / A.cat[ct];
+    };
+    var mxs = {};
+    sku.forEach(function (s) {
+      mxs[s] = Math.max.apply(null, cls.map(function (n) { return shareOf(n, s); })) || 1;
+    });
+    var gapKey = {};
+    IDX.recs.forEach(function (r) { gapKey[r.c + '|' + r.s] = r; });
+
+    var h = '<div class="eyebrow">Кто что возит · ярче — плотнее берут, золотая рамка — есть разрыв</div>'
+      + '<div class="mx"><table class="mxt"><thead><tr><th class="cor"></th>'
+      + sku.map(function (s) {
+          return '<th class="rot"><div title="' + esc(s) + '">' + esc(shortName(s)).slice(0, 26) + '</div></th>';
+        }).join('') + '</tr></thead><tbody>'
+      + cls.map(function (n) {
+          return '<tr><td class="rh" title="' + esc(n) + '">' + esc(cliName(n)) + '</td>'
+            + sku.map(function (s) {
+                var v = shareOf(n, s) / mxs[s], g = gapKey[n + '|' + s];
+                var A = IDX.A[n], rev = A.it[s] ? A.it[s].r / K : 0;
+                var bg = rev ? 'rgba(139,124,246,' + (0.14 + v * 0.72).toFixed(2) + ')' : '#0e1728';
+                var txt = rev >= 1e6 ? (rev / 1e6).toFixed(1).replace('.', ',') + 'м'
+                  : rev >= 1e3 ? Math.round(rev / 1e3) + 'к' : '';
+                return '<td class="c"><div class="cell' + (g ? ' gap' : '') + '" style="background:' + bg
+                  + ';color:' + (v > 0.45 ? '#0b1220' : '#8ea3bd') + '" data-cell="' + esc(n + '|' + s)
+                  + '" title="' + esc(cliName(n)) + ' · ' + esc(shortName(s)) + '\n'
+                  + (rev ? f0(rev) + ' ₸/мес' : 'не возит')
+                  + (g ? '\nразрыв +' + f0(g.gap) + ' ₸/мес (' + g.kind + ')' : '') + '">' + txt + '</div></td>';
+              }).join('') + '</tr>';
+        }).join('')
+      + '</tbody></table></div>'
+      + '<div class="mxleg"><span><u style="background:#0e1728"></u>не возит</span>'
+      + '<span><u style="background:rgba(139,124,246,.3)"></u>берёт мало</span>'
+      + '<span><u style="background:rgba(139,124,246,.86)"></u>берёт плотно</span>'
+      + '<span><u style="background:transparent;box-shadow:inset 0 0 0 1.5px #e8b64c"></u>есть разрыв — клик открывает связку</span>'
+      + '<span class="mut">в ячейке — ₸ в месяц</span></div>';
+    return h;
+  }
+
+  /* ── ВКЛАДКА «НАРЯД НА МЕСЯЦ» ──
+     Готовый список задач менеджерам: по каждому клиенту — что везти, сколько
+     это стоит и на каком основании. Именно это уходит в CSV. */
+  function viewOrder() {
+    var live = IDX.recs.filter(function (r) { return !state.drop[r.c + '|' + r.s]; });
+    if (!live.length) return '<div class="card"><div class="note">В плане пусто — все связки сняты галочками '
+      + 'или отсечка выше найденных сумм.</div></div>';
+    var byC = {};
+    live.forEach(function (r) { (byC[r.c] || (byC[r.c] = [])).push(r); });
+    var order = Object.keys(byC).sort(function (a, b) {
+      var sa = byC[a].reduce(function (s, r) { return s + r.profit; }, 0);
+      var sb = byC[b].reduce(function (s, r) { return s + r.profit; }, 0);
+      return sb - sa;
+    });
+    var totP = live.reduce(function (s, r) { return s + r.profit; }, 0);
+
+    var h = '<div class="eyebrow">Что делать в ближайший месяц · ' + esc(periodText())
+      + ' как база расчёта</div>';
+
+    order.forEach(function (c) {
+      var list = byC[c].slice(0, 12);
+      var p = byC[c].reduce(function (s, r) { return s + r.profit; }, 0);
+      var g = byC[c].reduce(function (s, r) { return s + r.gap; }, 0);
+      var b = IDX.byCli[c];
+      h += '<div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">'
+        + '<div style="padding:14px 18px 10px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">'
+        +   '<div style="font-size:15px;font-weight:900">' + esc(cliName(c)) + '</div>'
+        +   '<div class="mut" style="font-size:11.5px">' + money(b ? b.revM : 0) + ' ₸/мес сейчас · '
+        +     (b && b.pts > 1 ? b.pts + ' точек' : 'одна точка') + '</div>'
+        +   '<div style="margin-left:auto;font-size:15px;font-weight:900;color:var(--gold)">+'
+        +     f0(p) + ' ₸ прибыли в месяц</div>'
+        +   '<div class="mut" style="font-size:11.5px">+' + money(g) + ' ₸ выручки · '
+        +     pc(b && b.revM ? g / b.revM * 100 : 0, 1) + ' к его обороту</div>'
+        + '</div>'
+        + '<div class="tw"><table class="t"><thead><tr><th class="chk"></th><th class="l">Позиция</th>'
+        +   '<th class="l">Что делать</th><th>Сейчас ₸/мес</th><th>Цель ₸/мес</th>'
+        +   '<th>Прибыль +₸/мес</th><th class="l">Основание</th></tr></thead><tbody>'
+        + list.map(function (r) {
+            var key = r.c + '|' + r.s;
+            var why = r.grp
+              ? ('берут ' + r.have.length + ' из ' + r.grp + ' похожих: '
+                 + r.have.map(function (x) { return esc(cliName(x)); }).join(', '))
+              : (r.kind === 'вернуть' ? 'брал ' + f0(r.was) + ' ₸/мес и перестал'
+                                      : 'брал ' + f0(r.was) + ' ₸/мес, сейчас ' + f0(r.cur));
+            return '<tr><td class="chk"><input type="checkbox" data-k="' + esc(key) + '" checked></td>'
+              + '<td class="l">' + esc(r.name) + '<div class="mut" style="font-size:10.5px;font-weight:500">'
+              +   esc(r.cat) + ' · маржа ' + r.marg.toFixed(0) + '%</div></td>'
+              + '<td class="l">' + kindPill(r.kind) + '</td>'
+              + '<td>' + (r.cur ? f0(r.cur) : '<span class="mut">—</span>') + '</td>'
+              + '<td class="gold">' + f0(r.cur + r.gap) + '</td>'
+              + '<td class="up"><b>+' + f0(r.profit) + '</b></td>'
+              + '<td class="l mut" style="font-size:11px">' + why + '</td></tr>';
+          }).join('')
+        + (byC[c].length > list.length
+            ? '<tr><td></td><td class="l mut" colspan="6">…и ещё ' + (byC[c].length - list.length)
+              + ' позиций помельче — они в CSV</td></tr>' : '')
+        + '</tbody></table></div></div>';
+    });
+
+    h += '<div class="card"><div class="note"><b>Итого по наряду:</b> +' + f0(totP)
+      + ' ₸ валовой прибыли в месяц, ' + money(totP * 12) + ' ₸ за год при исполнении на '
+      + Math.round(state.real * 100) + '%. Кнопка «Скачать наряд CSV» внизу выгружает весь список '
+      + 'целиком — его можно раздать менеджерам по клиентам.</div></div>';
+    return h;
+  }
+
+  /* ── ОТРИСОВКА ── */
+  function render() {
+    IDX = compute();
+    hero();
+    var body = document.getElementById('ra-body');
+    if (state.tab === 'who') body.innerHTML = viewWho();
+    else if (state.tab === 'what') body.innerHTML = viewWhat();
+    else if (state.tab === 'mx') body.innerHTML = viewMx();
+    else body.innerHTML = viewOrder();
+    bar();
+    bind();
+  }
+
+  function bar() {
+    var live = IDX.recs.filter(function (r) { return !state.drop[r.c + '|' + r.s]; });
+    var p = live.reduce(function (s, r) { return s + r.profit; }, 0);
+    document.getElementById('ra-bar').innerHTML =
+      '<span class="n">В плане <b>' + live.length + '</b> связок · исполнение <b>'
+      + Math.round(state.real * 100) + '%</b></span>'
+      + '<span class="v">+' + f0(p) + ' ₸ прибыли в месяц</span>'
+      + '<span class="n" style="margin-right:auto">+' + money(p * 12) + ' ₸ за год</span>'
+      + '<button class="btn" id="ra-all">Вернуть все</button>'
+      + '<button class="btn pri" id="ra-csv">Скачать наряд CSV</button>';
+    var a = document.getElementById('ra-all');
+    if (a) a.addEventListener('click', function () { state.drop = {}; render(); });
+    var c = document.getElementById('ra-csv');
+    if (c) c.addEventListener('click', csv);
+  }
+
+  function csv() {
+    var head = ['Клиент', 'Позиция', 'Категория', 'Что делать', 'Берёт сейчас ₸/мес',
+      'Ожидание ₸/мес', 'Разрыв ₸/мес', 'Маржа %', 'Прибыль ₸/мес', 'Похожих берут'];
+    var rows = IDX.recs.filter(function (r) { return !state.drop[r.c + '|' + r.s]; });
+    var lines = [head.join(';')].concat(rows.map(function (r) {
+      return [r.c, r.s, r.cat, r.kind, Math.round(r.cur), Math.round(r.exp), Math.round(r.gap),
+        r.marg.toFixed(1), Math.round(r.profit), r.grp ? r.have.length + ' из ' + r.grp : 'факт']
+        .map(function (x) { return String(x).replace(/;/g, ',').replace(/\./g, ','); }).join(';');
+    }));
+    var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'развитие_ассортимента.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  }
+
+  function bind() {
+    var b = document.getElementById('ra-body');
+    [].forEach.call(b.querySelectorAll('[data-who]'), function (el) {
+      el.addEventListener('click', function () { state.who = el.getAttribute('data-who'); render(); });
+    });
+    [].forEach.call(b.querySelectorAll('[data-what]'), function (el) {
+      el.addEventListener('click', function () { state.what = el.getAttribute('data-what'); render(); });
+    });
+    [].forEach.call(b.querySelectorAll('[data-k]'), function (el) {
+      el.addEventListener('change', function () {
+        var k = el.getAttribute('data-k');
+        if (el.checked) delete state.drop[k]; else state.drop[k] = 1;
+        render();
+      });
+    });
+    [].forEach.call(b.querySelectorAll('[data-cell]'), function (el) {
+      el.addEventListener('click', function () {
+        var p = el.getAttribute('data-cell').split('|');
+        state.who = p[0]; state.tab = 'who'; syncTabs(); render();
+        setTimeout(function () {
+          var t = document.getElementById('ra-body');
+          if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 60);
+      });
+    });
+    var q = document.getElementById('ra-q');
+    if (q) {
+      q.addEventListener('input', function () {
+        state.q = q.value.trim(); render();
+        var n = document.getElementById('ra-q');
+        if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); }
+      });
+    }
+  }
+
+  function syncTabs() {
+    [].forEach.call(document.querySelectorAll('#ra-tabs .tab'), function (t) {
+      t.className = 'tab' + (t.getAttribute('data-t') === state.tab ? ' on' : '');
+    });
+  }
+
+  function ctl() {
+    document.getElementById('ra-per').addEventListener('change', function () {
+      state.per = parseInt(this.value, 10) || 3; render();
+    });
+    var rl = document.getElementById('ra-real'), rv = document.getElementById('ra-real-v');
+    rl.addEventListener('input', function () {
+      state.real = parseInt(rl.value, 10) / 100;
+      rv.textContent = rl.value + '%'; render();
+    });
+    document.getElementById('ra-cap').addEventListener('change', function () {
+      state.cap = parseFloat(this.value); render();
+    });
+    document.getElementById('ra-min').addEventListener('change', function () {
+      state.min = parseInt(this.value, 10); render();
+    });
+    document.getElementById('ra-tabs').addEventListener('click', function (e) {
+      var t = e.target.closest ? e.target.closest('.tab') : null;
+      if (!t) return;
+      state.tab = t.getAttribute('data-t'); syncTabs(); render();
+    });
+
+    var sel = document.getElementById('ra-cat');
+    var cs = {};
+    Object.keys(MG).forEach(function (k) { if (MG[k].c && !BAD[MG[k].c]) cs[MG[k].c] = (cs[MG[k].c] || 0) + MG[k].r; });
+    Object.keys(cs).sort(function (a, b) { return cs[b] - cs[a]; }).forEach(function (c) {
+      var o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o);
+    });
+    sel.addEventListener('change', function () { state.cat = this.value; render(); });
+
+    document.getElementById('ra-help').innerHTML =
+      '<b>Как это считается.</b> Для каждого клиента собирается группа похожих — по структуре выручки '
+      + 'в разрезе категорий. Дальше по каждой позиции смотрим, какую долю ОТ СВОЕЙ КАТЕГОРИИ она '
+      + 'занимает у похожих, и переносим эту долю на нашего клиента. Разрыв — ожидание минус то, что он '
+      + 'берёт сейчас. Сумма разрывов по клиенту упирается в потолок: всерьёз обещать рост больше чем '
+      + 'на выбранный процент его выручки нельзя. Позиции «вернуть» и «удержать» считаются не по похожим, '
+      + 'а по его собственным прошлым отгрузкам — это факт, а не гипотеза. Полный расчёт — верхняя '
+      + 'граница; ползунок «реалистичность» приводит её к плану.'
+      + (MGM ? ' Маржа — за ' + esc((MGM.months || []).join(', ')) + '.' : '');
+  }
+
+  ctl();
+  syncTabs();
+  render();
+})();
+</script>
+<script src="nav.js"></script>
+</body></html>
