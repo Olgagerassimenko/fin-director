@@ -378,16 +378,16 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
       var x = W - (i + 0.5) * step;                 // свежая неделя справа
       var hs = (+sh[i] || 0) / mx * (H - PB * 2);
       if (hs > 0.5) bars += '<rect x="' + (x - bw / 2).toFixed(1) + '" y="' + (H - PB - hs).toFixed(1)
-        + '" width="' + bw.toFixed(1) + '" height="' + hs.toFixed(1) + '" rx="2" fill="#24334f"/>';
+        + '" width="' + bw.toFixed(1) + '" height="' + hs.toFixed(1) + '" rx="2" fill="#33456b"/>';
       var hp = (+pa[i] || 0) / mx * (H - PB * 2);
       var y = H - PB - hp;
       pts.push(x.toFixed(1) + ',' + y.toFixed(1));
       if ((+pa[i] || 0) > 0) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1)
-        + '" r="3" fill="#4ade80"/>';
+        + '" r="2.8" fill="#4ade80"/>';
     }
     return '<svg class="spark" width="100%" height="' + H + '" viewBox="0 0 ' + W + ' ' + H
       + '" preserveAspectRatio="none">' + bars
-      + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="rgba(74,222,128,.55)" stroke-width="1.6"/>'
+      + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="rgba(74,222,128,.45)" stroke-width="1.4"/>'
       + dots + '</svg>';
   }
 
