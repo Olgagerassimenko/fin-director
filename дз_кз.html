@@ -153,6 +153,22 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
   font-size:12px;font-weight:800;color:#f5b544;}
 .excl-tot .n{flex:1}
 .excl-why{margin-top:8px;font-size:11px;line-height:1.55;color:#a9997c;}
+
+/* Консигнация: срок правится руками */
+.c-ctl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding:11px 14px;
+  background:#0d1729;border:1px solid #1e2c46;border-radius:12px}
+.c-ctl label{font-size:11.5px;color:#9db0c9;font-weight:700;display:flex;align-items:center;gap:9px}
+.c-ctl input{width:74px;background:#0a1424;border:1px solid #2a3a58;color:#e8eef6;border-radius:8px;
+  padding:6px 9px;font-size:13px;font-weight:800;text-align:right;font-family:inherit}
+.c-ctl input:focus{outline:none;border-color:#60a5fa}
+.c-btn{background:#16233c;border:1px solid #2a3a58;color:#cbd5e1;border-radius:9px;padding:7px 12px;
+  font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.c-btn:hover{background:#1e2f4d;color:#fff}
+.c-ctl-note{font-size:11px;color:#64748b;margin-left:auto}
+.c-in{width:56px;background:#0a1424;border:1px solid #2a3a58;color:#e8eef6;border-radius:7px;
+  padding:4px 7px;font-size:12px;text-align:right;font-family:inherit;font-variant-numeric:tabular-nums}
+.c-in:focus{outline:none;border-color:#60a5fa}
+.c-in.own{border-color:#a16207;background:#1a1508;color:#fcd34d}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
 </head>
@@ -295,16 +311,31 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
     <div id="atab-consign" class="apanel">
       <div class="a-cards">
         <div class="a-card"><div class="a-card-lbl">ДЗ <span id="c-date">—</span> (консигнация)</div><div class="a-card-val" id="c-dz">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">В сроке (&le;14 дней)</div><div class="a-card-val green" id="c-interm">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Просрочено (&gt;14 дней)</div><div class="a-card-val red" id="c-over">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">В сроке (&le;<span class="c-days">14</span> дней)</div><div class="a-card-val green" id="c-interm">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Просрочено (&gt;<span class="c-days">14</span> дней)</div><div class="a-card-val red" id="c-over">—</div></div>
         <div class="a-card"><div class="a-card-lbl">% просрочки</div><div class="a-card-val" id="c-overpct">—</div></div>
       </div>
+
+      <!-- Срок консигнации меняется прямо здесь: общий для всех и свой у каждого -->
+      <div class="c-ctl">
+        <label>Срок консигнации, дней
+          <input id="c-days-all" type="number" min="1" max="120" step="1" value="14">
+        </label>
+        <button class="c-btn" id="c-apply">Применить ко всем</button>
+        <button class="c-btn" id="c-reset">Сбросить мои правки</button>
+        <span class="c-ctl-note" id="c-custom">—</span>
+      </div>
+
       <p style="font-size:11.5px;color:#9db0c9;margin-bottom:10px;line-height:1.5">
-        Консигнация 14 дней. <b style="color:#e8eef6">ДЗ <span class="c-date2">—</span></b> — вся сумма, которую клиент должен (отгрузки за 2 недели минус оплаты).
-        <b style="color:#f87171">Просрочено</b> — часть ДЗ старше 14 дней (сверх отгрузок за последние 2 недели). Столбцы «Отгрузка» и «Оплата» — за последнюю неделю.
+        <b style="color:#e8eef6">ДЗ <span class="c-date2">—</span></b> — вся сумма, которую клиент должен.
+        <b style="color:#f87171">Просрочено</b> — часть ДЗ сверх отгрузок за срок консигнации: если клиент должен
+        больше, чем мы отгрузили ему за этот срок, разница — деньги, которые он должен был вернуть раньше.
+        Срок можно поменять и всем сразу, и каждому свой — в колонке «Дней». Правки сохраняются в этом браузере.
+        <b style="color:#e8eef6">Возраст</b> — сколько дней самым старым неоплаченным деньгам: идём от свежих
+        отгрузок к старым, пока не наберём сумму долга. Столбцы «Отгрузка» и «Оплата» — за последнюю неделю.
       </p>
       <table class="a-table">
-        <thead><tr><th>Контрагент</th><th class="r">Отгрузка нед.</th><th class="r">Оплата нед.</th><th class="r">ДЗ <span class="c-date2">—</span></th><th class="r">Просрочено</th><th>Риск</th></tr></thead>
+        <thead><tr><th>Контрагент</th><th class="r">Отгрузка нед.</th><th class="r">Оплата нед.</th><th class="r">ДЗ <span class="c-date2">—</span></th><th class="r">Дней</th><th class="r">В сроке</th><th class="r">Просрочено</th><th class="r">Возраст</th><th>Риск</th></tr></thead>
         <tbody id="a-consign-body"></tbody>
         <tfoot id="a-consign-foot"></tfoot>
       </table>
@@ -330,6 +361,44 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 </div>
 
 <script>
+const CONS_KEY='pulse_consign_days';
+let CONS_DEF=14, CONS_OWN={};
+try{
+  const raw=localStorage.getItem(CONS_KEY);
+  if(raw){const o=JSON.parse(raw); CONS_DEF=+o.def||14; CONS_OWN=o.own||{};}
+}catch(e){}
+function consSave(){
+  try{localStorage.setItem(CONS_KEY,JSON.stringify({def:CONS_DEF,own:CONS_OWN}));}catch(e){}
+}
+function consDays(name){
+  const v=CONS_OWN[name];
+  return (v===undefined||v===null||!isFinite(v)) ? CONS_DEF : v;
+}
+// сумма отгрузок за N дней; неполная неделя — пропорционально
+function consWindow(d,days){
+  const w=(d.ships&&d.ships.length)?d.ships:[d.ship||0,d.shipPrev||0];
+  let left=days,s=0;
+  for(let i=0;i<w.length&&left>0;i++){
+    const take=Math.min(7,left);
+    s+=(+w[i]||0)*take/7;
+    left-=take;
+  }
+  return s;
+}
+// возраст самых старых неоплаченных денег, в днях
+function consAge(d){
+  const w=(d.ships&&d.ships.length)?d.ships:[d.ship||0,d.shipPrev||0];
+  let cum=0;
+  for(let i=0;i<w.length;i++){
+    const x=+w[i]||0;
+    if(cum+x>=d.dz){
+      const f=x>0?(d.dz-cum)/x:0;
+      return i*7+Math.max(1,Math.round(f*7));
+    }
+    cum+=x;
+  }
+  return null;                    // отгрузок не хватает — долг старше всей истории
+}
 function fmt(v,short){
   if(!v&&v!==0||isNaN(v))return'—';
   const abs=Math.abs(v),s=v<0?'−':v>0&&!short?'':'' ;
@@ -681,50 +750,69 @@ function buildKzMismatch(){
     </tr>`;
 }
 
-// ── КОНСИГНАЦИЯ: реальная ДЗ (14 дней) из Google-таблицы ──
+// ── КОНСИГНАЦИЯ ────────────────────────────────────────────────────────
+// Сколько денег у клиента зависло дольше срока. Срок раньше был зашит —
+// четырнадцать дней всем, — но по факту он разный: кому-то дали неделю,
+// кому-то три. Теперь он правится прямо на странице: общий сверху и свой
+// у каждого в колонке «Дней». Правки живут в этом браузере.
+//
+// Как считаем. В таблице ДЗ отгрузки лежат понедельно. Берём столько недель,
+// сколько укладывается в срок, неполную неделю делим по дням: при сроке
+// в десять дней это последняя неделя целиком плюс три седьмых предыдущей.
+// Всё, что клиент должен сверх этой суммы, он должен был вернуть раньше —
+// это и есть просрочка. Возраст самых старых денег ищем тем же ходом:
+// идём от свежих отгрузок к старым, пока не наберём сумму долга.
 function buildConsign(){
   const D=window.DZ_KZ, dz=D&&D.dz;
   const meta=(dz&&dz.consignMeta)||{date:'',prevDate:''};
   const CON=(dz&&dz.consign)||[];
   const fmtM=n=>{const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1)+' млн':a>=1e3?Math.round(n/1e3)+' тыс':fmtN(n);};
   const pD=s=>{const p=String(s).split('.');if(p.length!==3)return null;let y=p[2];if(y.length===2)y='20'+y;return new Date(+y,+p[1]-1,+p[0]);};
-  const aD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
   const lD=d=>d?String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0'):'—';
   const end=pD(meta.date);
   const dateShort=end?lD(end)+'.'+String(end.getFullYear()).slice(2):(meta.date||'—');
-  const dueRange=end?lD(aD(end,8))+'–'+lD(aD(end,14)):'—'; // отгрузка недели (−6..0) + 14 дней
+  const weeks=(meta.weeks||[]).length;
 
-  // подписи дат
   document.querySelectorAll('.c-date2').forEach(e=>e.textContent='на '+dateShort);
+  document.querySelectorAll('.c-days').forEach(e=>e.textContent=CONS_DEF);
   const setT=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   setT('c-date','на '+dateShort);
-  setT('c-due',dueRange);
 
   const cb=document.getElementById('a-consign-body');
   if(!cb)return;
   cb.innerHTML='';
-  if(!D||!dz){cb.innerHTML='<tr><td colspan="6" style="color:#9db0c9">Данные ДЗ ещё не загружены — обновите страницу.</td></tr>';return;}
+  if(!D||!dz){cb.innerHTML='<tr><td colspan="9" style="color:#9db0c9">Данные ДЗ ещё не загружены — обновите страницу.</td></tr>';return;}
 
   let sDz=0,sOver=0,sInterm=0;
   const list=CON.filter(d=>d.dz>0).sort((a,b)=>b.dz-a.dz);
+  const hist=(list[0]&&list[0].ships&&list[0].ships.length)||2;
+  const maxDays=Math.max(14,hist*7);
   list.forEach(d=>{
-    const win=(d.ship||0)+(d.shipPrev||0); // отгрузки за 2 недели = в пределах 14 дней
-    const over=Math.max(0,d.dz-win);        // ДЗ сверх 2 недель = старше 14 дней = просрочено
-    const interm=d.dz-over;                 // в пределах срока (≤14 дней)
+    const days=consDays(d.name);
+    const win=consWindow(d,days);
+    const over=Math.max(0,d.dz-win);
+    const interm=d.dz-over;
+    const age=consAge(d);
     sDz+=d.dz;sOver+=over;sInterm+=interm;
     let risk,rc;
-    if(over>0){risk='🔴 Просрочено';rc='b-red';}
-    else{risk='🟡 В сроке';rc='b-yellow';}
+    if(over<=0){risk='🟢 В сроке';rc='b-green';}
+    else if(over<d.dz*0.5){risk='🟡 Частично просрочено';rc='b-yellow';}
+    else{risk='🔴 Просрочено';rc='b-red';}
+    const own=CONS_OWN[d.name]!==undefined;
     cb.innerHTML+=`<tr>
       <td>${d.name}</td>
       <td class="r">${fmtN(d.ship)}</td>
       <td class="r">${fmtN(d.pay)}</td>
       <td class="r" style="font-weight:800;color:#e8eef6">${fmtN(d.dz)}</td>
-      <td class="r" style="color:${over>0?'#f87171':'#64748b'}">${over>0?fmtN(over):'—'}</td>
+      <td class="r"><input class="c-in${own?' own':''}" type="number" min="1" max="${maxDays}" step="1"
+        value="${days}" data-cons="${String(d.name).replace(/"/g,'&quot;')}"></td>
+      <td class="r" style="color:${interm>0?'#4ade80':'#64748b'}">${interm>0?fmtN(interm):'—'}</td>
+      <td class="r" style="color:${over>0?'#f87171':'#64748b'};font-weight:${over>0?'800':'400'}">${over>0?fmtN(over):'—'}</td>
+      <td class="r" style="color:${age===null?'#f87171':age>days?'#fbbf24':'#9db0c9'}">${age===null?'>'+maxDays+' дн':age+' дн'}</td>
       <td><span class="badge ${rc}">${risk}</span></td>
     </tr>`;
   });
-  if(!list.length)cb.innerHTML='<tr><td colspan="6" style="color:#9db0c9">Нет открытой дебиторки по консигнации.</td></tr>';
+  if(!list.length)cb.innerHTML='<tr><td colspan="9" style="color:#9db0c9">Нет открытой дебиторки по консигнации.</td></tr>';
 
   const cf=document.getElementById('a-consign-foot');
   if(cf) cf.innerHTML = list.length ? `<tr>
@@ -732,7 +820,10 @@ function buildConsign(){
       <td class="r">${fmtN(list.reduce((a,d)=>a+(+d.ship||0),0))}</td>
       <td class="r">${fmtN(list.reduce((a,d)=>a+(+d.pay||0),0))}</td>
       <td class="r" style="color:#e8eef6">${fmtN(sDz)}</td>
+      <td class="r" style="color:#9db0c9">${CONS_DEF}</td>
+      <td class="r" style="color:#4ade80">${fmtN(sInterm)}</td>
       <td class="r" style="color:${sOver>0?'#f87171':'#64748b'}">${sOver>0?fmtN(sOver):'—'}</td>
+      <td class="r"></td>
       <td style="color:#9db0c9;font-weight:600">${sDz>0?(sOver/sDz*100).toFixed(1)+'% просрочки':''}</td>
     </tr>` : '';
 
@@ -741,7 +832,41 @@ function buildConsign(){
   setT('c-over',fmtM(sOver));
   const op=document.getElementById('c-overpct');
   if(op){const pct=sDz>0?(sOver/sDz*100):0;op.textContent=pct.toFixed(1)+'%';op.className='a-card-val '+(pct<5?'green':pct<20?'yellow':'red');}
+
+  const nOwn=Object.keys(CONS_OWN).length;
+  setT('c-custom', (weeks? 'история отгрузок '+weeks+' недель · ':'')
+    + (nOwn? 'свой срок у '+nOwn+' контрагентов' : 'у всех общий срок'));
+
+  // ввод по каждому контрагенту
+  cb.querySelectorAll('[data-cons]').forEach(inp=>{
+    inp.addEventListener('change',()=>{
+      const nm=inp.getAttribute('data-cons');
+      let v=parseFloat(String(inp.value).replace(',','.'));
+      if(!isFinite(v)||v<1) v=1;
+      if(v>maxDays) v=maxDays;
+      if(v===CONS_DEF) delete CONS_OWN[nm]; else CONS_OWN[nm]=v;
+      consSave(); buildConsign();
+    });
+  });
 }
+
+// управление сроком — вешаем один раз
+(function consCtl(){
+  const all=document.getElementById('c-days-all');
+  if(!all) return;
+  all.value=CONS_DEF;
+  const apply=()=>{
+    let v=parseFloat(String(all.value).replace(',','.'));
+    if(!isFinite(v)||v<1) v=1;
+    if(v>120) v=120;
+    CONS_DEF=v; all.value=v; consSave(); buildConsign();
+  };
+  all.addEventListener('change',apply);
+  const ap=document.getElementById('c-apply');
+  if(ap) ap.addEventListener('click',()=>{CONS_OWN={};apply();});
+  const rs=document.getElementById('c-reset');
+  if(rs) rs.addEventListener('click',()=>{CONS_OWN={};CONS_DEF=14;all.value=14;consSave();buildConsign();});
+})();
 
 /* ═══════════ АНАЛИТИКА КРЕДИТОРСКОЙ ЗАДОЛЖЕННОСТИ ═══════════
    Данные из закупа: что поступило на склад и что оплачено, понедельно.

@@ -370,6 +370,11 @@ def parse_dz(rows):
     ship_last = ship_cols[-1] if ship_cols else None
     ship_prev = ship_cols[-2] if len(ship_cols) >= 2 else None
     pay_last  = pay_cols[-1] if pay_cols else None
+    # Последние недели отгрузок — чтобы на странице можно было менять срок
+    # консигнации. Четырнадцать дней зашиты не везде: кому-то дали двадцать
+    # один день, кому-то семь. Отдаём восемь недель, страница берёт столько,
+    # сколько нужно под выставленный срок, а неполную неделю делит по дням.
+    ship_hist = ship_cols[-8:]
 
     def val(row, i):
         v = num(row[i]) if (i is not None and i < len(row)) else None
@@ -386,7 +391,9 @@ def parse_dz(rows):
             ana.append({"name": name, "kc": round(ship), "kd": round(pay)})
         if dzv > 0:
             consign.append({"name": name, "ship": round(ship), "shipPrev": round(shipPrev),
-                            "pay": round(pay), "dz": round(dzv)})
+                            "pay": round(pay), "dz": round(dzv),
+                            # от свежей недели к старым
+                            "ships": [round(val(row, i)) for i in reversed(ship_hist)]})
 
     def period_label(col_i):
         if col_i is None: return ""
@@ -407,7 +414,9 @@ def parse_dz(rows):
                         "totalShip": round(sum(a["kc"] for a in ana)),
                         "totalPay":  round(sum(a["kd"] for a in ana))},
             "consign": consign,
-            "consignMeta": {"date": last_date, "prevDate": prev_dz_lbl}}
+            "consignMeta": {"date": last_date, "prevDate": prev_dz_lbl,
+                            # подписи недель в том же порядке, что и ships
+                            "weeks": [period_label(i) for i in reversed(ship_hist)]}}
 
 def main():
     print("=" * 50)
