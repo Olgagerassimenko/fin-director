@@ -69,7 +69,8 @@ def main():
         # чтобы расчёт эффекта не опирался на мусор.
         if mg > 95 or mg < -50:
             continue
-        out[s["name"]] = {"m": mg, "r": round(rev), "q": round(qty)}
+        # категория нужна разделу «Повышение цен», чтобы группировать позиции
+        out[s["name"]] = {"m": mg, "r": round(rev), "q": round(qty), "c": s.get("cat") or ""}
 
     meta = {
         "months": [labels[i] for i in idx],

@@ -69,6 +69,10 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
 .pu-up{color:#4ade80}.pu-dn{color:#f87171}.pu-mut{color:#64748b}
 .pu-bar{display:inline-block;width:52px;height:5px;border-radius:3px;background:#1e293b;overflow:hidden;vertical-align:middle;margin-right:7px}
 .pu-bar i{display:block;height:100%;border-radius:3px}
+.pu-table td.c,.pu-table th.c{text-align:center}
+.pu-cat{font-size:10px;color:#64748b;font-weight:500;margin-top:1px}
+.pu-spark{display:block;margin:0 auto}
+
 </style></head>
 <body>
 
@@ -76,7 +80,7 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
   <a class="backbtn" href="index.html">← На Пульс</a>
   <div>
     <h1>Повышение цен</h1>
-    <p>Кому из клиентов можно поднять цену и что это даст · ТОП-20 по выручке · только закрытые месяцы</p>
+    <p>Каким позициям пора поднять цену и что это даст · только закрытые месяцы</p>
   </div>
   <span class="live">⚡ iiko · каждое утро</span>
 </div>
@@ -94,6 +98,16 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
           <option value="3">трём последним полным месяцам</option>
           <option value="1">последнему полному месяцу</option>
           <option value="6">шести последним полным месяцам</option>
+        </select>
+      </div>
+      <div><label>Категория</label>
+        <select id="pu-cat"><option value="">все категории</option></select>
+      </div>
+      <div><label>Сколько позиций</label>
+        <select id="pu-top">
+          <option value="20">ТОП-20 по выручке</option>
+          <option value="30">ТОП-30</option>
+          <option value="50">ТОП-50</option>
         </select>
       </div>
       <div><label>Поднять всем на</label>
@@ -127,8 +141,8 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
   <!-- Таблица: по каждому клиенту свой процент -->
   <div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
     <div style="padding:12px 16px 6px">
-      <div class="card-title">Кому поднимать · ТОП-20 по выручке</div>
-      <div class="pu-note" style="margin:2px 0 0">Процент в колонке «Моё, %» можно менять по каждому клиенту — расчёт пересчитается сразу.</div>
+      <div class="card-title">Каким позициям поднимать</div>
+      <div class="pu-note" style="margin:2px 0 0">Процент в колонке «Моё, %» можно менять по каждой позиции — расчёт пересчитается сразу.</div>
     </div>
     <div class="pu-wrap"><table class="pu-table" id="pu-table"></table></div>
   </div>
@@ -143,28 +157,25 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
 <footer>Система «Пульс» · Фуд Завод<br><b style="color:#94a3b8">Ольга Герасименко</b> · финансовый директор · данные из iiko, обновляются ежедневно</footer>
 
 <script>
-/* ══════════════════ ПОВЫШЕНИЕ ЦЕН ══════════════════
-   Отвечает на два вопроса: кому из клиентов можно поднять цену и что это даст.
+/* ══════════════════ ПОВЫШЕНИЕ ЦЕН ПО ПОЗИЦИЯМ ══════════════════
+   Отвечает на вопрос «каким SKU поднять цену и что это даст».
 
-   Откуда цифры. window.CTR — что и почём каждый контрагент забрал по месяцам
-   (количество и сумма по каждой позиции), window.SKU_MARGIN — маржа позиции за
-   последние закрытые месяцы. Обе величины уже на странице, ничего не грузим.
+   Откуда цифры. window.CTR — что и почём забрал каждый контрагент по месяцам:
+   там есть количество и сумма по каждой позиции, а значит и цена. Складываем
+   по всем клиентам и получаем помесячную цену позиции. window.SKU_MARGIN —
+   маржа и категория позиции за последние закрытые месяцы.
 
-   Как считаем «дёшево или дорого». По каждой позиции берём среднюю цену по
-   всем клиентам за период — это эталон прайса. Дальше считаем, сколько клиент
-   заплатил бы за свой же объём по эталону. Отношение факта к этой сумме и есть
-   индекс цены: 94% значит «берёт на шесть процентов дешевле рынка завода»,
-   а разница в тенге — сколько мы недобираем каждый месяц.
+   Главный признак кандидата — не «дорого или дёшево» (сравнивать не с чем,
+   прайса конкурентов у нас нет), а СКОЛЬКО МЕСЯЦЕВ ЦЕНУ НЕ ТРОГАЛИ. Пока
+   цена стоит, сырьё и зарплата дорожают, и маржа тает сама собой. Поэтому
+   считаем, когда цену меняли последний раз и на сколько она выросла за год.
 
-   Как считаем эффект. Повышение цены не меняет себестоимость, поэтому весь
-   прирост цены идёт в валовую прибыль. Пусть выручка R, маржа m, повышение p,
-   а объём из-за подорожания меняется в k раз. Тогда
-       новая выручка = R·k·(1+p),   новая ВП = R·k·(m+p).
-   Отсюда порог: объём может упасть на p/(m+p) — дальше ВП станет меньше, чем
-   была. Это и есть ответ «сколько мы можем позволить себе потерять».
-
-   Незакрытый месяц в расчёт не берём: в нём нет ни полной выручки, ни
-   разнесённой себестоимости. */
+   Эффект считаем честно: подъём цены не меняет себестоимость, поэтому весь
+   прирост уходит в валовую прибыль, но часть объёма уходит вместе с ним.
+   При выручке R, марже m, подъёме p и изменении объёма в k раз
+       новая выручка = R·k·(1+p),   новая валовая прибыль = R·k·(m+p).
+   Отсюда порог: объём может упасть на p/(m+p) — дальше прибыль станет меньше
+   нынешней. Незакрытый месяц в расчёт не берём вовсе.                     */
 (function () {
   'use strict';
   var root = document.getElementById('price-up-section');
@@ -178,10 +189,9 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
   var FULL = ALL.slice(0, -1);      // последний месяц идёт живым, он неполный
   if (!FULL.length) return;
 
-  var state = { per: 3, pct: 5, el: -0.8, own: {} };
-  var DATA = null;
+  var state = { per: 3, pct: 5, el: -0.8, cat: '', top: 20, own: {} };
+  var BYM = null, DATA = null;
 
-  /* ── деньги и проценты ── */
   function f0(n) { return Math.round(n || 0).toLocaleString('ru-RU'); }
   function money(n) {
     var a = Math.abs(n);
@@ -195,71 +205,110 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
   }
+  /* «RP* Упак Сосиска в тесте  готов СМ (30шт гофра)» → читаемое имя */
   function shortName(s) {
-    return String(s || '').replace(/\s*\(.*?\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+    return String(s || '').replace(/^RP\*\s*/, '').replace(/^Упак\s+/i, '')
+      .replace(/\s+готов(ый)?\s+(СМ|ФЗ\s+СМ)\s*/i, ' ').replace(/\s{2,}/g, ' ').trim();
   }
 
-  /* ── сбор по контрагентам за выбранный период ── */
-  function build() {
-    var per = FULL.slice(-state.per);
-    // эталон цены позиции: вся выручка по ней делённая на всё количество
-    var ref = {};
-    per.forEach(function (m) {
+  /* Помесячно складываем позиции по всем клиентам: количество и сумма */
+  function collect() {
+    var by = {};
+    FULL.forEach(function (m) {
+      var a = by[m] = {};
       (CTR[m] || []).forEach(function (c) {
         (c.items || []).forEach(function (it) {
           var q = Math.abs(it.q || 0), r = it.r || 0;
           if (q <= 0 || r <= 0) return;
-          var a = ref[it.n] || (ref[it.n] = { q: 0, r: 0 });
-          a.q += q; a.r += r;
-        });
-      });
-    });
-    Object.keys(ref).forEach(function (k) { ref[k].p = ref[k].r / ref[k].q; });
-
-    // тренд считаем по шести месяцам независимо от выбранного периода:
-    // на одном месяце «рост» и «падение» — это просто шум поставок
-    var trendMonths = FULL.slice(-6);
-    var agg = {};
-    ALL.forEach(function (m) {
-      (CTR[m] || []).forEach(function (c) {
-        var a = agg[c.name] || (agg[c.name] = { name: c.name, rev: 0, exp: 0, cov: 0,
-          vp: 0, mrev: 0, by: {}, items: {} });
-        a.by[m] = (a.by[m] || 0) + (c.rev || 0);
-        if (per.indexOf(m) < 0) return;
-        a.rev += c.rev || 0;
-        (c.items || []).forEach(function (it) {
-          var q = Math.abs(it.q || 0), r = it.r || 0;
-          if (q <= 0 || r <= 0) return;
-          var R = ref[it.n];
-          if (R) { a.exp += q * R.p; a.cov += r; }
-          var g = MG && MG[it.n];
-          a.vp += r * ((g ? g.m : MARGIN_DEFAULT) / 100);
-          a.mrev += r;
-          var t = a.items[it.n] || (a.items[it.n] = { q: 0, r: 0 });
+          var t = a[it.n] || (a[it.n] = { q: 0, r: 0, low: 0 });
           t.q += q; t.r += r;
         });
       });
+      // сколько выручки прошло по цене ниже средней по позиции за этот месяц
+      (CTR[m] || []).forEach(function (c) {
+        (c.items || []).forEach(function (it) {
+          var q = Math.abs(it.q || 0), r = it.r || 0;
+          if (q <= 0 || r <= 0) return;
+          var t = a[it.n], avg = t.r / t.q;
+          if (r / q < avg * 0.97) t.low += r;
+        });
+      });
+    });
+    return by;
+  }
+
+  function build() {
+    if (!BYM) BYM = collect();
+    var per = FULL.slice(-state.per);
+    var agg = {};
+    per.forEach(function (m) {
+      var a = BYM[m] || {};
+      for (var n in a) {
+        var t = agg[n] || (agg[n] = { n: n, q: 0, r: 0, low: 0 });
+        t.q += a[n].q; t.r += a[n].r; t.low += a[n].low;
+      }
     });
 
-    var rows = Object.keys(agg).map(function (k) {
-      var a = agg[k], n = per.length;
-      var idx = a.exp > 0 ? a.cov / a.exp : 1;
-      var mg = a.mrev > 0 ? a.vp / a.mrev * 100 : MARGIN_DEFAULT;
-      // тренд: последние три месяца против трёх предыдущих — так поставка,
-      // сдвинутая с конца месяца на начало следующего, не выдаёт себя за обвал
-      var tv = trendMonths.map(function (m) { return a.by[m] || 0; });
-      var half = Math.max(1, Math.floor(tv.length / 2));
-      var s1 = tv.slice(0, half).reduce(function (x, y) { return x + y; }, 0) / half;
-      var s2 = tv.slice(-half).reduce(function (x, y) { return x + y; }, 0) / half;
+    var rows = Object.keys(agg).map(function (n) {
+      var t = agg[n], g = MG && MG[n];
+      var price = t.q > 0 ? t.r / t.q : 0;
+      // помесячная цена — для графика и для «сколько месяцев цену не трогали»
+      var series = FULL.map(function (m) {
+        var s = (BYM[m] || {})[n];
+        return s && s.q > 0 ? s.r / s.q : null;
+      });
+      var lastI = -1;
+      for (var i = series.length - 1; i >= 0; i--) if (series[i] !== null) { lastI = i; break; }
+      var pLast = lastI >= 0 ? series[lastI] : price;
+      // Как менялась цена. Сравниваем медиану трёх последних месяцев с медианой
+      // трёх месяцев в начале окна. Медиана, а не крайние точки: у новой позиции
+      // первый месяц — пробная партия в сорок штук по розничной цене, и разница
+      // с оптовой выглядела бы обвалом цены на две трети, хотя цену никто не
+      // снижал. На год не пересчитываем: истории пока меньше года.
+      // Месяцы, где позицию брали единицами, из сравнения цен выбрасываем:
+      // это пробные партии по розничной цене. У «Брецель-дога» первые сорок
+      // штук ушли по 11 525, потом пошёл опт по 7 000 — без этой отсечки
+      // выходило, что цену уронили на четверть, хотя её никто не снижал.
+      var qm = FULL.map(function (m) { var x = (BYM[m] || {})[n]; return x ? x.q : 0; })
+                   .filter(function (x) { return x > 0; }).sort(function (a, b) { return a - b; });
+      var qMed = qm.length ? qm[Math.floor(qm.length / 2)] : 0;
+      var known = series.map(function (x, i) {
+        if (x === null) return null;
+        var st = (BYM[FULL[i]] || {})[n];
+        return (st && st.q >= qMed * 0.25) ? i : null;
+      }).filter(function (x) { return x !== null; });
+      var span = Math.min(known.length, 9);
+      var win = known.slice(-span);
+      function med(idx) {
+        var v = idx.map(function (i) { return series[i]; }).sort(function (a, b) { return a - b; });
+        return v.length ? v[Math.floor(v.length / 2)] : null;
+      }
+      var nHalf = Math.max(1, Math.min(3, Math.floor(win.length / 2)));
+      var pNew = med(win.slice(-nHalf)), pOld = med(win.slice(0, nHalf));
+      var yoy = (pOld && pNew && win.length >= 4) ? (pNew / pOld - 1) * 100 : null;
+      var yoyM = win.length;      // за сколько месяцев измерено
+      // сколько месяцев подряд цена держится в пределах трёх процентов
+      var flat = 0;
+      for (var j = lastI; j >= 0; j--) {
+        if (series[j] === null) continue;
+        if (Math.abs(series[j] / pLast - 1) <= 0.03) flat++; else break;
+      }
+      // тренд объёма: последние три месяца против трёх предыдущих
+      var qs = FULL.map(function (m) { var s = (BYM[m] || {})[n]; return s ? s.q : 0; });
+      var h = 3, s2 = qs.slice(-h).reduce(function (a, b) { return a + b; }, 0) / h;
+      var s1 = qs.slice(-2 * h, -h).reduce(function (a, b) { return a + b; }, 0) / h;
       var trend = s1 > 0 ? (s2 / s1 - 1) * 100 : null;
-      // сколько недобираем в месяц, если подтянуть клиента к эталону
-      var gapM = Math.max(0, (a.exp - a.cov)) / n;
+
       return {
-        name: a.name, base: a.rev / n, idx: idx, mg: mg, trend: trend,
-        gap: gapM, months: tv, cover: a.rev > 0 ? a.cov / a.rev : 0,
-        items: a.items
+        n: n, name: shortName(n), cat: (g && g.c) || '',
+        base: t.r / per.length, qty: t.q / per.length,
+        price: price, pLast: pLast, series: series,
+        flat: flat, yoy: yoy, yoyM: yoyM, trend: trend,
+        mg: g ? g.m : MARGIN_DEFAULT, known: !!g,
+        lowShare: t.r > 0 ? t.low / t.r * 100 : 0
       };
-    }).sort(function (x, y) { return y.base - x.base; }).slice(0, 20);
+    }).filter(function (r) { return r.base > 0 && (!state.cat || r.cat === state.cat); })
+      .sort(function (a, b) { return b.base - a.base; }).slice(0, state.top);
 
     var tot = rows.reduce(function (s, r) { return s + r.base; }, 0);
     rows.forEach(function (r) {
@@ -269,194 +318,133 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
     return { per: per, rows: rows, total: tot };
   }
 
-  /* Рекомендация. Первым делом подтягиваем к эталону тех, кто берёт дешевле
-     остальных; сверх эталона поднимаем только там, где маржа ниже заводской.
-     Клиента, который и так уходит, не трогаем — сначала надо понять, почему. */
+  /* Рекомендация. Отправная точка — сколько месяцев цена стоит на месте:
+     примерно семь десятых процента за месяц простоя. Низкая маржа добавляет,
+     падающий объём всё сбивает до символических двух процентов. */
+  var TARGET_PER_YEAR = 8;    // на столько цена должна расти хотя бы за год
   function recommend(r) {
+    // Отправная точка — насколько цена отстала от целевого роста за то же
+    // время. Дальше поправки: тонкая маржа добавляет, падающий объём сбивает.
+    var target = TARGET_PER_YEAR / 12 * (r.yoyM || 6);
     var rec = 0;
-    if (r.idx < 0.995) rec = Math.min(10, (1 / r.idx - 1) * 100);
-    if (rec < 2 && r.mg < MARGIN_DEFAULT - 3) rec = 3;
+    if (r.yoy !== null && r.yoy < target) rec = Math.min(10, target - r.yoy);
+    else if (r.yoy === null && r.flat >= 4) rec = 3;
+    if (r.mg < MARGIN_DEFAULT - 6) rec += 3;
+    if (r.trend !== null && r.trend > 20) rec += 1;       // берут больше — стерпят
     if (r.trend !== null && r.trend < -15) rec = Math.min(rec, 2);
-    if (r.share > 30) rec = Math.min(rec, 5);   // с таким клиентом торг отдельный
-    return Math.round(rec * 2) / 2;
+    return Math.min(15, Math.round(rec * 2) / 2);
   }
 
-  /* Эффект по одному клиенту при подъёме на p процентов */
   function effect(r, p) {
     var m = r.mg / 100, P = p / 100;
-    var k = Math.max(0, 1 + state.el * P);      // во сколько раз изменится объём
-    var revNew = r.base * k * (1 + P);
-    var vpNew = r.base * k * (m + P);
-    var vpOld = r.base * m;
+    var k = Math.max(0, 1 + state.el * P);
     return {
       p: p, k: k,
-      dRev: revNew - r.base,
-      dVp: vpNew - vpOld,
+      dRev: r.base * k * (1 + P) - r.base,
+      dVp: r.base * k * (m + P) - r.base * m,
       dQty: (k - 1) * 100,
-      breakeven: (m + P) > 0 ? P / (m + P) * 100 : 0,
-      revNew: revNew, vpNew: vpNew, vpOld: vpOld
+      breakeven: (m + P) > 0 ? P / (m + P) * 100 : 0
     };
   }
 
-  function riskTag(r, e) {
-    if (!e.p) return '<span class="pu-tag pu-mut">—</span>';
-    if (r.trend !== null && r.trend < -15) return '<span class="pu-tag pu-t-no">клиент уходит</span>';
-    if (r.share > 30) return '<span class="pu-tag pu-t-mid">от него зависим</span>';
-    if (e.dQty < -e.breakeven) return '<span class="pu-tag pu-t-no">не окупится</span>';
-    if (r.idx < 0.97) return '<span class="pu-tag pu-t-go">берёт дешевле рынка</span>';
-    if (r.mg < MARGIN_DEFAULT - 3) return '<span class="pu-tag pu-t-go">низкая маржа</span>';
-    return '<span class="pu-tag pu-t-mid">на общих условиях</span>';
+  function tag(r) {
+    if (r.trend !== null && r.trend < -15) return '<span class="pu-tag pu-t-no">объём падает</span>';
+    if (r.yoy !== null && r.yoy < -1) return '<span class="pu-tag pu-t-go">цена снижается</span>';
+    if (r.mg < MARGIN_DEFAULT - 6) return '<span class="pu-tag pu-t-go">маржа ниже средней</span>';
+    if (r.yoy !== null && r.yoy < 3) return '<span class="pu-tag pu-t-go">цена стоит на месте</span>';
+    if (r.trend !== null && r.trend > 20) return '<span class="pu-tag pu-t-go">берут всё больше</span>';
+    return '<span class="pu-tag pu-t-mid">в общем порядке</span>';
   }
 
-  function pctFor(r) {
-    var v = state.own[r.name];
-    return v === undefined ? state.pct : v;
+  /* Мини-график цены: видно, ступеньками её поднимали или она стоит ровно */
+  function spark(series) {
+    var v = series.filter(function (x) { return x !== null; });
+    if (v.length < 2) return '<span class="pu-mut">—</span>';
+    var mn = Math.min.apply(null, v), mx = Math.max.apply(null, v);
+    var rng = mx - mn || 1, W = 84, H = 20, n = series.length, pts = [], i, x, y;
+    for (i = 0; i < n; i++) {
+      if (series[i] === null) continue;
+      x = (i / (n - 1)) * W;
+      y = H - 2 - ((series[i] - mn) / rng) * (H - 4);
+      pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+    }
+    var up = v[v.length - 1] >= v[0];
+    return '<svg class="pu-spark" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">'
+      + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + (up ? '#4ade80' : '#f87171')
+      + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>';
   }
+
+  function pctFor(r) { var v = state.own[r.n]; return v === undefined ? state.pct : v; }
 
   function render() {
-    if (!DATA) DATA = build();
+    DATA = build();
     var rows = DATA.rows;
-    var sum = { base: 0, gap: 0, dRev: 0, dVp: 0, vpOld: 0, vpNew: 0 };
-    var body = '', anyOwn = false;
+    var sum = { base: 0, dRev: 0, dVp: 0, vpOld: 0, stale: 0, staleRev: 0 };
+    var body = '';
 
     rows.forEach(function (r) {
-      var p = pctFor(r); if (state.own[r.name] !== undefined) anyOwn = true;
-      var e = effect(r, p);
-      sum.base += r.base; sum.gap += r.gap; sum.dRev += e.dRev; sum.dVp += e.dVp;
-      sum.vpOld += e.vpOld; sum.vpNew += e.vpNew;
+      var p = pctFor(r), e = effect(r, p);
+      sum.base += r.base; sum.dRev += e.dRev; sum.dVp += e.dVp;
+      sum.vpOld += r.base * r.mg / 100;
+      if (r.yoy !== null && r.yoy < 3) { sum.stale++; sum.staleRev += r.base; }
 
       var tr = r.trend === null ? '<span class="pu-mut">—</span>'
         : '<span class="' + (r.trend >= 0 ? 'pu-up' : 'pu-dn') + '">' + pc(r.trend, 0) + '</span>';
-      var idxPct = r.idx * 100;
-      var idxCol = idxPct < 97 ? '#f87171' : idxPct > 103 ? '#4ade80' : '#cbd5e1';
-      var barW = Math.max(4, Math.min(52, Math.round(r.share / 40 * 52)));
+      var yo = r.yoy === null ? '<span class="pu-mut">мало истории</span>'
+        : '<span class="' + (r.yoy >= 5 ? 'pu-up' : r.yoy < 3 ? 'pu-dn' : '') + '">' + pc(r.yoy, 1) + '</span>';
 
-      body += '<tr data-n="' + esc(r.name) + '">'
-        + '<td class="l" title="' + esc(r.name) + '">'
-          + '<span class="pu-bar"><i style="width:' + barW + 'px;background:#7c3aed"></i></span>'
-          + esc(shortName(r.name)).slice(0, 34) + '</td>'
+      body += '<tr>'
+        + '<td class="l" title="' + esc(r.n) + '">' + esc(r.name).slice(0, 40)
+          + '<div class="pu-cat">' + esc(r.cat || '—') + '</div></td>'
         + '<td>' + f0(r.base) + '</td>'
         + '<td class="pu-mut">' + r.share.toFixed(1).replace('.', ',') + '%</td>'
+        + '<td>' + f0(r.price) + '</td>'
+        + '<td class="c">' + spark(r.series) + '</td>'
+        + '<td>' + yo + '</td>'
+        + '<td class="pu-mut">' + (r.yoy === null ? '—' : 'за ' + r.yoyM + ' мес') + '</td>'
+        + '<td class="' + (r.mg < MARGIN_DEFAULT - 6 ? 'pu-dn' : '') + '">' + r.mg.toFixed(0) + '%</td>'
         + '<td>' + tr + '</td>'
-        + '<td style="color:' + idxCol + ';font-weight:700">' + idxPct.toFixed(0) + '%</td>'
-        + '<td>' + (r.gap > 0 ? f0(r.gap) : '<span class="pu-mut">—</span>') + '</td>'
-        + '<td class="' + (r.mg < MARGIN_DEFAULT - 3 ? 'pu-dn' : '') + '">' + r.mg.toFixed(0) + '%</td>'
         + '<td class="pu-mut">' + (r.rec ? pc(r.rec) : '—') + '</td>'
         + '<td><input class="pu-in" type="number" step="0.5" min="0" max="50" value="'
-          + String(p).replace('.', ',') + '" data-n="' + esc(r.name) + '"></td>'
+          + String(p).replace('.', ',') + '" data-n="' + esc(r.n) + '"></td>'
         + '<td class="' + (e.dRev >= 0 ? 'pu-up' : 'pu-dn') + '">' + (e.dRev >= 0 ? '+' : '−') + f0(Math.abs(e.dRev)) + '</td>'
         + '<td class="' + (e.dVp >= 0 ? 'pu-up' : 'pu-dn') + '">' + (e.dVp >= 0 ? '+' : '−') + f0(Math.abs(e.dVp)) + '</td>'
-        + '<td class="pu-mut">' + (p ? pc(e.dQty, 1) : '—') + '</td>'
         + '<td class="pu-mut">' + (p ? '−' + e.breakeven.toFixed(1).replace('.', ',') + '%' : '—') + '</td>'
-        + '<td class="l">' + riskTag(r, e) + '</td>'
+        + '<td class="l">' + tag(r) + '</td>'
         + '</tr>';
     });
 
     var head = '<thead><tr>'
-      + '<th class="l">Контрагент</th><th>Выручка, ₸/мес</th><th>Доля</th><th title="Последние три месяца против трёх предыдущих">Тренд</th>'
-      + '<th title="Отношение того, что клиент платит, к средней цене по заводу за тот же набор товаров">Индекс цены</th>'
-      + '<th title="Сколько недобираем в месяц, если подтянуть клиента к средней цене">Недобор / мес</th>'
-      + '<th>Маржа</th><th title="Сколько предлагаю поднять">Рек., %</th><th>Моё, %</th>'
+      + '<th class="l">Позиция</th><th>Выручка, ₸/мес</th><th>Доля</th><th>Цена, ₸</th>'
+      + '<th class="c" title="Как менялась цена по месяцам">Цена по месяцам</th>'
+      + '<th title="Медиана цены последних месяцев против медианы начала окна">Цена ±</th>'
+      + '<th title="За какой срок измерено изменение цены">Период</th>'
+      + '<th>Маржа</th><th title="Количество: последние три месяца против трёх предыдущих">Объём</th>'
+      + '<th>Рек., %</th><th>Моё, %</th>'
       + '<th>+ Выручка</th><th>+ Вал. прибыль</th>'
-      + '<th title="Насколько, по выбранной реакции, просядет объём">Объём</th>'
       + '<th title="Насколько объём может упасть, прежде чем валовая прибыль вернётся к нынешней">Порог</th>'
       + '<th class="l">Оценка</th></tr></thead>';
 
-    var foot = '<tfoot><tr><td class="l">ИТОГО · ' + rows.length + '</td>'
-      + '<td>' + f0(sum.base) + '</td><td>100%</td><td></td><td></td>'
-      + '<td>' + f0(sum.gap) + '</td><td>' + (sum.base ? (sum.vpOld / sum.base * 100).toFixed(0) : 0) + '%</td>'
-      + '<td></td><td></td>'
+    var foot = '<tfoot><tr><td class="l">ИТОГО · ' + rows.length + ' позиций</td>'
+      + '<td>' + f0(sum.base) + '</td><td>100%</td><td colspan="4"></td>'
+      + '<td>' + (sum.base ? (sum.vpOld / sum.base * 100).toFixed(0) : 0) + '%</td>'
+      + '<td colspan="3"></td>'
       + '<td class="' + (sum.dRev >= 0 ? 'pu-up' : 'pu-dn') + '">' + (sum.dRev >= 0 ? '+' : '−') + f0(Math.abs(sum.dRev)) + '</td>'
       + '<td class="' + (sum.dVp >= 0 ? 'pu-up' : 'pu-dn') + '">' + (sum.dVp >= 0 ? '+' : '−') + f0(Math.abs(sum.dVp)) + '</td>'
-      + '<td colspan="3"></td></tr></tfoot>';
+      + '<td colspan="2"></td></tr></tfoot>';
 
     document.getElementById('pu-table').innerHTML = head + '<tbody>' + body + '</tbody>' + foot;
 
-    // крупные цифры
-    var yearVp = sum.dVp * 12;
     document.getElementById('pu-kpis').innerHTML =
-      kpi(money(sum.base) + ' ₸', 'Выручка ТОП-20 в месяц', 'по ' + periodText(), '')
-      + kpi(money(sum.gap) + ' ₸', 'Недобираем к средней цене', 'если бы все платили как в среднем по заводу', sum.gap > 0 ? 'warn' : '')
+      kpi(money(sum.base) + ' ₸', 'Выручка отобранных позиций', 'в месяц, по ' + periodText(), '')
+      + kpi(sum.stale + ' из ' + rows.length, 'Цена стоит или снижается',
+            'на них ' + money(sum.staleRev) + ' ₸ выручки в месяц', sum.stale ? 'warn' : 'good')
       + kpi((sum.dRev >= 0 ? '+' : '−') + money(Math.abs(sum.dRev)) + ' ₸', 'Выручка в месяц',
             'с учётом ухода части объёма', sum.dRev >= 0 ? 'good' : 'bad')
       + kpi((sum.dVp >= 0 ? '+' : '−') + money(Math.abs(sum.dVp)) + ' ₸', 'Валовая прибыль в месяц',
-            (yearVp >= 0 ? '+' : '−') + money(Math.abs(yearVp)) + ' ₸ за год', sum.dVp >= 0 ? 'good' : 'bad');
+            (sum.dVp >= 0 ? '+' : '−') + money(Math.abs(sum.dVp * 12)) + ' ₸ за год', sum.dVp >= 0 ? 'good' : 'bad');
 
-    verdict(rows, sum, anyOwn);
-    bindInputs();
-  }
-
-  function kpi(v, l, n, cls) {
-    return '<div class="pu-kpi ' + (cls || '') + '"><div class="v">' + v + '</div>'
-      + '<div class="l">' + l + '</div><div class="n">' + n + '</div></div>';
-  }
-
-  function periodText() {
-    var p = DATA.per, ru = { '01': 'январь', '02': 'февраль', '03': 'март', '04': 'апрель',
-      '05': 'май', '06': 'июнь', '07': 'июль', '08': 'август', '09': 'сентябрь',
-      '10': 'октябрь', '11': 'ноябрь', '12': 'декабрь' };
-    var nm = function (k) { return ru[k.slice(5)] || k; };
-    return p.length === 1 ? nm(p[0]) : nm(p[0]) + ' – ' + nm(p[p.length - 1]);
-  }
-
-  function verdict(rows, sum, anyOwn) {
-    // Кандидаты в первую очередь: берут дешевле рынка или сидят на низкой
-    // марже, при этом не убегают. Сортируем по деньгам, а не по проценту.
-    var cand = rows.filter(function (r) {
-      return (r.idx < 0.98 || r.mg < MARGIN_DEFAULT - 3)
-        && !(r.trend !== null && r.trend < -15);
-    }).sort(function (a, b) { return effect(b, b.rec).dVp - effect(a, a.rec).dVp; }).slice(0, 4);
-
-    var risky = rows.filter(function (r) { return r.trend !== null && r.trend < -15; })
-      .sort(function (a, b) { return b.base - a.base; }).slice(0, 3);
-
-    var recSum = rows.reduce(function (s, r) { return s + effect(r, r.rec).dVp; }, 0);
-
-    var h = '<div class="card-title">Что из этого следует</div><div class="pu-note" style="margin-top:8px">';
-    if (cand.length) {
-      h += '<b style="color:#e2e8f0">Начинать с этих:</b><br>';
-      cand.forEach(function (r) {
-        var e = effect(r, r.rec);
-        h += '&nbsp;• <b style="color:#f1f5f9">' + esc(shortName(r.name)) + '</b> — '
-          + (r.idx < 0.98 ? 'платит на ' + ((1 - r.idx) * 100).toFixed(0) + '% ниже средней цены завода'
-                          : 'маржа его корзины ' + r.mg.toFixed(0) + '% при заводской ' + MARGIN_DEFAULT + '%')
-          + (r.trend !== null && r.trend > 10 ? ', и объём растёт на ' + pc(r.trend, 0) : '')
-          + '. Подъём на <b>' + pc(r.rec) + '</b> даёт <b class="pu-up">+' + f0(e.dVp)
-          + ' ₸</b> валовой прибыли в месяц'
-          + (r.share > 30 ? ' — но на нём держится ' + r.share.toFixed(0)
-              + '% всей выручки ТОП-20, и разговор с ним стоит вести отдельно от остальных' : '')
-          + '.<br>';
-      });
-    } else {
-      h += 'Клиентов, которые платят заметно ниже средней цены, среди ТОП-20 сейчас нет.<br>';
-    }
-    h += '<br><b style="color:#e2e8f0">Осторожно:</b> ';
-    if (risky.length) {
-      h += risky.map(function (r) {
-        return esc(shortName(r.name)) + ' (' + pc(r.trend, 0) + ' к прошлому полугодию)';
-      }).join(', ') + ' — объём уже падает. Сначала разобраться почему, потом трогать цену.';
-    } else {
-      h += 'клиентов с падающим объёмом в ТОП-20 нет.';
-    }
-    h += '<br><br>Если поднять каждому по рекомендации, валовая прибыль вырастет примерно на <b class="pu-up">'
-      + f0(recSum) + ' ₸ в месяц</b> — это ' + f0(recSum * 12) + ' ₸ за год'
-      + ' при выбранной реакции объёма (' + reactionText() + ').';
-    h += '<br><br><span style="color:#64748b">Как читать. «Индекс цены» — во что клиенту обходится его же корзина '
-      + 'по сравнению со средней ценой завода: 94% значит «берёт на 6% дешевле остальных». '
-      + '«Порог падения» — насколько может просесть объём, прежде чем валовая прибыль вернётся к нынешней: '
-      + 'пока фактическое падение меньше порога, повышение в плюсе. Маржа берётся по позициям, которые '
-      + 'клиент реально закупает' + (MGM ? ' (' + esc((MGM.months || []).join(', ')) + ')' : '') + '.</span>';
-    h += '</div>';
-    document.getElementById('pu-verdict').innerHTML = h;
-  }
-
-  function reactionText() {
-    var e = state.el;
-    if (!e) return 'объём не меняется';
-    return 'минус ' + Math.abs(e).toFixed(1).replace('.', ',') + '% объёма на каждый процент цены';
-  }
-
-  function bindInputs() {
+    verdict(rows, sum);
     [].forEach.call(document.querySelectorAll('#pu-table .pu-in'), function (inp) {
       inp.addEventListener('change', function () {
         var v = parseFloat(String(inp.value).replace(',', '.'));
@@ -467,40 +455,109 @@ footer{text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22
     });
   }
 
-  /* ── управление ── */
+  function kpi(v, l, n, cls) {
+    return '<div class="pu-kpi ' + (cls || '') + '"><div class="v">' + v + '</div>'
+      + '<div class="l">' + l + '</div><div class="n">' + n + '</div></div>';
+  }
+
+  function periodText() {
+    var ru = { '01': 'январь', '02': 'февраль', '03': 'март', '04': 'апрель', '05': 'май',
+      '06': 'июнь', '07': 'июль', '08': 'август', '09': 'сентябрь', '10': 'октябрь',
+      '11': 'ноябрь', '12': 'декабрь' };
+    var p = DATA.per, nm = function (k) { return ru[k.slice(5)] || k; };
+    return p.length === 1 ? nm(p[0]) : nm(p[0]) + ' – ' + nm(p[p.length - 1]);
+  }
+
+  function reactionText() {
+    return state.el ? 'минус ' + Math.abs(state.el).toFixed(1).replace('.', ',')
+      + '% объёма на каждый процент цены' : 'объём не меняется';
+  }
+
+  function verdict(rows, sum) {
+    // Первыми идут те, где цена стоит дольше всего, а объём не падает:
+    // такие позиции терпят подъём легче всего.
+    var cand = rows.filter(function (r) {
+      return ((r.yoy !== null && r.yoy < 3) || r.mg < MARGIN_DEFAULT - 6)
+        && !(r.trend !== null && r.trend < -15) && r.rec > 0;
+    }).sort(function (a, b) { return effect(b, b.rec).dVp - effect(a, a.rec).dVp; }).slice(0, 5);
+
+    var risky = rows.filter(function (r) { return r.trend !== null && r.trend < -15; })
+      .sort(function (a, b) { return b.base - a.base; }).slice(0, 3);
+    var recSum = rows.reduce(function (s, r) { return s + effect(r, r.rec).dVp; }, 0);
+
+    var h = '<div class="card-title">С чего начинать</div><div class="pu-note" style="margin-top:8px">';
+    if (cand.length) {
+      cand.forEach(function (r) {
+        var e = effect(r, r.rec), why = [];
+        if (r.yoy !== null && r.yoy < -1) why.push('за ' + r.yoyM + ' месяцев цена снизилась на ' + pc(-r.yoy, 1));
+        else if (r.yoy !== null && r.yoy < 3) why.push('за ' + r.yoyM + ' месяцев цена выросла всего на ' + pc(r.yoy, 1));
+        if (r.mg < MARGIN_DEFAULT - 6) why.push('маржа ' + r.mg.toFixed(0) + '% при заводской ' + MARGIN_DEFAULT + '%');
+        if (r.trend !== null && r.trend > 10) why.push('берут на ' + pc(r.trend, 0) + ' больше');
+        h += '&nbsp;• <b style="color:#f1f5f9">' + esc(r.name) + '</b> — ' + why.join(', ')
+          + '. Подъём на <b>' + pc(r.rec) + '</b> (с ' + f0(r.price) + ' до ' + f0(r.price * (1 + r.rec / 100))
+          + ' ₸) даёт <b class="pu-up">+' + f0(e.dVp) + ' ₸</b> валовой прибыли в месяц.<br>';
+      });
+    } else {
+      h += 'Позиций с отставшей ценой среди отобранных нет.<br>';
+    }
+    h += '<br><b style="color:#e2e8f0">Не трогать:</b> ';
+    h += risky.length
+      ? risky.map(function (r) { return esc(r.name) + ' (объём ' + pc(r.trend, 0) + ')'; }).join(', ')
+        + ' — количество и так падает, подъём цены добьёт.'
+      : 'позиций с падающим объёмом среди отобранных нет.';
+    h += '<br><br>Если поднять всё по рекомендации, валовая прибыль вырастет примерно на <b class="pu-up">'
+      + f0(recSum) + ' ₸ в месяц</b> — ' + f0(recSum * 12) + ' ₸ за год при выбранной реакции объёма ('
+      + reactionText() + ').';
+    h += '<br><br><span style="color:#64748b">Как читать. «Цена ±» — насколько изменилась цена: медиана '
+      + 'последних месяцев против медианы начала окна, без пусковых партий. Медиана, а не крайние точки, потому '
+      + 'что первый месяц новой позиции — это сорок штук по розничной цене, и выход на опт выглядел бы обвалом. '
+      + 'Пока цена стоит на месте, сырьё и зарплата дорожают, и маржа тает сама собой. '
+      + '«Порог» — насколько объём может упасть, прежде чем валовая прибыль вернётся к нынешней; пока прогноз '
+      + 'меньше порога, подъём в плюсе. Цена считается как выручка, делённая на количество, по всем клиентам '
+      + 'сразу' + (MGM ? ', маржа — за ' + esc((MGM.months || []).join(', ')) : '') + '.</span></div>';
+    document.getElementById('pu-verdict').innerHTML = h;
+  }
+
   function ctl() {
     var pct = document.getElementById('pu-pct'), pv = document.getElementById('pu-pct-v');
     pct.addEventListener('input', function () {
-      state.pct = parseFloat(pct.value);
-      pv.textContent = pc(state.pct);
-      state.own = {};              // общий ползунок отменяет ручные проценты
-      render();
+      state.pct = parseFloat(pct.value); pv.textContent = pc(state.pct);
+      state.own = {}; render();
     });
     document.getElementById('pu-per').addEventListener('change', function () {
-      state.per = parseInt(this.value, 10) || 3; DATA = null; render();
+      state.per = parseInt(this.value, 10) || 3; render();
     });
     document.getElementById('pu-el').addEventListener('change', function () {
       state.el = parseFloat(this.value); render();
     });
+    document.getElementById('pu-top').addEventListener('change', function () {
+      state.top = parseInt(this.value, 10) || 20; render();
+    });
     document.getElementById('pu-rec').addEventListener('click', function () {
-      DATA.rows.forEach(function (r) { state.own[r.name] = r.rec; });
-      render();
+      DATA.rows.forEach(function (r) { state.own[r.n] = r.rec; }); render();
     });
     document.getElementById('pu-reset').addEventListener('click', function () {
       state.own = {}; render();
     });
+    // категории — из справочника маржи
+    var sel = document.getElementById('pu-cat');
+    if (sel && MG) {
+      var cs = {};
+      Object.keys(MG).forEach(function (k) { if (MG[k].c) cs[MG[k].c] = (cs[MG[k].c] || 0) + MG[k].r; });
+      Object.keys(cs).sort(function (a, b) { return cs[b] - cs[a]; }).forEach(function (c) {
+        var o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o);
+      });
+      sel.addEventListener('change', function () { state.cat = this.value; state.own = {}; render(); });
+    }
     pv.textContent = pc(state.pct);
     document.getElementById('pu-help').innerHTML =
-      'Повышение цены не меняет себестоимость, поэтому весь прирост уходит в валовую прибыль — '
-      + 'но часть объёма при этом обычно уходит. Выберите, насколько чувствительны ваши клиенты, '
-      + 'и смотрите на колонку «Порог падения»: пока прогноз объёма не перевалил за порог, повышение в плюсе.'
+      'Подъём цены не меняет себестоимость, поэтому весь прирост уходит в валовую прибыль — но часть объёма '
+      + 'при этом обычно уходит. Выберите, насколько чувствителен покупатель, и смотрите на «Порог»: пока '
+      + 'ожидаемое падение объёма меньше порога, подъём в плюсе.'
       + (MG ? '' : ' <b style="color:#fbbf24">Справочник маржи не загрузился</b> — маржа взята средней по заводу ('
               + MARGIN_DEFAULT + '%).');
   }
 
-  var subEl = document.getElementById('pu-sub');   // на отдельной странице подпись стоит в шапке
-  if (subEl) subEl.textContent =
-    'кому можно поднять и что это даст · ТОП-20 по выручке · только закрытые месяцы';
   ctl();
   render();
 })();
