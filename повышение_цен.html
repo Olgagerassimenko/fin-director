@@ -133,9 +133,26 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
 .pu-table tbody tr.open td{background:#141f38}
 .pu-t-ok{background:#0c1f3d;color:#7dd3fc}
 
+/* Сразу видно, кому поднимаем, а кого не трогаем */
+.pu-th-row{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.pu-sum{margin-left:auto;font-size:12.5px;color:#8ea3bd;background:#0f1a2e;border:1px solid #1e293b;
+  border-radius:999px;padding:5px 13px;white-space:nowrap}
+.pu-sum b{color:#e2e8f0}
+.pu-table tbody tr.up td:first-child{box-shadow:inset 3px 0 0 #22c55e}
+.pu-table tbody tr.keep td{opacity:.62}
+.pu-table tbody tr.keep td.l{color:#93a3b8}
+.pu-table tbody tr.keep:hover td{opacity:1}
+.pu-in.set{border-color:#15803d;background:#0a1a11;color:#86efac;font-weight:800}
+.pu-keep{display:block;margin-top:4px;font-size:10px;color:#64748b;white-space:nowrap}
+.pu-src{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap}
+.pu-src-r{background:#0c1f3d;color:#7dd3fc}
+.pu-src-m{background:#3b0d16;color:#fda4af}
+.pu-src-b{background:#2a1c05;color:#fcd34d}
+
 /* Самое денежное — подсвечиваем */
 .pu-table tbody tr.hot td{background:#141326}
-.pu-table tbody tr.hot td.l{box-shadow:inset 3px 0 0 #f59e0b}
+.pu-table tbody tr.hot td:first-child{box-shadow:inset 3px 0 0 #f59e0b}
+.pu-table tbody tr.hot td.l{box-shadow:none}
 .pu-best{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:5px;font-size:10px;
   font-weight:800;background:linear-gradient(135deg,#f59e0b,#b45309);color:#1a1206;white-space:nowrap}
 .pu-plan tr.hot td{background:#141326}
@@ -235,11 +252,18 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
       <div><label>Категория</label>
         <select id="pu-cat"><option value="">все категории</option></select>
       </div>
+      <div><label>Отбор позиций</label>
+        <select id="pu-pick">
+          <option value="rev">по выручке — самые крупные</option>
+          <option value="mg">по марже — самые тонкие</option>
+          <option value="both">и то и другое в одной таблице</option>
+        </select>
+      </div>
       <div><label>Сколько позиций</label>
         <select id="pu-top">
-          <option value="20">ТОП-20 по выручке</option>
-          <option value="30">ТОП-30</option>
-          <option value="50">ТОП-50</option>
+          <option value="20">20</option>
+          <option value="30">30</option>
+          <option value="50">50</option>
         </select>
       </div>
       <div><label>Поднять всем на</label>
@@ -283,7 +307,10 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
   <!-- Таблица: по каждой позиции свой процент -->
   <div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
     <div style="padding:12px 16px 10px">
-      <div class="card-title">Каким позициям поднимать</div>
+      <div class="pu-th-row">
+        <div class="card-title">Каким позициям поднимать</div>
+        <div class="pu-sum" id="pu-sum"></div>
+      </div>
       <div class="pu-note" style="margin:2px 0 0">Кликните по названию — раскроется история цены, кто берёт
         позицию и что будет при разных процентах. Заголовок колонки сортирует. Галочка слева включает
         позицию в общий расчёт.</div>
@@ -342,7 +369,7 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
     '06': 'июнь', '07': 'июль', '08': 'август', '09': 'сентябрь', '10': 'октябрь',
     '11': 'ноябрь', '12': 'декабрь' };
 
-  var state = { per: 3, pct: 5, el: -0.8, cat: '', top: 20, own: {}, off: {},
+  var state = { per: 3, pct: 5, el: -0.8, cat: '', top: 20, pick: 'rev', own: {}, off: {},
                 sort: 'dVp', dir: -1, q: '', open: null };
   var BYM = null, DATA = null, BUY = {}, BUYKEY = '', BEST = {};
 
@@ -495,8 +522,31 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
         flat: flat, yoy: yoy, yoyM: yoyM, trend: trend,
         mg: g ? g.m : MARGIN_DEFAULT, known: !!g
       };
-    }).filter(function (r) { return r.base > 0 && (!state.cat || r.cat === state.cat); })
-      .sort(function (a, b) { return b.base - a.base; }).slice(0, state.top);
+    }).filter(function (r) { return r.base > 0 && (!state.cat || r.cat === state.cat); });
+
+    /* Отбор. По выручке — самые крупные позиции: там каждый процент цены
+       стоит дороже всего. По марже — самые тонкие: там процент цены даёт
+       наибольший прирост прибыли и запас по объёму больше. Мелочь в отбор
+       по марже не пускаем: у позиции на сто тысяч в месяц маржа скачет от
+       одной партии, и она вытеснит из списка то, что реально важно. */
+    var MIN_FOR_MG = 500000;
+    var byRev = rows.slice().sort(function (a, b) { return b.base - a.base; }).slice(0, state.top);
+    var byMg = rows.filter(function (r) { return r.base >= MIN_FOR_MG; })
+      .sort(function (a, b) { return a.mg - b.mg; }).slice(0, state.top);
+    var inR = {}, inM = {};
+    byRev.forEach(function (r) { inR[r.n] = 1; });
+    byMg.forEach(function (r) { inM[r.n] = 1; });
+    if (state.pick === 'rev') rows = byRev;
+    else if (state.pick === 'mg') rows = byMg;
+    else {
+      var seen = {};
+      rows = byRev.concat(byMg).filter(function (r) {
+        if (seen[r.n]) return false; seen[r.n] = 1; return true;
+      }).sort(function (a, b) { return b.base - a.base; });
+    }
+    rows.forEach(function (r) {
+      r.src = inR[r.n] && inM[r.n] ? 'выручка и маржа' : (inM[r.n] ? 'тонкая маржа' : 'выручка');
+    });
 
     var tot = rows.reduce(function (s, r) { return s + r.base; }, 0);
     rows.forEach(function (r) {
@@ -720,6 +770,7 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
   var COLS = [
     { k: 'base',  t: 'Выручка',   sub: '₸ в месяц',        on: 1, v: function (r) { return r.base; } },
     { k: 'share', t: 'Доля',      sub: 'от отобранных',    on: 0, v: function (r) { return r.share; } },
+    { k: 'src',   t: 'В списке за', sub: 'признак отбора',  on: 0, v: function (r) { return r.src; } },
     { k: 'price', t: 'Цена',      sub: '₸ за штуку',       on: 1, v: function (r) { return r.price; } },
     { k: 'hist',  t: 'Что было с ценой', sub: 'по месяцам', cls: 'c', on: 1,
       v: function (r) { return r.yoy === null ? -999 : r.yoy; } },
@@ -737,6 +788,8 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
     switch (c.k) {
       case 'base':  return f0(r.base);
       case 'share': return '<span class="pu-mut">' + r.share.toFixed(1).replace('.', ',') + '%</span>';
+      case 'src':   return '<span class="pu-src pu-src-' + (r.src === 'тонкая маржа' ? 'm'
+        : r.src === 'выручка и маржа' ? 'b' : 'r') + '">' + r.src + '</span>';
       case 'price': return f0(r.price) + (p ? '<span class="sub pu-arrow">→ ' + f0(r.price * (1 + p / 100)) + '</span>' : '');
       case 'hist':  return spark(r.series, r.qs) + '<span class="sub">'
         + (r.yoy === null ? 'мало истории'
@@ -745,10 +798,12 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
       case 'mg':    return '<span class="' + (r.mg < 45 ? 'pu-dn' : '') + '">' + r.mg.toFixed(0) + '%</span>';
       case 'trend': return r.trend === null ? '<span class="pu-mut">—</span>'
         : '<span class="' + (r.trend >= 0 ? 'pu-up' : 'pu-dn') + '">' + pc(r.trend, 0) + '</span>';
-      case 'pct':   return '<input class="pu-in" type="number" step="0.5" min="0" max="50" value="'
-        + p + '" data-n="' + esc(r.n) + '">'
-        + '<span class="pu-hint' + (r.rec ? '' : ' off') + '" data-rec="' + esc(r.n) + '">'
-        + (r.rec ? 'рек. ' + pc(r.rec) : 'не трогать') + '</span>';
+      case 'pct':   return '<input class="pu-in' + (p > 0 ? ' set' : '') + '" type="number" step="0.5" '
+        + 'min="0" max="50" value="' + p + '" data-n="' + esc(r.n) + '">'
+        + (p > 0
+          ? '<span class="pu-hint' + (r.rec ? '' : ' off') + '" data-rec="' + esc(r.n) + '">'
+            + (r.rec ? 'рек. ' + pc(r.rec) : '—') + '</span>'
+          : '<span class="pu-keep">не трогаем</span>');
       case 'dVp':   return '<b class="' + (e.dVp >= 0 ? 'pu-up' : 'pu-dn') + '">'
         + (e.dVp >= 0 ? '+' : '−') + f0(Math.abs(e.dVp)) + '</b>'
         + '<span class="sub">выручка ' + (e.dRev >= 0 ? '+' : '−') + f0(Math.abs(e.dRev)) + '</span>';
@@ -809,8 +864,9 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
 
     var body = show.map(function (r) {
       var on = isOn(r), op = state.open === r.n, bs = best[r.n];
+      var raise = pctFor(r) > 0;          // этой позиции цену поднимаем
       var tr = '<tr class="' + (on ? '' : 'off') + (op ? ' open' : '') + (bs ? ' hot' : '')
-        + '" data-row="' + esc(r.n) + '">'
+        + (raise ? ' up' : ' keep') + '" data-row="' + esc(r.n) + '">'
         + '<td class="pu-chk"><input type="checkbox" data-on="' + esc(r.n) + '"' + (on ? ' checked' : '') + '></td>'
         + '<td class="l pu-name" data-open="' + esc(r.n) + '" title="' + esc(r.n) + '">'
         +   '<span class="pu-car">' + (op ? '▾' : '▸') + '</span>' + esc(r.name)
@@ -835,6 +891,16 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
         }).join('') + '</tr></tfoot>';
 
     document.getElementById('pu-table').innerHTML = head + '<tbody>' + body + '</tbody>' + foot;
+
+    var nUp = rows.filter(function (r) { return isOn(r) && pctFor(r) > 0; }).length;
+    var upVp = rows.reduce(function (s, r) {
+      return s + (isOn(r) && pctFor(r) > 0 ? effect(r, pctFor(r)).dVp : 0);
+    }, 0);
+    var ps = document.getElementById('pu-sum');
+    if (ps) ps.innerHTML = nUp
+      ? '<b>Поднимаем ' + nUp + '</b> из ' + sum.on + ' · <b class="pu-up">+' + f0(upVp)
+        + ' ₸</b> прибыли в месяц'
+      : 'Ни одной позиции к подъёму не выбрано';
 
     document.getElementById('pu-lead').innerHTML =
       'Поднимаем цену в среднем на <b>' + pc(avgP) + '</b> по <b>' + sum.on + '</b> позициям с выручкой <b>'
@@ -863,6 +929,15 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
 
     verdict(rows, sum);
     bindTable();
+  }
+
+  function chips() {
+    var cw = document.getElementById('pu-cols');
+    if (!cw) return;
+    cw.innerHTML = COLS.map(function (c) {
+      return '<button class="pu-chip' + (vis[c.k] ? ' on' : '') + '" data-c="' + c.k + '">'
+        + (vis[c.k] ? '☑' : '☐') + ' ' + c.t + '</button>';
+    }).join('');
   }
 
   function arrow(k) {
@@ -1103,12 +1178,14 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
     var keep = rows.filter(function (r) { return pctFor(r) <= 0; })
       .sort(function (a, b) { return b.base - a.base; });
 
+    var withSrc = state.pick === 'both';
     var cols1 = [
-      { t: 'Очередь', w: 13 }, { t: 'Позиция', w: 38 }, { t: 'Выручка, ₸/мес', w: 15 },
+      { t: 'Очередь', w: 13 }, { t: 'Позиция', w: 38 }]
+      .concat(withSrc ? [{ t: 'В списке за', w: 15 }] : [])
+      .concat([{ t: 'Выручка, ₸/мес', w: 15 },
       { t: 'Объём, шт/мес', w: 13 }, { t: 'Цена сейчас, ₸', w: 13 }, { t: 'Цена станет, ₸', w: 13 },
       { t: 'Поднять', w: 10 }, { t: 'Прибыль, +₸/мес', w: 15 }, { t: 'Прибыль, +₸/год', w: 15 },
-      { t: 'Запас по объёму', w: 13 }, { t: 'Почему именно столько', w: 62 }
-    ];
+      { t: 'Запас по объёму', w: 13 }, { t: 'Почему именно столько', w: 62 }]);
     var d1 = [cols1.map(function (c) { return { v: c.t, s: S.H }; })];
     var h1 = { 1: 30 };
     var sum = { base: 0, dVp: 0, w: 0 };
@@ -1117,7 +1194,9 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
       sum.base += r.base; sum.dVp += e.dVp; sum.w += p * r.base;
       d1.push([
         { v: i < 3 ? '1 — сейчас' : '2 — следом', s: S.TXT },
-        { v: r.name, s: S.TXT },
+        { v: r.name, s: S.TXT }]
+        .concat(withSrc ? [{ v: r.src, s: S.TXT }] : [])
+        .concat([
         { v: Math.round(r.base), s: S.INT },
         { v: Math.round(r.qty), s: S.INT },
         { v: Math.round(r.price), s: S.INT },
@@ -1128,27 +1207,31 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
         { v: e.breakeven / 100, s: S.PCT },
         { v: (r.why || []).join('; ') + (r.need > r.rec
             ? '. Расчёт просит ' + pc(r.need) + ' — остальное вторым шагом через квартал' : ''), s: S.SM }
-      ]);
+      ]));
     });
     d1.push([
-      { v: 'ИТОГО', s: S.TOT }, { v: up.length + ' позиций', s: S.TOT },
+      { v: 'ИТОГО', s: S.TOT }, { v: up.length + ' позиций', s: S.TOT }]
+      .concat(withSrc ? [{ v: '', s: S.TOT }] : [])
+      .concat([
       { v: Math.round(sum.base), s: S.TOTI }, { v: '', s: S.TOT }, { v: '', s: S.TOT }, { v: '', s: S.TOT },
       { v: sum.base ? sum.w / sum.base / 100 : 0, s: S.TOTP },
       { v: Math.round(sum.dVp), s: S.TOTI }, { v: Math.round(sum.dVp * 12), s: S.TOTI },
       { v: '', s: S.TOT }, { v: 'при реакции объёма ' + reactionText(), s: S.TOT }
-    ]);
+    ]));
     if (keep.length) {
       d1.push([]);
       d1.push([{ v: 'НЕ ТРОГАЕМ', s: S.TOT }, { v: keep.length + ' позиций', s: S.TOT }].concat(
-        [3, 4, 5, 6, 7, 8, 9, 10].map(function () { return { v: '', s: S.TOT }; })));
+        new Array(cols1.length - 2).fill(0).map(function () { return { v: '', s: S.TOT }; })));
       keep.forEach(function (r) {
         d1.push([
-          { v: '—', s: S.TXT }, { v: r.name, s: S.TXT },
+          { v: '—', s: S.TXT }, { v: r.name, s: S.TXT }]
+          .concat(withSrc ? [{ v: r.src, s: S.TXT }] : [])
+          .concat([
           { v: Math.round(r.base), s: S.INT }, { v: Math.round(r.qty), s: S.INT },
           { v: Math.round(r.price), s: S.INT }, { v: '', s: S.TXT }, { v: '', s: S.TXT },
           { v: '', s: S.TXT }, { v: '', s: S.TXT }, { v: '', s: S.TXT },
           { v: (r.why && r.why[0]) || 'цена в порядке', s: S.SM }
-        ]);
+        ]));
       });
     }
 
@@ -1275,6 +1358,12 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
     document.getElementById('pu-top').addEventListener('change', function () {
       state.top = parseInt(this.value, 10) || 20; render();
     });
+    document.getElementById('pu-pick').addEventListener('change', function () {
+      state.pick = this.value;
+      // в смешанном режиме сразу показываем, за что позиция попала в список
+      vis.src = (state.pick === 'both');
+      chips(); render();
+    });
     document.getElementById('pu-rec').addEventListener('click', applyRec);
     document.getElementById('pu-reset').addEventListener('click', function () {
       state.own = {}; state.off = {}; render();
@@ -1296,18 +1385,13 @@ a.pu-btn{display:inline-block;text-decoration:none;line-height:1.35}
 
     // выбор колонок
     var cw = document.getElementById('pu-cols');
-    cw.innerHTML = COLS.map(function (c) {
-      return '<button class="pu-chip' + (vis[c.k] ? ' on' : '') + '" data-c="' + c.k + '">'
-        + (vis[c.k] ? '☑' : '☐') + ' ' + c.t + '</button>';
-    }).join('');
+    chips();
     cw.addEventListener('click', function (e) {
       var b = e.target.closest ? e.target.closest('.pu-chip') : null;
       if (!b) return;
       var k = b.getAttribute('data-c');
       vis[k] = !vis[k];
-      b.className = 'pu-chip' + (vis[k] ? ' on' : '');
-      b.textContent = (vis[k] ? '☑ ' : '☐ ') + b.textContent.slice(2);
-      render();
+      chips(); render();
     });
 
     document.getElementById('pu-help').innerHTML =
