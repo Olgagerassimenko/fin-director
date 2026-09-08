@@ -321,6 +321,17 @@ def build():
     doc_f = pick(DOC_CANDS, cols) if cols else None
     print("поля OLAP: всего %d, дата=%s, документ=%s"
           % (len(cols), date_f, doc_f))
+    # Диагностику пишем сразу, а не в конце. Шаг помечен continue-on-error,
+    # и GitHub показывает его успешным даже когда скрипт упал: без файла в
+    # репозитории причину падения потом не найти, логи прогона недоступны.
+    def diag(**extra):
+        d = {"built": almaty.now().strftime("%Y-%m-%d %H:%M"),
+             "dateField": date_f, "docField": doc_f,
+             "columns": sorted(cols.keys()) if cols else [],
+             "colsCount": len(cols)}
+        d.update(extra)
+        json.dump(d, open(DIAG, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    diag(stage="старт")
 
     meta = {
         "built": almaty.now().strftime("%Y-%m-%d %H:%M"),
@@ -401,7 +412,7 @@ def build():
 
 
     save(data, meta)
-    json.dump(meta, open(DIAG, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    diag(stage="готово", months=sorted(data.keys()), meta=meta)
     print("opiu_detail.js: месяцев %d, размер %.0f КБ"
           % (len(data), os.path.getsize(OUT) / 1024))
     if fields_bad:
@@ -409,4 +420,16 @@ def build():
 
 
 if __name__ == "__main__":
-    build()
+    import traceback
+    try:
+        build()
+    except Exception as e:
+        # Падение не должно быть немым: пишем причину туда, где её видно
+        # без логов прогона, и только потом отдаём ненулевой код.
+        try:
+            json.dump({"stage": "упал", "error": "%s: %s" % (type(e).__name__, e),
+                       "traceback": traceback.format_exc()[-4000:]},
+                      open(DIAG, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+        except Exception:
+            pass
+        raise
