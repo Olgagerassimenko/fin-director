@@ -129,6 +129,13 @@ td.n.est{color:#fbbf24}
 label.chip.chk{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
 label.chip.chk input{accent-color:#7c3aed;width:14px;height:14px;cursor:pointer;margin:0}
 
+.dt-tools{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.dt-q{flex:1;max-width:340px;background:#0d1730;border:1px solid #2b3757;color:#e2e8f0;
+  border-radius:8px;padding:6px 10px;font-size:11.5px;font-family:inherit}
+.dt-q:focus{outline:none;border-color:#7c3aed}
+.dt-tools .mut{font-size:10.5px}
+.dt-body{max-height:60vh;overflow:auto}
+
 .ok{color:#34d399;font-weight:700}
 .empty{padding:34px;text-align:center;color:#64748b;font-size:13px}
 </style>
@@ -372,6 +379,9 @@ function detPanel(name,ia,ib,inc){
       'поэтому она со строкой отчёта не сойдётся и разбирать в ней нечего, '+
       'пока начисление не проведено.</div>';
   });
+  var trim=(DET&&DET.meta&&DET.meta.trimmed)||[];
+  if(trim.length) warn+='<div class="note">Часть глубины срезана, чтобы файл открывался в браузере: '+
+    esc(trim.join('; '))+'. Крупнейшие строки на месте, обрезаны хвосты.</div>';
   var avail=CUTS.filter(function(c){
     return c.code==='doc' ? !!detDocs(name,ia,ib,inc) : !!detRows(name,ia,ib,c.code);
   });
@@ -393,22 +403,36 @@ function detDocs(name,ia,ib,inc){
   var A=detOf(M[ia],name), B=detOf(M[ib],name);
   var la=(A&&A.doc)||[], lb=(B&&B.doc)||[];
   if(!la.length&&!lb.length) return null;
-  var all=la.map(function(x){return {m:ia,d:x[0],doc:x[1],c:x[2],v:x[3]};})
-    .concat(lb.map(function(x){return {m:ib,d:x[0],doc:x[1],c:x[2],v:x[3]};}));
+  /* Строка первички: [дата, документ, контрагент, номенклатура, сумма].
+     На части сборок iiko номенклатуры в проводке нет — тогда строка
+     короче на одно поле, и колонку просто не показываем. */
+  var wide=(la[0]||lb[0]||[]).length>=5;
+  function one(x,mi){
+    return wide? {m:mi,d:x[0],doc:x[1],c:x[2],p:x[3],v:x[4]}
+               : {m:mi,d:x[0],doc:x[1],c:x[2],p:'',v:x[3]};
+  }
+  var all=la.map(function(x){return one(x,ia);}).concat(lb.map(function(x){return one(x,ib);}));
   all.sort(function(x,y){return Math.abs(y.v)-Math.abs(x.v);});
-  var t='<table class="dt"><thead><tr><th style="text-align:left">Дата</th>'+
+  var sa=all.filter(function(r){return r.m===ia;}).reduce(function(s,r){return s+r.v;},0);
+  var sb=all.filter(function(r){return r.m===ib;}).reduce(function(s,r){return s+r.v;},0);
+  var t='<div class="dt-tools"><input type="search" class="dt-q" placeholder="фильтр по документу, контрагенту, позиции…">'+
+    '<span class="mut">строк: '+all.length+'</span></div>'+
+    '<table class="dt"><thead><tr><th style="text-align:left">Дата</th>'+
     '<th style="text-align:left">Документ</th><th style="text-align:left">Контрагент</th>'+
+    (wide?'<th style="text-align:left">Номенклатура</th>':'')+
     '<th>Месяц</th><th>Сумма, ₸</th></tr></thead><tbody>';
   all.forEach(function(r){
-    t+='<tr><td style="text-align:left">'+esc(r.d.split('-').reverse().join('.'))+'</td>'+
+    var key=(r.d+' '+r.doc+' '+r.c+' '+r.p).toLowerCase();
+    t+='<tr data-k="'+esc(key)+'"><td style="text-align:left">'+
+       esc(String(r.d).split('-').reverse().join('.'))+'</td>'+
        '<td style="text-align:left;white-space:normal">'+esc(r.doc)+'</td>'+
        '<td style="text-align:left;white-space:normal">'+esc(r.c)+'</td>'+
+       (wide?'<td style="text-align:left;white-space:normal">'+esc(r.p||'—')+'</td>':'')+
        '<td class="n mut">'+L[r.m]+'</td>'+
        '<td class="n"><span class="'+(r.v<0?'pos':'')+'">'+f0(r.v)+'</span></td></tr>';
   });
-  var sa=la.reduce(function(s,x){return s+x[3];},0), sb=lb.reduce(function(s,x){return s+x[3];},0);
-  t+='</tbody><tfoot><tr><td colspan="3" style="text-align:left">Показаны крупнейшие проводки: '+
-     L[ia]+' — '+f0(sa)+' ₸, '+L[ib]+' — '+f0(sb)+' ₸</td>'+
+  t+='</tbody><tfoot><tr><td colspan="'+(wide?4:3)+'" style="text-align:left">'+
+     'Крупнейшая первичка: '+L[ia]+' — '+f0(sa)+' ₸, '+L[ib]+' — '+f0(sb)+' ₸</td>'+
      '<td class="n"></td><td class="n">'+(sb-sa>0?'+':'')+f0(sb-sa)+'</td></tr></tfoot></table>';
   return t;
 }
@@ -429,7 +453,9 @@ function detTable(name,ia,ib,inc,code){
     /* Знак у оборота меняется (сторно, возврат, коррекция), и тогда «снижение
        на 142%» — бессмыслица: считаем проценты только внутри одного знака. */
     var flip = r.a&&r.b&&((r.a>0)!==(r.b>0));
-    var why = (!r.a&&r.b) ? '<span class="'+(inc?'pos':'neg')+'">появилось в этом месяце</span>'
+    var why = (!r.a&&!r.b) ? '<span class="mut">нулевой оборот в обоих месяцах</span>'
+      : r.d===0 ? '<span class="mut">без изменений</span>'
+      : (!r.a&&r.b) ? '<span class="'+(inc?'pos':'neg')+'">появилось в этом месяце</span>'
       : (r.a&&!r.b) ? '<span class="mut">было в '+L[ia]+', в '+L[ib]+' нет</span>'
       : flip ? '<span class="'+(worse?'neg':'pos')+'">сменило знак: было '+f0(r.a)+', стало '+f0(r.b)+'</span>'
       : Math.abs(r.d)<Math.abs(r.a)*0.05 ? '<span class="mut">почти без изменений</span>'
@@ -453,8 +479,24 @@ function detBind(tblId,ia,ib){
   var box=document.getElementById(tblId);
   if(!box||box.__detBound) return;
   box.__detBound=1;
+  box.addEventListener('input',function(e){
+    var q=e.target;
+    if(!q.classList||!q.classList.contains('dt-q')) return;
+    var v=q.value.trim().toLowerCase(), tb=q.closest('.dt-body');
+    if(!tb) return;
+    var n=0;
+    [].forEach.call(tb.querySelectorAll('tbody tr[data-k]'),function(tr){
+      var on=!v||tr.getAttribute('data-k').indexOf(v)>=0;
+      tr.style.display=on?'':'none'; if(on) n++;
+    });
+    var c=tb.querySelector('.dt-tools .mut');
+    if(c) c.textContent='строк: '+n;
+  });
   box.addEventListener('click',function(e){
     var tab=e.target.closest&&e.target.closest('.dt-tab');
+    /* Первички на статью бывает до двух с половиной сотен строк — глазами
+       столько не просмотреть, поэтому фильтр прямо над таблицей. */
+    if(e.target&&e.target.classList&&e.target.classList.contains('dt-q')) return;
     if(tab){
       var wrap=tab.closest('.dt-wrap');
       [].forEach.call(wrap.querySelectorAll('.dt-tab'),function(b){b.classList.remove('on');});

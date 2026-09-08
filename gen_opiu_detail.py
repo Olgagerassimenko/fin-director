@@ -41,8 +41,12 @@ OUT = os.path.join(HERE, "opiu_detail.js")
 DIAG = os.path.join(HERE, "opiu_detail_fields.json")
 FIRST = "2025-01"        # с какого месяца ведём историю
 REFRESH_TAIL = 3         # сколько последних месяцев перетягиваем каждый раз
-TOP = 40                 # сколько строк храним внутри статьи, остальное — «прочее»
-MIN_KEEP = 1000          # мелочь меньше этой суммы в хвост не выносим отдельной строкой
+TOP = 150                # сколько строк храним внутри статьи, остальное — «прочее»
+MIN_KEEP = 500           # мелочь меньше этой суммы в хвост не выносим отдельной строкой
+# Потолок размера файла. Глубину задаём щедро, но браузер должен его открыть:
+# если вышли за потолок, скрипт сам ужимает самые тяжёлые счета и пишет в meta,
+# что именно урезал. Лучше честно ужатый файл, чем неоткрывающаяся страница.
+BUDGET = 9 * 1024 * 1024
 
 # Счёт «Зарплата» исключён по той же причине, что и в gen_opiu_iiko.py:
 # это расчётный счёт с персоналом, на нём и начисления, и их закрытие,
@@ -57,6 +61,10 @@ CUTS = [
     ("type", ["Account.Name", "TransactionType"],                  "по типу документа"),
     ("dep",  ["Account.Name", "Store.Name"],                       "по складам"),
 ]
+# Перекрёстный разрез «кто и что»: контрагент отдельно и номенклатура отдельно
+# не отвечают на вопрос «какой поставщик привёз именно эту позицию». Он тяжелее
+# остальных, поэтому идёт последним и первым попадает под ужатие.
+CROSS = ("cxp", ["Account.Name", "Counteragent.Name", "Product.Name"], "кто и что")
 
 # ── Документы ────────────────────────────────────────────────────────────
 # Аудит нужен, чтобы найти неверно разнесённый документ, а сумма по
@@ -70,8 +78,8 @@ CUTS = [
 DOC_CANDS = ["DocumentNumber", "Document.Number", "Document", "TransactionDoc",
              "DocumentType", "OperationType"]
 DATE_CANDS = ["DateTime.DateTyped", "DateTime.Typed", "DateTime"]
-DOCS_MONTHS = 6      # за сколько последних месяцев храним документы
-DOCS_TOP = 30        # сколько документов на статью
+DOCS_MONTHS = 12     # за сколько последних месяцев храним документы
+DOCS_TOP = 250       # сколько строк первички на статью
 
 
 def olap_columns():
@@ -99,13 +107,19 @@ def pick(cands, cols):
     return None
 
 
-def docs(y, m, last_full, date_f, doc_f):
-    """Проводки месяца: дата, документ, контрагент, сумма — по счетам."""
+def docs(y, m, last_full, date_f, doc_f, with_product=True):
+    """Первичка месяца: дата, документ, контрагент, номенклатура, сумма.
+
+    Номенклатура здесь — самый глубокий уровень, до которого OLAP пускает:
+    ниже только сам документ в бэк-офисе. Именно на этом уровне видно
+    неверную разноску — позиция, которой в этой статье быть не должно."""
     d1 = date(y, m, 1)
     d2 = min(date(y, m, calendar.monthrange(y, m)[1]), last_full)
     if d2 < d1:
         return None
     fields = ["Account.Name", date_f, doc_f, "Counteragent.Name"]
+    if with_product:
+        fields.append("Product.Name")
     body = {
         "reportType": "TRANSACTIONS", "buildSummary": "true",
         "groupByRowFields": fields,
@@ -132,10 +146,11 @@ def docs(y, m, last_full, date_f, doc_f):
         dt = str(row.get(date_f) or "")[:10]
         dc = str(row.get(doc_f) or "—").strip() or "—"
         ct = str(row.get("Counteragent.Name") or "—").strip() or "—"
-        acc.setdefault(an, []).append([dt, dc, ct, round(v)])
+        pr = str(row.get("Product.Name") or "").strip() if with_product else ""
+        acc.setdefault(an, []).append([dt, dc, ct, pr, round(v)])
     out = {}
     for an, rows in acc.items():
-        rows.sort(key=lambda x: -abs(x[3]))
+        rows.sort(key=lambda x: -abs(x[4]))
         out[an] = rows[:DOCS_TOP]
     return out
 
@@ -170,6 +185,35 @@ def cut(y, m, last_full, fields):
         },
     }
     return OF.olap(body)
+
+
+def fold_cross(data):
+    """Контрагент × номенклатура одной строкой: «кому/от кого — и что»."""
+    acc = {}
+    for row in data or []:
+        an = (row.get("Account.Name") or "—").strip()
+        if an in SKIP_ACCOUNTS:
+            continue
+        ct = str(row.get("Counteragent.Name") or "—").strip() or "—"
+        pr = str(row.get("Product.Name") or "").strip()
+        nm = (ct + " · " + pr) if pr else ct
+        v = (row.get("Sum.Incoming") or 0) - (row.get("Sum.Outgoing") or 0)
+        d = acc.setdefault(an, {})
+        d[nm] = d.get(nm, 0.0) + v
+    out = {}
+    for an, d in acc.items():
+        rows = [[k, round(v)] for k, v in d.items() if abs(v) >= 0.5]
+        if not rows:
+            continue
+        rows.sort(key=lambda x: -abs(x[1]))
+        if len(rows) > TOP:
+            tail = rows[TOP:]
+            rest = sum(x[1] for x in tail)
+            rows = rows[:TOP]
+            if abs(rest) >= MIN_KEEP:
+                rows.append(["прочее · %d сочетаний" % len(tail), round(rest)])
+        out[an] = rows
+    return out
 
 
 def fold(data, key_field):
@@ -244,10 +288,12 @@ def build():
             if not need_docs:
                 continue
             dd = docs(y, m, last_full, date_f, doc_f)
+            if dd is None:
+                dd = docs(y, m, last_full, date_f, doc_f, with_product=False)
             if dd:
                 for an, rows in dd.items():
                     data[ym].setdefault(an, {})["doc"] = rows
-                print("%s: добраны документы по %d счетам" % (ym, len(dd)))
+                print("%s: добрана первичка по %d счетам" % (ym, len(dd)))
             continue
         month = {}
         for code, fields, _title in CUTS:
@@ -262,8 +308,16 @@ def build():
             folded = fold(raw, fields[-1])
             for an, rows in folded.items():
                 month.setdefault(an, {})[code] = rows
+        raw = cut(y, m, last_full, CROSS[1])
+        if raw is not None:
+            for an, rows in fold_cross(raw).items():
+                month.setdefault(an, {})[CROSS[0]] = rows
+        elif CROSS[1][-1] not in fields_bad:
+            fields_bad.append("cross:" + CROSS[1][-1])
         if date_f and doc_f and ym in docs_from:
             dd = docs(y, m, last_full, date_f, doc_f)
+            if dd is None:                       # с номенклатурой не вышло — без неё
+                dd = docs(y, m, last_full, date_f, doc_f, with_product=False)
             if dd:
                 for an, rows in dd.items():
                     month.setdefault(an, {})["doc"] = rows
@@ -277,14 +331,45 @@ def build():
         "built": almaty.now().strftime("%Y-%m-%d %H:%M"),
         "dept": OF.FZ_DEPT,
         "top": TOP,
-        "cuts": [{"code": c, "title": t} for c, _f, t in CUTS]
-                + ([{"code": "doc", "title": "документы"}] if (date_f and doc_f) else []),
+        "cuts": ([{"code": "doc", "title": "первичка"}] if (date_f and doc_f) else [])
+                + [{"code": c, "title": t} for c, _f, t in CUTS]
+                + [{"code": CROSS[0], "title": CROSS[2]}],
         "docsTop": DOCS_TOP, "docsMonths": DOCS_MONTHS,
         "dateField": date_f, "docField": doc_f,
         "columns": sorted(cols.keys()) if cols else [],
         "fieldsOk": fields_ok, "fieldsBad": fields_bad,
     }
     payload = {"meta": meta, "m": data}
+
+    # ── Ужатие под потолок ───────────────────────────────────────────────
+    # Глубина задана щедро, и на тяжёлых счетах файл может не влезть в
+    # браузер. Режем по шагам, начиная с самого дорогого и наименее
+    # нужного: сперва перекрёстный разрез, потом хвосты первички,
+    # потом обычные разрезы. Что урезали — пишем в meta, чтобы на
+    # странице было видно, что данные неполные.
+    def size(p):
+        return len(json.dumps(p, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+
+    trims = []
+    steps = [("cxp", None), ("doc", 120), ("doc", 60),
+             ("cxp", 0), ("prod", 60), ("ctr", 60), ("doc", 25)]
+    si = 0
+    while size(payload) > BUDGET and si < len(steps):
+        code, keep = steps[si]; si += 1
+        n = 0
+        for ym, accs in data.items():
+            for an, cuts in accs.items():
+                if code not in cuts:
+                    continue
+                if keep is None or keep == 0:
+                    del cuts[code]; n += 1
+                elif len(cuts[code]) > keep:
+                    cuts[code] = cuts[code][:keep]; n += 1
+        if n:
+            trims.append("%s→%s (%d счетов)" % (code, "убран" if not keep else keep, n))
+    meta["trimmed"] = trims
+    meta["bytes"] = size(payload)
+
     with open(OUT, "w", encoding="utf-8") as f:
         f.write("window.OPIU_DETAIL=")
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
