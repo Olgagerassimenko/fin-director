@@ -312,9 +312,10 @@ function todoCard(i){
   var h='<div class="card"><div class="card-t">Чего ждём от бухгалтерии · '+L[i]+'</div>'+
     '<div class="card-n">Статьи, по которым в iiko на '+
     (thru? thru.split('-').reverse().join('.') : 'момент выгрузки')+
-    ' проводок нет или меньше обычного. В отчёте вместо них стоит досчёт — '+
-    'медиана закрытых месяцев, — иначе месяц выглядел бы сказочно прибыльным. '+
-    '<b>Прибыль '+L[i]+' завышена примерно на '+fm(tot)+' ₸</b>, пока это не проведено.</div>'+
+    ' проводок нет или меньше обычного. В отчёте стоит факт — то, что реально '+
+    'проведено, — поэтому месяц выглядит прибыльнее, чем он есть: '+
+    '<b>прибыль '+L[i]+' завышена примерно на '+fm(tot)+' ₸</b>, пока это не проведено. '+
+    'Колонка «Ожидается» — не досчёт в отчёте, а ориентир: медиана закрытых месяцев.</div>'+
     '<div class="tw"><table><thead><tr><th>Статья</th><th>В iiko сейчас</th>'+
     '<th>Ожидается</th><th>Не проведено</th><th style="text-align:left">Что это</th>'+
     '</tr></thead><tbody>';
@@ -431,10 +432,10 @@ function detPanel(name,ia,ib,inc){
   [[ia,'a'],[ib,'b']].forEach(function(x){
     var e=estAt(x[0],name);
     if(e) warn+='<div class="note" style="border-left:4px solid #fbbf24">⚠ '+L[x[0]]+
-      ': строка отчёта показывает досчёт '+fm(e.est)+' ₸, а в iiko по счёту '+
-      (e.was? f0(e.was)+' ₸':'проводок нет')+'. Расшифровка ниже — это факт из iiko, '+
-      'поэтому она со строкой отчёта не сойдётся и разбирать в ней нечего, '+
-      'пока начисление не проведено.</div>';
+      ': месяц по этой статье не закрыт — в iiko '+
+      (e.was? 'проведено только '+f0(e.was)+' ₸' : 'проводок нет')+
+      ', обычно за месяц около '+fm(e.est)+' ₸. Ниже — то, что реально проведено; '+
+      'разбирать здесь нечего, пока бухгалтерия не проведёт начисление.</div>';
   });
   var trim=(DET&&DET.meta&&DET.meta.trimmed)||[];
   if(trim.length) warn+='<div class="note">Часть глубины срезана, чтобы файл открывался в браузере: '+
@@ -1048,6 +1049,221 @@ BUILD.cmp=function(){
   draw();
 };
 
+/* ══ ПРОВЕРКА ПЕРВИЧКИ ═══════════════════════════════════════════
+   Верхний аудит смотрит на цифры бухгалтерского ОПиУ и говорит «здесь
+   всплеск». Этого мало: всплеск может быть настоящим расходом. Ниже
+   проверка идёт по самим проводкам iiko и ищет следы неверной разноски,
+   сравнивая месяц не с абстрактной нормой, а с привычкой самой статьи.
+   Если статья всегда закрывается одним документом без контрагента —
+   зарплата, налоги, — это её норма, и замечания не будет. Замечание
+   появляется там, где месяц выпал из собственной колеи статьи. */
+/* Счета, на которых обязательство может пролежать мимо расхода. Дебиторку
+   и кассу сюда не берём: там любой постоянный контрагент есть всегда, и
+   «след» получался бы у каждого — это шум, а не доказательство. */
+var TRANSIT=['Задолженность перед поставщиками','Авансы выданные','4-Подотчет',
+  'Текущие расчеты с сотрудниками'];
+var NOCTR={'—':1,'':1,'-':1,'Закрытие периода':1,'Не указан':1};
+
+var PTYPE={first:'проведено первым числом',one:'месяц держится на одном документе',
+  noctr:'без контрагента',newctr:'смена контрагента',dup:'возможный дубль'};
+var PACT={
+  first:'Открыть эти документы и посмотреть дату оказания услуги: если она из прошлого месяца — расход стоит не в своём периоде.',
+  one:'Посмотреть, за какой период выставлен документ: одна бумага вместо привычного десятка обычно означает начисление сразу за несколько месяцев.',
+  noctr:'Дописать контрагента в документе: без него статью нельзя ни сверить с актом, ни разложить по поставщикам.',
+  newctr:'Понять, замена это или добавка: если старый поставщик ушёл, а новый пришёл — роста расхода нет, есть смена подрядчика.',
+  dup:'Сверить два документа по номеру и акту: одинаковая сумма у одного контрагента за один месяц — типичное двойное проведение.'};
+
+/* Разбор первички статьи по месяцам: сумма, число документов, сколько
+   пришлось на 1-е число, сколько прошло без контрагента, повторы сумм. */
+function primProfile(name){
+  var p={},ks=[];
+  M.forEach(function(ym,i){
+    if(isPart(i)) return;                       // неполный месяц не с чем сравнивать
+    var e=detOf(ym,name); if(!e) return;
+    var docs=e.doc||[]; if(!docs.length) return;
+    var n=docs[0].length, tot=0, first=0, nfirst=0, big=0, bigRow=null, dupMax=0;
+    var seen={}, firstRows=[];
+    docs.forEach(function(x){
+      var v=Math.abs(x[n-1]); tot+=v;
+      if(v>big){ big=v; bigRow=x; }
+      if(/-01$/.test(String(x[0]))){ first+=v; nfirst++; firstRows.push(x); }
+      if(v>=200000){
+        var k=[x[2],x[3],Math.round(v)].join('|');
+        (seen[k]=seen[k]||[]).push(x);
+      }
+    });
+    Object.keys(seen).forEach(function(k){ if(seen[k].length>dupMax) dupMax=seen[k].length; });
+    if(tot<=0) return;
+    var ctr=e.ctr||[], noc=0;
+    ctr.forEach(function(x){ if(NOCTR[x[0]]) noc+=Math.abs(x[1]); });
+    p[ym]={i:i,tot:tot,n:docs.length,first:first,nfirst:nfirst,firstRows:firstRows,
+           noc:noc,big:big,bigRow:bigRow,dup:dupMax,seen:seen,ctr:ctr,docs:docs,nc:n};
+    ks.push(ym);
+  });
+  p._k=ks; return p;
+}
+function med(a){ if(!a.length) return 0; var b=a.slice().sort(function(x,y){return x-y;});
+  var h=b.length>>1; return b.length%2? b[h] : (b[h-1]+b[h])/2; }
+
+/* Где эта сумма лежала раньше. Расход, попавший не в свой месяц, почти
+   всегда до этого висел на задолженности, подотчёте или авансах — если
+   контрагент там есть, перенос доказан, а не предположен. */
+function primTrace(ctrName,i,s){
+  var out=[];
+  for(var b=1;b<=2;b++){
+    var k=i-b; if(k<0) break;
+    TRANSIT.forEach(function(acc){
+      var e=detOf(M[k],acc); if(!e||!e.ctr) return;
+      e.ctr.forEach(function(x){
+        /* сумма на транзитном счёте должна быть соизмерима с найденной:
+           иначе это не та же операция, а обычные расчёты с контрагентом */
+        if(x[0]===ctrName && x[1]>0 && x[1]>=0.2*Math.abs(s) && x[1]<=3*Math.abs(s))
+          out.push({m:k,acc:acc,v:x[1],c:ctrName});
+      });
+    });
+  }
+  return out;
+}
+function primTraceHtml(tr){
+  if(!tr.length) return '';
+  var many={}; tr.forEach(function(t){ many[t.c]=1; });
+  var multi=Object.keys(many).length>1;
+  return '<div class="find-d" style="margin-top:5px;color:#8fa2bd"><b style="color:#fbbf24">След:</b> '+
+    tr.map(function(t){ return (multi? esc(t.c)+' — ':'')+L[t.m]+', '+f0(t.v)+' ₸ на «'+esc(t.acc)+'»'; }).join('; ')+
+    '. Эти суммы уже были в системе, но лежали на счетах расчётов, а не в расходе — '+
+    'значит, месяц принял на себя чужой период, а не вырос по-настоящему.';
+}
+
+var PRIM=(function(){
+  if(!DET) return [];
+  var out=[];
+  LINES.forEach(function(r){
+    if(!detHas(r.n)) return;
+    var p=primProfile(r.n), ks=p._k;
+    if(ks.length<3) return;                      // без истории нормы нет
+    ks.forEach(function(ym,idx){
+      var c=p[ym];
+      if(c.tot<300000) return;
+      if(estAt(c.i,r.n)) return;                 // статья за месяц не проведена — разбирать нечего
+      var oth=ks.filter(function(k){return k!==ym;}).map(function(k){return p[k];});
+      var mapd=function(fn){ return med(oth.map(fn)); };
+
+      /* 1. Сгущение на 1-е число там, где статья так обычно не работает */
+      var shF=c.first/c.tot, bF=mapd(function(o){return o.first/o.tot;});
+      if(shF>=0.30 && c.first>=400000 && c.nfirst>=2 && bF<0.15){
+        var who={}; c.firstRows.forEach(function(x){ who[x[2]||'—']=(who[x[2]||'—']||0)+Math.abs(x[c.nc-1]); });
+        var wl=Object.keys(who).sort(function(a,b){return who[b]-who[a];});
+        var tr=[]; wl.slice(0,2).forEach(function(w){ if(!NOCTR[w]) tr=tr.concat(primTrace(w,c.i,who[w])); });
+        out.push({t:'first',m:ym,i:c.i,a:r.n,s:c.first,sev:2,
+          h:'первым числом проведено '+fm(c.first)+' ₸ — '+Math.round(shF*100)+'% всего оборота статьи за месяц',
+          d:c.nfirst+' документ(ов) датированы 1 '+L[c.i].split(' ')[0]+
+            ', обычно на первое число у этой статьи приходится '+Math.round(bF*100)+'%. '+
+            'Первым числом закрывают то, что относится к прошлому месяцу.',
+          w:wl.slice(0,3).map(function(w){return w+' — '+f0(who[w])+' ₸';}).join('; '),
+          tr:tr});
+      }
+      /* 2. Месяц закрыт одним документом, хотя обычно их много */
+      var shB=c.big/c.tot, bN=mapd(function(o){return o.n;});
+      if(shB>=0.6 && c.big>=500000 && bN>=4 && c.n<bN*0.6){
+        var br=c.bigRow||[];
+        out.push({t:'one',m:ym,i:c.i,a:r.n,s:c.big,sev:2,
+          h:'один документ на '+fm(c.big)+' ₸ даёт '+Math.round(shB*100)+'% месяца',
+          d:'в этом месяце по статье '+c.n+' документ(ов), обычно около '+Math.round(bN)+'. '+
+            'Так выглядит начисление, сделанное сразу за несколько месяцев.',
+          w:'№'+(br[1]||'—')+' от '+String(br[0]||'').split('-').reverse().join('.')+
+            (br[2]? ', '+br[2]:'')+(br[3]? ' · '+br[3]:''),
+          tr:br[2]&&!NOCTR[br[2]]? primTrace(br[2],c.i,c.big) : []});
+      }
+      /* 3. Расход без контрагента там, где контрагент обычно есть */
+      var shN=c.noc/c.tot, bNC=mapd(function(o){return o.noc/o.tot;});
+      if(shN>=0.25 && c.noc>=300000 && bNC<0.10){
+        out.push({t:'noctr',m:ym,i:c.i,a:r.n,s:c.noc,sev:1,
+          h:fm(c.noc)+' ₸ прошло без контрагента — '+Math.round(shN*100)+'% статьи',
+          d:'обычно у этой статьи без контрагента идёт '+Math.round(bNC*100)+'%. '+
+            'Такую сумму не с кем сверить: ни акта, ни поставщика.',w:'',tr:[]});
+      }
+      /* 4. Крупный контрагент, которого месяцем раньше не было */
+      if(idx>0 && c.ctr.length<=15){
+        var pe=p[ks[idx-1]], had={}, now={};
+        pe.ctr.forEach(function(x){ had[x[0]]=x[1]; });
+        c.ctr.forEach(function(x){ now[x[0]]=x[1]; });
+        c.ctr.forEach(function(x){
+          if(NOCTR[x[0]]||x[1]<=0) return;
+          if(x[1]<400000||x[1]<0.3*c.tot) return;
+          if(had[x[0]]!==undefined) return;
+          var gone=pe.ctr.filter(function(y){
+            return !NOCTR[y[0]] && now[y[0]]===undefined && y[1]>=0.4*x[1]; });
+          out.push({t:'newctr',m:ym,i:c.i,a:r.n,s:x[1],sev:2,
+            h:esc(x[0])+' — '+fm(x[1])+' ₸, месяцем раньше по этой статье его не было',
+            d:gone.length
+              ? 'одновременно исчез '+gone[0][0]+', у которого в '+L[pe.i]+' было '+f0(gone[0][1])+
+                ' ₸. Похоже на замену подрядчика: расход не вырос, а переехал.'
+              : 'в '+L[pe.i]+' по статье его не было вовсе — либо новый подрядчик, '+
+                'либо расход перенесли сюда с другого счёта.',
+            w:'', tr:primTrace(x[0],c.i,x[1])});
+        });
+      }
+      /* 5. Две одинаковые суммы у одного контрагента за месяц */
+      if(c.dup>1 && mapd(function(o){return o.dup;})<2){
+        Object.keys(c.seen).forEach(function(k){
+          var g=c.seen[k]; if(g.length<2) return;
+          if(NOCTR[g[0][2]]) return;                 // технические документы закрытия не считаем
+          var v=Math.abs(g[0][c.nc-1]);
+          out.push({t:'dup',m:ym,i:c.i,a:r.n,s:v*(g.length-1),sev:1,
+            h:esc(g[0][2]||'—')+' — '+g.length+' документа на одну и ту же сумму '+f0(v)+' ₸',
+            d:'у этой статьи повторяющиеся суммы обычно не встречаются. '+
+              'Возможно, один и тот же акт проведён дважды.',
+            w:g.map(function(x){ return '№'+(x[1]||'—')+' от '+String(x[0]||'').split('-').reverse().join('.'); }).join('; '),
+            tr:[]});
+        });
+      }
+    });
+  });
+  out.sort(function(a,b){ return (b.sev-a.sev)||(Math.abs(b.s)-Math.abs(a.s)); });
+  return out;
+})();
+
+function primCard(){
+  if(!DET) return '<div class="card"><div class="card-t">Проверка первички</div>'+
+    '<div class="card-n">Расшифровка из iiko не загрузилась (opiu_detail.js), '+
+    'поэтому проверка по проводкам не выполнялась.</div></div>';
+  var mon=Object.keys(DETM).filter(function(ym){ var i=M.indexOf(ym); return i>=0&&!isPart(i); });
+  mon.sort();
+  var span=mon.length? (L[M.indexOf(mon[0])]+' — '+L[M.indexOf(mon[mon.length-1])]) : '—';
+  var cnt={}; PRIM.forEach(function(f){ cnt[f.t]=(cnt[f.t]||0)+1; });
+  var h='<div class="card"><div class="card-t">Проверка первички из iiko · '+span+'</div>'+
+    '<div class="card-n">Здесь проверяются не итоги, а сами проводки. Каждая статья сравнивается '+
+    'со своей же привычкой: сколько у неё обычно документов, есть ли у неё контрагент, '+
+    'сколько приходится на первое число. Замечание появляется там, где месяц выпал из этой колеи — '+
+    'поэтому зарплата и налоги, которые всегда закрываются одним документом, сюда не попадают, '+
+    'а услуга, впервые проведённая первым числом сразу за три месяца, попадает. '+
+    'Где сумма до этого лежала на задолженности, подотчёте или авансах, показан <b>след</b>: '+
+    'это и отличает перенос периода от настоящего роста расхода.</div>';
+  if(!PRIM.length) return h+'<div class="empty">По проводкам за '+span+' отклонений от привычки статей не найдено</div></div>';
+  h+='<div class="ctl"><span class="lbl">Фильтр:</span>'+
+     '<button class="chip on" data-p="">все ('+PRIM.length+')</button>'+
+     Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a];}).map(function(k){
+       return '<button class="chip" data-p="'+k+'">'+PTYPE[k]+' ('+cnt[k]+')</button>';}).join('')+
+     '</div><div id="plist"></div></div>';
+  return h;
+}
+function primList(fl){
+  var box=document.getElementById('plist'); if(!box) return;
+  var a=PRIM.filter(function(f){ return !fl||f.t===fl; });
+  box.innerHTML = a.length? a.map(function(f){
+    return '<div class="find s'+f.sev+'"><div class="find-h">'+
+      '<span class="find-a">'+esc(f.a)+'</span>'+
+      '<span class="find-t">'+PTYPE[f.t]+'</span>'+
+      '<span class="find-m">'+L[f.i]+'</span></div>'+
+      '<div class="find-ti">'+f.h+'</div>'+
+      '<div class="find-d">'+f.d+'</div>'+
+      (f.w? '<div class="find-d" style="margin-top:5px;color:#8fa2bd"><b style="color:#c4b5fd">Документы:</b> '+esc(f.w)+'</div>':'')+
+      primTraceHtml(f.tr||[])+
+      '<div class="find-d" style="margin-top:5px;color:#8fa2bd"><b style="color:#c4b5fd">Что сделать:</b> '+esc(PACT[f.t])+'</div>'+
+      '<div class="find-s">Величина: '+fm(Math.abs(f.s))+' ₸</div></div>';
+  }).join('') : '<div class="empty">Замечаний этого типа нет</div>';
+}
+
 /* ══ 4. АУДИТ РАЗНОСОК ═══════════════════════════════════════════ */
 var TYPE={shift:'перенос периода',zero:'пропуск месяца',spike:'всплеск',sign:'знак',
   round:'ровная сумма',stopped:'статья прекратилась',started:'статья появилась',
@@ -1075,7 +1291,8 @@ BUILD.audit=function(){
   var h='<div class="note">Проверка сделана по бухгалтерскому ОПиУ за '+N+' месяцев '+
     '(с '+L[0]+' по '+L[N-1]+'). Ищутся типовые следы неверной разноски: расход, попавший не в свой месяц; '+
     'разовые всплески; минусы в расходных статьях; ровные «оценочные» суммы; статьи, которые начались '+
-    'или закончились посреди периода. <b>Это не приговор, а список того, что стоит открыть в первичке.</b></div>';
+    'или закончились посреди периода. Вторая проверка идёт по самим проводкам iiko и доводит '+
+    'дело до конкретного документа. <b>Это не приговор, а список того, что стоит открыть в первичке.</b></div>';
 
   h+='<div class="kpis">';
   h+=kpi('Замечаний всего','#a78bfa',F.length,'из них '+s2+' требуют проверки в первую очередь');
@@ -1084,6 +1301,9 @@ BUILD.audit=function(){
       D.foot.ok===D.foot.all
         ? 'все итоги равны сумме своих строк — арифметика отчёта чистая'
         : 'есть итоги, не равные сумме строк — смотрите замечания «итог не сходится»');
+  h+=kpi('По проводкам iiko','#60a5fa',PRIM.length,
+      PRIM.length? 'отклонений от привычки статей — разбор ниже, с первичкой'
+                 : 'проводки за закрытые месяцы идут в своей колее');
   h+=kpi('Сумма под вопросом','#fbbf24',
       fm(F.filter(function(f){return f.sev===2;}).reduce(function(s,f){return s+f.s;},0))+' ₸',
       'совокупный размер отклонений по красным замечаниям');
@@ -1108,7 +1328,12 @@ BUILD.audit=function(){
     h+='</tbody></table></div>';
   }
 
-  h+='<div class="card"><div class="ctl"><span class="lbl">Фильтр:</span>'+
+  h+=primCard();
+
+  h+='<div class="card"><div class="card-t">Замечания по бухгалтерскому ОПиУ</div>'+
+     '<div class="card-n">Эти замечания сделаны по цифрам отчёта, без проводок: '+
+     'они показывают, где сумма ведёт себя необычно, но не отвечают, какой документ виноват.</div>'+
+     '<div class="ctl"><span class="lbl">Фильтр:</span>'+
      '<button class="chip on" data-f="">все ('+F.length+')</button>'+
      '<button class="chip" data-f="!2">только красные ('+s2+')</button>'+
      Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a];}).map(function(k){
@@ -1131,9 +1356,14 @@ BUILD.audit=function(){
     }).join('') : '<div class="empty">Замечаний этого типа нет</div>';
   }
   list('');
-  el.querySelectorAll('.chip').forEach(function(c){
-    c.onclick=function(){ el.querySelectorAll('.chip').forEach(function(x){x.classList.remove('on');});
+  el.querySelectorAll('.chip[data-f]').forEach(function(c){
+    c.onclick=function(){ el.querySelectorAll('.chip[data-f]').forEach(function(x){x.classList.remove('on');});
       c.classList.add('on'); list(c.dataset.f); };
+  });
+  primList('');
+  el.querySelectorAll('.chip[data-p]').forEach(function(c){
+    c.onclick=function(){ el.querySelectorAll('.chip[data-p]').forEach(function(x){x.classList.remove('on');});
+      c.classList.add('on'); primList(c.dataset.p); };
   });
 };
 
