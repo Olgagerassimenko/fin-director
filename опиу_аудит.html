@@ -136,6 +136,8 @@ label.chip.chk input{accent-color:#7c3aed;width:14px;height:14px;cursor:pointer;
 .dt-tools .mut{font-size:10.5px}
 .dt-body{max-height:60vh;overflow:auto}
 
+td.dt-note{color:#c4b5fd;font-size:10.5px;max-width:320px}
+
 .ok{color:#34d399;font-weight:700}
 .empty{padding:34px;text-align:center;color:#64748b;font-size:13px}
 </style>
@@ -403,38 +405,42 @@ function detDocs(name,ia,ib,inc){
   var A=detOf(M[ia],name), B=detOf(M[ib],name);
   var la=(A&&A.doc)||[], lb=(B&&B.doc)||[];
   if(!la.length&&!lb.length) return null;
-  /* Строка первички: [дата, документ, контрагент, номенклатура, сумма].
-     На части сборок iiko номенклатуры в проводке нет — тогда строка
-     короче на одно поле, и колонку просто не показываем. */
-  var wide=(la[0]||lb[0]||[]).length>=5;
-  function one(x,mi){
-    return wide? {m:mi,d:x[0],doc:x[1],c:x[2],p:x[3],v:x[4]}
-               : {m:mi,d:x[0],doc:x[1],c:x[2],p:'',v:x[3]};
+  /* Колонки первички задаёт выгрузка (meta.docCols): дата, документ,
+     контрагент, номенклатура, комментарии — набор зависит от того, что
+     отдаёт эта сборка iiko. Последняя ячейка строки всегда сумма. */
+  var cols=(DET&&DET.meta&&DET.meta.docCols)||[];
+  var n=(la[0]||lb[0]||[]).length;                 // ячеек в строке, включая сумму
+  if(!cols.length||cols.length!==n){
+    cols=['Дата','Документ','Контрагент','Номенклатура','Комментарий'].slice(0,n-1).concat(['Сумма, ₸']);
   }
-  var all=la.map(function(x){return one(x,ia);}).concat(lb.map(function(x){return one(x,ib);}));
-  all.sort(function(x,y){return Math.abs(y.v)-Math.abs(x.v);});
-  var sa=all.filter(function(r){return r.m===ia;}).reduce(function(s,r){return s+r.v;},0);
-  var sb=all.filter(function(r){return r.m===ib;}).reduce(function(s,r){return s+r.v;},0);
-  var t='<div class="dt-tools"><input type="search" class="dt-q" placeholder="фильтр по документу, контрагенту, позиции…">'+
+  var body=cols.slice(0,-1);
+  var all=la.map(function(x){return {m:ia,c:x};}).concat(lb.map(function(x){return {m:ib,c:x};}));
+  all.sort(function(x,y){return Math.abs(y.c[n-1])-Math.abs(x.c[n-1]);});
+  var sa=la.reduce(function(s,x){return s+x[n-1];},0);
+  var sb=lb.reduce(function(s,x){return s+x[n-1];},0);
+  var h='<div class="dt-tools"><input type="search" class="dt-q" placeholder="фильтр по документу, контрагенту, позиции, комментарию…">'+
     '<span class="mut">строк: '+all.length+'</span></div>'+
-    '<table class="dt"><thead><tr><th style="text-align:left">Дата</th>'+
-    '<th style="text-align:left">Документ</th><th style="text-align:left">Контрагент</th>'+
-    (wide?'<th style="text-align:left">Номенклатура</th>':'')+
-    '<th>Месяц</th><th>Сумма, ₸</th></tr></thead><tbody>';
+    '<table class="dt"><thead><tr>'+
+    body.map(function(t){return '<th style="text-align:left">'+esc(t)+'</th>';}).join('')+
+    '<th>Месяц</th><th>'+esc(cols[n-1])+'</th></tr></thead><tbody>';
   all.forEach(function(r){
-    var key=(r.d+' '+r.doc+' '+r.c+' '+r.p).toLowerCase();
-    t+='<tr data-k="'+esc(key)+'"><td style="text-align:left">'+
-       esc(String(r.d).split('-').reverse().join('.'))+'</td>'+
-       '<td style="text-align:left;white-space:normal">'+esc(r.doc)+'</td>'+
-       '<td style="text-align:left;white-space:normal">'+esc(r.c)+'</td>'+
-       (wide?'<td style="text-align:left;white-space:normal">'+esc(r.p||'—')+'</td>':'')+
-       '<td class="n mut">'+L[r.m]+'</td>'+
-       '<td class="n"><span class="'+(r.v<0?'pos':'')+'">'+f0(r.v)+'</span></td></tr>';
+    var c=r.c, v=c[n-1];
+    var key=c.slice(0,n-1).join(' ').toLowerCase();
+    h+='<tr data-k="'+esc(key)+'">';
+    for(var k=0;k<n-1;k++){
+      var val=c[k]==null? '' : String(c[k]);
+      /* дата приходит как 2026-08-14 — показываем по-человечески */
+      if(k===0&&/^\d{4}-\d{2}-\d{2}$/.test(val)) val=val.split('-').reverse().join('.');
+      h+='<td class="'+(body[k].indexOf('Комментарий')===0?'dt-note':'')+
+         '" style="text-align:left;white-space:normal">'+(val? esc(val):'<span class="mut">—</span>')+'</td>';
+    }
+    h+='<td class="n mut">'+L[r.m]+'</td>'+
+       '<td class="n"><span class="'+(v<0?'pos':'')+'">'+f0(v)+'</span></td></tr>';
   });
-  t+='</tbody><tfoot><tr><td colspan="'+(wide?4:3)+'" style="text-align:left">'+
+  h+='</tbody><tfoot><tr><td colspan="'+(n-1)+'" style="text-align:left">'+
      'Крупнейшая первичка: '+L[ia]+' — '+f0(sa)+' ₸, '+L[ib]+' — '+f0(sb)+' ₸</td>'+
      '<td class="n"></td><td class="n">'+(sb-sa>0?'+':'')+f0(sb-sa)+'</td></tr></tfoot></table>';
-  return t;
+  return h;
 }
 function detTable(name,ia,ib,inc,code){
   if(code==='doc'){

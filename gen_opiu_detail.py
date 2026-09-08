@@ -82,6 +82,12 @@ CROSS = ("cxp", ["Account.Name", "Counteragent.Name", "Product.Name"], "кто �
 DOC_CANDS = ["DocumentNumber", "Document.Number", "Document", "TransactionDoc",
              "DocumentType", "OperationType"]
 DATE_CANDS = ["DateTime.DateTyped", "DateTime.Typed", "DateTime"]
+# Комментарий к документу — единственное место, где бухгалтер объясняет
+# разноску словами. Ради него аудит и открывают: «списано по акту комиссии»
+# и «перекинуто с 1.2» — это ответ, которого в суммах нет. Названий поля
+# у сборок iiko несколько, поэтому берём все, какие сервер отдаёт.
+COMMENT_CANDS = ["Comment", "Document.Comment", "TransactionComment",
+                 "OperationComment", "Description", "Note", "DocumentComment"]
 DOCS_MONTHS = 12     # за сколько последних месяцев храним документы
 DOCS_TOP = 250       # сколько строк первички на статью
 
@@ -111,19 +117,29 @@ def pick(cands, cols):
     return None
 
 
-def docs(y, m, last_full, date_f, doc_f, with_product=True):
-    """Первичка месяца: дата, документ, контрагент, номенклатура, сумма.
+def doc_schema(date_f, doc_f, comment_fs, with_product=True):
+    """Какие колонки будут у строки первички. Возвращает список пар
+    (поле OLAP, заголовок): по нему и собираются строки, и рисуется
+    таблица на странице — порядок задан в одном месте."""
+    cols = [(date_f, "Дата"), (doc_f, "Документ"),
+            ("Counteragent.Name", "Контрагент")]
+    if with_product:
+        cols.append(("Product.Name", "Номенклатура"))
+    for i, cf in enumerate(comment_fs):
+        cols.append((cf, "Комментарий" if i == 0 else "Комментарий (%s)" % cf))
+    return cols
 
-    Номенклатура здесь — самый глубокий уровень, до которого OLAP пускает:
-    ниже только сам документ в бэк-офисе. Именно на этом уровне видно
-    неверную разноску — позиция, которой в этой статье быть не должно."""
+
+def docs(y, m, last_full, date_f, doc_f, comment_fs=(), with_product=True):
+    """Первичка месяца: дата, документ, контрагент, номенклатура,
+    комментарии, сумма — самый глубокий уровень, до которого пускает OLAP.
+    Ниже только сам документ в бэк-офисе."""
     d1 = date(y, m, 1)
     d2 = min(date(y, m, calendar.monthrange(y, m)[1]), last_full)
     if d2 < d1:
         return None
-    fields = ["Account.Name", date_f, doc_f, "Counteragent.Name"]
-    if with_product:
-        fields.append("Product.Name")
+    schema = doc_schema(date_f, doc_f, comment_fs, with_product)
+    fields = ["Account.Name"] + [f for f, _t in schema]
     body = {
         "reportType": "TRANSACTIONS", "buildSummary": "true",
         "groupByRowFields": fields,
@@ -147,14 +163,16 @@ def docs(y, m, last_full, date_f, doc_f, with_product=True):
         v = (row.get("Sum.Incoming") or 0) - (row.get("Sum.Outgoing") or 0)
         if abs(v) < 0.5:
             continue
-        dt = str(row.get(date_f) or "")[:10]
-        dc = str(row.get(doc_f) or "—").strip() or "—"
-        ct = str(row.get("Counteragent.Name") or "—").strip() or "—"
-        pr = str(row.get("Product.Name") or "").strip() if with_product else ""
-        acc.setdefault(an, []).append([dt, dc, ct, pr, round(v)])
+        cells = []
+        for f, _t in schema:
+            val = str(row.get(f) or "").strip()
+            if f == date_f:
+                val = val[:10]
+            cells.append(val)
+        acc.setdefault(an, []).append(cells + [round(v)])
     out = {}
     for an, rows in acc.items():
-        rows.sort(key=lambda x: -abs(x[4]))
+        rows.sort(key=lambda x: -abs(x[-1]))
         out[an] = rows[:DOCS_TOP]
     return out
 
@@ -319,14 +337,16 @@ def build():
     cols = olap_columns()
     date_f = pick(DATE_CANDS, cols) if cols else None
     doc_f = pick(DOC_CANDS, cols) if cols else None
-    print("поля OLAP: всего %d, дата=%s, документ=%s"
-          % (len(cols), date_f, doc_f))
+    comment_fs = [c for c in COMMENT_CANDS if c in (cols or {})]
+    print("поля OLAP: всего %d, дата=%s, документ=%s, комментарии=%s"
+          % (len(cols), date_f, doc_f, ", ".join(comment_fs) or "нет"))
     # Диагностику пишем сразу, а не в конце. Шаг помечен continue-on-error,
     # и GitHub показывает его успешным даже когда скрипт упал: без файла в
     # репозитории причину падения потом не найти, логи прогона недоступны.
     def diag(**extra):
         d = {"built": almaty.now().strftime("%Y-%m-%d %H:%M"),
              "dateField": date_f, "docField": doc_f,
+             "commentFields": comment_fs,
              "columns": sorted(cols.keys()) if cols else [],
              "colsCount": len(cols)}
         d.update(extra)
@@ -341,7 +361,11 @@ def build():
                 + [{"code": c, "title": t} for c, _f, t in CUTS]
                 + [{"code": CROSS[0], "title": CROSS[2]}],
         "docsTop": DOCS_TOP, "docsMonths": DOCS_MONTHS,
-        "dateField": date_f, "docField": doc_f,
+        "dateField": date_f, "docField": doc_f, "commentFields": comment_fs,
+        # Заголовки колонок первички: страница рисует таблицу по этой схеме,
+        # поэтому набор полей можно менять здесь, не трогая вёрстку.
+        "docCols": ([t for _f, t in doc_schema(date_f, doc_f, comment_fs)] + ["Сумма, ₸"])
+                   if (date_f and doc_f) else [],
         "columns": sorted(cols.keys()) if cols else [],
         "fieldsOk": fields_ok, "fieldsBad": fields_bad,
         "trimmed": [], "bytes": 0,
@@ -367,9 +391,9 @@ def build():
                          and not any("doc" in v for v in old[ym].values()))
             if not need_docs:
                 continue
-            dd = docs(y, m, last_full, date_f, doc_f)
+            dd = docs(y, m, last_full, date_f, doc_f, comment_fs)
             if dd is None:
-                dd = docs(y, m, last_full, date_f, doc_f, with_product=False)
+                dd = docs(y, m, last_full, date_f, doc_f, comment_fs, with_product=False)
             if dd:
                 for an, rows in dd.items():
                     data[ym].setdefault(an, {})["doc"] = rows
@@ -396,9 +420,9 @@ def build():
         elif CROSS[1][-1] not in fields_bad:
             fields_bad.append("cross:" + CROSS[1][-1])
         if date_f and doc_f and ym in docs_from:
-            dd = docs(y, m, last_full, date_f, doc_f)
+            dd = docs(y, m, last_full, date_f, doc_f, comment_fs)
             if dd is None:                       # с номенклатурой не вышло — без неё
-                dd = docs(y, m, last_full, date_f, doc_f, with_product=False)
+                dd = docs(y, m, last_full, date_f, doc_f, comment_fs, with_product=False)
             if dd:
                 for an, rows in dd.items():
                     month.setdefault(an, {})["doc"] = rows
