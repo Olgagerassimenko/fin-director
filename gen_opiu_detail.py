@@ -353,6 +353,15 @@ def build():
         json.dump(d, open(DIAG, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     diag(stage="старт")
 
+    # Списки объявляем до meta: meta ссылается на них, а заполняются они
+    # в цикле ниже — meta и data живут одними и теми же объектами, поэтому
+    # save() после каждого месяца видит актуальное состояние.
+    keys = month_keys(FIRST, today)
+    tail = set(keys[-REFRESH_TAIL:])
+    docs_from = set(keys[-DOCS_MONTHS:])
+    data = {}
+    fields_ok, fields_bad = [], []
+
     meta = {
         "built": almaty.now().strftime("%Y-%m-%d %H:%M"),
         "dept": OF.FZ_DEPT,
@@ -370,12 +379,6 @@ def build():
         "fieldsOk": fields_ok, "fieldsBad": fields_bad,
         "trimmed": [], "bytes": 0,
     }
-
-    keys = month_keys(FIRST, today)
-    tail = set(keys[-REFRESH_TAIL:])
-    docs_from = set(keys[-DOCS_MONTHS:])
-    data = {}
-    fields_ok, fields_bad = [], []
 
     # Свежие месяцы первыми: если шаг упрётся в таймаут, успеет собраться
     # именно то, что и смотрят, а не январь позапрошлого года.
@@ -434,6 +437,33 @@ def build():
         elif ym in old:
             data[ym] = old[ym]
 
+
+    # ── Пустые колонки вон ────────────────────────────────────────────────
+    # Полей с комментарием у сборки может быть несколько, и часть из них
+    # заполняют не всегда. Колонка, пустая во всех строках за все месяцы, —
+    # это лишний столбец в таблице аудита и ничего больше.
+    cols_now = meta.get("docCols") or []
+    if cols_now:
+        n = len(cols_now)
+        used = [False] * (n - 1)                  # последняя ячейка — сумма
+        for _ym, accs in data.items():
+            for _an, cuts in accs.items():
+                for row in cuts.get("doc") or []:
+                    for k in range(min(n - 1, len(row) - 1)):
+                        if not used[k] and str(row[k]).strip():
+                            used[k] = True
+        drop = [k for k in range(n - 1) if not used[k]]
+        if drop:
+            keep = [k for k in range(n - 1) if used[k]] + [n - 1]
+            for _ym, accs in data.items():
+                for _an, cuts in accs.items():
+                    if "doc" in cuts:
+                        cuts["doc"] = [[r[k] for k in keep if k < len(r)]
+                                       for r in cuts["doc"]]
+            meta["docCols"] = [cols_now[k] for k in keep]
+            meta["docColsDropped"] = [cols_now[k] for k in drop]
+            print("пустые колонки первички убраны:",
+                  ", ".join(meta["docColsDropped"]))
 
     save(data, meta)
     diag(stage="готово", months=sorted(data.keys()), meta=meta)
