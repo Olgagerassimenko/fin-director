@@ -1,0 +1,5 @@
+{
+ "stage": "упал",
+ "error": "UnboundLocalError: cannot access local variable 'fields_ok' where it is not associated with a value",
+ "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/fin-director/fin-director/gen_opiu_detail.py\", line 449, in <module>\n    build()\n    ~~~~~^^\n  File \"/home/runner/work/fin-director/fin-director/gen_opiu_detail.py\", line 370, in build\n    \"fieldsOk\": fields_ok, \"fieldsBad\": fields_bad,\n                ^^^^^^^^^\nUnboundLocalError: cannot access local variable 'fields_ok' where it is not associated with a value\n"
+}
