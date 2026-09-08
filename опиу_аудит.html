@@ -138,6 +138,8 @@ label.chip.chk input{accent-color:#7c3aed;width:14px;height:14px;cursor:pointer;
 
 td.dt-note{color:#c4b5fd;font-size:10.5px;max-width:320px}
 
+.kpi-warn{margin-top:6px;font-size:10.5px;color:#fbbf24;font-weight:700;line-height:1.4}
+
 .ok{color:#34d399;font-weight:700}
 .empty{padding:34px;text-align:center;color:#64748b;font-size:13px}
 </style>
@@ -234,6 +236,59 @@ M.forEach(function(ym){
 function estAt(i,name){
   var t=ESTIDX[M[i]]; return t? (t[dnorm(name)]||null) : null;
 }
+/* ── ТОЛЬКО ФАКТ ─────────────────────────────────────────────────
+   В незакрытом месяце сборщик подставляет вместо нуля медиану закрытых
+   месяцев. Для аудита это вредно: оценка стоит рядом с фактом и создаёт
+   движения, которых не было — по ЗП АУП так получался «рост на 3.1 млн»,
+   хотя в iiko по счёту ноль. Здесь досчёт снимается со всех строк, итоги
+   и КПЭ пересчитываются от факта, а то, что бухгалтерия не провела,
+   показывается отдельной карточкой. Прибыль от этого выглядит лучше
+   реальной — ровно на сумму непроведённого, и это сказано прямо. */
+var COMPUTED={'Валовая прибыль':1,'Итого Прибыль от основной деятельности':1,'ИТОГО ЧИСТАЯ ПРИБЫЛЬ':1};
+(function factOnly(){
+  var touched=false;
+  M.forEach(function(ym,i){
+    var lst=(META[ym]&&META[ym].estOf)||[];
+    if(!lst.length) return;
+    var by={}; lst.forEach(function(x){ by[dnorm(x.n)]=x; });
+    R.forEach(function(r){
+      if(r.kind!=='line') return;
+      var e=by[dnorm(r.n)];
+      if(e){ r.v[i]=e.was||0; touched=true; }
+    });
+  });
+  if(!touched) return;
+  /* Итоги — сумма своих строк. Открывающий «sub» ищем тем же правилом,
+     что и остальная страница: ближайший выше с тем же отступом. */
+  M.forEach(function(ym,i){
+    for(var t=0;t<R.length;t++){
+      var r=R[t];
+      if(r.kind!=='total'||COMPUTED[r.n]) continue;
+      var h=-1;
+      for(var k=t-1;k>=0;k--) if(R[k].ind===r.ind&&R[k].kind==='sub'){ h=k; break; }
+      if(h<0) continue;
+      var sm=0;
+      for(var k2=h+1;k2<t;k2++) if(R[k2].kind==='line') sm+=R[k2].v[i];
+      r.v[i]=sm;
+    }
+  });
+  /* КПЭ — по тем же формулам, что в исходной сборке: проверено на
+     закрытых месяцах, воспроизводит их до тенге. */
+  var nm={}; R.forEach(function(r){ nm[r.n]=r; });
+  var g=function(n,i){ return nm[n]? nm[n].v[i] : 0; };
+  M.forEach(function(ym,i){
+    K.rev[i]   = g('Итого Выручка',i);
+    K.cogs[i]  = g('Итого Себестоимость',i);
+    K.gross[i] = K.rev[i]-K.cogs[i];
+    K.opex[i]  = g('Итого Расходы',i);
+    K.oper[i]  = K.gross[i]-K.opex[i];
+    K.net[i]   = K.oper[i]+g('Итого Прочие доходы',i)-g('Итого Прочие расходы',i);
+    if(nm['Валовая прибыль']) nm['Валовая прибыль'].v[i]=K.gross[i];
+    if(nm['Итого Прибыль от основной деятельности']) nm['Итого Прибыль от основной деятельности'].v[i]=K.oper[i];
+    if(nm['ИТОГО ЧИСТАЯ ПРИБЫЛЬ']) nm['ИТОГО ЧИСТАЯ ПРИБЫЛЬ'].v[i]=K.net[i];
+  });
+})();
+
 function estChip(i,name){
   return estAt(i,name)? ' <span class="est-chip" title="Значение подставлено расчётом: в iiko по этой статье за месяц проводок ещё нет">оценка</span>' : '';
 }
@@ -854,7 +909,7 @@ BUILD.stat=function(){
          '<td class="n '+(r.vol>3?'neg':r.vol>1.5?'':'mut')+'">'+(r.vol?r.vol.toFixed(1)+'×':'—')+'</td>'+
          '<td class="n mut">'+r.fill+'/'+N+'</td>'+
          '<td class="n'+(estAt(LASTI,r.n)?' est':'')+'">'+f0(r.last)+
-         (estAt(LASTI,r.n)?'<span class="est-star" title="досчёт: в iiko проводок за месяц ещё нет">*</span>':'')+'</td>'+
+         (estAt(LASTI,r.n)?'<span class="est-star" title="месяц не закрыт: по статье проведено меньше обычного">!</span>':'')+'</td>'+
          '<td class="n"><span class="'+(r.dm===0?'mut':good?'pos':'neg')+'">'+
          (r.dm>0?'+':'')+f0(r.dm)+'</span></td></tr>';
     });
@@ -873,7 +928,8 @@ BUILD.cmp=function(){
   el.innerHTML='<div class="card"><div class="card-t">Выберите два месяца</div>'+
     '<div class="card-n">Любая пара, не обязательно соседние. Разница показана в тенге '+
     'и в <b>пунктах доли выручки</b>: вторая отвечает на вопрос, стало ли дороже '+
-    '<i>по сути</i>, или статья просто шла за объёмом продаж.'+
+    '<i>по сути</i>, или статья просто шла за объёмом продаж. '+
+    '<b>Все цифры — факт из iiko</b>, досчёта на странице нет.'+
     (LASTI<N-1 ? ' По умолчанию сравниваются два последних <b>закрытых</b> месяца — '+
       L[PREVI]+' и '+L[LASTI]+': текущий месяц ещё идёт, и сравнение с ним показывало бы '+
       'экономию там, где просто не наступило число.' : '')+'</div>'+
@@ -881,7 +937,6 @@ BUILD.cmp=function(){
     '<span class="lbl">Сравнить с:</span><select id="cb">'+opts+'</select>'+
     '<button class="chip" id="cprev">← предыдущий месяц</button>'+
     '<button class="chip" id="cyoy">↔ тот же месяц год назад</button>'+
-    '<label class="chip chk"><input type="checkbox" id="cfact"> только факт из iiko, без досчёта</label>'+
     '</div>'+
     '<div id="ckpi"></div></div>'+
     '<div id="ctodo"></div>'+
@@ -909,9 +964,9 @@ BUILD.cmp=function(){
       h+='<div class="note" style="border-left:4px solid #fbbf24;margin-top:2px">'+
          '⚠ В сравнении участвует незакрытый месяц ('+
          [i,j].filter(isLate).map(function(x){return L[x];}).join(' и ')+
-         '): данные взяты из iiko, зарплата, налоги и часть административных начислений '+
-         'ещё не проведены. Расходы занижены, прибыль выглядит лучше реальной — '+
-         'выводы по этим колонкам делайте с поправкой.</div>';
+         '). Показан факт из iiko: зарплата, налоги и часть административных начислений '+
+         'ещё не проведены, поэтому расходы занижены, а прибыль выглядит лучше реальной. '+
+         'Что именно не проведено и на сколько — в карточке ниже.</div>';
     }
     h+='</div>';
     /* Сколько прибыли месяца держится на досчёте — это и есть точная
@@ -927,17 +982,20 @@ BUILD.cmp=function(){
     document.getElementById('ckpi').innerHTML=h;
     document.getElementById('ctodo').innerHTML=
       (estGap(j)? todoCard(j) : '')+(estGap(i)? todoCard(i) : '');
+    /* Незакрытый месяц завышает прибыль ровно на сумму непроведённого —
+       говорим это прямо в карточке прибыли, а не только текстом ниже. */
+    var gj=estGap(j);
+    if(gj){
+      var kn=document.querySelectorAll('#ckpi .kpi');
+      if(kn.length) kn[kn.length-1].insertAdjacentHTML('beforeend',
+        '<div class="kpi-warn">завышена на '+f0(gj)+' ₸ — столько ещё не проведено</div>');
+    }
 
     /* «Только факт» убирает досчёт и ставит то, что реально лежит в iiko:
        отклонение становится точным, но по непроведённым статьям оно
        показывает не движение расхода, а то, что бухгалтерия не закрыла. */
-    var FACT=document.getElementById('cfact').checked;
-    function val(k,r){
-      var e=estAt(k,r.n);
-      return (FACT&&e)? (e.was||0) : r.v[k];
-    }
     var arr=LINES.filter(function(r){return r.n!=='Торговая выручка'&&r.n!=='Выручка';}).map(function(r){
-      var a=val(i,r),b=val(j,r);
+      var a=r.v[i],b=r.v[j];
       return {n:r.n,a:a,b:b,d:b-a,inc:r.inc,
               p: a? (b-a)/Math.abs(a) : (b?null:0),
               pp: (rb?b/rb:0)-(ra?a/ra:0)};
@@ -954,16 +1012,15 @@ BUILD.cmp=function(){
       var ea = estAt(i,r.n), eb = estAt(j,r.n);
       /* Причина берётся из проводок iiko: какие контрагенты или позиции
          и создали это движение. Если проводок нет — причины тоже нет. */
-      var wh = (ea||eb) && !FACT ? '' : detWhy(r.n,i,j,r.inc,3);
+      var wh = detWhy(r.n,i,j,r.inc,3);
+      /* Досчёта на странице нет — цифры фактические. Но если статья
+         не проведена, отклонение говорит не о расходе, а о том, что
+         бухгалтерия месяц не закрыла: так и пишем. */
       var why = (ea||eb)
-        ? (FACT
-            ? '<span class="est-note">отклонение точное: в iiko за '+L[j]+' по статье '+
-              (eb&&eb.was? f0(eb.was)+' ₸':'проводок нет')+
-              ', бухгалтерия ещё не закрыла '+fm((eb?eb.est-eb.was:0))+' ₸.</span>'
-            : '<span class="est-note">'+(eb?L[j]:L[i])+': в iiko по статье '+
-              ((eb?eb.was:ea.was) ? f0(eb?eb.was:ea.was)+' ₸' : 'проводок нет')+
-              ', показан досчёт '+fm(eb?eb.est:ea.est)+' ₸ по медиане закрытых месяцев. '+
-              'Точное отклонение посчитать нельзя, пока не проведено — включите «только факт».</span>')
+        ? '<span class="est-note">не проведено: в iiko за '+(eb?L[j]:L[i])+' по статье '+
+          ((eb?eb.was:ea.was) ? f0(eb?eb.was:ea.was)+' ₸' : 'проводок нет')+
+          ', обычно за месяц около '+fm(eb?eb.est:ea.est)+' ₸. Отклонение здесь — не движение '+
+          'расхода, а незакрытый месяц.</span>'
         : (!r.a&&r.b) ? '<span class="'+(r.inc?'pos':'neg')+'">статьи не было — появилась на '+fm(r.b)+' ₸</span>'
         : (r.a&&!r.b) ? '<span class="'+(r.inc?'neg':'mut')+'">была '+fm(r.a)+' ₸ — стала ноль; проверьте, не переехала ли на другой счёт</span>'
         : Math.abs(r.pp)<0.002 ? '<span class="mut">двигалась вместе с выручкой</span>'
@@ -973,10 +1030,7 @@ BUILD.cmp=function(){
                   : '<span class="pos">дешевле на '+fm(-r.pp*rb)+' ₸ относительно выручки</span>');
       t+='<tr class="'+(can?'dt-row':'')+'" data-n="'+esc(r.n)+'" data-i="'+(r.inc?1:0)+'">'+
          '<td>'+(can?'<span class="dt-caret">▸</span>':'')+esc(r.n)+'</td>'+
-         /* В режиме «только факт» звёздочка не нужна: цифра и есть факт,
-            а помечать надо не её, а то, что месяц не закрыт. */
-         '<td class="n'+(ea&&!FACT?' est':'')+'">'+f0(r.a)+(ea&&!FACT?'<span class="est-star">*</span>':'')+'</td>'+
-         '<td class="n'+(eb&&!FACT?' est':'')+'">'+f0(r.b)+(eb&&!FACT?'<span class="est-star">*</span>':'')+'</td>'+
+         '<td class="n">'+f0(r.a)+'</td><td class="n">'+f0(r.b)+'</td>'+
          '<td class="n"><span class="'+(r.d===0?'mut':worse?'neg':'pos')+'">'+(r.d>0?'+':'')+f0(r.d)+'</span></td>'+
          '<td class="n">'+sgn(r.pp*100,function(x){return x.toFixed(2);})+'</td>'+
          '<td style="text-align:left;white-space:normal;min-width:230px">'+why+
@@ -986,7 +1040,6 @@ BUILD.cmp=function(){
     detBind('ctbl',i,j);
   }
   A.onchange=draw; B.onchange=draw;
-  document.getElementById('cfact').onchange=draw;
   document.getElementById('cprev').onclick=function(){
     var j=+B.value; if(j>0){A.value=j-1;draw();} };
   document.getElementById('cyoy').onclick=function(){
