@@ -122,6 +122,13 @@ td.n.est{color:#fbbf24}
   padding:1px 6px;font-size:9.5px;font-weight:800;vertical-align:1px}
 .est-note{color:#fbbf24}
 
+/* Причина изменения прямо в строке: маленькие слагаемые под комментарием. */
+.why-l{margin-top:5px;display:flex;flex-wrap:wrap;gap:4px 10px}
+.why-i{font-size:10.5px;color:#8fa2bd;white-space:nowrap}
+.why-i b{font-variant-numeric:tabular-nums}
+label.chip.chk{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+label.chip.chk input{accent-color:#7c3aed;width:14px;height:14px;cursor:pointer;margin:0}
+
 .ok{color:#34d399;font-weight:700}
 .empty{padding:34px;text-align:center;color:#64748b;font-size:13px}
 </style>
@@ -221,6 +228,48 @@ function estAt(i,name){
 function estChip(i,name){
   return estAt(i,name)? ' <span class="est-chip" title="Значение подставлено расчётом: в iiko по этой статье за месяц проводок ещё нет">оценка</span>' : '';
 }
+/* Сколько расходов месяца ещё не проведено — на столько завышена его прибыль. */
+function estGap(i){
+  var lst=(META[M[i]]&&META[M[i]].estOf)||[];
+  return lst.reduce(function(s,x){ return s+((x.est||0)-(x.was||0)); },0);
+}
+/* ── ЧЕГО ЖДЁМ ОТ БУХГАЛТЕРИИ ────────────────────────────────────
+   Досчёт закрывает дыру в цифрах, но не отвечает на вопрос, который
+   на самом деле нужен: что именно не проведено и на сколько. Здесь
+   этот список: по каждой статье — что реально лежит в iiko сейчас и
+   сколько ожидается по медиане закрытых месяцев. */
+function todoCard(i){
+  var lst=((META[M[i]]&&META[M[i]].estOf)||[]).slice();
+  if(!lst.length) return '';
+  lst.forEach(function(x){ x.gap=(x.est||0)-(x.was||0); });
+  lst.sort(function(a,b){ return b.gap-a.gap; });
+  var tot=lst.reduce(function(s,x){ return s+x.gap; },0);
+  var thru=(META[M[i]]&&META[M[i]].through)||'';
+  var h='<div class="card"><div class="card-t">Чего ждём от бухгалтерии · '+L[i]+'</div>'+
+    '<div class="card-n">Статьи, по которым в iiko на '+
+    (thru? thru.split('-').reverse().join('.') : 'момент выгрузки')+
+    ' проводок нет или меньше обычного. В отчёте вместо них стоит досчёт — '+
+    'медиана закрытых месяцев, — иначе месяц выглядел бы сказочно прибыльным. '+
+    '<b>Прибыль '+L[i]+' завышена примерно на '+fm(tot)+' ₸</b>, пока это не проведено.</div>'+
+    '<div class="tw"><table><thead><tr><th>Статья</th><th>В iiko сейчас</th>'+
+    '<th>Ожидается</th><th>Не проведено</th><th style="text-align:left">Что это</th>'+
+    '</tr></thead><tbody>';
+  lst.forEach(function(x){
+    var part = x.was>0;
+    h+='<tr><td>'+esc(x.n)+'</td>'+
+       '<td class="n '+(part?'':'mut')+'">'+(x.was? f0(x.was) : '—')+'</td>'+
+       '<td class="n est">'+f0(x.est)+'</td>'+
+       '<td class="n"><span class="neg">'+f0(x.gap)+'</span></td>'+
+       '<td style="text-align:left;white-space:normal">'+
+       (part? '<span class="mut">проведено частично — примерно '+pc(x.was/x.est)+' от ожидаемого</span>'
+            : '<span class="neg">не проведено ничего</span>')+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr><td>Итого не проведено</td><td class="n mut">'+
+     f0(lst.reduce(function(s,x){return s+(x.was||0);},0))+'</td>'+
+     '<td class="n">'+f0(lst.reduce(function(s,x){return s+(x.est||0);},0))+'</td>'+
+     '<td class="n">'+f0(tot)+'</td><td></td></tr></tfoot></table></div></div>';
+  return h;
+}
 
 /* ── форматирование ───────────────────────────────────────────── */
 function f0(x){ if(x===null||x===undefined) return '—';
@@ -263,7 +312,13 @@ var LINES=R.filter(function(r){return r.kind==='line';});
    в таблице и увидеть, что внутри изменилось между двумя месяцами. */
 var DET=window.OPIU_DETAIL||null;
 var DETM=(DET&&DET.m)||{};
-var CUTS=(DET&&DET.meta&&DET.meta.cuts)||[
+var CUTS=(function(){
+  var c=(DET&&DET.meta&&DET.meta.cuts)||null;
+  if(!c) return null;
+  /* Документы — первыми: аудит начинается с первички, а не со сводки. */
+  var d=c.filter(function(x){return x.code==='doc';});
+  return d.concat(c.filter(function(x){return x.code!=='doc';}));
+})()||[
   {code:'ctr',title:'по контрагентам'},{code:'prod',title:'по номенклатуре'},
   {code:'type',title:'по типу документа'},{code:'dep',title:'по складам'}];
 var DETIDX={};                       // месяц → нормализованное имя → расшифровка
@@ -280,6 +335,7 @@ function detHas(name){
 /* Две колонки одного разреза сводим в одну таблицу: позиция, было, стало.
    Сортировка по модулю разницы — сверху то, что и создало движение. */
 function detRows(name,ia,ib,code){
+  if(code==='doc') return null;                 // у документов своя форма строки
   var A=detOf(M[ia],name), B=detOf(M[ib],name);
   var la=(A&&A[code])||[], lb=(B&&B[code])||[];
   if(!la.length&&!lb.length) return null;
@@ -292,6 +348,19 @@ function detRows(name,ia,ib,code){
   out.sort(function(x,y){return Math.abs(y.d)-Math.abs(x.d);});
   return out;
 }
+/* Главные слагаемые изменения — чтобы причина была видна без раскрытия.
+   Берём разрез по контрагентам, если он есть, иначе по номенклатуре. */
+function detWhy(name,ia,ib,inc,lim){
+  var rows=detRows(name,ia,ib,'ctr')||detRows(name,ia,ib,'prod');
+  if(!rows||!rows.length) return '';
+  var top=rows.filter(function(r){ return Math.abs(r.d)>=1000; }).slice(0,lim||3);
+  if(!top.length) return '';
+  return top.map(function(r){
+    var worse = inc ? r.d<0 : r.d>0;
+    return '<span class="why-i"><b class="'+(worse?'neg':'pos')+'">'+(r.d>0?'+':'')+fm(r.d)+
+      '</b> '+esc(r.n.length>44? r.n.slice(0,44)+'…' : r.n)+'</span>';
+  }).join('');
+}
 function detPanel(name,ia,ib,inc){
   if(!DET) return '<div class="note">Расшифровка ещё не собрана: opiu_detail.js не загрузился.</div>';
   var warn='';
@@ -303,7 +372,9 @@ function detPanel(name,ia,ib,inc){
       'поэтому она со строкой отчёта не сойдётся и разбирать в ней нечего, '+
       'пока начисление не проведено.</div>';
   });
-  var avail=CUTS.filter(function(c){ return detRows(name,ia,ib,c.code); });
+  var avail=CUTS.filter(function(c){
+    return c.code==='doc' ? !!detDocs(name,ia,ib,inc) : !!detRows(name,ia,ib,c.code);
+  });
   if(!avail.length){
     return warn+'<div class="note">По этой строке в айко проводок нет. Так бывает у расчётных '+
       'строк (валовая прибыль, итоги) и у статей, которые ведёт только бухгалтерия.</div>';
@@ -313,7 +384,39 @@ function detPanel(name,ia,ib,inc){
   }).join('')+'</div><div class="dt-body"></div>';
   return h;
 }
+/* ── ДОКУМЕНТЫ ──────────────────────────────────────────────────
+   Аудит нужен, чтобы найти неверно разнесённый документ, а суммы по
+   контрагентам его не показывают. Здесь сами проводки обоих месяцев
+   в одном списке, крупные сверху: видно и разовый всплеск, и расход,
+   попавший не в свой месяц, и чужой счёт. */
+function detDocs(name,ia,ib,inc){
+  var A=detOf(M[ia],name), B=detOf(M[ib],name);
+  var la=(A&&A.doc)||[], lb=(B&&B.doc)||[];
+  if(!la.length&&!lb.length) return null;
+  var all=la.map(function(x){return {m:ia,d:x[0],doc:x[1],c:x[2],v:x[3]};})
+    .concat(lb.map(function(x){return {m:ib,d:x[0],doc:x[1],c:x[2],v:x[3]};}));
+  all.sort(function(x,y){return Math.abs(y.v)-Math.abs(x.v);});
+  var t='<table class="dt"><thead><tr><th style="text-align:left">Дата</th>'+
+    '<th style="text-align:left">Документ</th><th style="text-align:left">Контрагент</th>'+
+    '<th>Месяц</th><th>Сумма, ₸</th></tr></thead><tbody>';
+  all.forEach(function(r){
+    t+='<tr><td style="text-align:left">'+esc(r.d.split('-').reverse().join('.'))+'</td>'+
+       '<td style="text-align:left;white-space:normal">'+esc(r.doc)+'</td>'+
+       '<td style="text-align:left;white-space:normal">'+esc(r.c)+'</td>'+
+       '<td class="n mut">'+L[r.m]+'</td>'+
+       '<td class="n"><span class="'+(r.v<0?'pos':'')+'">'+f0(r.v)+'</span></td></tr>';
+  });
+  var sa=la.reduce(function(s,x){return s+x[3];},0), sb=lb.reduce(function(s,x){return s+x[3];},0);
+  t+='</tbody><tfoot><tr><td colspan="3" style="text-align:left">Показаны крупнейшие проводки: '+
+     L[ia]+' — '+f0(sa)+' ₸, '+L[ib]+' — '+f0(sb)+' ₸</td>'+
+     '<td class="n"></td><td class="n">'+(sb-sa>0?'+':'')+f0(sb-sa)+'</td></tr></tfoot></table>';
+  return t;
+}
 function detTable(name,ia,ib,inc,code){
+  if(code==='doc'){
+    var d=detDocs(name,ia,ib,inc);
+    return d||'<div class="note">Проводок по этой статье за выбранные месяцы нет.</div>';
+  }
   var rows=detRows(name,ia,ib,code);
   if(!rows) return '<div class="note">В этом разрезе данных нет.</div>';
   var sa=rows.reduce(function(s,r){return s+r.a;},0);
@@ -729,8 +832,11 @@ BUILD.cmp=function(){
     '<div class="ctl"><span class="lbl">База:</span><select id="ca">'+opts+'</select>'+
     '<span class="lbl">Сравнить с:</span><select id="cb">'+opts+'</select>'+
     '<button class="chip" id="cprev">← предыдущий месяц</button>'+
-    '<button class="chip" id="cyoy">↔ тот же месяц год назад</button></div>'+
+    '<button class="chip" id="cyoy">↔ тот же месяц год назад</button>'+
+    '<label class="chip chk"><input type="checkbox" id="cfact"> только факт из iiko, без досчёта</label>'+
+    '</div>'+
     '<div id="ckpi"></div></div>'+
+    '<div id="ctodo"></div>'+
     '<div class="card"><div class="card-t">Постатейно: кто дал разницу</div>'+
     '<div class="card-n">Отсортировано по влиянию на прибыль. Красное — стало хуже, зелёное — лучше. '+
     '<b>Кликните по статье</b> — раскроется, за счёт кого именно получилась разница: контрагенты, номенклатура, типы документов.</div>'+
@@ -760,10 +866,30 @@ BUILD.cmp=function(){
          'выводы по этим колонкам делайте с поправкой.</div>';
     }
     h+='</div>';
+    /* Сколько прибыли месяца держится на досчёте — это и есть точная
+       величина того, что бухгалтерия ещё не закрыла. */
+    var gi=estGap(i), gj=estGap(j);
+    if(gi||gj){
+      h+='<div class="note" style="border-left:4px solid #fbbf24">'+
+        [ [i,gi],[j,gj] ].filter(function(x){return x[1];}).map(function(x){
+          return '<b>'+L[x[0]]+'</b>: не проведено расходов на <b>'+f0(x[1])+' ₸</b> — '+
+                 'на столько завышена прибыль месяца';
+        }).join('. ')+'. Список — ниже.</div>';
+    }
     document.getElementById('ckpi').innerHTML=h;
+    document.getElementById('ctodo').innerHTML=
+      (estGap(j)? todoCard(j) : '')+(estGap(i)? todoCard(i) : '');
 
+    /* «Только факт» убирает досчёт и ставит то, что реально лежит в iiko:
+       отклонение становится точным, но по непроведённым статьям оно
+       показывает не движение расхода, а то, что бухгалтерия не закрыла. */
+    var FACT=document.getElementById('cfact').checked;
+    function val(k,r){
+      var e=estAt(k,r.n);
+      return (FACT&&e)? (e.was||0) : r.v[k];
+    }
     var arr=LINES.filter(function(r){return r.n!=='Торговая выручка'&&r.n!=='Выручка';}).map(function(r){
-      var a=r.v[i],b=r.v[j];
+      var a=val(i,r),b=val(j,r);
       return {n:r.n,a:a,b:b,d:b-a,inc:r.inc,
               p: a? (b-a)/Math.abs(a) : (b?null:0),
               pp: (rb?b/rb:0)-(ra?a/ra:0)};
@@ -778,11 +904,18 @@ BUILD.cmp=function(){
       var worse = r.inc ? r.d<0 : r.d>0;
       var can = detHas(r.n);
       var ea = estAt(i,r.n), eb = estAt(j,r.n);
+      /* Причина берётся из проводок iiko: какие контрагенты или позиции
+         и создали это движение. Если проводок нет — причины тоже нет. */
+      var wh = (ea||eb) && !FACT ? '' : detWhy(r.n,i,j,r.inc,3);
       var why = (ea||eb)
-        ? '<span class="est-note">'+(eb?L[j]:L[i])+': в iiko по статье '+
-          ((eb?eb.was:ea.was) ? f0(eb?eb.was:ea.was)+' ₸' : 'проводок нет')+
-          ', показан досчёт '+fm(eb?eb.est:ea.est)+' ₸ по медиане закрытых месяцев. '+
-          'Разница здесь — не движение расхода, а разрыв между фактом и оценкой.</span>'
+        ? (FACT
+            ? '<span class="est-note">отклонение точное: в iiko за '+L[j]+' по статье '+
+              (eb&&eb.was? f0(eb.was)+' ₸':'проводок нет')+
+              ', бухгалтерия ещё не закрыла '+fm((eb?eb.est-eb.was:0))+' ₸.</span>'
+            : '<span class="est-note">'+(eb?L[j]:L[i])+': в iiko по статье '+
+              ((eb?eb.was:ea.was) ? f0(eb?eb.was:ea.was)+' ₸' : 'проводок нет')+
+              ', показан досчёт '+fm(eb?eb.est:ea.est)+' ₸ по медиане закрытых месяцев. '+
+              'Точное отклонение посчитать нельзя, пока не проведено — включите «только факт».</span>')
         : (!r.a&&r.b) ? '<span class="'+(r.inc?'pos':'neg')+'">статьи не было — появилась на '+fm(r.b)+' ₸</span>'
         : (r.a&&!r.b) ? '<span class="'+(r.inc?'neg':'mut')+'">была '+fm(r.a)+' ₸ — стала ноль; проверьте, не переехала ли на другой счёт</span>'
         : Math.abs(r.pp)<0.002 ? '<span class="mut">двигалась вместе с выручкой</span>'
@@ -792,16 +925,20 @@ BUILD.cmp=function(){
                   : '<span class="pos">дешевле на '+fm(-r.pp*rb)+' ₸ относительно выручки</span>');
       t+='<tr class="'+(can?'dt-row':'')+'" data-n="'+esc(r.n)+'" data-i="'+(r.inc?1:0)+'">'+
          '<td>'+(can?'<span class="dt-caret">▸</span>':'')+esc(r.n)+'</td>'+
-         '<td class="n'+(ea?' est':'')+'">'+f0(r.a)+(ea?'<span class="est-star">*</span>':'')+'</td>'+
-         '<td class="n'+(eb?' est':'')+'">'+f0(r.b)+(eb?'<span class="est-star">*</span>':'')+'</td>'+
+         /* В режиме «только факт» звёздочка не нужна: цифра и есть факт,
+            а помечать надо не её, а то, что месяц не закрыт. */
+         '<td class="n'+(ea&&!FACT?' est':'')+'">'+f0(r.a)+(ea&&!FACT?'<span class="est-star">*</span>':'')+'</td>'+
+         '<td class="n'+(eb&&!FACT?' est':'')+'">'+f0(r.b)+(eb&&!FACT?'<span class="est-star">*</span>':'')+'</td>'+
          '<td class="n"><span class="'+(r.d===0?'mut':worse?'neg':'pos')+'">'+(r.d>0?'+':'')+f0(r.d)+'</span></td>'+
          '<td class="n">'+sgn(r.pp*100,function(x){return x.toFixed(2);})+'</td>'+
-         '<td style="text-align:left;white-space:normal;min-width:230px">'+why+'</td></tr>';
+         '<td style="text-align:left;white-space:normal;min-width:230px">'+why+
+         (wh? '<div class="why-l">'+wh+'</div>' : '')+'</td></tr>';
     });
     document.getElementById('ctbl').innerHTML=t+'</tbody></table>';
     detBind('ctbl',i,j);
   }
   A.onchange=draw; B.onchange=draw;
+  document.getElementById('cfact').onchange=draw;
   document.getElementById('cprev').onclick=function(){
     var j=+B.value; if(j>0){A.value=j-1;draw();} };
   document.getElementById('cyoy').onclick=function(){

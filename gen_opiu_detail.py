@@ -58,6 +58,87 @@ CUTS = [
     ("dep",  ["Account.Name", "Store.Name"],                       "по складам"),
 ]
 
+# ── Документы ────────────────────────────────────────────────────────────
+# Аудит нужен, чтобы найти неверно разнесённый документ, а сумма по
+# контрагенту его не показывает. Поэтому отдельным разрезом тянем сами
+# проводки: дата, документ, контрагент, сумма — по ним видно и разовый
+# всплеск, и расход, попавший не в свой месяц, и чужой счёт.
+#
+# Имена полей в OLAP у разных сборок iiko отличаются, а угадывать вслепую
+# нельзя: неверное поле роняет весь запрос. Поэтому спрашиваем у сервера
+# список доступных колонок и берём первое подходящее из кандидатов.
+DOC_CANDS = ["DocumentNumber", "Document.Number", "Document", "TransactionDoc",
+             "DocumentType", "OperationType"]
+DATE_CANDS = ["DateTime.DateTyped", "DateTime.Typed", "DateTime"]
+DOCS_MONTHS = 6      # за сколько последних месяцев храним документы
+DOCS_TOP = 30        # сколько документов на статью
+
+
+def olap_columns():
+    """Какие поля OLAP отдаёт эта сборка iiko. Пустой словарь — не беда:
+    тогда документы просто не тянем, остальные разрезы работают."""
+    try:
+        r = OF.s.get(OF.URL + "/resto/api/v2/reports/olap/columns",
+                     params={"reportType": "TRANSACTIONS"},
+                     headers={"Cookie": "key=" + OF.TOK},
+                     verify=False, timeout=120)
+        if r.status_code != 200:
+            print("[!] список колонок OLAP: HTTP", r.status_code)
+            return {}
+        js = r.json()
+        return js if isinstance(js, dict) else {}
+    except Exception as e:
+        print("[!] список колонок OLAP не получен:", e)
+        return {}
+
+
+def pick(cands, cols):
+    for c in cands:
+        if c in cols:
+            return c
+    return None
+
+
+def docs(y, m, last_full, date_f, doc_f):
+    """Проводки месяца: дата, документ, контрагент, сумма — по счетам."""
+    d1 = date(y, m, 1)
+    d2 = min(date(y, m, calendar.monthrange(y, m)[1]), last_full)
+    if d2 < d1:
+        return None
+    fields = ["Account.Name", date_f, doc_f, "Counteragent.Name"]
+    body = {
+        "reportType": "TRANSACTIONS", "buildSummary": "true",
+        "groupByRowFields": fields,
+        "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
+        "filters": {
+            "DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                                   "from": d1.isoformat(),
+                                   "to": (d2 + timedelta(days=1)).isoformat(),
+                                   "includeLow": True, "includeHigh": True},
+            "Department": {"filterType": "IncludeValues", "values": [OF.FZ_DEPT]},
+        },
+    }
+    data = OF.olap(body)
+    if data is None:
+        return None
+    acc = {}
+    for row in data:
+        an = (row.get("Account.Name") or "—").strip()
+        if an in SKIP_ACCOUNTS:
+            continue
+        v = (row.get("Sum.Incoming") or 0) - (row.get("Sum.Outgoing") or 0)
+        if abs(v) < 0.5:
+            continue
+        dt = str(row.get(date_f) or "")[:10]
+        dc = str(row.get(doc_f) or "—").strip() or "—"
+        ct = str(row.get("Counteragent.Name") or "—").strip() or "—"
+        acc.setdefault(an, []).append([dt, dc, ct, round(v)])
+    out = {}
+    for an, rows in acc.items():
+        rows.sort(key=lambda x: -abs(x[3]))
+        out[an] = rows[:DOCS_TOP]
+    return out
+
 
 def month_keys(first, today):
     y, m = int(first[:4]), int(first[5:7])
@@ -138,15 +219,35 @@ def build():
         except Exception as e:
             print("[!] старый opiu_detail.js не прочитан:", e)
 
+    cols = olap_columns()
+    date_f = pick(DATE_CANDS, cols) if cols else None
+    doc_f = pick(DOC_CANDS, cols) if cols else None
+    print("поля OLAP: всего %d, дата=%s, документ=%s"
+          % (len(cols), date_f, doc_f))
+
     keys = month_keys(FIRST, today)
     tail = set(keys[-REFRESH_TAIL:])
+    docs_from = set(keys[-DOCS_MONTHS:])
     data = {}
     fields_ok, fields_bad = [], []
 
     for ym in keys:
         y, m = int(ym[:4]), int(ym[5:7])
-        if ym in old and ym not in tail:
+        cached = ym in old and ym not in tail
+        if cached:
+            # Месяц закрыт и уже посчитан — разрезы не перетягиваем. Но если
+            # документов в нём ещё нет (разрез появился позже кэша), доберём
+            # только их: иначе первичка за прошлые месяцы никогда не подтянется.
             data[ym] = old[ym]
+            need_docs = (date_f and doc_f and ym in docs_from
+                         and not any("doc" in v for v in old[ym].values()))
+            if not need_docs:
+                continue
+            dd = docs(y, m, last_full, date_f, doc_f)
+            if dd:
+                for an, rows in dd.items():
+                    data[ym].setdefault(an, {})["doc"] = rows
+                print("%s: добраны документы по %d счетам" % (ym, len(dd)))
             continue
         month = {}
         for code, fields, _title in CUTS:
@@ -161,6 +262,11 @@ def build():
             folded = fold(raw, fields[-1])
             for an, rows in folded.items():
                 month.setdefault(an, {})[code] = rows
+        if date_f and doc_f and ym in docs_from:
+            dd = docs(y, m, last_full, date_f, doc_f)
+            if dd:
+                for an, rows in dd.items():
+                    month.setdefault(an, {})["doc"] = rows
         if month:
             data[ym] = month
             print("%s: счетов %d" % (ym, len(month)))
@@ -171,7 +277,11 @@ def build():
         "built": almaty.now().strftime("%Y-%m-%d %H:%M"),
         "dept": OF.FZ_DEPT,
         "top": TOP,
-        "cuts": [{"code": c, "title": t} for c, _f, t in CUTS],
+        "cuts": [{"code": c, "title": t} for c, _f, t in CUTS]
+                + ([{"code": "doc", "title": "документы"}] if (date_f and doc_f) else []),
+        "docsTop": DOCS_TOP, "docsMonths": DOCS_MONTHS,
+        "dateField": date_f, "docField": doc_f,
+        "columns": sorted(cols.keys()) if cols else [],
         "fieldsOk": fields_ok, "fieldsBad": fields_bad,
     }
     payload = {"meta": meta, "m": data}
