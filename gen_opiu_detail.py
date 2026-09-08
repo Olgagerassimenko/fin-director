@@ -39,7 +39,11 @@ import opiu_full as OF
 
 OUT = os.path.join(HERE, "opiu_detail.js")
 DIAG = os.path.join(HERE, "opiu_detail_fields.json")
-FIRST = "2025-01"        # с какого месяца ведём историю
+# С какого месяца ведём историю. Глубокая расшифровка нужна для свежих
+# месяцев — сравнивают почти всегда соседние, — а первый прогон на два
+# десятка месяцев не укладывается в окно шага и не сохраняет ничего.
+# Файл накопительный: за 2025 год он наберётся, если понадобится.
+FIRST = "2026-01"
 REFRESH_TAIL = 3         # сколько последних месяцев перетягиваем каждый раз
 TOP = 150                # сколько строк храним внутри статьи, остальное — «прочее»
 MIN_KEEP = 500           # мелочь меньше этой суммы в хвост не выносим отдельной строкой
@@ -153,6 +157,55 @@ def docs(y, m, last_full, date_f, doc_f, with_product=True):
         rows.sort(key=lambda x: -abs(x[4]))
         out[an] = rows[:DOCS_TOP]
     return out
+
+
+def trim_to_budget(payload, data, meta):
+    """Режем хвосты, пока файл не влезет в потолок.
+
+    Порядок не случайный: первым уходит самый тяжёлый и наименее нужный
+    разрез, последней — первичка, ради которой всё и делалось."""
+    def size(p):
+        return len(json.dumps(p, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+    trims = []
+    steps = [("cxp", None), ("doc", 120), ("doc", 60),
+             ("prod", 60), ("ctr", 60), ("doc", 25)]
+    si = 0
+    while size(payload) > BUDGET and si < len(steps):
+        code, keep = steps[si]; si += 1
+        n = 0
+        for _ym, accs in data.items():
+            for _an, cuts in accs.items():
+                if code not in cuts:
+                    continue
+                if keep is None:
+                    del cuts[code]; n += 1
+                elif len(cuts[code]) > keep:
+                    cuts[code] = cuts[code][:keep]; n += 1
+        if n:
+            trims.append("%s → %s (%d счетов)"
+                         % (code, "убран" if keep is None else "%d строк" % keep, n))
+    # save() зовётся после каждого месяца, а ужатие необратимо: список
+    # срезанного накапливаем, иначе следующий проход его затрёт пустым.
+    if trims:
+        was = meta.get("trimmed") or []
+        meta["trimmed"] = was + [t for t in trims if t not in was]
+    meta["bytes"] = size(payload)
+    return payload
+
+
+def save(data, meta):
+    """Пишем файл целиком. Вызывается после каждого месяца: шаг может
+    упереться в таймаут, и тогда лучше иметь расшифровку за часть месяцев,
+    чем не иметь ничего. Пишем через временный файл — оборванная запись
+    не оставит на месте битый js."""
+    payload = trim_to_budget({"meta": meta, "m": data}, data, meta)
+    tmp = OUT + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write("window.OPIU_DETAIL=")
+        json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
+        f.write(";\n")
+    os.replace(tmp, OUT)
+    return payload
 
 
 def month_keys(first, today):
@@ -269,13 +322,29 @@ def build():
     print("поля OLAP: всего %d, дата=%s, документ=%s"
           % (len(cols), date_f, doc_f))
 
+    meta = {
+        "built": almaty.now().strftime("%Y-%m-%d %H:%M"),
+        "dept": OF.FZ_DEPT,
+        "top": TOP,
+        "cuts": ([{"code": "doc", "title": "первичка"}] if (date_f and doc_f) else [])
+                + [{"code": c, "title": t} for c, _f, t in CUTS]
+                + [{"code": CROSS[0], "title": CROSS[2]}],
+        "docsTop": DOCS_TOP, "docsMonths": DOCS_MONTHS,
+        "dateField": date_f, "docField": doc_f,
+        "columns": sorted(cols.keys()) if cols else [],
+        "fieldsOk": fields_ok, "fieldsBad": fields_bad,
+        "trimmed": [], "bytes": 0,
+    }
+
     keys = month_keys(FIRST, today)
     tail = set(keys[-REFRESH_TAIL:])
     docs_from = set(keys[-DOCS_MONTHS:])
     data = {}
     fields_ok, fields_bad = [], []
 
-    for ym in keys:
+    # Свежие месяцы первыми: если шаг упрётся в таймаут, успеет собраться
+    # именно то, что и смотрят, а не январь позапрошлого года.
+    for ym in sorted(keys, reverse=True):
         y, m = int(ym[:4]), int(ym[5:7])
         cached = ym in old and ym not in tail
         if cached:
@@ -294,6 +363,7 @@ def build():
                 for an, rows in dd.items():
                     data[ym].setdefault(an, {})["doc"] = rows
                 print("%s: добрана первичка по %d счетам" % (ym, len(dd)))
+                save(data, meta)
             continue
         month = {}
         for code, fields, _title in CUTS:
@@ -323,57 +393,14 @@ def build():
                     month.setdefault(an, {})["doc"] = rows
         if month:
             data[ym] = month
-            print("%s: счетов %d" % (ym, len(month)))
+            save(data, meta)
+            print("%s: счетов %d, файл %.0f КБ"
+                  % (ym, len(month), os.path.getsize(OUT) / 1024))
         elif ym in old:
             data[ym] = old[ym]
 
-    meta = {
-        "built": almaty.now().strftime("%Y-%m-%d %H:%M"),
-        "dept": OF.FZ_DEPT,
-        "top": TOP,
-        "cuts": ([{"code": "doc", "title": "первичка"}] if (date_f and doc_f) else [])
-                + [{"code": c, "title": t} for c, _f, t in CUTS]
-                + [{"code": CROSS[0], "title": CROSS[2]}],
-        "docsTop": DOCS_TOP, "docsMonths": DOCS_MONTHS,
-        "dateField": date_f, "docField": doc_f,
-        "columns": sorted(cols.keys()) if cols else [],
-        "fieldsOk": fields_ok, "fieldsBad": fields_bad,
-    }
-    payload = {"meta": meta, "m": data}
 
-    # ── Ужатие под потолок ───────────────────────────────────────────────
-    # Глубина задана щедро, и на тяжёлых счетах файл может не влезть в
-    # браузер. Режем по шагам, начиная с самого дорогого и наименее
-    # нужного: сперва перекрёстный разрез, потом хвосты первички,
-    # потом обычные разрезы. Что урезали — пишем в meta, чтобы на
-    # странице было видно, что данные неполные.
-    def size(p):
-        return len(json.dumps(p, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
-
-    trims = []
-    steps = [("cxp", None), ("doc", 120), ("doc", 60),
-             ("cxp", 0), ("prod", 60), ("ctr", 60), ("doc", 25)]
-    si = 0
-    while size(payload) > BUDGET and si < len(steps):
-        code, keep = steps[si]; si += 1
-        n = 0
-        for ym, accs in data.items():
-            for an, cuts in accs.items():
-                if code not in cuts:
-                    continue
-                if keep is None or keep == 0:
-                    del cuts[code]; n += 1
-                elif len(cuts[code]) > keep:
-                    cuts[code] = cuts[code][:keep]; n += 1
-        if n:
-            trims.append("%s→%s (%d счетов)" % (code, "убран" if not keep else keep, n))
-    meta["trimmed"] = trims
-    meta["bytes"] = size(payload)
-
-    with open(OUT, "w", encoding="utf-8") as f:
-        f.write("window.OPIU_DETAIL=")
-        json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
-        f.write(";\n")
+    save(data, meta)
     json.dump(meta, open(DIAG, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print("opiu_detail.js: месяцев %d, размер %.0f КБ"
           % (len(data), os.path.getsize(OUT) / 1024))
