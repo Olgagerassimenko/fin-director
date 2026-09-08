@@ -7,6 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="opiu_audit.js?v=1" onerror="window.OPIU_AUDIT=null"></script>
 <script src="opiu_rev.js" onerror="window.OPIU_REV=null"></script>
+<!-- Расшифровка статей изнутри: контрагенты, номенклатура, типы документов -->
+<script src="opiu_detail.js" onerror="window.OPIU_DETAIL=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh;font-size:13px}
@@ -87,6 +89,39 @@ select:focus,input:focus{outline:none;border-color:#7c3aed}
 
 .note{background:#182342;border:1px solid #2b3757;border-radius:10px;padding:11px 14px;font-size:11.5px;
   color:#9db0c9;line-height:1.6;margin-bottom:13px}
+/* ── РАСКРЫТИЕ СТАТЬИ ─────────────────────────────────────────────
+   Строка отчёта разворачивается на месте и показывает, из чего она
+   состоит. Вложенная таблица намеренно другого тона и без липких
+   колонок: так видно, что это не продолжение отчёта, а его изнанка. */
+tr.dt-row{cursor:pointer}
+tr.dt-row:hover td:first-child{color:#fff}
+.dt-caret{display:inline-block;width:12px;color:#a78bfa;font-size:9px;transition:.15s}
+tr.dt-row.op .dt-caret{transform:rotate(90deg)}
+tr.dt-row.op td{background:#243254}
+tr.dt-row.op td:first-child{background:#243254}
+tr.dt-open>td{background:#141d36!important;padding:0;position:static;white-space:normal}
+.dt-wrap{padding:12px 14px 14px;border-left:3px solid #a78bfa}
+.dt-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.dt-tab{background:#1b2540;border:1px solid #2b3757;color:#9db0c9;border-radius:999px;
+  padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.dt-tab:hover{color:#e2e8f0;border-color:#3d4c73}
+.dt-tab.on{background:linear-gradient(135deg,#7c3aed,#5b21b6);border-color:transparent;color:#fff}
+.dt-body{overflow-x:auto}
+table.dt{font-size:11px;background:#111a30;border-radius:8px}
+table.dt th{background:#18233f;position:static;font-size:10px;min-width:0}
+table.dt th:first-child{position:static;min-width:220px}
+table.dt td{padding:4px 8px;border-bottom:1px solid #1c2743}
+table.dt td:first-child{position:static;background:transparent;min-width:220px}
+table.dt tr:hover td{background:#1a2440}
+table.dt tfoot td{font-weight:800;color:#e2e8f0;background:#18233f;border-top:1px solid #2b3757}
+
+/* Оценка вместо факта: цифра остаётся на месте, но перестаёт врать видом. */
+td.n.est{color:#fbbf24}
+.est-star{color:#fbbf24;font-weight:800;margin-left:2px}
+.est-chip{display:inline-block;background:rgba(251,191,36,.15);color:#fbbf24;border-radius:5px;
+  padding:1px 6px;font-size:9.5px;font-weight:800;vertical-align:1px}
+.est-note{color:#fbbf24}
+
 .ok{color:#34d399;font-weight:700}
 .empty{padding:34px;text-align:center;color:#64748b;font-size:13px}
 </style>
@@ -139,6 +174,54 @@ function isLate(i){ return META[M[i]] ? !META[M[i]].closed : false; }
 function isPart(i){ var m=mm(i); return m.full===false; }
 var LATEN=0; for(var _i=0;_i<N;_i++) if(isLate(_i)) LATEN++;
 
+/* ── какой месяц показывать «последним» ──────────────────────────
+   Текущий месяц идёт неполным до самого его конца, а прошлый бухгалтерия
+   закрывает к началу следующего. Если по умолчанию ставить две последние
+   колонки, то с первого числа и до конца месяца отчёт сравнивает полный
+   месяц с огрызком: в сентябре это давало −113 млн «экономии» по
+   себестоимости, которой нет. Поэтому за последний берём последний
+   ЗАКРЫТЫЙ месяц: с 8-го числа это прошлый, до 8-го — позапрошлый.
+   Ручной выбор месяцев остаётся: это только начальное положение. */
+var CLOSE_DAY=8;
+var LASTI=(function(){
+  var t=new Date();
+  var back=(t.getDate()>=CLOSE_DAY)?1:2;         // сколько месяцев отступить от текущего
+  var y=t.getFullYear(), m=t.getMonth()+1-back;
+  while(m<1){ m+=12; y--; }
+  var key=y+'-'+(m<10?'0':'')+m;
+  var k=M.indexOf(key);
+  if(k>=0) return k;
+  /* месяца нет в отчёте — берём последний закрытый из тех, что есть */
+  for(var i=N-1;i>=0;i--) if(!isLate(i)) return i;
+  return N-1;
+})();
+var PREVI=Math.max(0,LASTI-1);
+
+/* ── где цифра не факт, а оценка ─────────────────────────────────
+   В незакрытом месяце зарплата, налоги и аренда ещё не проведены, и
+   сборщик подставляет вместо нуля медиану закрытых месяцев. Раньше это
+   было написано только в шапке страницы — а в таблице оценка стояла
+   рядом с фактом и читалась как факт. На ЗП АУП это давало «рост на
+   3.1 млн ₸», которого нет: в айко по счёту ноль, а 22.6 млн — досчёт.
+   Теперь такая цифра помечена прямо в строке. */
+/* Названия счетов в айко и строк в бухгалтерском ОПиУ совпадают по сути,
+   но не всегда по нумерации и пробелам — сводим к общему виду. */
+function dnorm(n){
+  return String(n||'').replace(/^[\d.\s]+/,'').trim().toLowerCase().replace(/\s+/g,' ');
+}
+var ESTIDX={};
+M.forEach(function(ym){
+  var lst=(META[ym]&&META[ym].estOf)||[], t={};
+  lst.forEach(function(x){ t[dnorm(x.n)]={was:x.was,est:x.est}; });
+  ESTIDX[ym]=t;
+});
+function estAt(i,name){
+  var t=ESTIDX[M[i]]; return t? (t[dnorm(name)]||null) : null;
+}
+function estChip(i,name){
+  return estAt(i,name)? ' <span class="est-chip" title="Значение подставлено расчётом: в iiko по этой статье за месяц проводок ещё нет">оценка</span>' : '';
+}
+
 /* ── форматирование ───────────────────────────────────────────── */
 function f0(x){ if(x===null||x===undefined) return '—';
   return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
@@ -171,6 +254,131 @@ function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp
 })();
 
 var LINES=R.filter(function(r){return r.kind==='line';});
+
+/* ══ РАСШИФРОВКА СТАТЬИ ══════════════════════════════════════════
+   Отчёт отвечает «какая статья дала разницу». Следующий вопрос всегда
+   один и тот же — «за счёт кого именно», и раньше на него шли руками в
+   айко. Здесь тот же оборот по счёту разложен на контрагентов,
+   номенклатуру, типы документов и склады: строку можно раскрыть прямо
+   в таблице и увидеть, что внутри изменилось между двумя месяцами. */
+var DET=window.OPIU_DETAIL||null;
+var DETM=(DET&&DET.m)||{};
+var CUTS=(DET&&DET.meta&&DET.meta.cuts)||[
+  {code:'ctr',title:'по контрагентам'},{code:'prod',title:'по номенклатуре'},
+  {code:'type',title:'по типу документа'},{code:'dep',title:'по складам'}];
+var DETIDX={};                       // месяц → нормализованное имя → расшифровка
+Object.keys(DETM).forEach(function(ym){
+  var t={}; Object.keys(DETM[ym]).forEach(function(an){ t[dnorm(an)]=DETM[ym][an]; });
+  DETIDX[ym]=t;
+});
+function detOf(ym,name){
+  var t=DETIDX[ym]; return t? (t[dnorm(name)]||null) : null;
+}
+function detHas(name){
+  return M.some(function(ym){ return !!detOf(ym,name); });
+}
+/* Две колонки одного разреза сводим в одну таблицу: позиция, было, стало.
+   Сортировка по модулю разницы — сверху то, что и создало движение. */
+function detRows(name,ia,ib,code){
+  var A=detOf(M[ia],name), B=detOf(M[ib],name);
+  var la=(A&&A[code])||[], lb=(B&&B[code])||[];
+  if(!la.length&&!lb.length) return null;
+  var map={};
+  la.forEach(function(x){ (map[x[0]]=map[x[0]]||[0,0])[0]=x[1]; });
+  lb.forEach(function(x){ (map[x[0]]=map[x[0]]||[0,0])[1]=x[1]; });
+  var out=Object.keys(map).map(function(k){
+    return {n:k,a:map[k][0],b:map[k][1],d:map[k][1]-map[k][0]};
+  });
+  out.sort(function(x,y){return Math.abs(y.d)-Math.abs(x.d);});
+  return out;
+}
+function detPanel(name,ia,ib,inc){
+  if(!DET) return '<div class="note">Расшифровка ещё не собрана: opiu_detail.js не загрузился.</div>';
+  var warn='';
+  [[ia,'a'],[ib,'b']].forEach(function(x){
+    var e=estAt(x[0],name);
+    if(e) warn+='<div class="note" style="border-left:4px solid #fbbf24">⚠ '+L[x[0]]+
+      ': строка отчёта показывает досчёт '+fm(e.est)+' ₸, а в iiko по счёту '+
+      (e.was? f0(e.was)+' ₸':'проводок нет')+'. Расшифровка ниже — это факт из iiko, '+
+      'поэтому она со строкой отчёта не сойдётся и разбирать в ней нечего, '+
+      'пока начисление не проведено.</div>';
+  });
+  var avail=CUTS.filter(function(c){ return detRows(name,ia,ib,c.code); });
+  if(!avail.length){
+    return warn+'<div class="note">По этой строке в айко проводок нет. Так бывает у расчётных '+
+      'строк (валовая прибыль, итоги) и у статей, которые ведёт только бухгалтерия.</div>';
+  }
+  var h=warn+'<div class="dt-tabs">'+avail.map(function(c,i){
+    return '<button class="dt-tab'+(i?'':' on')+'" data-c="'+c.code+'">'+esc(c.title)+'</button>';
+  }).join('')+'</div><div class="dt-body"></div>';
+  return h;
+}
+function detTable(name,ia,ib,inc,code){
+  var rows=detRows(name,ia,ib,code);
+  if(!rows) return '<div class="note">В этом разрезе данных нет.</div>';
+  var sa=rows.reduce(function(s,r){return s+r.a;},0);
+  var sb=rows.reduce(function(s,r){return s+r.b;},0);
+  var t='<table class="dt"><thead><tr><th style="text-align:left">Позиция</th>'+
+    '<th>'+L[ia]+'</th><th>'+L[ib]+'</th><th>Разница, ₸</th>'+
+    '<th style="text-align:left">Что произошло</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var worse = inc ? r.d<0 : r.d>0;
+    /* Знак у оборота меняется (сторно, возврат, коррекция), и тогда «снижение
+       на 142%» — бессмыслица: считаем проценты только внутри одного знака. */
+    var flip = r.a&&r.b&&((r.a>0)!==(r.b>0));
+    var why = (!r.a&&r.b) ? '<span class="'+(inc?'pos':'neg')+'">появилось в этом месяце</span>'
+      : (r.a&&!r.b) ? '<span class="mut">было в '+L[ia]+', в '+L[ib]+' нет</span>'
+      : flip ? '<span class="'+(worse?'neg':'pos')+'">сменило знак: было '+f0(r.a)+', стало '+f0(r.b)+'</span>'
+      : Math.abs(r.d)<Math.abs(r.a)*0.05 ? '<span class="mut">почти без изменений</span>'
+      : (Math.abs(r.b)>Math.abs(r.a)
+          ? '<span class="'+(worse?'neg':'pos')+'">больше в '+(Math.abs(r.b)/Math.abs(r.a)).toFixed(1)+'×</span>'
+          : '<span class="'+(worse?'neg':'pos')+'">меньше на '+pc(Math.abs(r.d)/Math.abs(r.a))+'</span>');
+    t+='<tr><td style="text-align:left;white-space:normal">'+esc(r.n)+'</td>'+
+       '<td class="n mut">'+f0(r.a)+'</td><td class="n">'+f0(r.b)+'</td>'+
+       '<td class="n"><span class="'+(r.d===0?'mut':worse?'neg':'pos')+'">'+
+       (r.d>0?'+':'')+f0(r.d)+'</span></td>'+
+       '<td style="text-align:left;white-space:normal">'+why+'</td></tr>';
+  });
+  t+='</tbody><tfoot><tr><td style="text-align:left">Итого по разрезу</td>'+
+     '<td class="n">'+f0(sa)+'</td><td class="n">'+f0(sb)+'</td>'+
+     '<td class="n">'+(sb-sa>0?'+':'')+f0(sb-sa)+'</td><td></td></tr></tfoot></table>';
+  return t;
+}
+/* Один обработчик на таблицу: строки создаются заново на каждую отрисовку,
+   вешать слушатель на каждую — лишняя работа и утечки. */
+function detBind(tblId,ia,ib){
+  var box=document.getElementById(tblId);
+  if(!box||box.__detBound) return;
+  box.__detBound=1;
+  box.addEventListener('click',function(e){
+    var tab=e.target.closest&&e.target.closest('.dt-tab');
+    if(tab){
+      var wrap=tab.closest('.dt-wrap');
+      [].forEach.call(wrap.querySelectorAll('.dt-tab'),function(b){b.classList.remove('on');});
+      tab.classList.add('on');
+      wrap.querySelector('.dt-body').innerHTML=
+        detTable(wrap.getAttribute('data-n'),+wrap.getAttribute('data-a'),
+                 +wrap.getAttribute('data-b'),wrap.getAttribute('data-i')==='1',
+                 tab.getAttribute('data-c'));
+      return;
+    }
+    var tr=e.target.closest&&e.target.closest('tr.dt-row');
+    if(!tr) return;
+    var nx=tr.nextElementSibling;
+    if(nx&&nx.classList.contains('dt-open')){ nx.remove(); tr.classList.remove('op'); return; }
+    var name=tr.getAttribute('data-n'), inc=tr.getAttribute('data-i')==='1';
+    var td=document.createElement('tr'); td.className='dt-open';
+    var cs=tr.children.length;
+    td.innerHTML='<td colspan="'+cs+'"><div class="dt-wrap" data-n="'+esc(name)+
+      '" data-a="'+ia+'" data-b="'+ib+'" data-i="'+(inc?1:0)+'">'+
+      detPanel(name,ia,ib,inc)+'</div></td>';
+    tr.parentNode.insertBefore(td,tr.nextSibling);
+    tr.classList.add('op');
+    var wrap=td.querySelector('.dt-wrap'), first=td.querySelector('.dt-tab');
+    if(first) wrap.querySelector('.dt-body').innerHTML=
+      detTable(name,ia,ib,inc,first.getAttribute('data-c'));
+  });
+}
 var byName={}; R.forEach(function(r){byName[r.n]=r;});
 function sum(a){ return a.reduce(function(s,x){return s+x;},0); }
 
@@ -448,7 +656,7 @@ BUILD.stat=function(){
     var med=srt.length? (srt.length%2? srt[(srt.length-1)/2] : (srt[srt.length/2-1]+srt[srt.length/2])/2) : 0;
     var mx=Math.max.apply(null,r.v), mn=Math.min.apply(null,r.v);
     var peak=r.v.reduce(function(p,x){return Math.abs(x)>Math.abs(p)?x:p;},0);
-    var last=r.v[N-1], prev=r.v[N-2];
+    var last=r.v[LASTI], prev=r.v[PREVI];
     return {n:r.n,v:r.v,s:s,av:av,med:med,peak:peak,inc:r.inc,fill:nz.length,
             sh:sum(K.rev)? s/sum(K.rev):0,
             vol: med? (mx-mn)/Math.abs(med) : 0,
@@ -458,7 +666,10 @@ BUILD.stat=function(){
   el.innerHTML='<div class="note">Каждая статья за все '+N+' месяцев. '+
     '<b>Разброс</b> = (максимум − минимум) ÷ медиана: чем он выше, тем менее предсказуема статья '+
     'и тем вероятнее, что внутри неё сидят разовые проводки. '+
-    '<b>Мес.</b> — в скольких месяцах из '+N+' статья вообще была.</div>'+
+    '<b>Мес.</b> — в скольких месяцах из '+N+' статья вообще была. '+
+    'Последняя колонка — <b>'+L[LASTI]+'</b>'+(LASTI<N-1
+      ? ', последний закрытый месяц: текущий идёт неполным и сравнивать его с полным нечестно'
+      : '')+'.</div>'+
     '<div class="card"><div class="ctl">'+
     '<input type="search" id="q" placeholder="поиск по статье…" style="min-width:230px">'+
     '<span class="lbl">Сортировка:</span><select id="srt">'+
@@ -475,9 +686,9 @@ BUILD.stat=function(){
       :function(x,y){return (by==='vol'? y.vol-x.vol : Math.abs(y.s)-Math.abs(x.s));});
     var t='<table><thead><tr><th>Статья</th><th>Динамика</th><th>Итого, ₸</th><th>% выручки</th>'+
           '<th>Медиана</th><th>Пик</th><th>Разброс</th><th>Мес.</th>'+
-          '<th'+(isLate(N-1)?' style="color:#fbbf24"':'')+'>'+L[N-1]+
-          (isLate(N-1)?'<br><span style="font-weight:600;opacity:.9;font-size:9.5px">не закрыт</span>':'')+
-          '</th><th>к пред. мес.</th></tr></thead><tbody>';
+          '<th'+(isLate(LASTI)?' style="color:#fbbf24"':'')+'>'+L[LASTI]+
+          (isLate(LASTI)?'<br><span style="font-weight:600;opacity:.9;font-size:9.5px">не закрыт</span>':'')+
+          '</th><th>к '+L[PREVI]+'</th></tr></thead><tbody>';
     a.forEach(function(r){
       var mx=Math.max.apply(null,r.v.map(Math.abs))||1;
       var bars='<div class="bars">'+r.v.map(function(x,ix){
@@ -491,7 +702,8 @@ BUILD.stat=function(){
          '<td class="n mut">'+f0(r.med)+'</td><td class="n">'+f0(r.peak)+'</td>'+
          '<td class="n '+(r.vol>3?'neg':r.vol>1.5?'':'mut')+'">'+(r.vol?r.vol.toFixed(1)+'×':'—')+'</td>'+
          '<td class="n mut">'+r.fill+'/'+N+'</td>'+
-         '<td class="n">'+f0(r.last)+'</td>'+
+         '<td class="n'+(estAt(LASTI,r.n)?' est':'')+'">'+f0(r.last)+
+         (estAt(LASTI,r.n)?'<span class="est-star" title="досчёт: в iiko проводок за месяц ещё нет">*</span>':'')+'</td>'+
          '<td class="n"><span class="'+(r.dm===0?'mut':good?'pos':'neg')+'">'+
          (r.dm>0?'+':'')+f0(r.dm)+'</span></td></tr>';
     });
@@ -510,18 +722,22 @@ BUILD.cmp=function(){
   el.innerHTML='<div class="card"><div class="card-t">Выберите два месяца</div>'+
     '<div class="card-n">Любая пара, не обязательно соседние. Разница показана в тенге '+
     'и в <b>пунктах доли выручки</b>: вторая отвечает на вопрос, стало ли дороже '+
-    '<i>по сути</i>, или статья просто шла за объёмом продаж.</div>'+
+    '<i>по сути</i>, или статья просто шла за объёмом продаж.'+
+    (LASTI<N-1 ? ' По умолчанию сравниваются два последних <b>закрытых</b> месяца — '+
+      L[PREVI]+' и '+L[LASTI]+': текущий месяц ещё идёт, и сравнение с ним показывало бы '+
+      'экономию там, где просто не наступило число.' : '')+'</div>'+
     '<div class="ctl"><span class="lbl">База:</span><select id="ca">'+opts+'</select>'+
     '<span class="lbl">Сравнить с:</span><select id="cb">'+opts+'</select>'+
     '<button class="chip" id="cprev">← предыдущий месяц</button>'+
     '<button class="chip" id="cyoy">↔ тот же месяц год назад</button></div>'+
     '<div id="ckpi"></div></div>'+
     '<div class="card"><div class="card-t">Постатейно: кто дал разницу</div>'+
-    '<div class="card-n">Отсортировано по влиянию на прибыль. Красное — стало хуже, зелёное — лучше.</div>'+
+    '<div class="card-n">Отсортировано по влиянию на прибыль. Красное — стало хуже, зелёное — лучше. '+
+    '<b>Кликните по статье</b> — раскроется, за счёт кого именно получилась разница: контрагенты, номенклатура, типы документов.</div>'+
     '<div class="tw" id="ctbl"></div></div>';
 
   var A=document.getElementById('ca'),B=document.getElementById('cb');
-  A.value=N-2; B.value=N-1;
+  A.value=PREVI; B.value=LASTI;
 
   function draw(){
     var i=+A.value,j=+B.value;
@@ -560,19 +776,30 @@ BUILD.cmp=function(){
     arr.forEach(function(r){
       /* для расхода рост = минус прибыли, для дохода наоборот */
       var worse = r.inc ? r.d<0 : r.d>0;
-      var why = (!r.a&&r.b) ? '<span class="'+(r.inc?'pos':'neg')+'">статьи не было — появилась на '+fm(r.b)+' ₸</span>'
+      var can = detHas(r.n);
+      var ea = estAt(i,r.n), eb = estAt(j,r.n);
+      var why = (ea||eb)
+        ? '<span class="est-note">'+(eb?L[j]:L[i])+': в iiko по статье '+
+          ((eb?eb.was:ea.was) ? f0(eb?eb.was:ea.was)+' ₸' : 'проводок нет')+
+          ', показан досчёт '+fm(eb?eb.est:ea.est)+' ₸ по медиане закрытых месяцев. '+
+          'Разница здесь — не движение расхода, а разрыв между фактом и оценкой.</span>'
+        : (!r.a&&r.b) ? '<span class="'+(r.inc?'pos':'neg')+'">статьи не было — появилась на '+fm(r.b)+' ₸</span>'
         : (r.a&&!r.b) ? '<span class="'+(r.inc?'neg':'mut')+'">была '+fm(r.a)+' ₸ — стала ноль; проверьте, не переехала ли на другой счёт</span>'
         : Math.abs(r.pp)<0.002 ? '<span class="mut">двигалась вместе с выручкой</span>'
         : r.inc ? (r.pp>0 ? '<span class="pos">доход вырос на '+fm(r.pp*rb)+' ₸ сверх роста выручки</span>'
                           : '<span class="neg">доход просел на '+fm(-r.pp*rb)+' ₸ относительно выручки</span>')
         : (r.pp>0 ? '<span class="neg">дороже на '+fm(r.pp*rb)+' ₸ сверх роста выручки</span>'
                   : '<span class="pos">дешевле на '+fm(-r.pp*rb)+' ₸ относительно выручки</span>');
-      t+='<tr><td>'+esc(r.n)+'</td><td class="n">'+f0(r.a)+'</td><td class="n">'+f0(r.b)+'</td>'+
+      t+='<tr class="'+(can?'dt-row':'')+'" data-n="'+esc(r.n)+'" data-i="'+(r.inc?1:0)+'">'+
+         '<td>'+(can?'<span class="dt-caret">▸</span>':'')+esc(r.n)+'</td>'+
+         '<td class="n'+(ea?' est':'')+'">'+f0(r.a)+(ea?'<span class="est-star">*</span>':'')+'</td>'+
+         '<td class="n'+(eb?' est':'')+'">'+f0(r.b)+(eb?'<span class="est-star">*</span>':'')+'</td>'+
          '<td class="n"><span class="'+(r.d===0?'mut':worse?'neg':'pos')+'">'+(r.d>0?'+':'')+f0(r.d)+'</span></td>'+
          '<td class="n">'+sgn(r.pp*100,function(x){return x.toFixed(2);})+'</td>'+
          '<td style="text-align:left;white-space:normal;min-width:230px">'+why+'</td></tr>';
     });
     document.getElementById('ctbl').innerHTML=t+'</tbody></table>';
+    detBind('ctbl',i,j);
   }
   A.onchange=draw; B.onchange=draw;
   document.getElementById('cprev').onclick=function(){

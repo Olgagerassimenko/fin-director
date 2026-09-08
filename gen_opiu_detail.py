@@ -1,0 +1,190 @@
+# -*- coding: utf-8 -*-
+"""gen_opiu_detail.py — расшифровка каждой строки ОПиУ изнутри, из iiko.
+
+Зачем это нужно. Аудит ОПиУ отвечает на вопрос «какая статья дала разницу»,
+но на следующий вопрос — «за счёт кого именно» — ответить нечем: в отчёте
+статья это одна цифра за месяц. Чтобы понять, почему ЗП АУП выросла на три
+миллиона, а ремонт оборудования на полтора, приходится идти в айко руками.
+
+Здесь тот же оборот по счёту разбирается на составляющие: кто контрагент,
+какая номенклатура, каким типом документа проведено. Дальше страница аудита
+раскрывает любую статью и показывает, что изменилось между двумя месяцами
+построчно — появилось, исчезло, выросло.
+
+Три вещи, из-за которых наивная выгрузка врёт, и как они решены:
+
+  1. Размер. Группировка «счёт × контрагент × номенклатура» по всем счетам
+     даёт десятки тысяч строк в месяц — файл станет неподъёмным для браузера.
+     Поэтому разрезов два независимых (по контрагентам и по номенклатуре),
+     а внутри статьи хранится верхушка по модулю суммы, остальное сворачивается
+     в строку «прочее». Сумма разреза всегда равна обороту статьи.
+
+  2. Знак. У доходных строк оборот кредитовый, у расходных дебетовый — ровно
+     как в gen_opiu_iiko.py. Считаем обе стороны и берём ту же величину
+     debit = приход − расход, чтобы расшифровка сходилась со строкой отчёта.
+
+  3. Время. Закрытые месяцы не меняются, тянуть их каждый прогон незачем.
+     Файл накопительный: заново тянутся только последние три месяца и те,
+     которых ещё нет.
+
+Только чтение iiko. Запускается в GitHub Actions после gen_opiu_iiko.py.
+"""
+import calendar, json, os, sys
+from datetime import date, timedelta
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import almaty
+import opiu_full as OF
+
+OUT = os.path.join(HERE, "opiu_detail.js")
+DIAG = os.path.join(HERE, "opiu_detail_fields.json")
+FIRST = "2025-01"        # с какого месяца ведём историю
+REFRESH_TAIL = 3         # сколько последних месяцев перетягиваем каждый раз
+TOP = 40                 # сколько строк храним внутри статьи, остальное — «прочее»
+MIN_KEEP = 1000          # мелочь меньше этой суммы в хвост не выносим отдельной строкой
+
+# Счёт «Зарплата» исключён по той же причине, что и в gen_opiu_iiko.py:
+# это расчётный счёт с персоналом, на нём и начисления, и их закрытие,
+# оборот по нему не равен строке отчёта.
+SKIP_ACCOUNTS = {"Зарплата"}
+
+# Разрезы. Каждый — отдельный запрос: так строк на порядок меньше, чем при
+# перекрёстной группировке, и любой из них можно потерять, не потеряв остальные.
+CUTS = [
+    ("ctr",  ["Account.Name", "Counteragent.Name"],                "по контрагентам"),
+    ("prod", ["Account.Name", "Product.Name"],                     "по номенклатуре"),
+    ("type", ["Account.Name", "TransactionType"],                  "по типу документа"),
+    ("dep",  ["Account.Name", "Store.Name"],                       "по складам"),
+]
+
+
+def month_keys(first, today):
+    y, m = int(first[:4]), int(first[5:7])
+    out = []
+    while (y, m) <= (today.year, today.month):
+        out.append("%04d-%02d" % (y, m))
+        m += 1
+        if m > 12:
+            m, y = 1, y + 1
+    return out
+
+
+def cut(y, m, last_full, fields):
+    """Один разрез оборота за месяц. None — если айко не ответил."""
+    d1 = date(y, m, 1)
+    d2 = min(date(y, m, calendar.monthrange(y, m)[1]), last_full)
+    if d2 < d1:
+        return None
+    body = {
+        "reportType": "TRANSACTIONS", "buildSummary": "true",
+        "groupByRowFields": fields,
+        "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
+        "filters": {
+            "DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                                   "from": d1.isoformat(),
+                                   "to": (d2 + timedelta(days=1)).isoformat(),
+                                   "includeLow": True, "includeHigh": True},
+            "Department": {"filterType": "IncludeValues", "values": [OF.FZ_DEPT]},
+        },
+    }
+    return OF.olap(body)
+
+
+def fold(data, key_field):
+    """Сырые строки айко → {счёт: [[имя, сумма], …]}, суммы уже свёрнуты.
+
+    debit = приход − расход: та же величина, что gen_opiu_iiko.py кладёт
+    в строку отчёта, поэтому расшифровка сходится со статьёй до тенге."""
+    acc = {}
+    for row in data or []:
+        an = (row.get("Account.Name") or "—").strip()
+        if an in SKIP_ACCOUNTS:
+            continue
+        nm = (row.get(key_field) or "—")
+        nm = str(nm).strip() or "—"
+        v = (row.get("Sum.Incoming") or 0) - (row.get("Sum.Outgoing") or 0)
+        d = acc.setdefault(an, {})
+        d[nm] = d.get(nm, 0.0) + v
+    out = {}
+    for an, d in acc.items():
+        rows = [[k, round(v)] for k, v in d.items() if abs(v) >= 0.5]
+        if not rows:
+            continue
+        rows.sort(key=lambda x: -abs(x[1]))
+        if len(rows) > TOP:
+            tail = rows[TOP:]
+            rest = sum(x[1] for x in tail)
+            rows = rows[:TOP]
+            # Хвост показываем одной строкой: сколько денег и из скольких позиций,
+            # иначе не видно, потеряли мы копейки или треть статьи.
+            if abs(rest) >= MIN_KEEP:
+                rows.append(["прочее · %d позиц." % len(tail), round(rest)])
+        out[an] = rows
+    return out
+
+
+def build():
+    today = almaty.today()
+    last_full = today - timedelta(days=1)
+    OF.TOK = OF.auth()
+
+    old = {}
+    if os.path.exists(OUT):
+        try:
+            txt = open(OUT, encoding="utf-8").read()
+            i, j = txt.index("{"), txt.rindex("}")
+            old = json.loads(txt[i:j + 1]).get("m", {})
+        except Exception as e:
+            print("[!] старый opiu_detail.js не прочитан:", e)
+
+    keys = month_keys(FIRST, today)
+    tail = set(keys[-REFRESH_TAIL:])
+    data = {}
+    fields_ok, fields_bad = [], []
+
+    for ym in keys:
+        y, m = int(ym[:4]), int(ym[5:7])
+        if ym in old and ym not in tail:
+            data[ym] = old[ym]
+            continue
+        month = {}
+        for code, fields, _title in CUTS:
+            raw = cut(y, m, last_full, fields)
+            if raw is None:
+                # разрез не получен — не роняем месяц, просто его не будет
+                if fields[-1] not in fields_bad:
+                    fields_bad.append(fields[-1])
+                continue
+            if fields[-1] not in fields_ok:
+                fields_ok.append(fields[-1])
+            folded = fold(raw, fields[-1])
+            for an, rows in folded.items():
+                month.setdefault(an, {})[code] = rows
+        if month:
+            data[ym] = month
+            print("%s: счетов %d" % (ym, len(month)))
+        elif ym in old:
+            data[ym] = old[ym]
+
+    meta = {
+        "built": almaty.now().strftime("%Y-%m-%d %H:%M"),
+        "dept": OF.FZ_DEPT,
+        "top": TOP,
+        "cuts": [{"code": c, "title": t} for c, _f, t in CUTS],
+        "fieldsOk": fields_ok, "fieldsBad": fields_bad,
+    }
+    payload = {"meta": meta, "m": data}
+    with open(OUT, "w", encoding="utf-8") as f:
+        f.write("window.OPIU_DETAIL=")
+        json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
+        f.write(";\n")
+    json.dump(meta, open(DIAG, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    print("opiu_detail.js: месяцев %d, размер %.0f КБ"
+          % (len(data), os.path.getsize(OUT) / 1024))
+    if fields_bad:
+        print("[!] не отдались разрезы:", ", ".join(fields_bad))
+
+
+if __name__ == "__main__":
+    build()
