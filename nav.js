@@ -46,6 +46,7 @@
     {href:'повышение_цен.html',icon:'💹',label:'Повышение цен'},
     {href:'развитие_ассортимента.html',icon:'🧬',label:'Развитие ассортимента'},
     {href:'закуп.html',icon:'📦',label:'Закуп'},
+    {href:'упаковка.html',icon:'🧻',label:'Упаковка'},
     {href:'производство.html',icon:'🏭',label:'Производство'},
     {href:'sku360.html',icon:'🧩',label:'SKU 360'},
     {href:'себестоимость_маржа.html',icon:'👥',label:'Кто приносит прибыль'},
