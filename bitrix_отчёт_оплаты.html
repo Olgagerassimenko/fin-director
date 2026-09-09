@@ -107,6 +107,19 @@
 
 <div class="wrap">
 
+  <h2><span class="n">00</span> Ждут вашего согласования</h2>
+  <div class="card pad">
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+      <div><span class="val" style="font-size:26px;font-weight:730;letter-spacing:-.02em" id="liveSum">—</span>
+           <span class="foot" style="margin-left:6px">на согласовании</span></div>
+      <div class="tag" id="liveCnt">—</div>
+      <div class="foot" style="margin-left:auto" id="liveAsof">—</div>
+    </div>
+    <div class="tbl-wrap"><table id="liveTbl"></table></div>
+    <div class="foot">Снято прямо из Битрикса, раздел «Бизнес‑процессы → Процессы», задания со статусом «В работе».
+      Ниже, в разделах 01–06, — исторические данные по 12.08.2026: их собирает робот, и до расширения прав вебхука они не обновляются.</div>
+  </div>
+
   <h2><span class="n">01</span> Пульс — ключевые показатели</h2>
   <div class="pulse" id="pulse"></div>
 
@@ -892,6 +905,51 @@ document.getElementById("exp").onclick=()=>{
 
 document.getElementById("asof").textContent="Данные на "+CFG.asof+" · период "+CFG.period;
 document.getElementById("note").innerHTML="Отчёт построен по разделу «Мои процессы» портала Битрикс24. Всего "+N+" заявок за период "+CFG.period+". Снимок данных на "+CFG.asof+"; для автообновления данные нужно вести в Универсальном списке (см. инструкцию).";
+</script>
+<script>
+/* ── 00 · Живой срез: заявки, ожидающие согласования ───────────────────
+   Снято из Битрикса 09.09.2026 17:42. Обновляется вручную, пока у вебхука
+   нет области bizproc: заявки живут в бизнес-процессах, а не в CRM. */
+var LIVE = {
+  asof: "09.09.2026 17:42",
+  rows: [
+    {t:"Оплата наличными",  o:"Установка нового агрегата −18 для мучного цеха", c:"Алматы", s:1600000, w:"Руслан Абитов",     f:"КП Футзавод (1).pdf"},
+    {t:"Счет на оплату",    o:"Генподряд Ха. Алмазное бурение (Фишерманн)",     c:"Астана", s:814808,  w:"Игорь Чжен",        f:"Счет алмазное бурение (Фишерманн) 09.09.pdf"},
+    {t:"Счет на оплату",    o:"Генподряд Ха. Покупка минваты (потолок 3 этаж)", c:"Астана", s:780000,  w:"Игорь Чжен",        f:"Покупка минеральной ваты (потолок 3 этаж) 09.09.pdf"},
+    {t:"Счет на оплату",    o:"ТО печи МИВИ — счёт от 20.08.2026",              c:"Алматы", s:324000,  w:"Руслан Абитов",     f:"078 счет на оплату 20.08.2026 ТОО Фудзавод.pdf", old:true},
+    {t:"Оплата поставщикам",o:"Склад Астана за месяц, счёт №1274",              c:"Алматы", s:191197,  w:"Александр Яковлев", f:"Счет на оплату№1274 Фуд завод ТОО.pdf"},
+    {t:"Счет на оплату",    o:"Генподряд Ха. Покупка шлифовальный круг",        c:"Астана", s:10000,   w:"Игорь Чжен",        f:"Покупка шлифовальный круг 09.09.pdf"}
+  ]
+};
+(function(){
+  var el = document.getElementById("liveTbl"); if(!el) return;
+  var n = function(v){ return v.toLocaleString("ru-RU"); };
+  var esc = function(s){ return String(s).replace(/[&<>]/g, function(m){
+        return {"&":"&amp;","<":"&lt;",">":"&gt;"}[m]; }); };
+  var tot = LIVE.rows.reduce(function(a,r){ return a + r.s; }, 0);
+  document.getElementById("liveSum").textContent  = n(tot) + " \u20B8";
+  document.getElementById("liveCnt").textContent  = LIVE.rows.length + " заявок";
+  document.getElementById("liveAsof").textContent = "из Битрикса на " + LIVE.asof;
+  var html = "<thead><tr><th>Тип</th><th>За что</th><th>Город</th>" +
+             "<th class='num'>Сумма, \u20B8</th><th>Заявитель</th><th>Файл</th></tr></thead><tbody>";
+  LIVE.rows.forEach(function(r){
+    html += "<tr>" +
+      "<td><span class='tag'>" + esc(r.t) + "</span></td>" +
+      "<td class='desc'>" + esc(r.o) +
+        (r.old ? " <span class='chip work'>лежит с 20.08</span>" : "") + "</td>" +
+      "<td>" + esc(r.c) + "</td>" +
+      "<td class='num'><b>" + n(r.s) + "</b></td>" +
+      "<td>" + esc(r.w) + "</td>" +
+      "<td class='file'>" + esc(r.f) + "</td></tr>";
+  });
+  el.innerHTML = html + "</tbody>";
+  /* Шапка: сначала сегодняшний срез, потом уже история. Иначе страница
+     кричит «данные на 12.08», хотя наверху лежит сегодняшнее. */
+  var chip = document.getElementById("asof");
+  if (chip) chip.innerHTML = "На согласовании сегодня, " + LIVE.asof.split(" ")[0] +
+      " · <span style='opacity:.75'>история согласованных — по " +
+      (typeof CFG !== "undefined" && CFG.asof ? CFG.asof : "12.08.2026") + "</span>";
+})();
 </script>
 </body>
 </html>
