@@ -228,7 +228,11 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
     <div class="note">Расход считается по движению склада: <b>остаток на начало + приход − остаток на конец</b>
       за три последних полных месяца. Списания упаковки в iiko почти не проводятся, поэтому по ним расход не увидеть.
       <b>Дефицит</b> — запаса меньше срока поставки: заказ уже не успевает.
-      <b>Пора заказывать</b> — меньше срока поставки плюс страховой.</div>
+      <b>Пора заказывать</b> — меньше срока поставки плюс страховой.
+      Если месячных данных по позиции нет (выгрузка отдаёт только крупнейшие строки месяца), расход берётся
+      средний за год — в таблице такие помечены словом «год», и к ним стоит относиться осторожнее.
+      <b>Не хранится</b> — позиция, у которой остаток нулевой во всех срезах: её везут под задачу и сразу
+      отдают в работу, склад её не держит, поэтому в дефицит она не попадает.</div>
   </div>
 
   <div class="card" style="margin-top:12px">
@@ -312,13 +316,24 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
 
   var mv = (D.dvizhenie && D.dvizhenie.year && D.dvizhenie.year.rows) || [];
   var mm = (D.dvizhenie && D.dvizhenie.months) || {};
-  var USE3 = {}, D3 = 0, LASTBUY = {};
+  var USE3 = {}, D3 = 0, LASTBUY = {}, SEEN = {}, ZERO = {};
   MON3.forEach(function (k) {
     if (!mm[k]) return;
     D3 += DLEN[k] || 30;
     (mm[k].rows || []).forEach(function (r) {
       if (!PFX.test(r.product)) return;
       USE3[r.product] = (USE3[r.product] || 0) + (r.open + r.buy - r.close);
+    });
+  });
+  /* Месячные срезы обрезаны по крупнейшим позициям, поэтому у половины
+     номенклатуры месяцев в данных просто нет. Считаем, в скольких месяцах
+     позиция встретилась и всегда ли её остаток был нулевым: первое говорит,
+     насколько надёжен расход, второе — что позиция вообще не хранится. */
+  Object.keys(mm).forEach(function (k) {
+    (mm[k].rows || []).forEach(function (r) {
+      if (!PFX.test(r.product)) return;
+      SEEN[r.product] = (SEEN[r.product] || 0) + 1;
+      if (r.close !== 0) ZERO[r.product] = 1;
     });
   });
   Object.keys(mm).sort().forEach(function (k) {
@@ -333,6 +348,11 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
     if (!PFX.test(r.product)) return;
     var useY = r.open + r.buy - r.close, u3 = USE3[r.product] || 0;
     var perD = u3 > 0 ? u3 / D3 : (useY > 0 ? useY / DY : 0);
+    var src = u3 > 0 ? '3м' : (useY > 0 ? 'год' : '');
+    /* Позиция, у которой остаток нулевой во всех срезах, на складе не лежит:
+       её везут под задачу и сразу отдают в работу. Нулевой остаток у неё —
+       норма, а не провал снабжения, и в «горит» ей делать нечего. */
+    var transit = !ZERO[r.product] && r.close === 0 && r.buy > 0 && (SEEN[r.product] || 0) > 0;
     var sl = Object.keys(SUPP[r.product] || {}).sort();
     var last = LASTBUY[r.product] || '';
     /* основной поставщик — тот, у кого куплено больше всего этой позиции:
@@ -342,7 +362,8 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
     ITEMS.push({ p: r.product, unit: r.unit || '', supp: sl, sname: sl.join(', '), main: main,
       stock: r.close, price: PRICE[r.product] || 0, perD: perD,
       buyY: r.buy, useY: useY, sumY: YSUM[r.product] || 0, last: last,
-      dead: (!last || last < '2026-06') && r.close <= 0 });
+      src: src, months: SEEN[r.product] || 0, transit: transit,
+      dead: (!last || last < '2026-06') && r.close <= 0 && !transit });
   });
 
   var KZ = {};
@@ -362,9 +383,13 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
       it.days = it.perD > 0 ? it.stock / it.perD : null;
       it.point = it.perD * (it.lead + P.safe);
       it.target = it.perD * (it.lead + P.cov);
-      it.order = (it.perD > 0 && it.stock < it.point) ? Math.max(0, it.target - it.stock) : 0;
+      /* заказывать имеет смысл только по живой позиции: транзитную склад не держит,
+         а выведенную из оборота не покупают с весны — обе дали бы фантомную потребность */
+      it.order = (it.perD > 0 && !it.transit && !it.dead && it.stock < it.point)
+        ? Math.max(0, it.target - it.stock) : 0;
       it.orderSum = it.order * it.price;
-      it.st = it.dead ? 'вышла из оборота'
+      it.st = it.transit ? 'не хранится'
+            : it.dead ? 'вышла из оборота'
             : it.perD <= 0 ? 'нет расхода'
             : it.days < it.lead ? 'дефицит'
             : it.days < it.lead + P.safe ? 'пора заказывать' : 'норма';
@@ -372,6 +397,11 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
   }
   function stCls(s) { return s === 'дефицит' ? 's-def' : s === 'пора заказывать' ? 's-soon'
     : s === 'норма' ? 's-ok' : 's-non'; }
+  /* откуда взят расход — это важно читать вместе с «днями запаса» */
+  function srcNote(i) {
+    return i.src === '3м' ? 'расход по июню–августу'
+         : i.src === 'год' ? 'расход в среднем за год: месячных данных по позиции нет'
+         : 'расхода в данных нет'; }
   function hot() { return ITEMS.filter(function (i) {
     return i.st === 'дефицит' || i.st === 'пора заказывать'; }); }
 
@@ -394,7 +424,8 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
     document.getElementById('h-txt').innerHTML =
       'Столько нужно закупить, чтобы закрыть <b>' + h.length + '</b> ' + plw(h.length, 'позицию', 'позиции', 'позиций') +
       ', по которым запаса меньше срока поставки' + (def ? ', из них <b>' + def + '</b> уже в нуле или на исходе' : '') +
-      '. Расчёт от расхода за июнь–август и остатка на ' + dmy(THROUGH) + '.';
+      '. Расчёт от расхода за июнь–август (где месячных данных нет — от среднего за год) ' +
+      'и остатка на ' + dmy(THROUGH) + '.';
     document.getElementById('h-side').innerHTML =
       hs(f0(stockSum) + ' ₸', 'лежит на складах в упаковке') +
       hs(fm(yearSum) + ' ₸', 'закуплено упаковки с начала года') +
@@ -428,11 +459,13 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
     if (!h.length) { box.innerHTML = '<div class="empty">Ни по одной позиции запас не ниже срока поставки — заказывать нечего.</div>'; return; }
     box.innerHTML = h.map(function (i) {
       var d = (KZ[i.main] || {}).debt || 0;
-      var why = i.days < 1 ? 'Запас кончился' : 'Хватит на ' + f1(i.days) + ' ' + plw(Math.round(i.days), 'день', 'дня', 'дней');
+      /* дробное число дней в русском требует родительного падежа: «1,5 дня» */
+      var dw = (i.days % 1) ? 'дня' : plw(i.days, 'день', 'дня', 'дней');
+      var why = i.days < 1 ? 'Запас кончился' : 'Хватит на ' + f1(i.days) + ' ' + dw;
       return '<div class="hc"><div class="n">' + esc(i.p) + '</div>' +
         '<div class="sub2">' + esc(i.main || i.sname || '—') +
           (i.supp.length > 1 ? ' <span style="color:#546279">и ещё ' + (i.supp.length - 1) + '</span>' : '') +
-          ' · срок поставки ' + i.lead + ' дн.</div>' +
+          ' · срок поставки ' + i.lead + ' дн. · ' + srcNote(i) + '</div>' +
         '<div class="g">' +
           '<div><b>' + f0(i.stock) + '</b><span>остаток, ' + esc(i.unit || 'ед') + '</span></div>' +
           '<div><b>' + f1(i.perD) + '</b><span>расход в день</span></div>' +
@@ -483,7 +516,7 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
           (i.supp.length > 1 ? ' и ещё ' + (i.supp.length - 1) : '') +
           (i.last ? ' · закупали ' + i.last.slice(5) + '.' + i.last.slice(2, 4) : '') + '</div></td>' +
         '<td>' + f0(i.stock) + ' <span class="sub2" style="display:inline">' + esc(i.unit) + '</span></td>' +
-        '<td>' + f1(i.perD) + '</td>' +
+        '<td>' + f1(i.perD) + (i.src === 'год' ? '<span class="sub2" style="display:inline"> год</span>' : '') + '</td>' +
         '<td style="font-weight:800' + (i.days != null && i.days < i.lead ? ';color:#fca5a5' : '') + '">' + f1(i.days) + '</td>' +
         '<td>' + i.lead + '</td>' +
         '<td>' + (i.order ? f0(i.order) : '—') + '</td>' +
@@ -700,23 +733,23 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
   function xlsxOut() {
     var a = view();
     var head1 = ['Позиция', 'Ед.', 'Поставщик', 'Срок поставки, дн', 'Остаток, ед.', 'Цена, ₸',
-      'Остаток, ₸', 'Расход в день', 'Запас, дней', 'Точка заказа, ед.', 'Целевой запас, ед.',
+      'Остаток, ₸', 'Расход в день', 'Откуда расход', 'Запас, дней', 'Точка заказа, ед.', 'Целевой запас, ед.',
       'К заказу, ед.', 'К заказу, ₸', 'Последняя закупка', 'Статус'];
     var r1 = [head1.map(function (h) { return { v: h, s: 1 }; })];
     a.forEach(function (i) {
       r1.push([{ v: i.p, s: 2 }, { v: i.unit, s: 2 }, { v: i.sname, s: 9 }, { v: i.lead, s: 3 },
         { v: Math.round(i.stock), s: 3 }, { v: Math.round(i.price), s: 3 },
         { v: Math.round(i.stock * i.price), s: 3 }, { v: +i.perD.toFixed(1), s: 3 },
+        { v: i.src === '3м' ? 'июнь–август' : i.src === 'год' ? 'среднее за год' : '—', s: 2 },
         { v: i.days == null ? '' : +i.days.toFixed(1), s: i.days != null && i.days < i.lead ? 10 : 3 },
         { v: Math.round(i.point), s: 3 }, { v: Math.round(i.target), s: 3 },
         { v: Math.round(i.order), s: i.order ? 10 : 3 }, { v: Math.round(i.orderSum), s: i.order ? 10 : 3 },
         { v: i.last || '—', s: 2 }, { v: i.st, s: 2 }]);
     });
-    r1.push([{ v: 'Итого', s: 6 }, { v: '', s: 6 }, { v: '', s: 6 }, { v: '', s: 6 }, { v: '', s: 6 },
-      { v: '', s: 6 }, { v: Math.round(a.reduce(function (s, i) { return s + i.stock * i.price; }, 0)), s: 7 },
-      { v: '', s: 6 }, { v: '', s: 6 }, { v: '', s: 6 }, { v: '', s: 6 }, { v: '', s: 6 },
-      { v: Math.round(a.reduce(function (s, i) { return s + i.orderSum; }, 0)), s: 7 },
-      { v: '', s: 6 }, { v: '', s: 6 }]);
+    var tot1 = ['Итого', '', '', '', '', '',
+      Math.round(a.reduce(function (s, i) { return s + i.stock * i.price; }, 0)), '', '', '', '', '',
+      '', Math.round(a.reduce(function (s, i) { return s + i.orderSum; }, 0)), '', ''];
+    r1.push(tot1.map(function (v) { return { v: v, s: typeof v === 'number' ? 7 : 6 }; }));
 
     var head2 = ['Поставщик', 'Закуп упаковки, ₸', 'Весь закуп у него, ₸', 'Доля упаковки',
       'Долг по оплатам, ₸', 'Позиций', 'Горящих позиций', 'Под заказ'];
@@ -742,7 +775,7 @@ tbody tr.hot:hover{background:rgba(239,68,68,.11)}
 
     function W(a) { return a.map(function (w) { return { w: w }; }); }
     saveXlsx([
-      { name: 'Стоки', rows: r1, cols: W([46, 7, 28, 11, 12, 10, 13, 12, 11, 13, 14, 12, 13, 13, 16]) },
+      { name: 'Стоки', rows: r1, cols: W([46, 7, 28, 11, 12, 10, 13, 12, 14, 11, 13, 14, 12, 13, 13, 16]) },
       { name: 'Поставщики', rows: r2, cols: W([34, 16, 17, 12, 16, 9, 13, 10]) },
       { name: 'Закуп по позициям', rows: r3, cols: W([46, 7, 28, 15, 15, 13]) }
     ], 'Упаковка — стоки и норматив ' + dmy(THROUGH).replace(/\./g, '-') + '.xlsx');
