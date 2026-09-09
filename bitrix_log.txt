@@ -1,6 +1,9 @@
-Битрикс · оплаты · 09.09.2026 13:11 (Алматы)
-profile: ok · Ольга Герасименко · admin= False
+Битрикс · оплаты · 09.09.2026 17:42 (Алматы)
+profile: ok · Ольга Герасименко · admin=False
 scope: ['crm']
-crm.type.list: Доступ запрещен
-[i] CRM-смарт-процесса с оплатами пока нет.
-[ok] Отчёт «Согласованные оплаты» ведётся вручную/через выгрузку — робот его НЕ перезаписывает (bitrix_отчёт_оплаты.html оставлен как есть).
+  crm.type.list                      нет доступа (Доступ запрещен)
+  lists.get                          нет доступа (The request requires higher privileges than provided by the )
+  bizproc.workflow.instance.list     нет доступа (The request requires higher privileges than provided by the )
+  tasks.task.list                    нет доступа (The request requires higher privileges than provided by the )
+[i] Выгрузки нет (ждём файл bitrix_выгрузка.csv / bitrix_выгрузка.xlsx / bitrix_выгрузка.xls рядом со скриптом).
+[ok] Отчёт не тронут.
