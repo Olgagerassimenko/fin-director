@@ -9,6 +9,8 @@ on:
     branches: [main]
     paths:
       - "bitrix_report.py"
+      - "bitrix_выгрузка.csv"
+      - "bitrix_выгрузка.xlsx"
       - ".github/workflows/bitrix-report.yml"
 
 permissions:

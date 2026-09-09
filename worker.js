@@ -19,6 +19,9 @@ const DATA_FILES = new Set([
   "/zakup_data.js", "/dz_kz.js", "/kz_ana.js", "/opiu_audit.js", "/opiu_iiko.js", "/ddsp_days.js",
   "/sku_live.js", "/sku_analytics.js", "/contractor_items.js", "/contractors.js",
   "/sales_live.js", "/opiu_rev.js",
+  // 09.09.2026: эти пересобираются каждым прогоном, но в списке их не было —
+  // Cloudflare отдавал их из кэша, и страница рисовала вчерашние цифры.
+  "/opiu_detail.js", "/sales_sum.js", "/sku_margin.js",
 ]);
 
 // ── Метрики посещений («что смотрят») ──
@@ -200,7 +203,7 @@ export default {
     // а дашборд будет рисовать вчерашние цифры со свежей датой обновления.
     const _noStore = _ct.includes("text/html")
       || DATA_FILES.has(url.pathname)
-      || /_meta\.js$/.test(url.pathname);
+      || /_(meta|data)\.js$/.test(url.pathname);   // upak_data.js, production_data.js и все будущие *_data.js
     if (_ct.includes("text/html")) {
       const _t = new HTMLRewriter()
         .on("head", { element(e) { e.append(METRICS_BEACON, { html: true }); } })
