@@ -139,6 +139,51 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
   .section{padding:16px 12px 34px}.topbar{padding:12px 14px}
   .fix{margin:14px -12px -34px;padding:11px 14px;gap:10px}
 }
+
+/* ── быстрые кнопки и журнал разговоров ────────────────────────── */
+.wc{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:rgba(124,58,237,.18);
+  color:#c4b5fd;font-size:10px;font-weight:800;letter-spacing:0}
+.qbtn{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+.qb{background:#0f1830;border:1px solid var(--line2);color:var(--ink2);border-radius:9px;padding:6px 10px;
+  font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+.qb:hover{background:#1a2842;color:#fff;border-color:var(--vio)}
+.qb.on{background:rgba(124,58,237,.22);border-color:var(--vio);color:#ddd6fe}
+.qb.add{background:linear-gradient(135deg,#16a34a,#065f46);border-color:transparent;color:#eafff2}
+.qb.add:hover{filter:brightness(1.12)}
+.c-neu{background:rgba(148,163,184,.13);color:#94a3b8}
+
+.jr{margin-top:9px;border-top:1px solid var(--line);padding-top:8px}
+.jr summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim);list-style:none;display:flex;align-items:center;gap:7px;user-select:none;width:fit-content}
+.jr summary::-webkit-details-marker{display:none}
+.jr summary:before{content:'▸';color:var(--vio);font-size:10px;transition:.15s}
+.jr[open] summary:before{transform:rotate(90deg)}
+.jr summary:hover{color:var(--ink2)}
+.jl{margin-top:8px;display:grid;gap:5px;max-height:230px;overflow-y:auto}
+.je{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;border-radius:9px;
+  background:rgba(255,255,255,.025);border:1px solid var(--line);font-size:11.5px}
+.jt{color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10.5px}
+.jd{color:#fcd34d;font-weight:700}
+.jw{color:#7dd3fc}
+.jn{color:var(--ink2);flex:1 1 160px;min-width:0}
+.jx{margin-left:auto;background:none;border:0;color:#3d4a60;cursor:pointer;font-size:12px;padding:0 3px}
+.jx:hover{color:#f87171}
+
+/* ── на сегодня ────────────────────────────────────────────────── */
+.tdg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:11px}
+.td{border:1px solid var(--line);border-radius:14px;padding:11px 13px;position:relative;overflow:hidden;
+  background:rgba(255,255,255,.02)}
+.td:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,#334155)}
+.td-h{font-size:12.5px;font-weight:800;color:var(--ink)}
+.td-h b{color:var(--c);margin-left:4px}
+.td-s{font-size:10.5px;color:var(--mut);margin-top:4px;line-height:1.5}
+.td-l{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.tdn{background:#101a2f;border:1px solid var(--line2);color:var(--ink2);border-radius:8px;padding:4px 8px;
+  font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;max-width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;transition:.15s}
+.tdn:hover{background:#1a2842;color:#fff;border-color:var(--vio)}
+.tdn span{color:#fca5a5;font-weight:800;margin-left:5px}
+.deb.flash{box-shadow:0 0 0 2px var(--vio),0 16px 34px -26px #000;transition:box-shadow .3s}
 </style></head>
 <body>
 
@@ -181,6 +226,9 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
         </select></div>
       <div><label>Найти клиента</label>
         <input id="p-q" type="search" placeholder="часть названия…"></div>
+      <div><label>&nbsp;</label><button class="btn" id="p-jexp">⬇ Журнал в файл</button></div>
+      <div><label>&nbsp;</label><button class="btn" id="p-jimp">⬆ Загрузить журнал</button>
+        <input type="file" id="p-jfile" accept=".json" style="display:none"></div>
       <div><label>&nbsp;</label><button class="btn" id="p-reset">Сбросить мои записи</button></div>
     </div>
     <details class="more">
@@ -189,6 +237,7 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     </details>
   </div>
 
+  <div id="p-today" style="margin-bottom:14px"></div>
   <div id="p-list"></div>
   <div class="fix" id="p-fix"></div>
 </div>
@@ -242,6 +291,74 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
   } catch (e) {}
   try { WORK = JSON.parse(localStorage.getItem(WORK_KEY) || '{}') || {}; } catch (e) { WORK = {}; }
   function saveWork() { try { localStorage.setItem(WORK_KEY, JSON.stringify(WORK)); } catch (e) {} }
+
+  /* ── ЖУРНАЛ РАБОТЫ С КЛИЕНТОМ ────────────────────────────────────
+     Раньше по клиенту хранилась одна запись, и каждый новый звонок
+     затирал предыдущий: нельзя было увидеть, что человек обещает третий
+     раз подряд. Теперь у клиента есть журнал — лента событий, а «текущее
+     состояние» выводится из последней записи. Старые записи переносятся
+     в журнал первой строкой, чтобы ничего не потерялось. */
+  var NOWTS = function () { return new Date().toISOString().slice(0, 16).replace('T', ' '); };
+  (function migrate() {
+    var moved = 0;
+    Object.keys(WORK).forEach(function (n) {
+      var w = WORK[n];
+      if (!w || w.log) return;
+      var e = { ts: w.saved ? w.saved + ' 00:00' : NOWTS(),
+                status: w.status || '', date: w.date || '', sum: w.sum || '', note: w.note || '' };
+      WORK[n] = { log: [e] };
+      moved++;
+    });
+    if (moved) saveWork();
+  })();
+  function logOf(n) { var w = WORK[n]; return (w && w.log) || []; }
+  function lastOf(n) { var l = logOf(n); return l.length ? l[l.length - 1] : {}; }
+  /* Текущее состояние клиента — свёртка журнала: последняя названная дата,
+     последняя сумма, последний статус и последний комментарий. */
+  function cur(n) {
+    var l = logOf(n), o = { date: '', sum: '', note: '', status: '', saved: '', n: l.length };
+    l.forEach(function (e) {
+      if (e.date) o.date = e.date;
+      if (e.sum) o.sum = e.sum;
+      if (e.note) o.note = e.note;
+      if (e.status) o.status = e.status;
+      if (e.ts) o.saved = e.ts;
+    });
+    return o;
+  }
+  function addLog(n, patch) {
+    var w = WORK[n] || (WORK[n] = { log: [] });
+    if (!w.log) w.log = [];
+    var e = { ts: NOWTS() };
+    Object.keys(patch).forEach(function (k) { if (patch[k] !== '' && patch[k] != null) e[k] = patch[k]; });
+    if (Object.keys(e).length < 2) return;
+    var prev = w.log[w.log.length - 1];
+    /* правку той же минуты дописываем в ту же запись, а не плодим строки */
+    if (prev && prev.ts === e.ts) { Object.keys(e).forEach(function (k) { prev[k] = e[k]; }); }
+    else w.log.push(e);
+    saveWork();
+  }
+  function delLog(n, i) {
+    var w = WORK[n]; if (!w || !w.log) return;
+    w.log.splice(i, 1);
+    if (!w.log.length) delete WORK[n];
+    saveWork();
+  }
+  /* Сколько обещаний клиент уже сорвал: дата прошла, а статуса «заплатил»
+     после неё не появилось. Три сорванных обещания — это не забывчивость. */
+  function brokenCount(n) {
+    var l = logOf(n), c = 0;
+    l.forEach(function (e, i) {
+      if (!e.date) return;
+      var d = parseDate(e.date);
+      if (!d || d >= today()) return;
+      var paid = l.slice(i).some(function (x) { return x.status === 'paid'; });
+      if (!paid) c++;
+    });
+    return c;
+  }
+  var STLAB = { '': 'не звонили', talk: 'дозвонились', promise: 'обещал',
+                nore: 'не берёт трубку', paid: 'заплатил' };
 
   var state = { days: DEF, filter: 'over', sort: 'prio', q: '' };
 
@@ -341,12 +458,16 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
          чтобы один крупный долг не вытеснил из списка всё остальное. */
       var aa = a === null ? maxAge + 14 : a;
       var prio = over * Math.log(1 + aa / 14) * (1 + q / 4);
-      var w = WORK[d.name] || {};
+      var w = cur(d.name);
       var pd = parseDate(w.date);
       var broken = !!(pd && w.status !== 'paid' && pd < today());
+      var bc = brokenCount(d.name);
+      /* Сорванные обещания поднимают клиента в списке: каждое следующее
+         говорит, что договорённость сама по себе уже ничего не значит. */
+      if (bc) prio *= (1 + bc * 0.4);
       return { d: d, name: d.name, dz: d.dz, over: over, interm: d.dz - over,
         age: a, ageDays: aa, quiet: q, paid8: paid, days: n, prio: prio,
-        work: w, broken: broken, maxAge: maxAge };
+        work: w, broken: broken, bc: bc, log: logOf(d.name), maxAge: maxAge };
     });
   }
 
@@ -356,13 +477,20 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     return 'r2';
   }
   function statusChip(r) {
-    var w = r.work;
-    if (w.status === 'paid') return '<span class="chip c-ok">рассчитались</span>';
-    if (r.broken) return '<span class="chip c-bad">обещание нарушено ' + esc(dmy(w.date)) + '</span>';
-    if (w.date) return '<span class="chip c-wait">обещал ' + esc(dmy(w.date))
+    var w = r.work, out = '';
+    if (w.status === 'paid') out = '<span class="chip c-ok">рассчитались</span>';
+    else if (r.broken) out = '<span class="chip c-bad">обещание нарушено ' + esc(dmy(w.date)) + '</span>';
+    else if (w.date) out = '<span class="chip c-wait">обещал ' + esc(dmy(w.date))
       + (w.sum ? ' · ' + f0(+w.sum) + ' ₸' : '') + '</span>';
-    return '';
+    else if (w.status === 'talk') out = '<span class="chip c-neu">дозвонились</span>';
+    if (r.bc > 1) out += ' <span class="chip c-bad">сорвано обещаний: ' + r.bc + '</span>';
+    if (w.status === 'nore') out += ' <span class="chip c-bad">не берёт трубку</span>';
+    if (w.n) out += ' <span class="chip c-neu">' + w.n + ' ' + plw(w.n, 'запись', 'записи', 'записей')
+      + ' · ' + esc(String(w.saved).slice(0, 10).split('-').reverse().join('.')) + '</span>';
+    return out;
   }
+  function plw(n, a, b, c) { var m = n % 100; if (m >= 11 && m <= 14) return c;
+    m = n % 10; return m === 1 ? a : (m >= 2 && m <= 4) ? b : c; }
 
   /* Мини-график: столбики отгрузок и точки оплат по неделям — сразу видно,
      возит ли клиент товар и платит ли за него. */
@@ -402,7 +530,7 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
       : r.quiet === 0 ? 'платил на этой неделе'
       : (r.quiet >= pl ? 'не платил ни разу за ' + pl + ' ' + plW(pl)
         : 'последняя оплата ' + r.quiet + ' нед. назад');
-    return '<div class="deb ' + riskClass(r) + '">'
+    return '<div class="deb ' + riskClass(r) + '" data-nm="' + esc(r.name) + '">'
       + '<div class="deb-h">'
       +   '<div><div class="deb-nm">' + esc(nm(r.name)) + '</div>'
       +     '<div>' + statusChip(r) + '</div></div>'
@@ -417,29 +545,63 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
       +   '<div>' + spark(r)
       +     '<div class="spark-l">Столбики — отгрузки по неделям, точки — оплаты. Справа свежая неделя.<br>'
       +     '<b>' + last + '</b> · срок консигнации ' + r.days + ' дн.</div></div>'
-      +   '<div class="work">'
-      +     '<div class="work-t">Что решили с клиентом</div>'
-      +     '<div class="work-g">'
-      +       '<div><label>Обещал заплатить</label>'
-      +         '<input type="date" data-f="date" data-n="' + esc(r.name) + '" value="' + esc(w.date || '') + '"></div>'
-      +       '<div><label>Сумму, ₸</label>'
-      +         '<input type="number" step="1000" data-f="sum" data-n="' + esc(r.name) + '" value="' + esc(w.sum || '') + '"></div>'
-      +       '<div><label>Состояние</label>'
-      +         '<select data-f="status" data-n="' + esc(r.name) + '">'
-      +           '<option value=""' + (!w.status ? ' selected' : '') + '>не звонили</option>'
-      +           '<option value="talk"' + (w.status === 'talk' ? ' selected' : '') + '>говорили</option>'
-      +           '<option value="promise"' + (w.status === 'promise' ? ' selected' : '') + '>обещал</option>'
-      +           '<option value="paid"' + (w.status === 'paid' ? ' selected' : '') + '>заплатил</option>'
-      +         '</select></div>'
-      +     '</div>'
-      +     '<div class="work-r">'
-      +       '<input type="text" data-f="note" data-n="' + esc(r.name) + '" placeholder="комментарий: с кем говорили, что сказал"'
-      +         ' value="' + esc(w.note || '') + '" style="flex:1 1 220px">'
-      +       '<span class="work-s' + (w.saved ? ' ok' : '') + '">'
-      +         (w.saved ? 'записано ' + esc(w.saved) : 'записи нет') + '</span>'
-      +     '</div>'
-      +   '</div>'
+      +   workBox(r)
       + '</div></div>';
+  }
+
+  /* ── БЛОК РАБОТЫ С КЛИЕНТОМ ──────────────────────────────────────
+     Одна строка на звонок: сначала быстрая кнопка «что произошло», при
+     необходимости — дата и сумма обещания, ниже журнал прошлых разговоров.
+     Кнопка пишет запись сразу, поля дописывают её же, если это та же
+     минута, — чтобы один звонок не растекался на четыре строки. */
+  function workBox(r) {
+    var n = esc(r.name), w = r.work, l = r.log;
+    var q = [['talk', '📞 дозвонились'], ['promise', '🤝 обещал'],
+             ['nore', '🔕 не берёт'], ['paid', '✅ заплатил']];
+    var h = '<div class="work">'
+      + '<div class="work-t">Работа с клиентом'
+      + (l.length ? ' <span class="wc">' + l.length + '</span>' : '') + '</div>'
+      + '<div class="qbtn">' + q.map(function (x) {
+          return '<button class="qb' + (w.status === x[0] ? ' on' : '') + '" data-q="' + x[0]
+            + '" data-n="' + n + '">' + x[1] + '</button>';
+        }).join('') + '</div>'
+      + '<div class="work-g">'
+      +   '<div><label>Обещал заплатить</label>'
+      +     '<input type="date" data-f="date" data-n="' + n + '" value="' + esc(w.date || '') + '"></div>'
+      +   '<div><label>Сумму, ₸</label>'
+      +     '<input type="number" step="1000" data-f="sum" data-n="' + n + '" value="' + esc(w.sum || '')
+      +     '" placeholder="' + Math.round(r.over) + '"></div>'
+      +   '<div><label>Кто говорил</label>'
+      +     '<input type="text" data-f="who" data-n="' + n + '" value="' + esc(w.who || '')
+      +     '" placeholder="менеджер"></div>'
+      + '</div>'
+      + '<div class="work-r">'
+      +   '<input type="text" data-f="note" data-n="' + n + '" placeholder="что сказал клиент"'
+      +   ' value="" style="flex:1 1 220px">'
+      +   '<button class="qb add" data-add="' + n + '">записать</button>'
+      + '</div>';
+    if (l.length) {
+      h += '<details class="jr"' + (r.broken || r.bc ? ' open' : '') + '><summary>журнал: '
+        + l.length + ' ' + plw(l.length, 'запись', 'записи', 'записей') + '</summary><div class="jl">'
+        + l.slice().reverse().map(function (e, i) {
+            var idx = l.length - 1 - i;
+            return '<div class="je"><span class="jt">' + esc(dmyts(e.ts)) + '</span>'
+              + (e.status ? '<span class="chip c-' + (e.status === 'paid' ? 'ok'
+                  : e.status === 'nore' ? 'bad' : 'wait') + '">' + STLAB[e.status] + '</span>' : '')
+              + (e.date ? '<span class="jd">обещал ' + esc(dmy(e.date))
+                  + (e.sum ? ' · ' + f0(+e.sum) + ' ₸' : '') + '</span>' : '')
+              + (e.who ? '<span class="jw">' + esc(e.who) + '</span>' : '')
+              + (e.note ? '<span class="jn">' + esc(e.note) + '</span>' : '')
+              + '<button class="jx" data-del="' + n + '" data-i="' + idx + '" title="удалить запись">✕</button>'
+              + '</div>';
+          }).join('') + '</div></details>';
+    }
+    return h + '</div>';
+  }
+  function dmyts(ts) {
+    if (!ts) return '';
+    var p = String(ts).split(' ');
+    return (p[0] || '').split('-').reverse().join('.') + (p[1] ? ' ' + p[1] : '');
   }
 
   function render() {
@@ -465,6 +627,26 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     var prom = all.filter(function (r) { return r.work && r.work.date && !r.broken && r.work.status !== 'paid'; });
     var sProm = prom.reduce(function (s, r) { return s + (+(r.work.sum) || r.over); }, 0);
 
+    heads(all, list);
+    var box = document.getElementById('p-list');
+    box.innerHTML = list.length ? list.map(card).join('')
+      : '<div class="card empty">Никто под этот фильтр не подходит.</div>';
+    bind();
+  }
+
+  /* Шапка и нижняя панель считаются по всем клиентам, поэтому обновляются
+     и после точечной правки одной карточки. */
+  function heads(all, list) {
+    list = list || null;
+    var sOver = all.reduce(function (s, r) { return s + r.over; }, 0);
+    var sDz = all.reduce(function (s, r) { return s + r.dz; }, 0);
+    var nOver = all.filter(function (r) { return r.over > 0; }).length;
+    var dead = all.filter(function (r) { return r.over > 0 && (r.age === null || r.ageDays > 42); });
+    var sDead = dead.reduce(function (s, r) { return s + r.over; }, 0);
+    var broken = all.filter(function (r) { return r.broken; });
+    var sBroken = broken.reduce(function (s, r) { return s + r.over; }, 0);
+    var prom = all.filter(function (r) { return r.work && r.work.date && !r.broken && r.work.status !== 'paid'; });
+    var sProm = prom.reduce(function (s, r) { return s + (+(r.work.sum) || r.over); }, 0);
     document.getElementById('h-sum').textContent = f0(sOver) + ' ₸';
     document.getElementById('h-sub').innerHTML =
       'у <b>' + nOver + '</b> ' + plc(nOver) + ' из ' + all.length + ' при сроке консигнации <b>' + state.days
@@ -481,11 +663,8 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
       + '<span class="l"><b style="color:#c3d0e2">Обещали заплатить</b> · ' + prom.length + ' ' + plc(prom.length) + '<br>'
       + 'срок ещё не наступил</span></div>';
 
-    var box = document.getElementById('p-list');
-    box.innerHTML = list.length ? list.map(card).join('')
-      : '<div class="card empty">Никто под этот фильтр не подходит.</div>';
-
-    var top = list.slice(0, 5).reduce(function (s, r) { return s + r.over; }, 0);
+    var top = (list || all).slice(0, 5).reduce(function (s, r) { return s + r.over; }, 0);
+    list = list || all;
     document.getElementById('p-fix').innerHTML =
       '<span class="n">В списке <b>' + list.length + '</b> ' + plc(list.length) + ' · первые пять держат <b>'
       + money(top) + ' ₸</b></span>'
@@ -494,22 +673,142 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
       + '<button class="btn pri" id="p-csv">⬇ Список на обзвон · Excel</button>';
     var b = document.getElementById('p-csv');
     if (b) b.addEventListener('click', function () { exportList(list); });
-    bind();
+    today_(all);
   }
 
+  /* ── НА СЕГОДНЯ ──────────────────────────────────────────────────
+     Журнал сам по себе ничего не напоминает. Здесь то, что требует
+     звонка именно сегодня: обещания с наступившим сроком, сорванные
+     договорённости и клиенты, до которых давно не доходили руки. */
+  function today_(all) {
+    var el = document.getElementById('p-today');
+    if (!el) return;
+    var t = today(), day = 864e5;
+    var due = [], over = [], cold = [];
+    all.forEach(function (r) {
+      if (r.over <= 0 || r.work.status === 'paid') return;
+      var d = parseDate(r.work.date);
+      if (d) {
+        var diff = Math.round((d - t) / day);
+        if (diff <= 0 && r.broken) over.push(r);
+        else if (diff >= 0 && diff <= 1) due.push(r);
+        return;
+      }
+      var last = r.work.saved ? parseDate(String(r.work.saved).slice(0, 10)) : null;
+      var quietDays = last ? Math.round((t - last) / day) : 999;
+      if (quietDays >= 7) cold.push(r);
+    });
+    cold.sort(function (a, b) { return b.over - a.over; });
+    var grp = [
+      ['#f87171', 'Обещание сорвано', over, 'срок прошёл, денег нет — звонить первым делом'],
+      ['#fbbf24', 'Обещали сегодня', due, 'срок наступает сегодня или завтра — подтвердить оплату'],
+      ['#22d3ee', 'Давно не звонили', cold.slice(0, 8), 'просрочка есть, а разговора не было больше недели']
+    ].filter(function (g) { return g[2].length; });
+    if (!grp.length) {
+      el.innerHTML = '<div class="card"><div class="empty">На сегодня звонков по журналу нет: '
+        + 'у всех либо свежая договорённость, либо нет просрочки.</div></div>';
+      return;
+    }
+    el.innerHTML = '<div class="card"><div class="work-t" style="margin-bottom:10px">На сегодня</div>'
+      + '<div class="tdg">' + grp.map(function (g) {
+          var sum = g[2].reduce(function (s, r) { return s + r.over; }, 0);
+          return '<div class="td" style="--c:' + g[0] + '">'
+            + '<div class="td-h">' + g[1] + ' <b>' + g[2].length + '</b></div>'
+            + '<div class="td-s">' + f0(sum) + ' ₸ · ' + g[3] + '</div>'
+            + '<div class="td-l">' + g[2].slice(0, 6).map(function (r) {
+                return '<button class="tdn" data-go="' + esc(r.name) + '">' + esc(nm(r.name))
+                  + ' <span>' + money(r.over) + '</span></button>';
+              }).join('') + '</div></div>';
+        }).join('') + '</div></div>';
+    [].forEach.call(el.querySelectorAll('[data-go]'), function (b) {
+      b.onclick = function () {
+        var n = b.getAttribute('data-go');
+        var c = document.querySelector('.deb[data-nm="' + cssq(n) + '"]');
+        if (!c) { document.getElementById('p-q').value = nm(n); state.q = nm(n);
+                  state.filter = 'all'; render();
+                  c = document.querySelector('.deb[data-nm="' + cssq(n) + '"]'); }
+        if (c) { c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                 c.classList.add('flash'); setTimeout(function () { c.classList.remove('flash'); }, 1600); }
+      };
+    });
+  }
+
+  /* Одна делегированная привязка на весь список: перерисовка карточек
+     не плодит обработчики, а ввод в поле не теряет фокус — карточка
+     обновляется точечно, а не через полный render(). */
+  var BOUND = false;
+  function fields(box, n) {
+    var o = {};
+    [].forEach.call(box.querySelectorAll('[data-f][data-n="' + cssq(n) + '"]'), function (el) {
+      o[el.getAttribute('data-f')] = el.value;
+    });
+    return o;
+  }
+  function cssq(s) { return String(s).replace(/"/g, '\\"'); }
+  /* Точечное обновление шапки карточки: чипы состояния и счётчик записей.
+     Поля формы остаются нетронутыми вместе с фокусом и введённым текстом. */
+  function refreshHead(n) {
+    var all = build(), r = null;
+    for (var i = 0; i < all.length; i++) if (all[i].name === n) { r = all[i]; break; }
+    var el = document.querySelector('.deb[data-nm="' + cssq(n) + '"]');
+    if (!r || !el) return;
+    var chips = el.querySelector('.deb-nm') && el.querySelector('.deb-nm').nextElementSibling;
+    if (chips) chips.innerHTML = statusChip(r);
+    el.className = 'deb ' + riskClass(r);
+    el.setAttribute('data-nm', n);
+    var t = el.querySelector('.work-t');
+    if (t) t.innerHTML = 'Работа с клиентом'
+      + (r.log.length ? ' <span class="wc">' + r.log.length + '</span>' : '');
+    heads(all);
+  }
+  function refreshCard(n) {
+    var all = build(), r = null;
+    for (var i = 0; i < all.length; i++) if (all[i].name === n) { r = all[i]; break; }
+    var el = document.querySelector('.deb[data-nm="' + cssq(n) + '"]');
+    if (!r || !el) { render(); return; }
+    var tmp = document.createElement('div');
+    tmp.innerHTML = card(r);
+    el.parentNode.replaceChild(tmp.firstChild, el);
+    heads(all);
+  }
   function bind() {
+    if (BOUND) return;
+    BOUND = true;
     var box = document.getElementById('p-list');
-    [].forEach.call(box.querySelectorAll('[data-f]'), function (el) {
-      el.addEventListener('change', function () {
-        var n = el.getAttribute('data-n'), f = el.getAttribute('data-f');
-        var w = WORK[n] || (WORK[n] = {});
-        w[f] = el.value;
-        var d = new Date();
-        w.saved = ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.'
-          + String(d.getFullYear()).slice(2);
-        if (!w.date && !w.sum && !w.note && !w.status) delete WORK[n];
-        saveWork(); render();
-      });
+    box.addEventListener('click', function (ev) {
+      var b = ev.target.closest ? ev.target.closest('button') : null;
+      if (!b) return;
+      var n;
+      if (b.hasAttribute('data-q')) {                     // быстрая кнопка «что произошло»
+        n = b.getAttribute('data-n');
+        var f = fields(box, n);
+        addLog(n, { status: b.getAttribute('data-q'), date: f.date, sum: f.sum,
+                    who: f.who, note: f.note });
+        refreshCard(n);
+      } else if (b.hasAttribute('data-add')) {            // «записать» — из полей
+        n = b.getAttribute('data-add');
+        var g = fields(box, n);
+        if (!g.date && !g.sum && !g.note && !g.who) return;
+        addLog(n, { date: g.date, sum: g.sum, who: g.who, note: g.note });
+        refreshCard(n);
+      } else if (b.hasAttribute('data-del')) {            // удалить запись журнала
+        n = b.getAttribute('data-del');
+        delLog(n, +b.getAttribute('data-i'));
+        refreshCard(n);
+      }
+    });
+    /* Дата и сумма — уже договорённость, пишем их сразу. Но карточку при
+       этом НЕ пересобираем: change прилетает в момент ухода фокуса, то
+       есть ровно тогда, когда человек кликнул в соседнее поле, — замена
+       узла стёрла бы то, что он в этот момент начал печатать. Обновляем
+       только шапку. Комментарий ждёт кнопки «записать», иначе журнал
+       забьётся черновиками. */
+    box.addEventListener('change', function (ev) {
+      var el = ev.target, f = el.getAttribute && el.getAttribute('data-f');
+      if (f !== 'date' && f !== 'sum') return;
+      var n = el.getAttribute('data-n'), g = fields(box, n);
+      addLog(n, { date: g.date, sum: g.sum, who: g.who });
+      refreshHead(n);
     });
   }
 
@@ -679,11 +978,10 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
      менеджеру нужно для разговора, уже в строке: сколько должен, сколько
      из этого просрочено, когда платил последний раз и что обещал. */
   function exportList(list) {
-    var st = { '': 'не звонили', talk: 'говорили', promise: 'обещал', paid: 'заплатил' };
     var head = ['№', 'Клиент', 'Долг всего, ₸', 'Просрочено, ₸', 'Возраст долга, дней',
       'Последняя оплата', 'Оплачено за ' + pays(CON[0] || {}).length + ' нед., ₸',
       'Срок консигнации, дней', 'Обещал заплатить', 'Обещал сумму, ₸', 'Состояние',
-      'Комментарий'];
+      'Разговоров', 'Сорвано обещаний', 'Последний контакт', 'Комментарий'];
     var rows = [head.map(function (h) { return { v: h, s: 1 }; })];
     list.forEach(function (r, i) {
       var w = r.work || {};
@@ -699,27 +997,54 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
         { v: r.days, s: 3 },
         { v: w.date ? dmy(w.date) : '', s: 2 },
         { v: w.sum ? Math.round(+w.sum) || '' : '', s: 3 },
-        { v: st[w.status || ''] || '', s: 2 },
+        { v: STLAB[w.status || ''] || '', s: 2 },
+        { v: r.log.length || '', s: 3 },
+        { v: r.bc || '', s: r.bc ? 10 : 3 },
+        { v: w.saved ? dmyts(w.saved) : '', s: 2 },
         { v: w.note || '', s: 9 }
       ]);
     });
     var sDz = list.reduce(function (a, r) { return a + r.dz; }, 0);
     var sOv = list.reduce(function (a, r) { return a + r.over; }, 0);
     var sPd = list.reduce(function (a, r) { return a + r.paid8; }, 0);
-    rows.push([{ v: '', s: 6 }, { v: 'Итого · ' + list.length + ' ' + plc(list.length), s: 6 },
-      { v: Math.round(sDz), s: 7 }, { v: Math.round(sOv), s: 7 }, { v: '', s: 6 }, { v: '', s: 6 },
-      { v: Math.round(sPd), s: 7 }, { v: '', s: 6 }, { v: '', s: 6 }, { v: '', s: 6 },
-      { v: '', s: 6 }, { v: '', s: 6 }]);
+    var tot = ['', 'Итого · ' + list.length + ' ' + plc(list.length), Math.round(sDz), Math.round(sOv),
+      '', '', Math.round(sPd), '', '', '', '', '', '', '', ''];
+    rows.push(tot.map(function (v) { return { v: v, s: typeof v === 'number' ? 7 : 6 }; }));
     var sheet = {
       name: 'На обзвон', first: true,
       cols: [{ w: 5 }, { w: 42 }, { w: 15 }, { w: 15 }, { w: 12 }, { w: 17 }, { w: 16 },
-        { w: 13 }, { w: 15 }, { w: 15 }, { w: 13 }, { w: 46 }],
+        { w: 13 }, { w: 15 }, { w: 15 }, { w: 13 }, { w: 11 }, { w: 13 }, { w: 17 }, { w: 46 }],
       hRows: { 0: 34 },
       rows: rows
     };
+    /* Второй лист — сам журнал: по строке на разговор. Свод отвечает
+       «кому звонить», журнал — «что уже было сказано», и без него первый
+       лист не проверить. */
+    var jh = ['Клиент', 'Когда', 'Кто говорил', 'Что произошло', 'Обещал заплатить',
+      'Обещал сумму, ₸', 'Комментарий'];
+    var jr = [jh.map(function (h) { return { v: h, s: 1 }; })];
+    list.forEach(function (r) {
+      r.log.forEach(function (e) {
+        jr.push([
+          { v: nm(r.name), s: 2 },
+          { v: dmyts(e.ts), s: 2 },
+          { v: e.who || '', s: 2 },
+          { v: STLAB[e.status || ''] || '', s: 2 },
+          { v: e.date ? dmy(e.date) : '', s: 2 },
+          { v: e.sum ? Math.round(+e.sum) || '' : '', s: 3 },
+          { v: e.note || '', s: 9 }
+        ]);
+      });
+    });
+    var jsheet = {
+      name: 'Журнал разговоров',
+      cols: [{ w: 42 }, { w: 17 }, { w: 16 }, { w: 16 }, { w: 16 }, { w: 15 }, { w: 60 }],
+      hRows: { 0: 30 },
+      rows: jr.length > 1 ? jr : jr.concat([[{ v: 'Записей пока нет', s: 9 }]])
+    };
     var d = new Date();
     var z = function (x) { return (x < 10 ? '0' : '') + x; };
-    saveXlsx([sheet], 'список_на_обзвон_' + d.getFullYear() + '-' + z(d.getMonth() + 1)
+    saveXlsx([sheet, jsheet], 'список_на_обзвон_' + d.getFullYear() + '-' + z(d.getMonth() + 1)
       + '-' + z(d.getDate()) + '.xlsx');
   }
 
@@ -746,7 +1071,51 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
     });
     document.getElementById('p-reset').addEventListener('click', function () {
       if (!Object.keys(WORK).length) return;
+      if (!confirm('Удалить все записи журнала в этом браузере? Действие не отменить — '
+        + 'если нужно сохранить, сначала выгрузите журнал в файл.')) return;
       WORK = {}; saveWork(); render();
+    });
+    /* Журнал живёт в браузере менеджера. Чтобы им можно было поделиться и
+       чтобы он не пропал вместе с очисткой кэша — выгрузка и загрузка файлом. */
+    document.getElementById('p-jexp').addEventListener('click', function () {
+      var blob = new Blob([JSON.stringify({ v: 1, saved: NOWTS(), work: WORK }, null, 1)],
+        { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Журнал обзвона ' + NOWTS().slice(0, 10).split('-').reverse().join('-') + '.json';
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    });
+    var jf = document.getElementById('p-jfile');
+    document.getElementById('p-jimp').addEventListener('click', function () { jf.click(); });
+    jf.addEventListener('change', function () {
+      var f = jf.files && jf.files[0]; if (!f) return;
+      var rd = new FileReader();
+      rd.onload = function () {
+        var o;
+        try { o = JSON.parse(rd.result); } catch (e) { alert('Файл не читается как журнал.'); return; }
+        var inc = (o && o.work) || o;
+        if (!inc || typeof inc !== 'object') { alert('В файле нет журнала.'); return; }
+        /* сливаем по времени записи, дубли одной минуты не размножаем */
+        var added = 0;
+        Object.keys(inc).forEach(function (n) {
+          var src = (inc[n] && inc[n].log) || [];
+          var dst = WORK[n] || (WORK[n] = { log: [] });
+          if (!dst.log) dst.log = [];
+          src.forEach(function (e) {
+            if (!e || !e.ts) return;
+            if (dst.log.some(function (x) { return x.ts === e.ts && x.note === e.note
+              && x.status === e.status && x.date === e.date; })) return;
+            dst.log.push(e); added++;
+          });
+          dst.log.sort(function (a, b) { return String(a.ts).localeCompare(String(b.ts)); });
+          if (!dst.log.length) delete WORK[n];
+        });
+        saveWork(); render();
+        alert(added ? ('Добавлено записей: ' + added) : 'Новых записей в файле нет — журнал уже полный.');
+        jf.value = '';
+      };
+      rd.readAsText(f, 'utf-8');
     });
     var lv = document.getElementById('p-live');
     if (lv && META.date) lv.textContent = '⚡ данные на ' + META.date;
@@ -761,9 +1130,14 @@ footer{text-align:center;color:#3d4a60;font-size:12px;line-height:1.7;padding:24
       + 'неделю, подождёт; долг в двести тысяч, по которому три месяца тишина, не подождёт. Поэтому '
       + 'приоритет складывается из суммы просрочки, возраста долга и того, сколько недель клиент '
       + 'вообще ничего не платил.<br>'
-      + '<b>Обещания</b> вводятся руками и хранятся в этом браузере: в учётной системе их нет. Как '
-      + 'только обещанная дата прошла, а состояние не «заплатил», клиент попадает в «нарушенные '
-      + 'обещания» — это уже другой разговор.';
+      + '<b>Журнал</b> ведётся руками и хранится в этом браузере: в учётной системе таких записей нет. '
+      + 'Каждый звонок — отдельная строка, поэтому видно не только последнюю договорённость, но и то, '
+      + 'что клиент обещает третий раз подряд; счётчик сорванных обещаний поднимает его в списке. '
+      + 'Как только обещанная дата прошла, а состояние не «заплатил», клиент попадает в «нарушенные '
+      + 'обещания» — это уже другой разговор.<br>'
+      + '<b>Журнал у каждого свой.</b> Он не уходит на сервер и не виден коллегам: чтобы передать его '
+      + 'или собрать записи нескольких менеджеров, выгрузите файл и загрузите его у себя — записи '
+      + 'сольются, дубли не размножатся.';
   }
 
   ctl();
