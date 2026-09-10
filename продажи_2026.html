@@ -2556,6 +2556,39 @@ function showDZKZ(btn){
     <div style="height:260px"><canvas id="rev-chart"></canvas></div>
   </div>
 
+  <details id="rev-ana" style="margin-bottom:16px;border:1px solid #1e293b;border-radius:10px;background:#0f172a">
+    <summary style="cursor:pointer;list-style:none;padding:12px 16px;font-size:13.5px;font-weight:700;color:#e2e8f0;display:flex;align-items:center;gap:8px;user-select:none">
+      <span style="color:#c9a94e">📊 Анализ правок</span>
+      <span style="font-weight:500;font-size:12px;color:#94a3b8">кто, когда и на сколько правит — за выбранный период</span>
+      <span style="margin-left:auto;color:#64748b;font-size:12px" id="rev-ana-caret">▾</span>
+    </summary>
+    <div style="padding:0 16px 16px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <span style="font-size:12px;color:#64748b">Период:</span>
+        <span id="rev-per" style="display:flex;gap:6px;flex-wrap:wrap"></span>
+        <span style="font-size:12px;color:#64748b;margin-left:8px">с</span>
+        <input id="rev-d1" type="date" style="font:inherit;font-size:12px;padding:4px 6px;border-radius:6px;border:1px solid #1e293b;background:#0b1220;color:#e2e8f0">
+        <span style="font-size:12px;color:#64748b">по</span>
+        <input id="rev-d2" type="date" style="font:inherit;font-size:12px;padding:4px 6px;border-radius:6px;border:1px solid #1e293b;background:#0b1220;color:#e2e8f0">
+        <label style="font-size:12px;color:#94a3b8;margin-left:8px;display:inline-flex;align-items:center;gap:6px">
+          <input type="checkbox" id="rev-by-at"> считать по дате правки, а не по дню продажи</label>
+      </div>
+      <div id="rev-ana-kpi" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 320px">
+          <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:6px">Кому правят</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px"><tbody id="rev-ana-ctr"></tbody></table>
+        </div>
+        <div style="flex:1 1 220px">
+          <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:6px">В какие часы правят</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px"><tbody id="rev-ana-hour"></tbody></table>
+        </div>
+      </div>
+      <div id="rev-ana-docs" style="margin-top:14px"></div>
+      <div id="rev-ana-pairs" style="margin-top:14px"></div>
+    </div>
+  </details>
+
   <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
     <div style="flex:1 1 260px">
       <div style="font-size:13.5px;font-weight:700;color:#e2e8f0;margin-bottom:8px">Итого по месяцам</div>
@@ -2712,15 +2745,37 @@ function showDZKZ(btn){
       return '<span title="'+esc(tip)+'">'+esc(first.n)+
         (rest.length?' <span style="color:#64748b">+'+rest.length+'</span>':'')+'</span>';
     }
+    function docsTable(r){
+      var d=r.docs||[]; if(!d.length) return '';
+      return '<table style="width:100%;border-collapse:collapse;font-size:12px;margin:2px 0 6px">'+
+        '<tr style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.04em">'+
+        '<td style="padding:3px 6px">Документ</td><td style="padding:3px 6px">Контрагент</td>'+
+        '<td style="padding:3px 6px;text-align:right">Было</td><td style="padding:3px 6px;text-align:right">Стало</td>'+
+        '<td style="padding:3px 6px;text-align:right">Разница</td></tr>'+
+        d.map(function(x){
+          var c=x.delta<0?RED:GREEN;
+          var mark = x.gone?' <span style="color:'+RED+';font-size:11px">удалён</span>'
+                   : x.born?' <span style="color:'+GREEN+';font-size:11px">новый</span>' : '';
+          return '<tr><td style="padding:3px 6px;color:#e2e8f0;white-space:nowrap">№'+esc(x.num)+mark+'</td>'+
+            '<td style="padding:3px 6px;color:#cbd5e1">'+esc(x.ctr)+'</td>'+
+            '<td style="padding:3px 6px;text-align:right;color:#94a3b8">'+ru(x.was)+'</td>'+
+            '<td style="padding:3px 6px;text-align:right;color:#e2e8f0">'+ru(x.now)+'</td>'+
+            '<td style="padding:3px 6px;text-align:right;font-weight:700;color:'+c+'">'+sign(x.delta)+'</td></tr>';
+        }).join('')+
+        (r.docsMore?'<tr><td colspan="5" style="padding:3px 6px;color:#64748b">и ещё '+r.docsMore+' документов</td></tr>':'')+
+        '</table>';
+    }
     function renderLog(day){
       var list = day ? rows.filter(function(r){ return r.d===day; }) : rows;
-      document.getElementById('rev-rows').innerHTML=list.slice(0,300).map(function(r){
+      document.getElementById('rev-rows').innerHTML=list.slice(0,300).map(function(r,ix){
         var c=r.delta<0?RED:GREEN;
         var what=r.delta<0?'уменьшили на':'увеличили на';
         if(r.wiped) what='обнулили день, минус';
         if(r.appeared) what='добавили документы на';
-        return '<tr>'+
-          '<td style="padding:7px 8px;border-bottom:1px solid #131c2e;color:#cbd5e1;white-space:nowrap">'+when(r)+'</td>'+
+        var has=(r.docs||[]).length;
+        return '<tr'+(has?' data-x="'+ix+'" style="cursor:pointer"':'')+'>'+
+          '<td style="padding:7px 8px;border-bottom:1px solid #131c2e;color:#cbd5e1;white-space:nowrap">'+
+            (has?'<span style="color:#c9a94e">▸</span> ':'')+when(r)+'</td>'+
           '<td style="padding:7px 8px;border-bottom:1px solid #131c2e;color:#e2e8f0;font-weight:700;white-space:nowrap">'+dm(r.d)+'</td>'+
           '<td style="padding:7px 8px;border-bottom:1px solid #131c2e;color:#cbd5e1;max-width:260px;overflow:hidden;text-overflow:ellipsis">'+whoCell(r)+'</td>'+
           '<td style="padding:7px 8px;border-bottom:1px solid #131c2e;text-align:right;white-space:nowrap">'+
@@ -2728,8 +2783,18 @@ function showDZKZ(btn){
             '<b style="color:'+c+'">'+ru(r.delta)+' ₸</b></td>'+
           '<td style="padding:7px 8px;border-bottom:1px solid #131c2e;text-align:right;color:#94a3b8;white-space:nowrap">'+
             ru(r.was)+' <span style="color:#64748b">→</span> <span style="color:#e2e8f0">'+ru(r.now)+'</span></td>'+
-          '</tr>';
+          '</tr>'+
+          (has?'<tr data-b="'+ix+'" hidden><td colspan="5" style="padding:0 8px 4px;border-bottom:1px solid #131c2e;background:#0b1220">'+docsTable(r)+'</td></tr>':'');
       }).join('') || '<tr><td colspan="5" style="padding:10px 8px;color:#64748b">Правок задним числом пока не зафиксировано. Сверка идёт каждый час — как только прошедший день изменит сумму, он появится здесь.</td></tr>';
+      /* раскрытие документов по клику на строку */
+      var tb=document.getElementById('rev-rows');
+      [].forEach.call(tb.querySelectorAll('tr[data-x]'),function(tr){
+        tr.onclick=function(){
+          var b=tb.querySelector('tr[data-b="'+tr.dataset.x+'"]'); if(!b) return;
+          b.hidden=!b.hidden;
+          var car=tr.querySelector('span'); if(car) car.textContent=b.hidden?'▸':'▾';
+        };
+      });
       /* подсветка выбранного чипа */
       var box2=document.getElementById('rev-chips');
       if(box2) [].forEach.call(box2.children,function(b){
@@ -2762,6 +2827,132 @@ function showDZKZ(btn){
       });
     })();
     renderLog('');
+
+    /* ── Анализ правок за период ─────────────────────────────────────
+       Считаем по журналу: он и есть первоисточник. Период по умолчанию —
+       день продажи (за какой день правка), потому что бухгалтерию волнует
+       именно закрытый период; переключатель считает по дате правки. */
+    (function(){
+      var per=document.getElementById('rev-per'); if(!per) return;
+      var d1=document.getElementById('rev-d1'), d2=document.getElementById('rev-d2'),
+          byAt=document.getElementById('rev-by-at');
+      var PRE=[[7,'7 дней'],[30,'30 дней'],[0,'всё']];
+      var cur=30;
+      function iso(d){ return d.toISOString().slice(0,10); }
+      function setRange(n){
+        var to=new Date();
+        var from=n?new Date(to.getTime()-n*86400000):new Date(to.getTime()-400*86400000);
+        d1.value=iso(from); d2.value=iso(to); cur=n; draw2();
+      }
+      PRE.forEach(function(p){
+        var b=document.createElement('button'); b.type='button'; b.dataset.n=p[0];
+        b.textContent=p[1];
+        b.style.cssText='cursor:pointer;font:inherit;font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid #1e293b;background:#0f172a;color:#94a3b8';
+        b.onclick=function(){ setRange(p[0]); };
+        per.appendChild(b);
+      });
+      function pick(r){ return byAt.checked ? String(r.at||'').slice(0,10) : r.d; }
+      function num(x){ return ru(x); }
+      function draw2(){
+        [].forEach.call(per.children,function(b){
+          var on=+b.dataset.n===cur;
+          b.style.background=on?'rgba(96,165,250,.18)':'#0f172a';
+          b.style.borderColor=on?'#60a5fa':'#1e293b';
+          b.style.color=on?'#e2e8f0':'#94a3b8';
+        });
+        var a=d1.value, b2=d2.value;
+        var L=rows.filter(function(r){ var k=pick(r); return (!a||k>=a)&&(!b2||k<=b2); });
+        var minus=L.filter(function(r){return r.delta<0;}), plus=L.filter(function(r){return r.delta>0;});
+        var net=L.reduce(function(s2,r){return s2+r.delta;},0);
+        var dset={}; L.forEach(function(r){ dset[r.d]=1; });
+        var kpi=[['Правок',L.length,'#f1f5f9'],
+                 ['Дней затронуто',Object.keys(dset).length,'#f1f5f9'],
+                 ['Уменьшили','−'+num(minus.reduce(function(s2,r){return s2+r.delta;},0))+' ₸',RED],
+                 ['Увеличили','+'+num(plus.reduce(function(s2,r){return s2+r.delta;},0))+' ₸',GREEN],
+                 ['Итого',sign(net)+' ₸',net<0?RED:net>0?GREEN:'#f1f5f9']];
+        document.getElementById('rev-ana-kpi').innerHTML=kpi.map(function(k){
+          return '<div style="flex:1 1 150px;padding:10px 12px;border-radius:9px;background:#0b1220;border:1px solid #1e293b">'+
+            '<div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#64748b">'+k[0]+'</div>'+
+            '<div style="font-size:18px;font-weight:800;color:'+k[2]+'">'+k[1]+'</div></div>'; }).join('');
+        /* кому правят */
+        var byC={};
+        L.forEach(function(r){ (r.who||[]).forEach(function(w){
+          if(!w.delta) return; var o=byC[w.n]=byC[w.n]||{n:0,s:0}; o.n++; o.s+=w.delta; }); });
+        var ctr=Object.keys(byC).map(function(n){return {n:n,c:byC[n].n,s:byC[n].s};})
+                 .sort(function(x,y){return Math.abs(y.s)-Math.abs(x.s);}).slice(0,10);
+        document.getElementById('rev-ana-ctr').innerHTML = ctr.length ? ctr.map(function(x){
+          var c=x.s<0?RED:GREEN;
+          return '<tr><td style="padding:5px 6px;border-bottom:1px solid #131c2e;color:#cbd5e1">'+esc(x.n)+'</td>'+
+            '<td style="padding:5px 6px;border-bottom:1px solid #131c2e;text-align:right;color:#94a3b8">'+x.c+'</td>'+
+            '<td style="padding:5px 6px;border-bottom:1px solid #131c2e;text-align:right;font-weight:700;color:'+c+'">'+sign(x.s)+' ₸</td></tr>';
+        }).join('') : '<tr><td style="padding:8px 6px;color:#64748b">за этот период разбивки по контрагентам нет</td></tr>';
+        /* в какие часы */
+        var byH={};
+        L.forEach(function(r){ var h=String(r.at||'').slice(11,13); if(!h) return;
+          var o=byH[h]=byH[h]||{n:0,s:0}; o.n++; o.s+=r.delta; });
+        var hrs=Object.keys(byH).sort();
+        var mx=Math.max.apply(null,hrs.map(function(h){return byH[h].n;}).concat([1]));
+        document.getElementById('rev-ana-hour').innerHTML = hrs.length ? hrs.map(function(h){
+          var o=byH[h], w=Math.round(100*o.n/mx);
+          return '<tr><td style="padding:4px 6px;color:#cbd5e1;white-space:nowrap">'+h+':00</td>'+
+            '<td style="padding:4px 6px;width:100%"><div style="height:8px;border-radius:4px;background:#60a5fa;width:'+w+'%"></div></td>'+
+            '<td style="padding:4px 6px;text-align:right;color:#94a3b8">'+o.n+'</td></tr>';
+        }).join('') : '<tr><td style="padding:8px 6px;color:#64748b">нет данных</td></tr>';
+        /* что меняли: документы за период */
+        var dl=[];
+        L.forEach(function(r){ (r.docs||[]).forEach(function(x){ dl.push({d:r.d,at:r.at,x:x}); }); });
+        dl.sort(function(a,b){ return Math.abs(b.x.delta)-Math.abs(a.x.delta); });
+        document.getElementById('rev-ana-docs').innerHTML = dl.length ?
+          '<div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:6px">Что меняли · '+dl.length+' документов</div>'+
+          '<div style="max-height:240px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px">'+
+          '<tr style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.04em">'+
+          '<td style="padding:4px 6px">День</td><td style="padding:4px 6px">Документ</td>'+
+          '<td style="padding:4px 6px">Контрагент</td><td style="padding:4px 6px;text-align:right">Было → стало</td>'+
+          '<td style="padding:4px 6px;text-align:right">Разница</td></tr>'+
+          dl.slice(0,60).map(function(o){
+            var c=o.x.delta<0?RED:GREEN;
+            var mark=o.x.gone?' <span style="color:'+RED+';font-size:11px">удалён</span>'
+                    :o.x.born?' <span style="color:'+GREEN+';font-size:11px">новый</span>':'';
+            return '<tr><td style="padding:4px 6px;color:#e2e8f0;font-weight:700;white-space:nowrap">'+dm(o.d)+'</td>'+
+              '<td style="padding:4px 6px;color:#cbd5e1;white-space:nowrap">№'+esc(o.x.num)+mark+'</td>'+
+              '<td style="padding:4px 6px;color:#cbd5e1">'+esc(o.x.ctr)+'</td>'+
+              '<td style="padding:4px 6px;text-align:right;color:#94a3b8;white-space:nowrap">'+ru(o.x.was)+' → '+ru(o.x.now)+'</td>'+
+              '<td style="padding:4px 6px;text-align:right;font-weight:700;color:'+c+'">'+sign(o.x.delta)+'</td></tr>';
+          }).join('')+'</table></div>'
+          : '<div style="font-size:12px;color:#64748b">Разреза по документам за этот период нет: он ведётся только за последние две недели и начинает копиться со следующей сверки.</div>';
+
+        /* похоже на перенос между днями: в одну сверку два дня на близкие суммы разных знаков */
+        var byAtKey={};
+        L.forEach(function(r){ (byAtKey[r.at]=byAtKey[r.at]||[]).push(r); });
+        var pairs=[];
+        Object.keys(byAtKey).forEach(function(k){
+          var g=byAtKey[k];
+          for(var i=0;i<g.length;i++) for(var j=i+1;j<g.length;j++){
+            var x=g[i], y=g[j];
+            if(x.delta*y.delta>=0) continue;
+            var m=Math.max(Math.abs(x.delta),Math.abs(y.delta));
+            if(m<10000) continue;
+            if(Math.abs(x.delta+y.delta)<=0.02*m) pairs.push({at:k,a:x,b:y,net:x.delta+y.delta});
+          }});
+        document.getElementById('rev-ana-pairs').innerHTML = pairs.length ?
+          '<div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:6px">Похоже на перенос документа между днями</div>'+
+          '<div style="font-size:12px;color:#64748b;margin-bottom:6px">В одну и ту же сверку два дня изменились на встречные суммы — почти наверняка накладную перепровели другой датой.</div>'+
+          pairs.slice(0,10).map(function(p){
+            var m=p.a.delta<0?p.a:p.b, pl=p.a.delta<0?p.b:p.a;
+            return '<div style="padding:8px 10px;border-radius:8px;background:#0b1220;border:1px solid #1e293b;margin-bottom:6px;font-size:12.5px;color:#cbd5e1">'+
+              '<b>'+dm(m.d)+'</b> <span style="color:'+RED+'">'+sign(m.delta)+' ₸</span>'+
+              ' <span style="color:#64748b">→</span> <b>'+dm(pl.d)+'</b> <span style="color:'+GREEN+'">'+sign(pl.delta)+' ₸</span>'+
+              ' <span style="color:#64748b">· разница '+sign(p.net)+' ₸ · '+when(p.a)+'</span></div>'; }).join('')
+          : '';
+      }
+      d1.onchange=d2.onchange=function(){ cur=-1; draw2(); };
+      byAt.onchange=draw2;
+      setRange(30);
+      var det=document.getElementById('rev-ana');
+      if(det) det.addEventListener('toggle',function(){
+        var c=document.getElementById('rev-ana-caret'); if(c) c.textContent=det.open?'▴':'▾'; });
+    })();
+
     /* клик по столбику графика — тот же выбор дня */
     if(cv && cv._c){
       cv.onclick=function(ev){

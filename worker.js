@@ -277,6 +277,8 @@ const salesKey = (y) => `sales-live-${y}`;   // хранение по годам
 const TODAY_KEY = "sales-today";   // выручка текущего дня, обновляется каждые 5 минут
 const DAYS_KEY = "sales-days";        // снимок выручки по дням — для поиска правок задним числом
 const REVS_KEY = "sales-revisions";   // журнал: что и когда изменилось в уже прошедших днях
+const DOCS_KEY = "sales-docs";        // документы последних дней — чтобы видеть, ЧТО именно правили
+const DOC_FIELD_KEY = "olap-doc-field";  // как в этой базе называется поле «номер документа»
 const RU_MONTHS = ["", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
                    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 // ВП по месяцам из учёта (в отчёте продаж её нет). Обновляется при пересчёте.
@@ -895,6 +897,58 @@ async function salesTodayJs(env) {
    ────────────────────────────────────────────────────────────────── */
 const REV_WINDOW = 62;      // сколько дней назад смотрим
 const REV_KEEP   = 800;     // сколько последних записей журнала храним
+const DOC_WINDOW = 14;      // на сколько дней назад держим разрез по документам
+
+/* Поле с номером документа в разных сборках айко называется по-разному.
+   Перебираем кандидатов один раз и запоминаем рабочий — дальше без перебора. */
+const DOC_FIELDS = ["DocumentNumber", "Document.Number", "TransactionDocumentNumber", "Document"];
+
+async function olapDocs(token, from, toExcl, field) {
+  const r = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+    method: "POST",
+    headers: { Cookie: `key=${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      reportType: "TRANSACTIONS", buildSummary: "false",
+      groupByRowFields: ["DateTime.DateTyped", field, "Counteragent.Name"],
+      aggregateFields: ["Sum.Incoming"],
+      filters: {
+        "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM",
+                                from, to: toExcl, includeLow: true, includeHigh: true },
+        TransactionType: { filterType: "IncludeValues", values: ["OUTGOING_INVOICE_REVENUE"] },
+      },
+    }),
+  });
+  if (!r.ok) throw new Error(`OLAP(${field}) ${r.status}`);
+  const data = (await r.json()).data || [];
+  const out = {};
+  for (const row of data) {
+    const d = revDate(row["DateTime.DateTyped"]);
+    if (!d) continue;
+    const num = String(row[field] || "").trim() || "—";
+    const ca = String(row["Counteragent.Name"] || "").trim() || "без контрагента";
+    (out[d] || (out[d] = {}));
+    const k = num + "|" + ca;
+    const prev = out[d][k] ? out[d][k].v : 0;
+    out[d][k] = { d: num, c: ca, v: Math.round(prev + (row["Sum.Incoming"] || 0)) };
+  }
+  return out;
+}
+
+/* Снимок документов за последние DOC_WINDOW дней. null — если ни одно из имён
+   поля не подошло; тогда работаем на уровне контрагентов, как раньше. */
+async function docsSnapshot(env, token, from, toExcl) {
+  let field = null;
+  try { field = await env.PLAN.get(DOC_FIELD_KEY); } catch (e) {}
+  const order = field ? [field].concat(DOC_FIELDS.filter((f) => f !== field)) : DOC_FIELDS;
+  for (const f of order) {
+    try {
+      const out = await olapDocs(token, from, toExcl, f);
+      if (f !== field) { try { await env.PLAN.put(DOC_FIELD_KEY, f); } catch (e) {} }
+      return { field: f, days: out };
+    } catch (e) { /* пробуем следующее имя поля */ }
+  }
+  return null;
+}
 
 /* Дата из ответа айко. Поле группировки может прийти и как «2026-09-10»,
    и как «10.09.2026» — принимаем оба вида, иначе тихо отсеются все строки
@@ -977,6 +1031,15 @@ async function buildDays(env) {
     return;
   }
 
+  // Разрез по документам за последние две недели — чтобы видеть не только
+  // «кому», но и «что»: какая накладная появилась, исчезла или изменилась.
+  let docsNow = null, docPrev = {};
+  try { docPrev = JSON.parse((await env.PLAN.get(DOCS_KEY)) || "null") || {}; } catch (e) {}
+  try {
+    const dFrom = almatyISO(new Date(now.getTime() - DOC_WINDOW * 86400000));
+    docsNow = await docsSnapshot(env, await iikoAuthCached(), dFrom, toExcl);
+  } catch (e) { docsNow = null; }
+
   const added = [];
   // База сравнения фиксируется, когда день уже закончился и «отстоялся»:
   // берём его значение не раньше следующих суток. Иначе каждое утро в журнал
@@ -1011,8 +1074,26 @@ async function buildDays(env) {
         who = parts.slice(0, 8);
         more = Math.max(0, parts.length - 8);
       }
+      // Что именно изменилось: сравниваем документы этого дня.
+      let docs = [], docsMore = 0;
+      if (docsNow && docPrev.days && docPrev.days[d]) {
+        const A = docPrev.days[d] || {}, B = (docsNow.days && docsNow.days[d]) || {};
+        const keys = new Set(Object.keys(A).concat(Object.keys(B)));
+        const dd = [];
+        for (const k of keys) {
+          const a = A[k], b = B[k];
+          const av = a ? a.v : 0, bv = b ? b.v : 0;
+          if (av === bv) continue;
+          dd.push({ num: (b || a).d, ctr: (b || a).c, was: av, now: bv, delta: bv - av,
+                    gone: bv === 0 ? true : undefined, born: av === 0 ? true : undefined });
+        }
+        dd.sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta));
+        docs = dd.slice(0, 12); docsMore = Math.max(0, dd.length - 12);
+      }
       added.push({ at: stamp, from: prevAt, d, was, now: nowV, delta: nowV - was,
                    who, more: more || undefined,
+                   docs: docs.length ? docs : undefined,
+                   docsMore: docsMore || undefined,
                    appeared: was === 0 ? true : undefined,
                    wiped: nowV === 0 ? true : undefined });
       snap.base[d] = nowV;                 // новая точка отсчёта
@@ -1025,6 +1106,7 @@ async function buildDays(env) {
   await env.PLAN.put(REVS_KEY, JSON.stringify(log));
   snap.days = cur; snap.updated = stamp;
   await env.PLAN.put(DAYS_KEY, JSON.stringify(snap));
+  if (docsNow) await env.PLAN.put(DOCS_KEY, JSON.stringify(docsNow));
 }
 
 async function revisionsJs(env) {
@@ -1034,7 +1116,7 @@ async function revisionsJs(env) {
   const body = "window.REVISIONS=" + JSON.stringify({
     rows: (log && log.rows) || [], updated: (log && log.updated) || null,
     error: (log && log.error) || null,
-    days: (snap && snap.days) || {}, window: REV_WINDOW }) + ";\n";
+    days: (snap && snap.days) || {}, window: REV_WINDOW, docWindow: DOC_WINDOW }) + ";\n";
   return new Response(body, { headers: {
     "content-type": "application/javascript; charset=utf-8",
     "cache-control": "no-store, must-revalidate",
