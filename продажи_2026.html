@@ -2544,13 +2544,14 @@ function showDZKZ(btn){
 
   <div style="padding:14px 16px;border-radius:10px;background:#0f172a;border:1px solid #1e293b;margin-bottom:16px">
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px">
-      <span style="font-size:13.5px;font-weight:700;color:#e2e8f0">Насколько изменился каждый день</span>
+      <span style="font-size:13.5px;font-weight:700;color:#e2e8f0">Выручка по дням: было и стало</span>
       <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#94a3b8">
-        <span style="width:11px;height:11px;border-radius:3px;background:#22c55e;display:inline-block"></span>
-        стало больше (столбик вверх)</span>
+        <span style="width:11px;height:11px;border-radius:3px;background:#60a5fa;display:inline-block"></span>
+        сейчас в базе</span>
       <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#94a3b8">
-        <span style="width:11px;height:11px;border-radius:3px;background:#ef4444;display:inline-block"></span>
-        стало меньше (столбик вниз)</span>
+        <span style="width:10px;height:10px;background:#fbbf24;display:inline-block;transform:rotate(45deg)"></span>
+        было до правки</span>
+      <span style="font-size:12px;color:#64748b">жёлтая рамка на столбике — день правили</span>
     </div>
     <div style="height:260px"><canvas id="rev-chart"></canvas></div>
   </div>
@@ -2568,15 +2569,16 @@ function showDZKZ(btn){
       </table>
     </div>
     <div style="flex:2 1 420px">
-      <div style="font-size:13.5px;font-weight:700;color:#e2e8f0;margin-bottom:8px">Журнал: было → стало</div>
-      <div style="max-height:320px;overflow:auto">
+      <div style="font-size:13.5px;font-weight:700;color:#e2e8f0;margin-bottom:2px">Журнал правок</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:8px">
+        Когда исправили · за какой день · на сколько · было → стало</div>
+      <div style="max-height:340px;overflow:auto">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead><tr style="color:#64748b;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em">
-          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #1e293b">Заметили</th>
-          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #1e293b">За день</th>
-          <th style="text-align:right;padding:6px 8px;border-bottom:1px solid #1e293b">Было</th>
-          <th style="text-align:right;padding:6px 8px;border-bottom:1px solid #1e293b">Стало</th>
-          <th style="text-align:right;padding:6px 8px;border-bottom:1px solid #1e293b">Разница</th>
+          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #1e293b">Когда исправили</th>
+          <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #1e293b">За какой день</th>
+          <th style="text-align:right;padding:6px 8px;border-bottom:1px solid #1e293b">На сколько</th>
+          <th style="text-align:right;padding:6px 8px;border-bottom:1px solid #1e293b">Было → стало</th>
         </tr></thead>
         <tbody id="rev-rows"></tbody>
       </table>
@@ -2594,79 +2596,121 @@ function showDZKZ(btn){
   function sign(n){ return (n>0?'+':n<0?'−':'') + ru(n); }
   function dm(iso){ var a=String(iso).split('-'); return a[2]+'.'+a[1]; }
   function mlab(iso){ var a=String(iso).split('-'); return MN[+a[1]]+' '+a[0]; }
+  /* «2026-09-10 12:00» -> «10.09.2026 12:00» */
+  function stamp(x){ var m=String(x||'').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/);
+    return m ? m[3]+'.'+m[2]+'.'+m[1]+' '+m[4] : String(x||''); }
   var GREEN='#22c55e', RED='#ef4444';
 
   function draw(D){
     var rows=(D&&D.rows)||[];
+    var days=Object.keys((D&&D.days)||{}).sort();
     /* Сверка не смогла отработать — показываем это, а не прячем блок:
        молча скрытая проверка неотличима от «правок не было». */
-    if(D && D.error){
-      box.style.display='block';
-      document.getElementById('rev-upd').innerHTML =
-        '<span style="color:#fbbf24">\u26a0 сверка не отработала' +
-        (D.updated?' ('+D.updated+')':'') + ': ' + String(D.error) + '</span>';
-      if(!rows.length) return;
-    } else if(!rows.length){ box.style.display='none'; return; }
+    if(!days.length && !rows.length && !(D&&D.error)){ box.style.display='none'; return; }
     box.style.display='block';
-    if(!(D&&D.error)) document.getElementById('rev-upd').textContent =
-      D.updated ? 'сверка ' + D.updated : '';
+    var upd=document.getElementById('rev-upd');
+    if(D && D.error){
+      upd.innerHTML='<span style="color:#fbbf24">\u26a0 сверка не отработала'+
+        (D.updated?' ('+stamp(D.updated)+')':'')+': '+String(D.error)+'</span>';
+    } else {
+      upd.textContent = D.updated ? 'последняя сверка ' + stamp(D.updated) + ' · проверяем каждый час' : '';
+    }
 
-    /* суммарная правка по каждому дню */
-    var byDay={};
-    rows.forEach(function(r){ byDay[r.d]=(byDay[r.d]||0)+r.delta; });
-    var days=Object.keys(byDay).sort();
-    var total=days.reduce(function(s,d){ return s+byDay[d]; },0);
-    var big=days.slice().sort(function(a,b){ return Math.abs(byDay[b])-Math.abs(byDay[a]); })[0];
+    /* суммарная правка по каждому дню и значение «было» (самое раннее) */
+    var byDay={}, wasDay={};
+    rows.forEach(function(r){
+      byDay[r.d]=(byDay[r.d]||0)+r.delta;
+      wasDay[r.d]=r.was;               /* журнал идёт свежими первыми — перетираем до самого раннего */
+    });
+    var ch=Object.keys(byDay);
+    var total=ch.reduce(function(s2,d){ return s2+byDay[d]; },0);
+    var big=ch.slice().sort(function(a,b){ return Math.abs(byDay[b])-Math.abs(byDay[a]); })[0];
 
-    document.getElementById('rev-k1').textContent=days.length;
-    document.getElementById('rev-k1s').textContent='за последние '+(D.window||62)+' дней';
+    document.getElementById('rev-k1').textContent = ch.length;
+    document.getElementById('rev-k1s').textContent =
+      ch.length ? 'за последние '+(D.window||62)+' дней'
+                : 'правок пока не найдено · следим за '+(D.window||62)+' днями';
     var k2=document.getElementById('rev-k2');
-    k2.textContent=sign(total)+' ₸'; k2.style.color = total<0?RED:total>0?GREEN:'#f1f5f9';
+    k2.textContent = ch.length ? sign(total)+' ₸' : '—';
+    k2.style.color = total<0?RED:total>0?GREEN:'#f1f5f9';
     var k3=document.getElementById('rev-k3');
-    k3.textContent=sign(byDay[big])+' ₸'; k3.style.color = byDay[big]<0?RED:GREEN;
-    document.getElementById('rev-k3s').textContent='за '+dm(big);
+    k3.textContent = ch.length ? sign(byDay[big])+' ₸' : '—';
+    k3.style.color = ch.length ? (byDay[big]<0?RED:GREEN) : '#f1f5f9';
+    document.getElementById('rev-k3s').textContent = ch.length ? 'за '+dm(big) : '';
 
-    /* график: столбик на день */
+    /* график: выручка каждого дня, поверх — отметка «было» для правленых дней */
     var cv=document.getElementById('rev-chart');
-    if(cv && window.Chart){
+    if(cv && window.Chart && days.length){
       if(cv._c) cv._c.destroy();
-      cv._c=new Chart(cv.getContext('2d'),{type:'bar',
-        data:{labels:days.map(dm),datasets:[{data:days.map(function(d){return byDay[d];}),
-          backgroundColor:days.map(function(d){return byDay[d]<0?RED:GREEN;}),
-          borderRadius:4,borderSkipped:false,barPercentage:.85,maxBarThickness:26}]},
+      var nowV=days.map(function(d){ return D.days[d]; });
+      var wasV=days.map(function(d){ return wasDay[d]===undefined?null:wasDay[d]; });
+      cv._c=new Chart(cv.getContext('2d'),{
+        data:{labels:days.map(dm),datasets:[
+          {type:'bar',label:'сейчас в базе',data:nowV,
+           backgroundColor:'#60a5fa',
+           borderColor:days.map(function(d){ return wasDay[d]===undefined?'transparent':'#fbbf24'; }),
+           borderWidth:days.map(function(d){ return wasDay[d]===undefined?0:2; }),
+           borderRadius:4,borderSkipped:false,barPercentage:.9,maxBarThickness:26,order:2},
+          {type:'line',label:'было до правки',data:wasV,showLine:false,
+           pointStyle:'rectRot',pointRadius:6,pointHoverRadius:8,
+           pointBackgroundColor:'#fbbf24',pointBorderColor:'#0f172a',pointBorderWidth:2,
+           spanGaps:false,order:1}
+        ]},
         options:{responsive:true,maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
           plugins:{legend:{display:false},datalabels:{display:false},
-            tooltip:{callbacks:{label:function(c){
-              var d=days[c.dataIndex], r=rows.filter(function(x){return x.d===d;});
-              var was=r.length?r[r.length-1].was:0, now=r.length?r[0].now:0;
-              return ['было '+ru(was)+' ₸','стало '+ru(now)+' ₸',
-                      'разница '+sign(byDay[d])+' ₸'];}}}},
-          scales:{y:{grid:{color:'rgba(148,163,184,.12)'},
-                     ticks:{color:'#64748b',callback:function(v){return sign(v);}}},
+            tooltip:{callbacks:{
+              title:function(c){ return 'день '+c[0].label; },
+              label:function(c){
+                var d=days[c.dataIndex];
+                if(c.datasetIndex===0){
+                  return wasDay[d]===undefined ? 'выручка '+ru(D.days[d])+' ₸'
+                                               : 'стало '+ru(D.days[d])+' ₸';
+                }
+                if(wasDay[d]===undefined) return null;
+                return ['было '+ru(wasDay[d])+' ₸','разница '+sign(byDay[d])+' ₸'];
+              }}}},
+          scales:{y:{beginAtZero:true,grid:{color:'rgba(148,163,184,.12)'},
+                     ticks:{color:'#64748b',callback:function(v){return ru(v);}}},
                   x:{grid:{display:false},ticks:{color:'#64748b',maxRotation:0,autoSkip:true}}}}});
     }
 
-    /* итого по месяцам */
+    /* итого по месяцам — только по дням, которые правили */
     var mo={};
-    days.forEach(function(d){ var k=d.slice(0,7); (mo[k]=mo[k]||{n:0,s:0}); mo[k].n++; mo[k].s+=byDay[d]; });
+    ch.forEach(function(d){ var k=d.slice(0,7); (mo[k]=mo[k]||{n:0,s:0}); mo[k].n++; mo[k].s+=byDay[d]; });
     document.getElementById('rev-months').innerHTML=Object.keys(mo).sort().reverse().map(function(k){
       var v=mo[k], c=v.s<0?RED:v.s>0?GREEN:'#94a3b8';
       return '<tr><td style="padding:6px 8px;border-bottom:1px solid #131c2e;color:#e2e8f0">'+mlab(k+'-01')+'</td>'+
         '<td style="padding:6px 8px;border-bottom:1px solid #131c2e;text-align:right;color:#94a3b8">'+v.n+'</td>'+
         '<td style="padding:6px 8px;border-bottom:1px solid #131c2e;text-align:right;font-weight:700;color:'+c+'">'+sign(v.s)+' ₸</td></tr>';
-    }).join('');
+    }).join('') || '<tr><td colspan="3" style="padding:10px 8px;color:#64748b">правок пока не было</td></tr>';
 
-    /* журнал */
+    /* журнал: когда исправили, за какой день, на сколько, было → стало */
+    function when(r){
+      /* Точного момента правки в айко не знает никто — знаем интервал между
+         соседними сверками. Пишем его честно, а не выдаём час за минуту. */
+      var a=String(r.at||''), f=String(r.from||'');
+      var ad=a.slice(0,10), at=a.slice(11);
+      if(!f) return ad?(dm(ad)+' к '+at):'—';
+      var fd=f.slice(0,10), ft=f.slice(11);
+      if(fd===ad) return dm(ad)+', между '+ft+' и '+at;
+      return dm(fd)+' '+ft+' → '+dm(ad)+' '+at;
+    }
     document.getElementById('rev-rows').innerHTML=rows.slice(0,200).map(function(r){
       var c=r.delta<0?RED:GREEN;
-      return '<tr><td style="padding:6px 8px;border-bottom:1px solid #131c2e;color:#94a3b8">'+r.at+'</td>'+
-        '<td style="padding:6px 8px;border-bottom:1px solid #131c2e;color:#e2e8f0">'+dm(r.d)+
-        (r.appeared?' <span style="color:#fbbf24;font-size:11px">появились документы</span>':'')+
-        (r.wiped?' <span style="color:#f87171;font-size:11px">день обнулён</span>':'')+'</td>'+
-        '<td style="padding:6px 8px;border-bottom:1px solid #131c2e;text-align:right;color:#94a3b8">'+ru(r.was)+'</td>'+
-        '<td style="padding:6px 8px;border-bottom:1px solid #131c2e;text-align:right;color:#e2e8f0">'+ru(r.now)+'</td>'+
-        '<td style="padding:6px 8px;border-bottom:1px solid #131c2e;text-align:right;font-weight:700;color:'+c+'">'+sign(r.delta)+'</td></tr>';
-    }).join('');
+      var what=r.delta<0?'уменьшили на':'увеличили на';
+      if(r.wiped) what='обнулили день, минус';
+      if(r.appeared) what='добавили документы на';
+      return '<tr>'+
+        '<td style="padding:7px 8px;border-bottom:1px solid #131c2e;color:#cbd5e1;white-space:nowrap">'+when(r)+'</td>'+
+        '<td style="padding:7px 8px;border-bottom:1px solid #131c2e;color:#e2e8f0;font-weight:700;white-space:nowrap">'+dm(r.d)+'</td>'+
+        '<td style="padding:7px 8px;border-bottom:1px solid #131c2e;text-align:right;white-space:nowrap">'+
+          '<span style="font-size:11.5px;color:#94a3b8">'+what+'</span> '+
+          '<b style="color:'+c+'">'+ru(r.delta)+' ₸</b></td>'+
+        '<td style="padding:7px 8px;border-bottom:1px solid #131c2e;text-align:right;color:#94a3b8;white-space:nowrap">'+
+          ru(r.was)+' <span style="color:#64748b">→</span> <span style="color:#e2e8f0">'+ru(r.now)+'</span></td>'+
+        '</tr>';
+    }).join('') || '<tr><td colspan="4" style="padding:10px 8px;color:#64748b">Правок задним числом пока не зафиксировано. Сверка идёт каждый час — как только прошедший день изменит сумму, он появится здесь.</td></tr>';
   }
 
   var sc=document.createElement('script');

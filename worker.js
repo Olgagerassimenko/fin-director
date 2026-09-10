@@ -948,6 +948,9 @@ async function buildDays(env) {
   let log = { rows: [] };
   try { log = JSON.parse((await env.PLAN.get(REVS_KEY)) || "null") || log; } catch (e) {}
   log.rows = Array.isArray(log.rows) ? log.rows : [];
+  // Время прошлой удачной сверки. Точного момента правки в айко мы не знаем,
+  // но знаем интервал: правку сделали между прошлой сверкой и этой.
+  const prevAt = log.updated || null;
 
   let res;
   try {
@@ -984,7 +987,7 @@ async function buildDays(env) {
     // День пропал из ответа целиком — значит документы за него удалили.
     const nowV = cur[d] === undefined ? 0 : cur[d];
     if (nowV !== was) {
-      added.push({ at: stamp, d, was, now: nowV, delta: nowV - was,
+      added.push({ at: stamp, from: prevAt, d, was, now: nowV, delta: nowV - was,
                    appeared: was === 0 ? true : undefined,
                    wiped: nowV === 0 ? true : undefined });
       snap.base[d] = nowV;                 // новая точка отсчёта
