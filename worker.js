@@ -914,7 +914,7 @@ async function olapByDay(token, from, toExcl) {
     headers: { Cookie: `key=${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       reportType: "TRANSACTIONS", buildSummary: "false",
-      groupByRowFields: ["DateTime.DateTyped"],
+      groupByRowFields: ["DateTime.DateTyped", "Counteragent.Name"],
       aggregateFields: ["Sum.Incoming"],
       filters: {
         "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM",
@@ -925,13 +925,17 @@ async function olapByDay(token, from, toExcl) {
   });
   if (!r.ok) throw new Error(`OLAP ${r.status}: ${(await r.text()).slice(0, 160)}`);
   const data = (await r.json()).data || [];
-  const out = {}; let bad = 0;
+  const out = {}, byCtr = {}; let bad = 0;
   for (const row of data) {
     const d = revDate(row["DateTime.DateTyped"]);
     if (!d) { bad++; continue; }
-    out[d] = Math.round((out[d] || 0) + (row["Sum.Incoming"] || 0));
+    const v = row["Sum.Incoming"] || 0;
+    out[d] = Math.round((out[d] || 0) + v);
+    const ca = String(row["Counteragent.Name"] || "").trim() || "без контрагента";
+    (byCtr[d] || (byCtr[d] = {}));
+    byCtr[d][ca] = Math.round((byCtr[d][ca] || 0) + v);
   }
-  return { days: out, rows: data.length, bad };
+  return { days: out, byCtr, rows: data.length, bad };
 }
 
 async function buildDays(env) {
@@ -945,6 +949,7 @@ async function buildDays(env) {
   let snap = { base: {}, days: {} };
   try { snap = JSON.parse((await env.PLAN.get(DAYS_KEY)) || "null") || snap; } catch (e) {}
   snap.base = snap.base || {};
+  snap.baseC = snap.baseC || {};   // тот же срез, но с разбивкой по контрагентам
   let log = { rows: [] };
   try { log = JSON.parse((await env.PLAN.get(REVS_KEY)) || "null") || log; } catch (e) {}
   log.rows = Array.isArray(log.rows) ? log.rows : [];
@@ -978,19 +983,40 @@ async function buildDays(env) {
   // сыпались бы ложные правки — накладные вчерашнего дня штатно проводят утром.
   for (const [d, v] of Object.entries(cur)) {
     if (d >= yday) continue;                       // сегодня и вчера ещё живые
-    if (snap.base[d] === undefined) snap.base[d] = v;   // первая фиксация
+    if (snap.base[d] === undefined) {              // первая фиксация
+      snap.base[d] = v;
+      snap.baseC[d] = res.byCtr[d] || {};
+    }
   }
   for (const d of Object.keys(snap.base)) {
-    if (d < from) { delete snap.base[d]; continue; }    // вышел из окна
+    if (d < from) { delete snap.base[d]; delete snap.baseC[d]; continue; }   // вышел из окна
     if (d >= yday) continue;
     const was = snap.base[d];
     // День пропал из ответа целиком — значит документы за него удалили.
     const nowV = cur[d] === undefined ? 0 : cur[d];
     if (nowV !== was) {
+      // Кому именно правили. Разбивку по контрагентам знаем только если она
+      // была снята при фиксации базы; у дней, зафиксированных до появления
+      // этой разбивки, её нет — тогда пишем правку без имени, но не молчим.
+      const wasC = snap.baseC[d], nowC = res.byCtr[d] || {};
+      let who = [], more = 0;
+      if (wasC) {
+        const names = new Set(Object.keys(wasC).concat(Object.keys(nowC)));
+        const parts = [];
+        for (const n of names) {
+          const a = wasC[n] || 0, b = nowC[n] || 0;
+          if (b !== a) parts.push({ n, was: a, now: b, delta: b - a });
+        }
+        parts.sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta));
+        who = parts.slice(0, 8);
+        more = Math.max(0, parts.length - 8);
+      }
       added.push({ at: stamp, from: prevAt, d, was, now: nowV, delta: nowV - was,
+                   who, more: more || undefined,
                    appeared: was === 0 ? true : undefined,
                    wiped: nowV === 0 ? true : undefined });
       snap.base[d] = nowV;                 // новая точка отсчёта
+      snap.baseC[d] = nowC;
     }
   }
 
