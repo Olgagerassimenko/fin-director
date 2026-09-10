@@ -1,6 +1,6 @@
 // ============================================================
 //  Система «Пульс» — панель управления «Мастерская Сегодня».
-//  Автор и разработчик: Ольга Герасименко. © 2026. Все права защищены.
+//  © 2026. Все права защищены.
 // ============================================================
 // worker.js — серверный расчёт ДЗ/КЗ прямо в Cloudflare.
 // Читает публичную Google-таблицу, считает и отдаёт /dz_kz.js.
@@ -145,6 +145,12 @@ export default {
     if (url.pathname === "/sales_live.js") {
       return salesJs(env, url);
     }
+    if (url.pathname === "/sales_today.js") {
+      return salesTodayJs(env);
+    }
+    if (url.pathname === "/revisions.js") {
+      return revisionsJs(env);
+    }
     if (url.pathname === "/sales_core.json") {
       return salesCore(env, url);
     }
@@ -225,7 +231,19 @@ export default {
     if (event.cron === "0 3 * * *") {
       ctx.waitUntil(buildSales(env).catch((e) => console.error("продажи:", String(e))));
       ctx.waitUntil(buildSku(env).catch((e) => console.error("sku:", String(e))));
+      ctx.waitUntil(buildDays(env).catch((e) => console.error("правки:", String(e))));
       return;
+    }
+    // Каждые 5 минут — только выручка текущего дня. Один запрос к айко,
+    // отдельный ключ хранения: тяжёлый годовой пересчёт он не трогает.
+    if (event.cron === "*/5 * * * *") {
+      ctx.waitUntil(buildToday(env).catch((e) => console.error("сегодня:", String(e))));
+      return;
+    }
+    // Раз в час ищем правки задним числом: за час их набирается немного,
+    // но если ловить раз в сутки — не видно, когда именно правили.
+    if (event.cron === "0 * * * *") {
+      ctx.waitUntil(buildDays(env).catch((e) => console.error("правки:", String(e))));
     }
     ctx.waitUntil((async () => {
       const js = await buildJs();
@@ -254,6 +272,9 @@ export default {
    ══════════════════════════════════════════════════════════════════ */
 const IIKO = { url: "https://fudzavod.iiko.it", login: "GerassimenkoO", pass: "1234" };
 const salesKey = (y) => `sales-live-${y}`;   // хранение по годам, история не теряется
+const TODAY_KEY = "sales-today";   // выручка текущего дня, обновляется каждые 5 минут
+const DAYS_KEY = "sales-days";        // снимок выручки по дням — для поиска правок задним числом
+const REVS_KEY = "sales-revisions";   // журнал: что и когда изменилось в уже прошедших днях
 const RU_MONTHS = ["", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
                    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 // ВП по месяцам из учёта (в отчёте продаж её нет). Обновляется при пересчёте.
@@ -771,6 +792,177 @@ async function skuJs(env, url) {
 
 /* Ядро ассортимента месяца: позиции, дающие первые 80% выручки.
    Считаем на сервере и отдаём компактный JSON — для выгрузки в Excel. */
+/* ══════════════════════════════════════════════════════════════════
+   ВЫРУЧКА ТЕКУЩЕГО ДНЯ — обновление каждые 5 минут.
+
+   Отдельно от годового расчёта: один запрос к айко за сегодняшний день,
+   свой ключ в хранилище. Если айко недоступен или ответил пусто —
+   НИЧЕГО НЕ ПЕРЕЗАПИСЫВАЕМ. 04.09.2026 на сайт уже уезжали пустые данные,
+   и это хуже, чем данные часовой давности: пустой график читается как
+   «продаж нет». Поэтому прошлое значение остаётся, а рядом с ним
+   показывается время последнего удачного обновления и отметка о сбое.
+   ────────────────────────────────────────────────────────────────── */
+function almatyNow() { return new Date(Date.now() + 5 * 3600000); }
+function almatyISO(d) { return d.toISOString().slice(0, 10); }
+
+async function buildToday(env) {
+  const prev = JSON.parse((await env.PLAN.get(TODAY_KEY)) || "null") || {};
+  const now = almatyNow();
+  const day = almatyISO(now);
+  const hhmm = now.toISOString().slice(11, 16);
+  const save = (o) => env.PLAN.put(TODAY_KEY, JSON.stringify(o));
+
+  let rows;
+  try {
+    const token = await iikoAuth();
+    const next = almatyISO(new Date(now.getTime() + 86400000));
+    rows = await iikoMonth(token, day, next);
+  } catch (e) {
+    // Сбой связи с айко: сохраняем ровно то, что было, и помечаем неудачу.
+    await save({ ...prev, failed: String(e).slice(0, 160), failedAt: hhmm });
+    return;
+  }
+
+  let rev = 0, qty = 0;
+  const ctr = {};
+  for (const r of rows) {
+    const v = r["Sum.Incoming"] || 0;
+    rev += v;
+    qty += Math.abs(r["Amount"] || 0);
+    const ca = String(r["Counteragent.Name"] || "").trim();
+    if (ca) ctr[ca] = (ctr[ca] || 0) + v;
+  }
+
+  // Пустой ответ в середине дня, когда выручка уже была, — почти наверняка сбой
+  // выгрузки, а не отсутствие продаж. Старое значение важнее свежего нуля.
+  if (rev === 0 && prev.day === day && prev.rev > 0) {
+    await save({ ...prev, failed: "айко вернул пусто", failedAt: hhmm });
+    return;
+  }
+
+  const top = Object.entries(ctr).sort((a, b) => b[1] - a[1]).slice(0, 10)
+    .map(([n, v]) => ({ n, v: Math.round(v) }));
+  await save({ day, rev: Math.round(rev), qty: Math.round(qty), docs: rows.length,
+               top, updated: hhmm, failed: null, failedAt: null });
+}
+
+async function salesTodayJs(env) {
+  let p = null;
+  try { p = JSON.parse((await env.PLAN.get(TODAY_KEY)) || "null"); } catch (e) {}
+  const body = "window.SALES_TODAY=" + JSON.stringify(p) + ";\n";
+  return new Response(body, { headers: {
+    "content-type": "application/javascript; charset=utf-8",
+    "cache-control": "no-store, must-revalidate",
+    "access-control-allow-origin": "*" } });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ПРАВКИ ЗАДНИМ ЧИСЛОМ — что изменилось в уже прошедших днях.
+
+   Раз в час снимаем выручку по каждому дню за последние 62 дня и сверяем
+   со вчерашним снимком. Если день, который уже прошёл, изменил сумму —
+   значит в айко правили, добавляли или удаляли документы задним числом.
+   Такие правки не видны ни в одном обычном отчёте: цифра просто тихо
+   становится другой, и месяц, который вы уже отсмотрели, больше не тот.
+
+   Журнал append-only: каждая запись — когда заметили, за какой день,
+   было, стало, разница. Ничего не удаляем.
+   При сбое айко снимок не перезаписываем — иначе следующая сверка решит,
+   что «всё изменилось», и журнал забьётся мусором.
+   ────────────────────────────────────────────────────────────────── */
+const REV_WINDOW = 62;      // сколько дней назад смотрим
+const REV_KEEP   = 800;     // сколько записей журнала храним
+
+async function olapByDay(token, from, toExcl) {
+  const r = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+    method: "POST",
+    headers: { Cookie: `key=${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      reportType: "TRANSACTIONS", buildSummary: "false",
+      groupByRowFields: ["DateTime.DateTyped"],
+      aggregateFields: ["Sum.Incoming"],
+      filters: {
+        "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM",
+                                from, to: toExcl, includeLow: true, includeHigh: true },
+        TransactionType: { filterType: "IncludeValues", values: ["OUTGOING_INVOICE_REVENUE"] },
+      },
+    }),
+  });
+  if (!r.ok) throw new Error(`OLAP ${r.status}: ${(await r.text()).slice(0, 160)}`);
+  const out = {};
+  for (const row of (await r.json()).data || []) {
+    const d = String(row["DateTime.DateTyped"] || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+    out[d] = Math.round((out[d] || 0) + (row["Sum.Incoming"] || 0));
+  }
+  return out;
+}
+
+async function buildDays(env) {
+  const now = almatyNow();
+  const today = almatyISO(now);
+  const from = almatyISO(new Date(now.getTime() - REV_WINDOW * 86400000));
+  const toExcl = almatyISO(new Date(now.getTime() + 86400000));
+
+  let cur;
+  try {
+    const token = await iikoAuth();
+    cur = await olapByDay(token, from, toExcl);
+  } catch (e) {
+    return;                       // сбой связи — снимок не трогаем
+  }
+  if (!Object.keys(cur).length) return;   // пустой ответ — тоже не трогаем
+
+  const snap = JSON.parse((await env.PLAN.get(DAYS_KEY)) || "null");
+  const stamp = `${today} ${now.toISOString().slice(11, 16)}`;
+
+  if (snap && snap.days) {
+    const log = JSON.parse((await env.PLAN.get(REVS_KEY)) || "null") || { rows: [] };
+    const added = [];
+    // Проверяем только ПРОШЕДШИЕ дни: сегодняшний меняется по ходу дня
+    // законно, это не правка задним числом.
+    for (const [d, wasV] of Object.entries(snap.days)) {
+      if (d >= today) continue;
+      const nowV = cur[d];
+      if (nowV === undefined) continue;         // день выпал из окна
+      if (nowV !== wasV) {
+        added.push({ at: stamp, d, was: wasV, now: nowV, delta: nowV - wasV });
+      }
+    }
+    // День, которого во вчерашнем снимке не было, а теперь есть с суммой —
+    // это документы, проведённые за прошлый период.
+    for (const [d, nowV] of Object.entries(cur)) {
+      if (d >= today) continue;
+      if (snap.days[d] === undefined && nowV !== 0) {
+        added.push({ at: stamp, d, was: 0, now: nowV, delta: nowV, appeared: true });
+      }
+    }
+    if (added.length) {
+      log.rows = added.concat(log.rows).slice(0, REV_KEEP);
+      log.updated = stamp;
+      await env.PLAN.put(REVS_KEY, JSON.stringify(log));
+    } else {
+      log.updated = stamp;
+      log.rows = log.rows || [];
+      await env.PLAN.put(REVS_KEY, JSON.stringify(log));
+    }
+  }
+  await env.PLAN.put(DAYS_KEY, JSON.stringify({ days: cur, updated: stamp }));
+}
+
+async function revisionsJs(env) {
+  let log = null, snap = null;
+  try { log = JSON.parse((await env.PLAN.get(REVS_KEY)) || "null"); } catch (e) {}
+  try { snap = JSON.parse((await env.PLAN.get(DAYS_KEY)) || "null"); } catch (e) {}
+  const body = "window.REVISIONS=" + JSON.stringify({
+    rows: (log && log.rows) || [], updated: (log && log.updated) || null,
+    days: (snap && snap.days) || {}, window: REV_WINDOW }) + ";\n";
+  return new Response(body, { headers: {
+    "content-type": "application/javascript; charset=utf-8",
+    "cache-control": "no-store, must-revalidate",
+    "access-control-allow-origin": "*" } });
+}
+
 async function salesCore(env, url) {
   const yNow = new Date(Date.now() - 86400000).getUTCFullYear();
   const p = JSON.parse((await env.PLAN.get(salesKey(yNow))) || "null");

@@ -61,7 +61,7 @@ tr.empty td{color:#7d72b0}
 <div class="wrap">
   <div class="tabs" id="tabs"></div>
   <div id="view"></div>
-  <div class="foot">Система «Пульс» · автор: <b>Ольга Герасименко</b> · © 2026 · Июль — загруженные данные (план оплат), Август — план по образцу июля</div>
+  <div class="foot">Система «Пульс» · © 2026 · Июль — загруженные данные (план оплат), Август — план по образцу июля</div>
 </div>
 <script>
 var PLAN=__DATA__;

@@ -480,7 +480,7 @@ def sheet_method(wb, rows, built):
         ("Цена везде — выручка, делённая на количество, по всем клиентам сразу. Это фактическая цена "
          "отгрузки со всеми скидками, а не прайс.", "p"),
         ("", "p"),
-        ("Система «Пульс» · Фуд Завод · Ольга Герасименко, финансовый директор", "f"),
+        ("Система «Пульс» · Фуд Завод · Фуд Завод", "f"),
     ]
     r = 2
     for t, kind in txt:
@@ -507,7 +507,7 @@ def main():
     sheet_plan(wb, rows, built)
     sheet_prices(wb, rows, full)
     sheet_method(wb, rows, built)
-    wb.properties.creator = "Ольга Герасименко · Фуд Завод"
+    wb.properties.creator = "Фуд Завод"
     wb.properties.title = "План повышения цен"
     wb.save(OUT)
     rec = sum(r["rev"] * (1 + ELASTICITY * r["rec"] / 100) * (r["mg"] / 100 + r["rec"] / 100)
