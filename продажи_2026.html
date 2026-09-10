@@ -2417,7 +2417,10 @@ function showDZKZ(btn){
         w = document.getElementById('upd-when');
   if(!b || !w) return;
   if(!m){ w.textContent = 'дата обновления неизвестна'; b.classList.add('stale'); return; }
-  w.textContent = 'обновлено ' + m.pulled + ' · данные по ' + m.through + ' включительно';
+  /* Текущий день входит в выгрузку, но он неполный — говорим об этом прямо,
+     иначе сегодняшний огрызок выручки читается как обвал продаж. */
+  w.textContent = 'обновлено ' + m.pulled + ' · данные по ' + m.through + ' включительно'
+                + (m.partial && m.partial === m.through ? ' · сегодня — неполный день' : '');
   b.title = m.report || '';
   const d = String(m.pulled).slice(0,10).split('.');
   const age = (Date.now() - new Date(+d[2], +d[1]-1, +d[0]).getTime())/86400000;
