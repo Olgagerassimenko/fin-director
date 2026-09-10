@@ -239,11 +239,34 @@ def main():
     log("-" * 60)
     log(f"{'ИТОГО':7} {'':24} {'':>7} {grand:>18,.0f}")
 
+    # Выручка текущего месяца по последний ПОЛНЫЙ день. Нужна прогнозу:
+    # делить выручку с недоснятым сегодня на целое число дней — значит
+    # занижать темп и, следом, весь прогноз месяца.
+    rev_full, through_full = None, None
+    prev_day = today - timedelta(days=1)
+    if prev_day >= date(YEAR, today.month, 1):
+        try:
+            d1c = date(YEAR, today.month, 1)
+            rows_f = pull(s, H, d1c, today, [REVENUE_TYPE_CODE])          # конец интервала = сегодня, т.е. по вчера
+            rets_f = pull(s, H, d1c, today, [RETURN_TYPE_CODE])
+            # ровно та же арифметика, что и в месячном цикле выше:
+            # выручка минус возвраты покупателей, без модулей и округлений по пути
+            rev_full = round(sum((x.get("Sum.Incoming") or 0) for x in rows_f)
+                             - sum((x.get("Sum.Incoming") or 0) for x in rets_f))
+            through_full = prev_day.strftime("%d.%m.%Y")
+            log(f"\nполные дни месяца: по {through_full} — {rev_full:,.0f} ₸")
+        except Exception as e:
+            log(f"\nвыручку по полным дням получить не удалось: {e}")
+
     # отметка об обновлении для страницы продаж
     meta = {"pulled": almaty.now().strftime("%d.%m.%Y %H:%M"),
             "through": last_full.strftime("%d.%m.%Y"),
             # сегодняшний день собран не до конца — страница пишет об этом рядом с датой
             "partial": today.strftime("%d.%m.%Y"),
+            # по какое число месяц собран целиком и сколько за эти дни выручки —
+            # прогноз считает темп только по полным дням
+            "throughFull": through_full,
+            "revFull": rev_full,
             "source": "iiko",
             "report": "выручка расходных накладных за вычетом возвратов",
             "returns": returns_by_m,

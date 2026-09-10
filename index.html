@@ -954,25 +954,34 @@ a.card.key .card-title{padding-right:100px;}
     var ms=SUM.months||[]; if(!ms.length) return;
     var cur=ms[ms.length-1];
     if(!cur||cur.k!==SUM.month) return;
-    var t=String(META.through||'').split('.');
+    /* Считаем темп ТОЛЬКО по полным дням. Сегодняшний день собран не до конца:
+       если поделить выручку с недоснятым сегодня на целое число дней, темп
+       занижается, и вместе с ним весь прогноз месяца. Поэтому берём
+       throughFull/revFull — месяц по последний завершённый день, а сегодня
+       считаем таким же прогнозным днём, как и все оставшиеся. */
+    var useFull = META.revFull != null && META.throughFull;
+    var t=String((useFull?META.throughFull:META.through)||'').split('.');
     var d=+t[0], mo=+t[1], yr=+t[2];
     if(!d||!mo||!yr) return;
+    var baseRev=useFull?META.revFull:cur.rev;
     var D=dim(yr,mo), left=Math.max(0,D-d);
-    var curDaily=cur.rev/d;
+    var curDaily=baseRev/d;
     var hist=ms.slice(0,-1).slice(-3).map(function(m){
       var p=String(m.k).split('-'); return m.rev/dim(+p[0],+p[1]); });
     var histDaily=hist.length?hist.reduce(function(a,b){return a+b;},0)/hist.length:0;
     var w=d/D;
     var restDaily=histDaily>0?(w*curDaily+(1-w)*histDaily):curDaily;
-    FC={rev:cur.rev,d:d,D:D,left:left,curDaily:curDaily,histDaily:histDaily,
-        histN:hist.length,w:w,restDaily:restDaily,fc:cur.rev+restDaily*left,
+    FC={rev:baseRev,d:d,D:D,left:left,curDaily:curDaily,histDaily:histDaily,
+        histN:hist.length,w:w,restDaily:restDaily,fc:baseRev+restDaily*left,
         flat:curDaily*D,prev:SUM.prevRev||0,prevLbl:SUM.prevLabel||'',
-        lbl:String(SUM.label||'').split(' ')[0],through:META.through||''};
+        full:useFull,today:useFull?(cur.rev-META.revFull):0,
+        lbl:String(SUM.label||'').split(' ')[0],
+        through:(useFull?META.throughFull:META.through)||''};
     var dl=FC.prev>0?(FC.fc/FC.prev*100-100):null;
     set('p-fc', money(FC.fc),
         (dl===null?'':'<span class="'+(dl>=0?'up':'down')+'">'+(dl>=0?'+':'−')
           +Math.abs(dl).toFixed(1)+'%</span> к '+dat(FC.prevLbl)+' · ')
-        +FC.lbl.toLowerCase()+', '+FC.d+' дн. из '+FC.D);
+        +FC.lbl.toLowerCase()+', '+FC.d+(FC.full?' полных дн. из ':' дн. из ')+FC.D);
   }
   window.pulseFcToggle=function(){
     var b=document.getElementById('p-fc-box'); if(!b) return;
@@ -991,7 +1000,8 @@ a.card.key .card-title{padding-right:100px;}
       +   '<div class="fc-big">'+num(FC.fc)+' ₸</div></div>'
       + '<div class="fc-top-side">'
       +   (dl===null?'':'<span class="'+(dl>=0?'up':'down')+'">'+(dl>=0?'+':'−')+Math.abs(dl).toFixed(1)+'%</span> к '+dat(FC.prevLbl)+'<br>')
-      +   'данные по '+FC.through+' · прошло '+FC.d+' дн. из '+FC.D
+      +   'данные по '+FC.through+' · прошло '+FC.d+(FC.full?' полных дн. из ':' дн. из ')+FC.D
+      +   (FC.full&&FC.today>0?'<br><span style="opacity:.75">сегодня ('+num(FC.today)+' ₸) в темп не берём — день не закрыт</span>':'')
       + '</div></div>'
       +'<div class="fc-body">'
       +'<div class="fc-sub">Что уже есть</div>'

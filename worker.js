@@ -231,7 +231,9 @@ export default {
     if (event.cron === "0 3 * * *") {
       ctx.waitUntil(buildSales(env).catch((e) => console.error("продажи:", String(e))));
       ctx.waitUntil(buildSku(env).catch((e) => console.error("sku:", String(e))));
-      ctx.waitUntil(buildDays(env).catch((e) => console.error("правки:", String(e))));
+      // buildDays здесь НЕ вызываем: 03:00 UTC покрывает часовой крон ниже.
+      // Два параллельных вызова читали и писали бы одни и те же ключи, и тот,
+      // кто закончит вторым, затёр бы только что найденные правки.
       return;
     }
     // Каждые 5 минут — только выручка текущего дня. Один запрос к айко,
@@ -314,6 +316,18 @@ async function iikoProbe(url) {
     }
     return J({ hint: "?cols=TRANSACTIONS | ?q=<base64url olap>" });
   } catch (e) { return J({ error: String(e && e.stack || e) }, 500); }
+}
+
+/* Токен авторизации живёт в памяти инстанса ~20 минут. До кэша каждый
+   пятиминутный прогон открывал новую сессию resto API — за сутки больше
+   трёхсот. Число одновременных сессий ограничено лицензией, и лишние
+   мешают работать людям в офисе. */
+let IIKO_TOK = { v: null, till: 0 };
+async function iikoAuthCached() {
+  if (IIKO_TOK.v && Date.now() < IIKO_TOK.till) return IIKO_TOK.v;
+  const t = await iikoAuth();
+  IIKO_TOK = { v: t, till: Date.now() + 20 * 60000 };
+  return t;
 }
 
 async function iikoAuth() {
@@ -806,7 +820,8 @@ function almatyNow() { return new Date(Date.now() + 5 * 3600000); }
 function almatyISO(d) { return d.toISOString().slice(0, 10); }
 
 async function buildToday(env) {
-  const prev = JSON.parse((await env.PLAN.get(TODAY_KEY)) || "null") || {};
+  let prev = {};
+  try { prev = JSON.parse((await env.PLAN.get(TODAY_KEY)) || "null") || {}; } catch (e) {}
   const now = almatyNow();
   const day = almatyISO(now);
   const hhmm = now.toISOString().slice(11, 16);
@@ -814,7 +829,7 @@ async function buildToday(env) {
 
   let rows;
   try {
-    const token = await iikoAuth();
+    const token = await iikoAuthCached();
     const next = almatyISO(new Date(now.getTime() + 86400000));
     rows = await iikoMonth(token, day, next);
   } catch (e) {
@@ -842,8 +857,16 @@ async function buildToday(env) {
 
   const top = Object.entries(ctr).sort((a, b) => b[1] - a[1]).slice(0, 10)
     .map(([n, v]) => ({ n, v: Math.round(v) }));
-  await save({ day, rev: Math.round(rev), qty: Math.round(qty), docs: rows.length,
-               top, updated: hhmm, failed: null, failedAt: null });
+  // rows — это строки отчёта (контрагент × товар), а не документы. Считать их
+  // «накладными» было бы неправдой, поэтому наружу отдаём число контрагентов.
+  const out = { day, rev: Math.round(rev), qty: Math.round(qty),
+                buyers: Object.keys(ctr).length, top,
+                updated: hhmm, failed: null, failedAt: null };
+  // Записываем только когда цифры действительно изменились: 288 прогонов в
+  // сутки против лимита записей в хранилище — записи стоит беречь.
+  if (prev.day === out.day && prev.rev === out.rev && prev.buyers === out.buyers
+      && !prev.failed) return;
+  await save(out);
 }
 
 async function salesTodayJs(env) {
@@ -865,13 +888,25 @@ async function salesTodayJs(env) {
    Такие правки не видны ни в одном обычном отчёте: цифра просто тихо
    становится другой, и месяц, который вы уже отсмотрели, больше не тот.
 
-   Журнал append-only: каждая запись — когда заметили, за какой день,
-   было, стало, разница. Ничего не удаляем.
+   Журнал: когда заметили, за какой день, было, стало, разница.
+   Храним последние 800 записей — этого хватает на несколько месяцев.
    При сбое айко снимок не перезаписываем — иначе следующая сверка решит,
    что «всё изменилось», и журнал забьётся мусором.
    ────────────────────────────────────────────────────────────────── */
 const REV_WINDOW = 62;      // сколько дней назад смотрим
-const REV_KEEP   = 800;     // сколько записей журнала храним
+const REV_KEEP   = 800;     // сколько последних записей журнала храним
+
+/* Дата из ответа айко. Поле группировки может прийти и как «2026-09-10»,
+   и как «10.09.2026» — принимаем оба вида, иначе тихо отсеются все строки
+   и журнал будет вечно пустым без единого признака поломки. */
+function revDate(v) {
+  const t = String(v || "").trim();
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = t.match(/^(\d{2})[.\/](\d{2})[.\/](\d{4})/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  return null;
+}
 
 async function olapByDay(token, from, toExcl) {
   const r = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
@@ -889,65 +924,78 @@ async function olapByDay(token, from, toExcl) {
     }),
   });
   if (!r.ok) throw new Error(`OLAP ${r.status}: ${(await r.text()).slice(0, 160)}`);
-  const out = {};
-  for (const row of (await r.json()).data || []) {
-    const d = String(row["DateTime.DateTyped"] || "").slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+  const data = (await r.json()).data || [];
+  const out = {}; let bad = 0;
+  for (const row of data) {
+    const d = revDate(row["DateTime.DateTyped"]);
+    if (!d) { bad++; continue; }
     out[d] = Math.round((out[d] || 0) + (row["Sum.Incoming"] || 0));
   }
-  return out;
+  return { days: out, rows: data.length, bad };
 }
 
 async function buildDays(env) {
   const now = almatyNow();
   const today = almatyISO(now);
+  const yday = almatyISO(new Date(now.getTime() - 86400000));
   const from = almatyISO(new Date(now.getTime() - REV_WINDOW * 86400000));
   const toExcl = almatyISO(new Date(now.getTime() + 86400000));
-
-  let cur;
-  try {
-    const token = await iikoAuth();
-    cur = await olapByDay(token, from, toExcl);
-  } catch (e) {
-    return;                       // сбой связи — снимок не трогаем
-  }
-  if (!Object.keys(cur).length) return;   // пустой ответ — тоже не трогаем
-
-  const snap = JSON.parse((await env.PLAN.get(DAYS_KEY)) || "null");
   const stamp = `${today} ${now.toISOString().slice(11, 16)}`;
 
-  if (snap && snap.days) {
-    const log = JSON.parse((await env.PLAN.get(REVS_KEY)) || "null") || { rows: [] };
-    const added = [];
-    // Проверяем только ПРОШЕДШИЕ дни: сегодняшний меняется по ходу дня
-    // законно, это не правка задним числом.
-    for (const [d, wasV] of Object.entries(snap.days)) {
-      if (d >= today) continue;
-      const nowV = cur[d];
-      if (nowV === undefined) continue;         // день выпал из окна
-      if (nowV !== wasV) {
-        added.push({ at: stamp, d, was: wasV, now: nowV, delta: nowV - wasV });
-      }
-    }
-    // День, которого во вчерашнем снимке не было, а теперь есть с суммой —
-    // это документы, проведённые за прошлый период.
-    for (const [d, nowV] of Object.entries(cur)) {
-      if (d >= today) continue;
-      if (snap.days[d] === undefined && nowV !== 0) {
-        added.push({ at: stamp, d, was: 0, now: nowV, delta: nowV, appeared: true });
-      }
-    }
-    if (added.length) {
-      log.rows = added.concat(log.rows).slice(0, REV_KEEP);
-      log.updated = stamp;
-      await env.PLAN.put(REVS_KEY, JSON.stringify(log));
-    } else {
-      log.updated = stamp;
-      log.rows = log.rows || [];
-      await env.PLAN.put(REVS_KEY, JSON.stringify(log));
+  let snap = { base: {}, days: {} };
+  try { snap = JSON.parse((await env.PLAN.get(DAYS_KEY)) || "null") || snap; } catch (e) {}
+  snap.base = snap.base || {};
+  let log = { rows: [] };
+  try { log = JSON.parse((await env.PLAN.get(REVS_KEY)) || "null") || log; } catch (e) {}
+  log.rows = Array.isArray(log.rows) ? log.rows : [];
+
+  let res;
+  try {
+    res = await olapByDay(await iikoAuthCached(), from, toExcl);
+  } catch (e) {
+    log.updated = stamp; log.error = String(e).slice(0, 160);
+    await env.PLAN.put(REVS_KEY, JSON.stringify(log));
+    return;                              // снимок не трогаем
+  }
+  const cur = res.days;
+  if (!Object.keys(cur).length) {
+    // Ни одной строки не разобрали. Либо айко отдал пусто, либо поле даты
+    // пришло в неизвестном виде. Пишем это в диагностику, а не молчим.
+    log.updated = stamp;
+    log.error = res.rows
+      ? `дата в ответе не распознана (строк ${res.rows}, из них негодных ${res.bad})`
+      : "айко вернул пустой ответ";
+    await env.PLAN.put(REVS_KEY, JSON.stringify(log));
+    return;
+  }
+
+  const added = [];
+  // База сравнения фиксируется, когда день уже закончился и «отстоялся»:
+  // берём его значение не раньше следующих суток. Иначе каждое утро в журнал
+  // сыпались бы ложные правки — накладные вчерашнего дня штатно проводят утром.
+  for (const [d, v] of Object.entries(cur)) {
+    if (d >= yday) continue;                       // сегодня и вчера ещё живые
+    if (snap.base[d] === undefined) snap.base[d] = v;   // первая фиксация
+  }
+  for (const d of Object.keys(snap.base)) {
+    if (d < from) { delete snap.base[d]; continue; }    // вышел из окна
+    if (d >= yday) continue;
+    const was = snap.base[d];
+    // День пропал из ответа целиком — значит документы за него удалили.
+    const nowV = cur[d] === undefined ? 0 : cur[d];
+    if (nowV !== was) {
+      added.push({ at: stamp, d, was, now: nowV, delta: nowV - was,
+                   appeared: was === 0 ? true : undefined,
+                   wiped: nowV === 0 ? true : undefined });
+      snap.base[d] = nowV;                 // новая точка отсчёта
     }
   }
-  await env.PLAN.put(DAYS_KEY, JSON.stringify({ days: cur, updated: stamp }));
+
+  log.updated = stamp; log.error = null;
+  if (added.length) log.rows = added.concat(log.rows).slice(0, REV_KEEP);
+  await env.PLAN.put(REVS_KEY, JSON.stringify(log));
+  snap.days = cur; snap.updated = stamp;
+  await env.PLAN.put(DAYS_KEY, JSON.stringify(snap));
 }
 
 async function revisionsJs(env) {
@@ -956,6 +1004,7 @@ async function revisionsJs(env) {
   try { snap = JSON.parse((await env.PLAN.get(DAYS_KEY)) || "null"); } catch (e) {}
   const body = "window.REVISIONS=" + JSON.stringify({
     rows: (log && log.rows) || [], updated: (log && log.updated) || null,
+    error: (log && log.error) || null,
     days: (snap && snap.days) || {}, window: REV_WINDOW }) + ";\n";
   return new Response(body, { headers: {
     "content-type": "application/javascript; charset=utf-8",
