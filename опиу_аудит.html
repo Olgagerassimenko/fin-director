@@ -156,6 +156,22 @@ td.dt-note{color:#c4b5fd;font-size:10.5px;max-width:320px}
 </div>
 
 <div class="wrap">
+  <!-- Что не внесено. Стоит выше вкладок намеренно: месяц может быть помечен
+       закрытым, а зарплата в нём не проведена — и тогда прибыль в отчёте
+       завышена на всю её сумму. Это первое, что нужно видеть. -->
+  <details id="nv" style="margin:0 0 14px;border:1px solid #3f2d1a;border-radius:12px;background:#1a1206">
+    <summary id="nv-sum" style="cursor:pointer;list-style:none;padding:13px 16px;font-size:14px;font-weight:700;color:#fbbf24;display:flex;align-items:center;gap:10px;flex-wrap:wrap;user-select:none">
+      <span>⚠ Что не внесено</span><span id="nv-head" style="font-weight:500;color:#e2e8f0"></span>
+      <span style="margin-left:auto;color:#a16207;font-size:12px" id="nv-caret">▾</span>
+    </summary>
+    <div style="padding:0 16px 16px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <span style="font-size:12px;color:#94a3b8">Месяц:</span><span id="nv-mo" style="display:flex;gap:6px;flex-wrap:wrap"></span>
+      </div>
+      <div id="nv-body"></div>
+    </div>
+  </details>
+
   <div class="tabs">
     <button class="tab active" data-s="svod">📊 Свод</button>
     <button class="tab" data-s="stat">🧾 Постатейно</button>
@@ -1425,6 +1441,124 @@ BUILD.god=function(){
 };
 
 built.svod=1; BUILD.svod();
+})();
+</script>
+<script>
+/* ── «Что не внесено» ───────────────────────────────────────────────
+   Считаем по находкам аудита: статья, которая платится почти каждый месяц,
+   а в выбранном обнулилась, — это не экономия, а непроведённый документ.
+   Такие суммы складываем и показываем, какой на самом деле получается
+   результат месяца. Отдельно — то, что внесено оценкой, а не по документу. */
+(function(){
+  var D=window.OPIU_AUDIT, box=document.getElementById('nv');
+  if(!D||!box) return;
+  var F=D.findings||[], M=D.months||[], L=D.labels||[], K=D.kpi||{}, META=D.meta||{};
+  if(!F.length||!M.length){ box.style.display='none'; return; }
+  function ru(n){ return Math.round(Math.abs(n)).toLocaleString('ru-RU').replace(/\u00a0/g,' '); }
+  function sign(n){ return (n>0?'+':n<0?'−':'')+ru(n); }
+  function lab(m){ var i=M.indexOf(m); return i<0?m:L[i]; }
+  /* месяцы, по которым вообще есть находки, свежие первыми */
+  var mos=[];
+  F.forEach(function(f){ if(f.m&&mos.indexOf(f.m)<0) mos.push(f.m); });
+  mos=mos.filter(function(m){ return M.indexOf(m)>=0; }).sort().reverse().slice(0,6);
+  if(!mos.length){ box.style.display='none'; return; }
+  /* Какой месяц считается отчётным.
+     Бухгалтерия закрывает прошлый месяц к 10-му числу следующего. До 10-го
+     смотреть на прошлый месяц бессмысленно: он ещё в работе, и «непроведённое»
+     в нём — просто незакрытые дни. Поэтому:
+       день  < 10 -> отчётный = позапрошлый месяц;
+       день >= 10 -> отчётный = прошлый.
+     Ровно 10-го числа отчётный месяц сдвигается на следующий сам. */
+  function reportMonth(){
+    var n=new Date(Date.now()+5*3600000);            // время Алматы
+    var y=n.getUTCFullYear(), m=n.getUTCMonth();
+    var back=n.getUTCDate()>=10?1:2;
+    var d=new Date(Date.UTC(y,m-back,1));
+    return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2);
+  }
+  var RM=reportMonth();
+  var def = mos.indexOf(RM)>=0 ? RM
+          : (mos.filter(function(m){ var x=META[m]||{}; return x.closed&&x.full; })[0]||mos[0]);
+  var cur=def;
+
+  function draw(){
+    var i=M.indexOf(cur);
+    var zero=F.filter(function(f){ return f.m===cur&&f.t==='zero'; }).sort(function(a,b){return b.s-a.s;});
+    var stop=F.filter(function(f){ return f.m===cur&&f.t==='stopped'; }).sort(function(a,b){return b.s-a.s;});
+    var round=F.filter(function(f){ return f.m===cur&&f.t==='round'; });
+    var spike=F.filter(function(f){ return f.m===cur&&f.t==='spike'; }).sort(function(a,b){return b.s-a.s;});
+    var sum=zero.reduce(function(s2,f){ return s2+(f.s||0); },0);
+    var net=(K.net&&K.net[i]!=null)?K.net[i]:null;
+    var real=net===null?null:net-sum;
+    var mt=META[cur]||{};
+
+    var isRM=(cur===RM);
+    document.getElementById('nv-head').innerHTML = zero.length
+      ? lab(cur)+': не проведено <b style="color:#fbbf24">'+ru(sum)+' ₸</b> по '+zero.length+' статьям'
+        +(real!==null&&net>0&&real<0?' · прибыль показана <b>+'+ru(net)+'</b>, фактически <b style="color:#f87171">−'+ru(real)+'</b>':'')
+      : lab(cur)+': непроведённых регулярных статей не найдено';
+
+    var h='';
+    if(mt.closed&&zero.length){
+      h+='<div style="padding:10px 12px;border-radius:9px;background:rgba(248,113,113,.10);border:1px solid rgba(248,113,113,.35);color:#fecaca;font-size:13px;margin-bottom:12px">'
+       +'Месяц помечен в iiko как <b>закрытый</b> (покрытие '+Math.round((mt.share||1)*100)+'%), '
+       +'но перечисленное ниже в нём не проведено. Закрытый месяц с непроведённой зарплатой опаснее открытого: '
+       +'по нему принимают решения, а выглядит он благополучно.</div>';
+    }
+    if(zero.length){
+      h+='<div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:6px">Регулярные статьи, которых в этом месяце нет</div>'
+       +'<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.04em">'
+       +'<td style="padding:4px 6px">Статья</td><td style="padding:4px 6px;text-align:right">Обычно в месяц</td></tr>'
+       + zero.map(function(f){ return '<tr><td style="padding:5px 6px;border-bottom:1px solid #2a2010;color:#e2e8f0">'+f.a+'</td>'
+           +'<td style="padding:5px 6px;border-bottom:1px solid #2a2010;text-align:right;font-weight:700;color:#fbbf24">'+ru(f.s)+' ₸</td></tr>'; }).join('')
+       +'<tr><td style="padding:7px 6px;font-weight:700;color:#e2e8f0">Итого не проведено</td>'
+       +'<td style="padding:7px 6px;text-align:right;font-weight:800;color:#fbbf24">'+ru(sum)+' ₸</td></tr></table>';
+      if(net!==null){
+        h+='<div style="margin-top:10px;padding:10px 12px;border-radius:9px;background:#0f172a;border:1px solid #1e293b;font-size:13px;color:#cbd5e1">'
+         +'Чистая прибыль в отчёте <b style="color:#e2e8f0">'+sign(net)+' ₸</b>'
+         +' &minus; непроведённое <b style="color:#fbbf24">'+ru(sum)+' ₸</b>'
+         +' = фактически <b style="color:'+(real<0?'#f87171':'#4ade80')+'">'+sign(real)+' ₸</b></div>';
+      }
+    }
+    if(round.length){
+      h+='<div style="font-size:13px;font-weight:700;color:#e2e8f0;margin:14px 0 6px">Внесено оценкой, а не по документу</div>'
+       + round.map(function(f){ return '<div style="padding:8px 10px;border-radius:8px;background:#0f172a;border:1px solid #1e293b;margin-bottom:6px;font-size:12.5px;color:#cbd5e1">'
+           +'<b style="color:#e2e8f0">'+f.a+'</b> · '+f.d+'</div>'; }).join('');
+    }
+    if(stop.length){
+      h+='<div style="font-size:13px;font-weight:700;color:#e2e8f0;margin:14px 0 6px">Статьи, которые молчат третий месяц</div>'
+       +'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px">Если расход никуда не делся — он теперь сидит в другой строке, и сравнение с прошлым годом врёт.</div>'
+       + stop.map(function(f){ return '<div style="padding:6px 10px;border-radius:8px;background:#0f172a;border:1px solid #1e293b;margin-bottom:5px;font-size:12.5px;color:#cbd5e1">'
+           +'<b style="color:#e2e8f0">'+f.a+'</b> · '+f.d+'</div>'; }).join('');
+    }
+    if(spike.length){
+      h+='<div style="font-size:13px;font-weight:700;color:#e2e8f0;margin:14px 0 6px">Разовые всплески — проверить первичку</div>'
+       + spike.slice(0,6).map(function(f){ return '<div style="padding:6px 10px;border-radius:8px;background:#0f172a;border:1px solid #1e293b;margin-bottom:5px;font-size:12.5px;color:#cbd5e1">'
+           +'<b style="color:#e2e8f0">'+f.a+'</b> · '+f.d+'</div>'; }).join('');
+    }
+    if(!h) h='<div style="font-size:13px;color:#94a3b8">За этот месяц аудит не нашёл непроведённых статей.</div>';
+    h+='<div style="margin-top:12px;font-size:11.5px;color:#64748b">'
+     +(isRM?'Отчётным считается '+lab(RM)+': бухгалтерия закрывает месяц к 10-му числу следующего, и ровно 10-го отчётный месяц сдвигается сам.'
+           :'Открыт '+lab(cur)+'. Отчётный сейчас — '+lab(RM)+'.')+'</div>';
+    document.getElementById('nv-body').innerHTML=h;
+    [].forEach.call(document.getElementById('nv-mo').children,function(b){
+      var on=b.dataset.m===cur;
+      b.style.background=on?'rgba(251,191,36,.18)':'#0f172a';
+      b.style.borderColor=on?'#fbbf24':'#1e293b';
+      b.style.color=on?'#fde68a':'#94a3b8';
+    });
+  }
+  var mo=document.getElementById('nv-mo');
+  mos.forEach(function(m){
+    var b=document.createElement('button'); b.type='button'; b.dataset.m=m;
+    b.textContent=lab(m)+(m===RM?' · отчётный':'');
+    b.style.cssText='cursor:pointer;font:inherit;font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid #1e293b;background:#0f172a;color:#94a3b8';
+    b.onclick=function(ev){ ev.preventDefault(); cur=m; draw(); box.open=true; };
+    mo.appendChild(b);
+  });
+  draw();
+  box.addEventListener('toggle',function(){
+    var c=document.getElementById('nv-caret'); if(c) c.textContent=box.open?'▴':'▾'; });
 })();
 </script>
 <script src="nav.js"></script>
