@@ -172,6 +172,11 @@ export default {
       return new Response(JSON.stringify(out), { headers: {
         "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
     }
+    if (url.pathname === "/pay_week") {
+      return payWeek(env, url).catch((e) =>
+        new Response("error," + String(e).slice(0, 120), { status: 500,
+          headers: { "content-type": "text/csv; charset=utf-8" } }));
+    }
     if (url.pathname === "/sales_week") {
       return salesWeek(env, url).catch((e) =>
         new Response("error," + String(e).slice(0, 120), { status: 500,
@@ -454,6 +459,55 @@ const ctrKey = (name) => {
   const m = String(name).match(/^\s*(\d+)/);
   return m ? m[1] : String(name).trim();
 };
+
+/* Поступление денег по контрагентам за период — зеркало salesWeek, но по
+   движению денег: статья «1.Выручка» на действующих счетах. Нужно, чтобы
+   сверять графу «Поступление ДС» в ДЗ-таблице с тем, что видит айко.
+   Важно: первоисточник по деньгам — банк, айко лишь отражает проводки.
+   Поэтому это инструмент сверки, а не эталон для слепой замены. */
+const PAY_ACCOUNTS = ["99Главная касса", "Касса Взаиморасчеты", "ФЗ Айдана каспи",
+  "ФЗ Жусан Банк", "ФЗ Каспи", "ФЗ Каспи копилка", "ФЗ ДЕПОЗИТ каспи",
+  "ФЗ РБК Каламкас", "Цой Д.Л.Каспи", "ФЗ Ермагамбет отдел продаж"];
+const PAY_CATEGORY = "1.Выручка";
+
+async function payWeek(env, url) {
+  const p = url.searchParams;
+  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  const from = p.get("from"), to = p.get("to");
+  if (!from || !to) return new Response("need from & to", { status: 400 });
+  const toExcl = new Date(Date.parse(to) + 86400000).toISOString().slice(0, 10);
+  const token = await iikoAuthCached();
+  const r = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+    method: "POST",
+    headers: { Cookie: `key=${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      reportType: "TRANSACTIONS", buildSummary: "true",
+      groupByRowFields: ["Counteragent.Name"],
+      aggregateFields: ["Sum.Incoming", "Sum.Outgoing"],
+      filters: {
+        "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM",
+                                from, to: toExcl, includeLow: true, includeHigh: false },
+        "Account.Name": { filterType: "IncludeValues", values: PAY_ACCOUNTS },
+        CashFlowCategory: { filterType: "IncludeValues", values: [PAY_CATEGORY] },
+      },
+    }),
+  });
+  if (!r.ok) throw new Error(`OLAP ${r.status}: ${(await r.text()).slice(0, 150)}`);
+  const agg = {};
+  for (const row of (await r.json()).data || []) {
+    const ca = String(row["Counteragent.Name"] || "").trim();
+    if (!ca) continue;
+    const net = (row["Sum.Incoming"] || 0) - (row["Sum.Outgoing"] || 0);
+    agg[ctrKey(ca)] = (agg[ctrKey(ca)] || 0) + net;
+  }
+  let csv = `prefix,sum\nПЕРИОД:${from}..${to},0\n`;
+  for (const [k, v] of Object.entries(agg))
+    if (Math.round(v) !== 0) csv += `${k},${Math.round(v)}\n`;
+  return new Response(csv, { headers: {
+    "content-type": "text/csv; charset=utf-8",
+    "cache-control": "no-store",
+    "access-control-allow-origin": "*" } });
+}
 
 /* Продажи по контрагентам за неделю (CSV для Google-таблицы: IMPORTDATA+ВПР).
    Формат ответа: строки "префикс,сумма". Префикс = ведущее число имени
