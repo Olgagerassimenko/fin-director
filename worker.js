@@ -861,13 +861,22 @@ async function buildToday(env) {
     .map(([n, v]) => ({ n, v: Math.round(v) }));
   // rows — это строки отчёта (контрагент × товар), а не документы. Считать их
   // «накладными» было бы неправдой, поэтому наружу отдаём число контрагентов.
+  const same = prev.day === day && prev.rev === Math.round(rev)
+               && prev.buyers === Object.keys(ctr).length && !prev.failed;
+  // «updated» — когда выручка последний раз менялась, «checked» — когда мы
+  // последний раз смотрели. Ночью продаж нет, и без второй отметки блок
+  // выглядит зависшим: «обновлено 02:40» в девять утра читается как поломка.
   const out = { day, rev: Math.round(rev), qty: Math.round(qty),
                 buyers: Object.keys(ctr).length, top,
-                updated: hhmm, failed: null, failedAt: null };
-  // Записываем только когда цифры действительно изменились: 288 прогонов в
-  // сутки против лимита записей в хранилище — записи стоит беречь.
-  if (prev.day === out.day && prev.rev === out.rev && prev.buyers === out.buyers
-      && !prev.failed) return;
+                updated: same ? (prev.updated || hhmm) : hhmm,
+                checked: hhmm, failed: null, failedAt: null };
+  // Пишем при изменении цифр и не реже раза в полчаса — 288 прогонов в сутки
+  // против лимита записей в хранилище, записи стоит беречь.
+  if (same) {
+    const pc = String(prev.checked || "");
+    const mins = (x) => (+x.slice(0, 2)) * 60 + (+x.slice(3, 5));
+    if (pc && Math.abs(mins(hhmm) - mins(pc)) < 30) return;
+  }
   await save(out);
 }
 
