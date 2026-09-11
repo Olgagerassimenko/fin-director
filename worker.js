@@ -189,6 +189,12 @@ export default {
         new Response("error," + String(e).slice(0, 120), { status: 500,
           headers: { "content-type": "text/csv; charset=utf-8" } }));
     }
+    if (url.pathname === "/returns_week") {
+      return returnsWeek(env, url).catch((e) =>
+        new Response("error," + String(e).slice(0, 150), { status: 500,
+          headers: { "content-type": "text/csv; charset=utf-8",
+                     "access-control-allow-origin": "*" } }));
+    }
     if (url.pathname === "/sales_week") {
       return salesWeek(env, url).catch((e) =>
         new Response("error," + String(e).slice(0, 120), { status: 500,
@@ -627,6 +633,68 @@ async function payWeek(env, url) {
    Формат ответа: строки "префикс,сумма". Префикс = ведущее число имени
    контрагента (тот же ctrKey, по которому сходится сверка).
    Параметры: ?from=YYYY-MM-DD&to=YYYY-MM-DD (включительно), &t=токен. */
+/* Возвраты покупателей за период, по контрагентам. Два канала, оба нужны:
+   1) обратная реализация — INCOMING_RETURNED_INVOICE_REVENUE;
+   2) с июля 2026 часть возвратов проводят актом приёма услуг (INCOMING_SERVICE)
+      со счётом «Торговая выручка» — в номенклатуре они не расписаны, видно
+      только по контрагенту. Без второго канала август показывал 20 тысяч
+      возвратов вместо пяти с половиной миллионов (см. iiko_export.py).      */
+const RET_TYPE_INVOICE = "INCOMING_RETURNED_INVOICE_REVENUE";
+const RET_TYPE_SERVICE = "INCOMING_SERVICE";
+const RET_SERVICE_ACCOUNT = "Торговая выручка";
+
+async function olapReturns(token, from, toExcl) {
+  const ask = async (types, groupAccount) => {
+    const r = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+      method: "POST",
+      headers: { Cookie: `key=${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reportType: "TRANSACTIONS", buildSummary: "true",
+        groupByRowFields: groupAccount
+          ? ["Counteragent.Name", "Account.Name"] : ["Counteragent.Name"],
+        aggregateFields: ["Sum.Incoming"],
+        filters: {
+          "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM",
+                                  from, to: toExcl, includeLow: true, includeHigh: true },
+          TransactionType: { filterType: "IncludeValues", values: types },
+        },
+      }),
+    });
+    if (!r.ok) throw new Error(`OLAP возвраты ${r.status}: ${(await r.text()).slice(0, 150)}`);
+    return (await r.json()).data || [];
+  };
+  const agg = {};
+  const add = (name, v) => {
+    const ca = String(name || "").trim();
+    if (!ca || !(v > 0.5)) return;
+    agg[ctrKey(ca)] = (agg[ctrKey(ca)] || 0) + v;
+  };
+  for (const x of await ask([RET_TYPE_INVOICE], false))
+    add(x["Counteragent.Name"], x["Sum.Incoming"] || 0);
+  for (const x of await ask([RET_TYPE_SERVICE], true)) {
+    if (String(x["Account.Name"] || "").trim() !== RET_SERVICE_ACCOUNT) continue;
+    add(x["Counteragent.Name"], x["Sum.Incoming"] || 0);
+  }
+  return agg;
+}
+
+/* Только возвраты, без отгрузки — чтобы было видно, из чего складывается нетто. */
+async function returnsWeek(env, url) {
+  const p = url.searchParams;
+  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  const from = p.get("from"), to = p.get("to");
+  if (!from || !to) return new Response("need from & to", { status: 400 });
+  const toExcl = new Date(Date.parse(to) + 86400000).toISOString().slice(0, 10);
+  const ret = await olapReturns(await iikoAuthCached(), from, toExcl);
+  let csv = `prefix,sum\nПЕРИОД:${from}..${to},0\n`;
+  for (const [k, v] of Object.entries(ret))
+    if (Math.round(v) !== 0) csv += `${k},${Math.round(v)}\n`;
+  return new Response(csv, { headers: {
+    "content-type": "text/csv; charset=utf-8",
+    "cache-control": "no-store",
+    "access-control-allow-origin": "*" } });
+}
+
 async function salesWeek(env, url) {
   const p = url.searchParams;
   if (p.get("t") !== "fzw2026")
@@ -651,12 +719,19 @@ async function salesWeek(env, url) {
     if (!ca) continue;
     agg[ctrKey(ca)] = (agg[ctrKey(ca)] || 0) + (r["Sum.Incoming"] || 0);
   }
+  /* Отгрузка нетто: из реализации вычитаем возвраты. Без этого ДЗ в таблице
+     росла на всю сумму возвращённого товара — долг, которого нет.
+     ?gross=1 — прежнее поведение, без вычета, если нужно сравнить. */
+  if (p.get("gross") !== "1") {
+    const ret = await olapReturns(token, from, toExcl);
+    for (const [k, v] of Object.entries(ret)) agg[k] = (agg[k] || 0) - v;
+  }
   let csv = `prefix,sum\nПЕРИОД:${from}..${to},0\n`;
   for (const [k, v] of Object.entries(agg))
     if (Math.round(v) !== 0) csv += `${k},${Math.round(v)}\n`;
   return new Response(csv, { headers: {
     "content-type": "text/csv; charset=utf-8",
-    "cache-control": "public, max-age=1800",
+    "cache-control": "no-store",
     "access-control-allow-origin": "*" } });
 }
 
