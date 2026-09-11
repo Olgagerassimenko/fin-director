@@ -172,6 +172,18 @@ export default {
       return new Response(JSON.stringify(out), { headers: {
         "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
     }
+    if (url.pathname === "/balance") {
+      return ctrBalance(env, url).catch((e) =>
+        new Response("error," + String(e).slice(0, 200), { status: 500,
+          headers: { "content-type": "text/csv; charset=utf-8",
+                     "access-control-allow-origin": "*" } }));
+    }
+    if (url.pathname === "/iiko_probe") {
+      return iikoProbe(env, url).catch((e) =>
+        new Response(String(e).slice(0, 200), { status: 500,
+          headers: { "content-type": "text/plain; charset=utf-8",
+                     "access-control-allow-origin": "*" } }));
+    }
     if (url.pathname === "/pay_week") {
       return payWeek(env, url).catch((e) =>
         new Response("error," + String(e).slice(0, 120), { status: 500,
@@ -469,6 +481,108 @@ const PAY_ACCOUNTS = ["99Главная касса", "Касса Взаимор�
   "ФЗ Жусан Банк", "ФЗ Каспи", "ФЗ Каспи копилка", "ФЗ ДЕПОЗИТ каспи",
   "ФЗ РБК Каламкас", "Цой Д.Л.Каспи", "ФЗ Ермагамбет отдел продаж"];
 const PAY_CATEGORY = "1.Выручка";
+
+/* ── Сверка с отчётом «Баланс по поставщикам» из iikoOffice ──────────────
+   /balance?on=YYYY-MM-DD&t=… отдаёт CSV: контрагент × счёт × сумма на дату.
+   Это ровно то, что видно в iikoOffice на вкладке «Баланс по поставщикам»,
+   только свёрнутое по префиксу имени (ctrKey) — как в ДЗ-таблице.
+   ?raw=1 — без свёртки, каждая точка отдельной строкой.
+   ?ts=…   — произвольная отметка времени вместо конца дня.               */
+const IIKO_ACC_PATHS = [
+  "/resto/api/v2/entities/accounts/list",
+  "/resto/api/v2/entities/list?rootType=Account&includeDeleted=false",
+];
+const IIKO_CTR_PATHS = [
+  "/resto/api/v2/entities/list?rootType=Supplier&includeDeleted=false",
+  "/resto/api/suppliers",
+];
+
+async function iikoGet(token, path) {
+  const sep = path.includes("?") ? "&" : "?";
+  const r = await fetch(`${IIKO.url}${path}${sep}key=${encodeURIComponent(token)}`,
+                        { headers: { Cookie: `key=${token}` } });
+  const txt = await r.text();
+  if (!r.ok) throw new Error(`${path.split("?")[0]} → ${r.status}: ${txt.slice(0, 120)}`);
+  return txt;
+}
+async function iikoJson(token, path) {
+  const txt = await iikoGet(token, path);
+  try { return JSON.parse(txt); }
+  catch { throw new Error(`${path.split("?")[0]}: не JSON — ${txt.slice(0, 120)}`); }
+}
+async function iikoJsonAny(token, paths) {
+  let last = null;
+  for (const p of paths) {
+    try { return await iikoJson(token, p); } catch (e) { last = e; }
+  }
+  throw last || new Error("нет рабочего пути");
+}
+
+async function ctrBalance(env, url) {
+  const p = url.searchParams;
+  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  const on = p.get("on") || "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(on) && !p.get("ts"))
+    return new Response("need on=YYYY-MM-DD", { status: 400 });
+  const ts = p.get("ts") || `${on}T23:59:59`;
+  const token = await iikoAuthCached();
+
+  const [accs, ctrs, bal] = await Promise.all([
+    iikoJsonAny(token, IIKO_ACC_PATHS),
+    iikoJsonAny(token, IIKO_CTR_PATHS),
+    iikoJson(token, `/resto/api/v2/reports/balance/counteragents?timestamp=${encodeURIComponent(ts)}`),
+  ]);
+  const nameOf = (list) => {
+    const m = {};
+    for (const x of (Array.isArray(list) ? list : (list?.items || []))) {
+      if (x && x.id) m[x.id] = String(x.name || x.code || x.id).trim();
+    }
+    return m;
+  };
+  const aName = nameOf(accs), cName = nameOf(ctrs);
+  const raw = p.get("raw") === "1";
+  const agg = {};                                   // ключ → { счёт: сумма }
+  for (const b of (Array.isArray(bal) ? bal : (bal?.items || []))) {
+    const nm = cName[b.counteragent] || String(b.counteragent || "");
+    if (!nm) continue;
+    const k = raw ? nm : ctrKey(nm);
+    const acc = aName[b.account] || String(b.account || "");
+    (agg[k] = agg[k] || {})[acc] = (agg[k][acc] || 0) + (Number(b.sum) || 0);
+  }
+  const cols = [...new Set(Object.values(agg).flatMap((o) => Object.keys(o)))].sort();
+  const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
+  let csv = `НА:${ts}\n` + ["контрагент", ...cols, "итого"].map(q).join(",") + "\n";
+  for (const k of Object.keys(agg).sort()) {
+    const row = cols.map((c) => Math.round(agg[k][c] || 0));
+    const sum = row.reduce((x, y) => x + y, 0);
+    if (row.every((v) => v === 0)) continue;
+    csv += [q(k), ...row, sum].join(",") + "\n";
+  }
+  return new Response(csv, { headers: {
+    "content-type": "text/csv; charset=utf-8",
+    "cache-control": "no-store",
+    "access-control-allow-origin": "*" } });
+}
+
+/* Окно для разведки по справочникам и балансам айко — только чтение и только
+   по этим префиксам. Нужно, чтобы не публиковать воркер заново ради каждой
+   мелкой правки пути. Когда сверка будет отлажена — маршрут можно убрать. */
+const PROBE_OK = ["/resto/api/v2/reports/balance", "/resto/api/v2/entities", "/resto/api/suppliers"];
+async function iikoProbe(env, url) {
+  const p = url.searchParams;
+  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  const path = p.get("path") || "";
+  if (!PROBE_OK.some((x) => path.startsWith(x)))
+    return new Response("путь не разрешён", { status: 400 });
+  const token = await iikoAuthCached();
+  let body, status = 200;
+  try { body = await iikoGet(token, path); }
+  catch (e) { body = String(e); status = 502; }
+  return new Response(body.slice(0, 800000), { status, headers: {
+    "content-type": "text/plain; charset=utf-8",
+    "cache-control": "no-store",
+    "access-control-allow-origin": "*" } });
+}
 
 async function payWeek(env, url) {
   const p = url.searchParams;
