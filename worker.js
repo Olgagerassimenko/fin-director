@@ -179,7 +179,7 @@ export default {
                      "access-control-allow-origin": "*" } }));
     }
     if (url.pathname === "/iiko_probe") {
-      return iikoProbe(env, url).catch((e) =>
+      return iikoApiProbe(env, url).catch((e) =>
         new Response(String(e).slice(0, 200), { status: 500,
           headers: { "content-type": "text/plain; charset=utf-8",
                      "access-control-allow-origin": "*" } }));
@@ -574,7 +574,7 @@ async function ctrBalance(env, url) {
    по этим префиксам. Нужно, чтобы не публиковать воркер заново ради каждой
    мелкой правки пути. Когда сверка будет отлажена — маршрут можно убрать. */
 const PROBE_OK = ["/resto/api/v2/reports/balance", "/resto/api/v2/entities", "/resto/api/suppliers"];
-async function iikoProbe(env, url) {
+async function iikoApiProbe(env, url) {
   const p = url.searchParams;
   if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
   const path = p.get("path") || "";
