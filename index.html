@@ -954,17 +954,46 @@ a.card.key .card-title{padding-right:100px;}
     var ms=SUM.months||[]; if(!ms.length) return;
     var cur=ms[ms.length-1];
     if(!cur||cur.k!==SUM.month) return;
-    /* Считаем темп ТОЛЬКО по полным дням. Сегодняшний день собран не до конца:
-       если поделить выручку с недоснятым сегодня на целое число дней, темп
-       занижается, и вместе с ним весь прогноз месяца. Поэтому берём
-       throughFull/revFull — месяц по последний завершённый день, а сегодня
-       считаем таким же прогнозным днём, как и все оставшиеся. */
-    var useFull = META.revFull != null && META.throughFull;
-    var t=String((useFull?META.throughFull:META.through)||'').split('.');
-    var d=+t[0], mo=+t[1], yr=+t[2];
-    if(!d||!mo||!yr) return;
-    var baseRev=useFull?META.revFull:cur.rev;
-    var D=dim(yr,mo), left=Math.max(0,D-d);
+    /* База прогноза — полные дни ТЕКУЩЕГО месяца по факту, а не по метке файла.
+       Файл пересобирается несколько раз в сутки и может отставать; если брать
+       его метку, вчерашний уже закрытый день уходит в «прогнозируемый остаток»,
+       хотя факт по нему известен. Берём подневную выручку от воркера (она
+       обновляется каждый час), сегодняшнюю — из живого блока «Сегодня».
+       Нет воркера — откатываемся на метки файла. */
+    var _a=new Date(Date.now()+5*3600000);                 // время Алматы
+    var _p=function(x){ return ('0'+x).slice(-2); };
+    var todayISO=_a.getUTCFullYear()+'-'+_p(_a.getUTCMonth()+1)+'-'+_p(_a.getUTCDate());
+    var todayRU=_p(_a.getUTCDate())+'.'+_p(_a.getUTCMonth()+1)+'.'+_a.getUTCFullYear();
+    var yr=+String(SUM.month||'').split('-')[0], mo=+String(SUM.month||'').split('-')[1];
+    if(!mo||!yr) return;
+    var D=dim(yr,mo);
+
+    var DAYS=(window.REVISIONS&&window.REVISIONS.days)||null;
+    var TD=window.SALES_TODAY||null;
+    var baseRev=null, d=0, src='файл', gaps=0, todayRev=0, todayAt='';
+
+    if(DAYS){
+      var pref=SUM.month+'-';
+      var full=Object.keys(DAYS).filter(function(k){ return k.indexOf(pref)===0 && k<todayISO; });
+      if(full.length){
+        d=Math.max.apply(null,full.map(function(k){ return +k.slice(8); }));
+        baseRev=full.reduce(function(s2,k){ return s2+DAYS[k]; },0);
+        gaps=d-full.length;
+        src='подневно';
+      }
+    }
+    if(baseRev===null){
+      var useF=(META.revFull!=null&&META.throughFull);
+      var t=String((useF?META.throughFull:META.through)||'').split('.');
+      if(!+t[0]) return;
+      d=+t[0]; baseRev=useF?META.revFull:cur.rev;
+      /* Файл отстал, а его «неполный» день с тех пор закрылся — он уже полный. */
+      if(useF && META.through && META.through!==todayRU){
+        d=+String(META.through).split('.')[0]; baseRev=cur.rev;
+      }
+    }
+    if(TD && TD.day===todayISO && TD.rev>0){ todayRev=TD.rev; todayAt=TD.checked||TD.updated||''; }
+    var left=Math.max(0,D-d);
     var curDaily=baseRev/d;
     var hist=ms.slice(0,-1).slice(-3).map(function(m){
       var p=String(m.k).split('-'); return m.rev/dim(+p[0],+p[1]); });
@@ -972,17 +1001,40 @@ a.card.key .card-title{padding-right:100px;}
     var w=d/D;
     var restDaily=histDaily>0?(w*curDaily+(1-w)*histDaily):curDaily;
     FC={rev:baseRev,d:d,D:D,left:left,curDaily:curDaily,histDaily:histDaily,
-        histN:hist.length,w:w,restDaily:restDaily,fc:baseRev+restDaily*left,
+        histN:hist.length,w:w,w0:w,restDaily:restDaily,
         flat:curDaily*D,prev:SUM.prevRev||0,prevLbl:SUM.prevLabel||'',
-        full:useFull,today:useFull?(cur.rev-META.revFull):0,
+        today:todayRev,todayAt:todayAt,src:src,gaps:gaps,
         lbl:String(SUM.label||'').split(' ')[0],
-        through:(useFull?META.throughFull:META.through)||''};
+        through:_p(d)+'.'+_p(mo)+'.'+yr};
+    fcCalc(FC.w);
     var dl=FC.prev>0?(FC.fc/FC.prev*100-100):null;
     set('p-fc', money(FC.fc),
         (dl===null?'':'<span class="'+(dl>=0?'up':'down')+'">'+(dl>=0?'+':'−')
           +Math.abs(dl).toFixed(1)+'%</span> к '+dat(FC.prevLbl)+' · ')
-        +FC.lbl.toLowerCase()+', '+FC.d+(FC.full?' полных дн. из ':' дн. из ')+FC.D);
+        +FC.lbl.toLowerCase()+', '+FC.d+' полных дн. из '+FC.D+(FC.today>0?' + сегодня':''));
   }
+  /* Пересчёт прогноза при заданном весе текущего месяца.
+     Сегодня — день идущий, но факт по нему уже есть: берём большее из факта и
+     темпа, иначе утренняя цифра занижала бы месяц, а вечерняя терялась. */
+  function fcCalc(w){
+    FC.w=w;
+    FC.restDaily = FC.histDaily>0 ? (w*FC.curDaily+(1-w)*FC.histDaily) : FC.curDaily;
+    FC.todayPart = FC.left>0 ? Math.max(FC.today, FC.restDaily) : 0;
+    FC.restLeft  = Math.max(0, FC.left-1);
+    FC.fc = FC.rev + FC.todayPart + FC.restDaily*FC.restLeft;
+    return FC.fc;
+  }
+  window.pulseFcSet=function(v){
+    if(!FC) return;
+    fcCalc(Math.max(0,Math.min(1,(+v||0)/100)));
+    var b=document.getElementById('p-fc-box');
+    if(b&&b.style.display!=='none') fcRender();
+    var dl=FC.prev>0?(FC.fc/FC.prev*100-100):null;
+    set('p-fc', money(FC.fc),
+        (dl===null?'':'<span class="'+(dl>=0?'up':'down')+'">'+(dl>=0?'+':'−')
+          +Math.abs(dl).toFixed(1)+'%</span> к '+dat(FC.prevLbl)+' · ')
+        +FC.lbl.toLowerCase()+', '+FC.d+' полных дн. из '+FC.D+(FC.today>0?' + сегодня':''));
+  };
   window.pulseFcToggle=function(){
     var b=document.getElementById('p-fc-box'); if(!b) return;
     if(!FC){ return; }
@@ -990,6 +1042,11 @@ a.card.key .card-title{padding-right:100px;}
     b.style.display=open?'block':'none';
     var q=document.getElementById('p-fc-q'); if(q) q.textContent=open?'×':'?';
     if(!open) return;
+    fcRender();
+  };
+
+  function fcRender(){
+    var b=document.getElementById('p-fc-box'); if(!b||!FC) return;
     var r=function(a,v,cls){ return '<div class="fc-r'+(cls?' '+cls:'')+'"><span>'+a+'</span><span>'+v+'</span></div>'; };
     var t=function(x){ return num(x)+' ₸'; };
     var wc=Math.round(FC.w*100), wh=100-wc;
@@ -1000,21 +1057,31 @@ a.card.key .card-title{padding-right:100px;}
       +   '<div class="fc-big">'+num(FC.fc)+' ₸</div></div>'
       + '<div class="fc-top-side">'
       +   (dl===null?'':'<span class="'+(dl>=0?'up':'down')+'">'+(dl>=0?'+':'−')+Math.abs(dl).toFixed(1)+'%</span> к '+dat(FC.prevLbl)+'<br>')
-      +   'данные по '+FC.through+' · прошло '+FC.d+(FC.full?' полных дн. из ':' дн. из ')+FC.D
-      +   (FC.full&&FC.today>0?'<br><span style="opacity:.75">сегодня ('+num(FC.today)+' ₸) в темп не берём — день не закрыт</span>':'')
+      +   'полных дней: '+FC.d+' из '+FC.D+' (по '+FC.through+')'
+      +   (FC.src!=='подневно'?'<br><span style="opacity:.6">подневных данных нет — считаем по выгрузке</span>':'')
+      +   (FC.gaps>0?'<br><span style="opacity:.75">в '+FC.gaps+' днях месяца выручки нет</span>':'')
+      +   (FC.today>0?'<br><span style="opacity:.75">сегодня уже '+num(FC.today)+' ₸'+(FC.todayAt?' на '+FC.todayAt:'')+'</span>':'')
       + '</div></div>'
       +'<div class="fc-body">'
       +'<div class="fc-sub">Что уже есть</div>'
-      +r('Отгружено с начала месяца', t(FC.rev))
-      +r('Осталось дней до конца месяца', FC.left)
+      +r('Отгружено за полные дни ('+FC.d+')', t(FC.rev))
+      +(FC.today>0?r('Сегодня на текущий момент'+(FC.todayAt?', '+FC.todayAt:''), t(FC.today)):'')
+      +r('Осталось дней после сегодняшнего', FC.restLeft)
       +'<div class="fc-sub">С какой скоростью идём</div>'
       +r('Темп этого месяца, в день', t(FC.curDaily))
       +r('Темп '+FC.histN+' последних полных мес., в день', t(FC.histDaily))
       +'<div class="fc-sub">Чем считаем остаток месяца</div>'
       +'<div class="fc-mix"><i class="cur" style="width:'+wc+'%"></i><i class="his" style="width:'+wh+'%"></i></div>'
       +'<div class="fc-mix-lbl"><span>'+wc+'% темп этого месяца</span><span>'+wh+'% история</span></div>'
+      +'<div style="display:flex;align-items:center;gap:10px;margin:8px 0 2px">'
+      +  '<input id="fc-w" type="range" min="0" max="100" step="5" value="'+wc+'" '
+      +    'oninput="pulseFcSet(this.value)" style="flex:1;accent-color:#8b5cf6;cursor:pointer">'
+      +  '<button type="button" onclick="pulseFcSet('+Math.round(FC.w0*100)+')" '
+      +    'style="cursor:pointer;font:inherit;font-size:11.5px;padding:3px 9px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;opacity:.75">сбросить</button>'
+      +'</div>'
+      +'<div style="font-size:11.5px;opacity:.6;margin-bottom:6px">Потяните ползунок: слева — верить только истории, справа — только темпу этого месяца.</div>'
       +r('= в день на остаток', t(FC.restDaily))
-      +r('Прогноз: '+num(FC.rev)+' + '+FC.left+' дн. × '+num(FC.restDaily), t(FC.fc), 'res')
+      +r('Прогноз: '+num(FC.rev)+(FC.today>0?' + сегодня '+num(FC.todayPart):'')+' + '+FC.restLeft+' дн. × '+num(FC.restDaily), t(FC.fc), 'res')
       +'<div class="fc-hr"></div>'
       +(FC.prev>0?r('Факт '+FC.prevLbl, t(FC.prev)):'')
       +r('Если считать в лоб (темп × '+FC.D+' дн.)', t(FC.flat), 'dim')
@@ -1024,6 +1091,21 @@ a.card.key .card-title{padding-right:100px;}
       +(FC.d<7?' Прошло меньше недели — цифра ещё грубая, надёжной станет примерно с 10-го числа.':'')
       +'</div></div>';
   };
+
+  /* Живые источники для прогноза: подневная выручка (обновляется каждый час)
+     и сегодняшняя (каждые пять минут). Оба лежат у воркера. Не загрузились —
+     прогноз просто считается по выгрузке, как раньше. */
+  (function(){
+    var left=2;
+    function done(){ if(--left) return; FC=null; renderFc(); }
+    ['/revisions.js','/sales_today.js'].forEach(function(u){
+      var sc=document.createElement('script');
+      sc.src=u+'?t='+Date.now();
+      sc.onload=function(){ sc.remove(); done(); };
+      sc.onerror=function(){ sc.remove(); done(); };
+      document.head.appendChild(sc);
+    });
+  })();
 
   /* Метка «новое» на плитке прогноза. Дату гасим руками один раз: плитка
      появилась 05.09.2026, неделя — до 12.09, дальше метка исчезнет сама. */
