@@ -1,9 +1,9 @@
-Битрикс · оплаты · 15.09.2026 02:24 (Алматы)
+Битрикс · оплаты · 15.09.2026 08:14 (Алматы)
 profile: ok · Ольга Герасименко · admin=False
 scope: ['crm']
   crm.type.list                      нет доступа (Доступ запрещен)
   lists.get                          нет доступа (The request requires higher privileges than provided by the )
   bizproc.workflow.instance.list     нет доступа (The request requires higher privileges than provided by the )
-  tasks.task.list                    нет доступа (The read operation timed out)
+  tasks.task.list                    нет доступа (The request requires higher privileges than provided by the )
 [i] Выгрузки нет (ждём файл bitrix_выгрузка.csv / bitrix_выгрузка.xlsx / bitrix_выгрузка.xls рядом со скриптом).
 [ok] Отчёт не тронут.
