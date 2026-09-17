@@ -1,0 +1,40 @@
+name: balance-once
+# Разовая выгрузка баланса контрагентов из айко.
+# Воркер уже умеет это считать (/balance), но его домен недоступен извне —
+# поэтому запрос делает раннер GitHub и кладёт результат в репозиторий.
+on:
+  workflow_dispatch:
+    inputs:
+      on_date:
+        description: "дата в формате ГГГГ-ММ-ДД"
+        required: true
+        default: "2026-09-11"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: выгрузка баланса
+        env:
+          SITE: https://lucky-river-eaf1.findirfoodzavod.workers.dev
+          D: ${{ github.event.inputs.on_date }}
+        run: |
+          set -e
+          mkdir -p _balance
+          curl -sS --max-time 240 -o "_balance/balance_${D}.csv"     "$SITE/balance?on=$D&t=fzw2026"
+          curl -sS --max-time 240 -o "_balance/balance_${D}_raw.csv" "$SITE/balance?on=$D&raw=1&t=fzw2026"
+          echo "--- свёрнутый ---"; head -5 "_balance/balance_${D}.csv"; wc -l "_balance/balance_${D}.csv"
+          echo "--- по точкам ---"; head -5 "_balance/balance_${D}_raw.csv"; wc -l "_balance/balance_${D}_raw.csv"
+
+      - name: сохранить в репозиторий
+        run: |
+          git config user.name  "pulse-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add _balance
+          git commit -m "баланс контрагентов на ${{ github.event.inputs.on_date }} [skip ci]" || echo "нет изменений"
+          git push
