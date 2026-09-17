@@ -1,187 +1,113 @@
 # -*- coding: utf-8 -*-
 """
-bitrix_report.py — робот «Битрикс · Оплаты» для системы Пульс (только чтение).
+Пульс · Битрикс — отчёт по согласованным оплатам.
+Тянет три смарт-процесса «Платежи» (Фуд завод, Астана/ФЗА, O-Live) через REST-вебхук
+и пересобирает bitrix_отчёт_оплаты.html из шаблона oplaty_template.html.
 
-Заявки живут в бизнес-процессах «Мои процессы». Вебхуку они не отдаются:
-у него область только crm, а bizproc отвечает insufficient_scope. Поэтому
-работают два пути, в таком порядке:
-
-  1) РАЗВЕДКА. Робот проверяет, не появился ли доступ — смарт-процесс CRM,
-     список «Списков», задачи. Как только что-то отдаётся, это видно в логе,
-     и можно включать автосборку.
-  2) ВЫГРУЗКА. Пока доступа нет, отчёт обновляется файлом: положите выгрузку
-     из Битрикса рядом под именем bitrix_выгрузка.csv (или .xlsx) — робот
-     пересоберёт таблицу и шапку отчёта. Без файла страница не трогается.
-
-Строка отчёта: дата≡тип≡заявитель≡город≡сумма≡статус≡комментарий≡файл
+Запускается на серверах GitHub Actions (ноутбук не нужен). Вебхук берётся из секрета
+BITRIX_WEBHOOK. Ничего секретного в страницу не попадает — только собранные строки.
 """
-import os, json, re, csv, io, datetime, urllib.request, urllib.error
+import os, sys, json, time, datetime, urllib.request, urllib.parse
 
-WH = (os.environ.get("BITRIX_WEBHOOK") or "").strip().rstrip("/")
-if "/rest/" in WH:
-    _base, _rest = WH.split("/rest/", 1)
-    _parts = [x for x in _rest.split("/") if x]
-    if len(_parts) >= 2:
-        WH = _base + "/rest/" + _parts[0] + "/" + _parts[1]
-HERE = os.path.dirname(os.path.abspath(__file__))
-REPORT = os.path.join(HERE, "bitrix_отчёт_оплаты.html")
-LOG = open(os.path.join(HERE, "bitrix_log.txt"), "w", encoding="utf-8")
-FEEDS = ["bitrix_выгрузка.csv", "bitrix_выгрузка.xlsx", "bitrix_выгрузка.xls"]
+WEBHOOK = (os.environ.get("BITRIX_WEBHOOK") or "").strip().rstrip("/")
+if not WEBHOOK:
+    print("НЕТ секрета BITRIX_WEBHOOK — нечем ходить в Битрикс")
+    sys.exit(1)
 
-def log(*a):
-    t = " ".join(str(x) for x in a); print(t); LOG.write(t + "\n"); LOG.flush()
+# entityTypeId -> конфигурация процесса
+PROC = {
+    1228: dict(div="ФЗ",     cat=89,  amt="ufCrm79_1785820299", typ="ufCrm79_1773041127", desc="ufCrm79_1773041072",
+               types={"433": "Аванс", "435": "Счет на оплату", "437": "Оплата наличными", "439": "Оплата поставщикам"}),
+    1270: dict(div="ФЗА",    cat=107, amt="ufCrm97_1785820335", typ="ufCrm97_1775475027", desc="ufCrm97_1775474996",
+               types={"503": "Оплата наличными", "505": "Счет на оплату", "507": "Аванс", "509": "Оплата поставщикам"}),
+    1246: dict(div="O-Live", cat=97,  amt="ufCrm87_1778480556", typ="ufCrm87_1773815922", desc="ufCrm87_1773815905",
+               types={"467": "Оплата наличными", "469": "Счет на оплату", "471": "Аванс"}),
+}
 
-def call(method, params=None):
-    if not WH:
-        return None, "нет вебхука"
-    url = WH + "/" + method + ".json"
-    body = json.dumps(params or {}).encode("utf-8")
-    req = urllib.request.Request(url, data=body,
-                                 headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            return json.loads(r.read().decode("utf-8")), None
-    except urllib.error.HTTPError as e:
+def api(method, params=None):
+    """GET на REST-вебхук. Возвращает распарсенный JSON."""
+    url = WEBHOOK + "/" + method + ".json"
+    if params:
+        url += "?" + urllib.parse.urlencode(params, doseq=True)
+    last = None
+    for attempt in range(4):
         try:
-            j = json.loads(e.read().decode("utf-8"))
-            return None, j.get("error_description") or j.get("error") or str(e)
-        except Exception:
-            return None, str(e)
-    except Exception as e:
-        return None, str(e)
+            req = urllib.request.Request(url, headers={"User-Agent": "pulse-oplaty/1.0"})
+            with urllib.request.urlopen(req, timeout=40) as r:
+                return json.loads(r.read().decode("utf-8"))
+        except Exception as e:
+            last = e
+            time.sleep(2 + attempt * 2)
+    raise RuntimeError("Bitrix API %s: %s" % (method, last))
 
-def probe():
-    """Разведка: не появился ли доступ к заявкам через API."""
-    j, err = call("scope")
-    log("scope:", (j.get("result") if j else None) or err)
-    found = []
-    for method, params, what in [
-        ("crm.type.list", {}, "смарт-процессы CRM"),
-        ("lists.get", {"IBLOCK_TYPE_ID": "lists"}, "универсальные списки"),
-        ("bizproc.workflow.instance.list", {}, "экземпляры бизнес-процессов"),
-        ("tasks.task.list", {"select": ["ID", "TITLE"], "start": 0}, "задачи"),
-    ]:
-        j, err = call(method, params)
-        if j and j.get("result") is not None:
-            res = j["result"]
-            n = len(res) if isinstance(res, list) else len(res.get("types", res) or [])
-            log("  %-34s доступно, записей: %s" % (method, n))
-            found.append(method)
-        else:
-            log("  %-34s нет доступа (%s)" % (method, str(err)[:60]))
-    return found
+def stage_names(entity_id, cat):
+    d = api("crm.status.list", {"filter[ENTITY_ID]": "DYNAMIC_%d_STAGE_%d" % (entity_id, cat)})
+    out = {}
+    for s in (d.get("result") or []):
+        out[s["STATUS_ID"]] = s["NAME"]
+    return out
 
-# ── чтение выгрузки ────────────────────────────────────────────
-def read_feed(path):
-    """Строки выгрузки -> список словарей по заголовкам первой строки."""
-    if path.lower().endswith((".xlsx", ".xls")):
-        try:
-            import openpyxl
-        except ImportError:
-            log("   для xlsx нужен openpyxl; сохраните выгрузку в CSV"); return []
-        ws = openpyxl.load_workbook(path, data_only=True).worksheets[0]
-        rows = [[("" if c is None else str(c)) for c in r] for r in ws.iter_rows(values_only=True)]
-    else:
-        raw = open(path, "rb").read()
-        for enc in ("utf-8-sig", "cp1251", "utf-8"):
+def fetch_process(entity_id, cfg):
+    sn = stage_names(entity_id, cfg["cat"])
+    sel = ["id", "createdTime", "stageId", cfg["amt"], cfg["typ"], cfg["desc"]]
+    rows, start = [], 0
+    for _ in range(80):  # до 4000 записей
+        d = api("crm.item.list", {
+            "entityTypeId": entity_id,
+            "order[id]": "asc",
+            "start": start,
+            "select[]": sel,
+        })
+        items = ((d.get("result") or {}).get("items")) or []
+        if not items:
+            break
+        for x in items:
+            amt_raw = str(x.get(cfg["amt"]) or "")
             try:
-                txt = raw.decode(enc); break
-            except UnicodeDecodeError:
-                continue
-        else:
-            log("   не удалось прочитать кодировку файла"); return []
-        delim = ";" if txt.count(";") >= txt.count(",") else ","
-        rows = [r for r in csv.reader(io.StringIO(txt), delimiter=delim)]
-    rows = [r for r in rows if any(str(x).strip() for x in r)]
-    if len(rows) < 2:
-        log("   в выгрузке нет строк"); return []
-    head = [str(x).strip().lower() for x in rows[0]]
-    return [dict(zip(head, [str(x).strip() for x in r])) for r in rows[1:]]
-
-def pick(d, *keys):
-    """Значение по первому подходящему заголовку — названия колонок в
-       выгрузках Битрикса гуляют, поэтому ищем по вхождению."""
-    for k in keys:
-        for h, v in d.items():
-            if k in h:
-                return v
-    return ""
-
-def norm_date(s):
-    m = re.search(r"(\d{1,2})[.\-/](\d{1,2})", str(s))
-    return "%02d.%02d" % (int(m.group(1)), int(m.group(2))) if m else ""
-
-def norm_amount(s):
-    s = re.sub(r"[^\d,.\-]", "", str(s)).replace(",", ".")
-    if not s or s in (".", "-"): return ""
-    try: return str(int(round(float(s))))
-    except Exception: return ""
-
-def build_rows(recs):
-    out, dates = [], []
-    for d in recs:
-        date = norm_date(pick(d, "дата", "создан", "date"))
-        if not date: continue
-        typ = pick(d, "тип платеж", "тип", "процесс") or "—"
-        who = pick(d, "заявител", "автор", "инициатор", "создал") or "—"
-        city = pick(d, "город", "подразделен")
-        amt = norm_amount(pick(d, "сумма", "общая сумма"))
-        stat = pick(d, "статус", "состояни") or "—"
-        opis = pick(d, "коммент", "за что", "назначен", "описан")
-        fil = pick(d, "файл", "вложен", "документ")
-        out.append("≡".join([date, typ, who, city, amt, stat, opis, fil]))
-        dates.append(pick(d, "дата", "создан", "date"))
-    return out, dates
-
-def full_date(s):
-    m = re.search(r"(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2,4})", str(s))
-    if not m: return ""
-    y = m.group(3);  y = ("20" + y) if len(y) == 2 else y
-    return "%02d.%02d.%s" % (int(m.group(1)), int(m.group(2)), y)
-
-def publish(lines, dates):
-    html = open(REPORT, encoding="utf-8").read()
-    m = re.search(r'(<script[^>]*id="raw"[^>]*>)(.*?)(</script>)', html, re.S)
-    if not m:
-        log("   в отчёте не найден блок данных — ничего не меняю"); return False
-    было = len([l for l in m.group(2).split("\n") if "≡" in l])
-    html = html[:m.start(2)] + "\n" + "\n".join(lines) + "\n" + html[m.end(2):]
-    fd = sorted([x for x in (full_date(d) for d in dates) if x],
-                key=lambda s: (s[6:], s[3:5], s[:2]))
-    if fd:
-        html = re.sub(r'const CFG=\{[^}]*\}',
-                      'const CFG={period:"%s – %s", asof:"%s"}' % (fd[0], fd[-1], fd[-1]), html)
-    open(REPORT, "w", encoding="utf-8").write(html)
-    log("[ok] отчёт обновлён: было %d заявок, стало %d" % (было, len(lines)))
-    if fd: log("     период %s – %s" % (fd[0], fd[-1]))
-    return True
+                amt = round(float(amt_raw.split("|")[0]))
+            except Exception:
+                amt = 0
+            st = sn.get(x.get("stageId"), x.get("stageId") or "")
+            ds = str(x.get(cfg["desc"]) or "")
+            ds = " ".join(ds.split())[:90]
+            rows.append({
+                "d": (x.get("createdTime") or "")[:10],
+                "dv": cfg["div"],
+                "t": cfg["types"].get(str(x.get(cfg["typ"])), "—"),
+                "a": amt,
+                "st": st,
+                "ds": ds,
+            })
+        if len(items) < 50:
+            break
+        start += 50
+    return rows
 
 def main():
-    now = datetime.datetime.utcnow() + datetime.timedelta(hours=5)   # Алматы
-    log("Битрикс · оплаты · %s (Алматы)" % now.strftime("%d.%m.%Y %H:%M"))
-    if WH:
-        j, err = call("profile")
-        prof = j.get("result") if j else None
-        log("profile:", ("ok · %s %s · admin=%s" % (prof.get("NAME"), prof.get("LAST_NAME"),
-            prof.get("ADMIN"))) if prof else ("ошибка — %s" % err))
-        probe()
-    else:
-        log("[i] BITRIX_WEBHOOK не задан — разведку пропускаю.")
+    all_rows = []
+    for eid, cfg in PROC.items():
+        try:
+            r = fetch_process(eid, cfg)
+            print("%-7s %5d заявок" % (cfg["div"], len(r)))
+            all_rows += r
+        except Exception as e:
+            print("ОШИБКА по %s (%d): %s" % (cfg["div"], eid, e))
+            sys.exit(1)  # не деплоим частичные данные
 
-    feed = next((os.path.join(HERE, f) for f in FEEDS if os.path.exists(os.path.join(HERE, f))), None)
-    if not feed:
-        log("[i] Выгрузки нет (ждём файл %s рядом со скриптом)." % " / ".join(FEEDS))
-        log("[ok] Отчёт не тронут.")
-        return
-    log("[i] Нашлась выгрузка:", os.path.basename(feed))
-    recs = read_feed(feed)
-    log("   строк в файле:", len(recs))
-    if recs:
-        log("   колонки:", ", ".join(list(recs[0].keys())[:12]))
-    lines, dates = build_rows(recs)
-    if not lines:
-        log("   не удалось разобрать ни одной строки — отчёт не тронут"); return
-    publish(lines, dates)
+    if not all_rows:
+        print("Пусто — ничего не пришло, деплой пропускаем")
+        sys.exit(1)
+
+    # контроль: сумма одобренных
+    appr = sum(x["a"] for x in all_rows if ("Одобрено" in x["st"] or "Успех" in x["st"]))
+    print("Всего заявок: %d · одобрено: %s ₸" % (len(all_rows), "{:,}".format(appr).replace(",", " ")))
+
+    asof = (datetime.datetime.utcnow() + datetime.timedelta(hours=5)).strftime("%d.%m.%Y")
+    tpl = open("oplaty_template.html", encoding="utf-8").read()
+    html = tpl.replace("__ROWS__", json.dumps(all_rows, ensure_ascii=False)).replace("__ASOF__", asof)
+    with open("bitrix_отчёт_оплаты.html", "w", encoding="utf-8") as f:
+        f.write(html)
+    print("Отчёт собран на %s (%d байт)" % (asof, len(html.encode("utf-8"))))
 
 if __name__ == "__main__":
     main()
