@@ -524,6 +524,36 @@ async function iikoJsonAny(token, paths) {
   throw last || new Error("нет рабочего пути");
 }
 
+/* Справочник контрагентов. /resto/api/v2/entities/list?rootType=Supplier
+   на этом сервере отвечает 409, а /resto/api/suppliers отдаёт XML, а не JSON —
+   поэтому JSON пробуем первым, а XML разбираем регуляркой: тянуть парсер
+   в воркер ради пары полей ни к чему. */
+async function iikoCtrList(token) {
+  let last = null;
+  for (const p of IIKO_CTR_PATHS) {
+    try {
+      const txt = (await iikoGet(token, p)).trim();
+      if (txt.startsWith("{") || txt.startsWith("[")) {
+        const j = JSON.parse(txt);
+        const arr = Array.isArray(j) ? j : (j.items || []);
+        if (arr.length) return arr;
+        continue;
+      }
+      const out = [];
+      const re = /<(employee|supplier|item)\b[^>]*>([\s\S]*?)<\/\1>/g;
+      let m;
+      while ((m = re.exec(txt))) {
+        const body = m[2];
+        const id = (body.match(/<id>([^<]+)<\/id>/) || [])[1];
+        const nm = (body.match(/<name>([^<]*)<\/name>/) || [])[1];
+        if (id) out.push({ id, name: nm || id });
+      }
+      if (out.length) return out;
+    } catch (e) { last = e; }
+  }
+  throw last || new Error("справочник контрагентов недоступен");
+}
+
 async function ctrBalance(env, url) {
   const p = url.searchParams;
   if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
@@ -535,7 +565,7 @@ async function ctrBalance(env, url) {
 
   const [accs, ctrs, bal] = await Promise.all([
     iikoJsonAny(token, IIKO_ACC_PATHS),
-    iikoJsonAny(token, IIKO_CTR_PATHS),
+    iikoCtrList(token),
     iikoJson(token, `/resto/api/v2/reports/balance/counteragents?timestamp=${encodeURIComponent(ts)}`),
   ]);
   const nameOf = (list) => {
