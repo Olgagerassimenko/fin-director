@@ -31,10 +31,13 @@ STAGES = {
 
 PROC = {
     1228: dict(div="ФЗ",     amt="ufCrm79_1785820299", typ="ufCrm79_1773041127", desc="ufCrm79_1773041072",
+               files=["ufCrm79_1773041083", "ufCrm79_1773290279"],
                types={"433": "Аванс", "435": "Счет на оплату", "437": "Оплата наличными", "439": "Оплата поставщикам"}),
     1270: dict(div="ФЗА",    amt="ufCrm97_1785820335", typ="ufCrm97_1775475027", desc="ufCrm97_1775474996",
+               files=["ufCrm97_1775475017"],
                types={"503": "Оплата наличными", "505": "Счет на оплату", "507": "Аванс", "509": "Оплата поставщикам"}),
     1246: dict(div="O-Live", amt="ufCrm87_1778480556", typ="ufCrm87_1773815922", desc="ufCrm87_1773815905",
+               files=["ufCrm87_1773815914"],
                types={"467": "Оплата наличными", "469": "Счет на оплату", "471": "Аванс"}),
 }
 
@@ -73,8 +76,10 @@ def q(pairs):
 
 def fetch_process(entity_id, cfg):
     smap = STAGES[entity_id]
+    files = cfg.get("files", [])
+    fields = ["id", "createdTime", "movedTime", "stageId", cfg["amt"], cfg["typ"], cfg["desc"]] + files
     base = [("entityTypeId", entity_id), ("order[id]", "asc")]
-    sel = [("select[]", x) for x in ("id", "createdTime", "stageId", cfg["amt"], cfg["typ"], cfg["desc"])]
+    sel = [("select[]", x) for x in fields]
     rows, start = [], 0
     for _ in range(80):
         query = q(base + [("start", start)] + sel)
@@ -91,11 +96,20 @@ def fetch_process(entity_id, cfg):
             suffix = str(x.get("stageId") or "").split(":")[-1]
             st = smap.get(suffix, x.get("stageId") or "")
             ds = " ".join(str(x.get(cfg["desc"]) or "").split())[:90]
+            # есть ли вложение (сам файл/ссылку с токеном НЕ выгружаем — только факт)
+            has_file = 0
+            for ff in files:
+                v = x.get(ff)
+                if v and (len(v) if isinstance(v, list) else 1):
+                    has_file = 1
+                    break
             rows.append({
                 "d": (x.get("createdTime") or "")[:10],
                 "dv": cfg["div"],
                 "t": cfg["types"].get(str(x.get(cfg["typ"])), "—"),
                 "a": amt, "st": st, "ds": ds,
+                "id": x.get("id"), "f": has_file,
+                "mv": (x.get("movedTime") or "")[:10],
             })
         if len(items) < 50:
             break
