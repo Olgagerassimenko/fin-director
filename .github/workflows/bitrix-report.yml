@@ -17,8 +17,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: pulse-daily        # общий с основным пайплайном — деплои не сталкиваются
-  cancel-in-progress: false
+  group: bitrix-oplaty-5min   # своя дорожка — не отменяется чужими процессами
+  cancel-in-progress: true    # свежий запуск важнее — старый можно отменить
 
 jobs:
   bitrix:
