@@ -257,11 +257,18 @@ def is_excluded_dz(name):
     return dz_code(name) in EXCLUDED_DZ_CODES
 
 
+# С 11.09.2026 недельная колонка ДЗ в таблице называется не «ДЗ на 11.09.26»,
+# а «Баланс по поставщикам и дебиторам на 11.09.26» — по смыслу это та же
+# колонка остатка на конец недели. Без этого график «Нам должны» замирал
+# на последней колонке со старым названием (04.09) и новые недели не появлялись.
+DZ_COL_PAT = (r"дз\s+на|д/з\s+на|д\.з\.\s*на|"
+              r"баланс\s+по\s+поставщикам.{0,40}?\s+на\s*\d")
+
 def parse_dz(rows):
     print("  Диагностика ДЗ (первые 5 строк):")
     debug_rows(rows, 5)
 
-    hi, header = find_header_row(rows, r"дз\s+на|д/з\s+на|д\.з\.\s+на")
+    hi, header = find_header_row(rows, DZ_COL_PAT)
     if header is None:
         hi, header = find_header_row(rows, r"дз|д/з")
     if header is None:
@@ -272,13 +279,13 @@ def parse_dz(rows):
     dz_cols = []
     for i, cell in enumerate(header):
         c = str(cell).strip()
-        if re.search(r"дз\s+на|д/з\s+на|д\.з\.\s*на", c, re.I | re.UNICODE):
+        if re.search(DZ_COL_PAT, c, re.I | re.UNICODE):
             m = re.search(r"(\d{1,2}\.\d{2}\.\d{2,4})", c)
             lbl = fmt_date(m.group(1)) if m else c[:20]
             dz_cols.append((i, lbl))
 
     if not dz_cols:
-        print(f"  [!] ДЗ: нет колонок 'ДЗ на' в строке {hi}")
+        print(f"  [!] ДЗ: нет колонок остатка (ДЗ на / Баланс … на) в строке {hi}")
         print(f"  Ячейки:", [c[:30] for c in header if c.strip()][:10])
         return None
 
