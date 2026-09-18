@@ -1,0 +1,147 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Налоги — Пульс · Фуд Завод</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>:root{--ink:#0b1220;--ink2:#1e293b;--mut:#64748b;--line:#e9eef4;--line2:#f0f4f9;--bg:#f4f7fb;--card:#fff;--brand:#2563eb;--brand2:#4f46e5;--brandink:#1e3a8a;--ok:#0f9d6a;--okbg:#e7f7ef;--no:#e11d48;--nobg:#fdecef;--warn:#d97706;--warnbg:#fff7ea;--shsm:0 1px 2px rgba(15,23,42,.05);--sh:0 14px 34px -20px rgba(15,23,42,.30);--r:16px;--r2:12px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Inter",-apple-system,Segoe UI,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:18px 14px 64px}
+.hdr{position:relative;overflow:hidden;background:linear-gradient(135deg,#0f766e 0%,#0e7490 46%,#0369a1 100%);color:#fff;border-radius:var(--r);padding:20px 24px;box-shadow:0 20px 46px -26px rgba(3,105,161,.6)}
+.hdr::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 70%);pointer-events:none}
+.hdr h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.hdr .sub{color:#dcfbf6;font-size:12px;margin-top:6px;line-height:1.55;max-width:980px}
+.asof{display:inline-block;margin-top:11px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.34);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;backdrop-filter:blur(4px)}
+.grid{display:grid;gap:12px;margin-top:14px}
+.k4{grid-template-columns:repeat(4,1fr)}@media(max-width:720px){.k4{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:15px 16px;box-shadow:var(--shsm);transition:transform .15s,box-shadow .15s}
+.card:hover{transform:translateY(-2px);box-shadow:var(--sh)}
+.card .lab{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.card .big{font-size:24px;font-weight:800;margin-top:4px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.card .small{font-size:11.5px;color:var(--mut);margin-top:3px}
+.big.ok{color:var(--ok)}.big.no{color:var(--no)}.big.warn{color:var(--warn)}.big.brand{color:var(--brandink)}
+h2{font-size:15px;font-weight:800;color:var(--ink2);margin:22px 4px 9px;letter-spacing:-.01em}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shsm)}
+.presets{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.pchip{font:inherit;font-size:12.5px;font-weight:600;padding:8px 13px;border:1px solid var(--line);background:#fff;color:var(--ink2);border-radius:999px;cursor:pointer;transition:.15s;box-shadow:var(--shsm)}
+.pchip:hover{border-color:#99f6e4;color:#0f766e}
+.pchip.on{background:linear-gradient(135deg,#0f766e,#0e7490);border-color:transparent;color:#fff;font-weight:700;box-shadow:0 8px 18px -7px rgba(14,116,144,.55)}
+.psel{font:inherit;font-size:12.5px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink)}
+.psel:focus{outline:0;border-color:#0e7490;box-shadow:0 0 0 3px rgba(14,116,144,.15)}
+.tbl{margin-top:11px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff;box-shadow:var(--shsm)}@media(max-width:760px){.tbl{overflow-x:auto}}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f8fafc;color:#475569;text-align:left;padding:11px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;border-bottom:1px solid var(--line)}
+th.r,td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td{padding:11px 12px;border-top:1px solid var(--line2);vertical-align:middle;line-height:1.4;color:var(--ink2)}
+tbody tr:hover{background:#f6fdfb}
+tr.grp td{background:#eef7f6;font-weight:800;color:#0f766e;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+tr.tot td{background:#f8fafc;font-weight:800;color:var(--ink)}
+.tname{font-weight:700;color:var(--ink)}
+.tname small{display:block;font-weight:400;color:var(--mut);font-size:11px;margin-top:1px}
+.owed{color:var(--no);font-weight:700}.over{color:var(--ok);font-weight:700}.zero{color:var(--mut)}
+.barrow{display:grid;grid-template-columns:150px 1fr 130px;gap:10px;align-items:center;padding:6px 0;font-size:12.5px}
+.barrow .nm{font-weight:600;color:var(--ink2)}
+.bar{background:#eef2f7;border-radius:8px;height:24px;position:relative;overflow:hidden}.bar>span{position:absolute;left:0;top:0;bottom:0;border-radius:8px}
+.vl{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.btn{font:inherit;font-size:12.5px;font-weight:700;padding:9px 15px;border:1px solid transparent;background:linear-gradient(135deg,#0f766e,#0e7490);color:#fff;border-radius:10px;cursor:pointer;box-shadow:0 8px 18px -8px rgba(14,116,144,.5);transition:.15s}
+.btn:hover{filter:brightness(1.06)}
+.btn.ghost{background:#fff;color:#0f766e;border-color:var(--line);box-shadow:var(--shsm)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin:2px 2px 8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.chartwrap{width:100%;overflow-x:auto}
+.note{font-size:12.5px;color:var(--ink2);background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:14px 16px;line-height:1.65;margin-top:16px;box-shadow:var(--shsm)}
+.muted{color:var(--mut)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+#toTop{position:fixed;left:18px;bottom:18px;z-index:50;width:46px;height:46px;border-radius:50%;border:0;background:linear-gradient(135deg,#0f766e,#0e7490);color:#fff;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 12px 26px -8px rgba(14,116,144,.6);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}#toTop.show{opacity:1;pointer-events:auto}#toTop:hover{transform:translateY(-2px)}
+#gate{position:fixed;inset:0;background:linear-gradient(135deg,#0f766e,#0e7490 55%,#0369a1);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:"Inter",-apple-system,Segoe UI,Arial,sans-serif}
+#gate .box{background:#fff;border-radius:20px;padding:30px 26px;width:320px;max-width:88vw;text-align:center;box-shadow:0 30px 70px -24px rgba(0,0,0,.55)}
+#gate .lk{font-size:32px}
+#gate h3{margin:8px 0 3px;font-size:18px;font-weight:800;color:var(--ink)}
+#gate p{margin:0 0 16px;font-size:12.5px;color:var(--mut)}
+#gate input{width:100%;font:inherit;font-size:15px;padding:11px;border:1px solid var(--line);border-radius:12px;text-align:center;transition:.12s}
+#gate input:focus{outline:0;border-color:#0e7490;box-shadow:0 0 0 3px rgba(14,116,144,.18)}
+#gate button{margin-top:13px;width:100%;font:inherit;font-weight:700;font-size:14px;padding:12px;border:0;border-radius:12px;background:linear-gradient(135deg,#0f766e,#0e7490);color:#fff;cursor:pointer;box-shadow:0 10px 22px -8px rgba(14,116,144,.6)}
+#gate .err{color:var(--no);font-size:12px;min-height:16px;margin-top:9px}
+body.locked{overflow:hidden;height:100vh}body.locked .wrap{display:none}</style></head><body class="locked"><div id="gate"><div class="box"><div class="lk">🔒</div><h3>Налоги — Пульс</h3><p>Введите пароль для просмотра</p><input id="pw" type="password" autocomplete="new-password" readonly inputmode="text"><button id="go">Открыть</button><div class="err" id="er"></div></div></div><div class="wrap"><div class="hdr"><h1>🧾 Налоги — Пульс · Фуд Завод</h1><div class="sub" id="sub">ТОО Фудзавод · расчёты с бюджетом по данным 1С (счета 3100 «Налоги» и 3200 «Соц. платежи») · начислено · уплачено · сальдо (задолженность / переплата)</div><div class="asof">Данные на 19.09.2026</div></div><div class="presets" id="presets" style="margin-top:14px"></div><div class="grid k4"><div class="card"><div class="lab">Начислено за период</div><div class="big brand" id="kNach">—</div><div class="small" id="kNachp"></div></div><div class="card"><div class="lab">Уплачено за период</div><div class="big ok" id="kUpl">—</div><div class="small" id="kUplp"></div></div><div class="card"><div class="lab">Долг перед бюджетом</div><div class="big no" id="kDebt">—</div><div class="small">на конец периода</div></div><div class="card"><div class="lab">Переплата / аванс</div><div class="big warn" id="kOver">—</div><div class="small">на конец периода</div></div></div><h2>📊 Расчёты с бюджетом по видам</h2><div class="panel"><div class="toolbar"><div class="muted" id="tabnote" style="font-size:12px"></div><button class="btn ghost" id="exp">⬇ CSV</button></div><div class="tbl"><table><thead><tr><th>Налог / платёж</th><th class="r">Сальдо на начало</th><th class="r">Начислено</th><th class="r">Уплачено</th><th class="r">Сальдо на конец</th></tr></thead><tbody id="tb"></tbody></table></div><div class="muted" style="font-size:11.5px;margin-top:9px">Сальдо на конец: <span class="owed">красным</span> — задолженность перед бюджетом (кредит счёта), <span class="over">зелёным</span> — переплата / аванс (дебет счёта).</div></div><h2>📈 Динамика по месяцам · {год}</h2><div class="panel"><div class="legend"><span><i style="background:#0e7490"></i>Начислено</span><span><i style="background:#0f9d6a"></i>Уплачено</span></div><div class="chartwrap"><div id="chart"></div></div></div><h2>💰 Задолженность по видам</h2><div class="panel"><div id="debtBars"></div><div class="muted" id="noDebt" style="font-size:12.5px;display:none">На конец периода задолженности перед бюджетом нет — всё уплачено или есть переплата.</div></div><div class="note"><b>Как считается.</b> Данные берутся напрямую из 1С («Uchet.Бухгалтерия», ТОО Фудзавод) по протоколу OData — из регистра бухгалтерии по счетам расчётов с бюджетом <b>3100</b> (налоги) и <b>3200</b> (соц. платежи). <b>Начислено</b> — кредитовый оборот счёта (сумма начисленного налога), <b>Уплачено</b> — дебетовый оборот (перечислено в бюджет / зачтено), <b>Сальдо на конец</b> — остаток обязательства: кредитовое = <span class="owed">долг перед бюджетом</span>, дебетовое = <span class="over">переплата/аванс</span>. По каждому виду можно смотреть год, квартал или месяц — переключатель периода вверху. <span class="muted">НДС показан по счёту 3131 «НДС начисленный» — сальдо отражает НДС к уплате по данным учёта. Охват — с начала {год} года. Обновляется автоматически с сервера, без участия компьютера.</span></div><button id="toTop" title="Наверх" aria-label="Наверх">↑</button><script>const D={"org": "ТОО Фудзавод", "bin": "210340021859", "year": 2026, "asof": "19.09.2026", "taxes": [{"code": "3110", "name": "КПН", "full": "Корпоративный подоходный налог", "grp": "Налоги", "open": 0, "months": [{"m": 1, "nach": 19104937, "upl": 0}, {"m": 2, "nach": 0, "upl": 0}, {"m": 3, "nach": 0, "upl": 5000000}, {"m": 4, "nach": 0, "upl": 14104937}, {"m": 5, "nach": 0, "upl": 0}, {"m": 6, "nach": 0, "upl": 0}, {"m": 7, "nach": 0, "upl": 0}, {"m": 8, "nach": 0, "upl": 0}, {"m": 9, "nach": 0, "upl": 0}], "nach": 19104937, "upl": 19104937, "close": 0, "active": true}, {"code": "3131", "name": "НДС", "full": "Налог на добавленную стоимость", "grp": "Налоги", "open": 28071558, "months": [{"m": 1, "nach": 28053420, "upl": 472010}, {"m": 2, "nach": 28072536, "upl": 29527511}, {"m": 3, "nach": 32710763, "upl": 60966030}, {"m": 4, "nach": 33320201, "upl": 774948}, {"m": 5, "nach": 33942438, "upl": 27901512}, {"m": 6, "nach": 34558473, "upl": 4149924}, {"m": 7, "nach": 35188741, "upl": 5942626}, {"m": 8, "nach": 38602666, "upl": 38773110}, {"m": 9, "nach": 14406838, "upl": 337321}], "nach": 278856076, "upl": 168844992, "close": 138082642, "active": true}, {"code": "3120", "name": "ИПН", "full": "Индивидуальный подоходный налог", "grp": "Налоги", "open": 1218685, "months": [{"m": 1, "nach": 3285948, "upl": 1238065}, {"m": 2, "nach": 162713, "upl": 285948}, {"m": 3, "nach": 176217, "upl": 162713}, {"m": 4, "nach": 198206, "upl": 3176217}, {"m": 5, "nach": 400172, "upl": 247414}, {"m": 6, "nach": 469822, "upl": 1038854}, {"m": 7, "nach": 461835, "upl": 469822}, {"m": 8, "nach": 0, "upl": 461835}, {"m": 9, "nach": 0, "upl": 17714}], "nach": 5154913, "upl": 7098582, "close": -724984, "active": true}, {"code": "3150", "name": "Соцналог", "full": "Социальный налог", "grp": "Налоги", "open": 1477739, "months": [{"m": 1, "nach": 4478083, "upl": 1509604}, {"m": 2, "nach": 1343018, "upl": 1478083}, {"m": 3, "nach": 1456036, "upl": 1342786}, {"m": 4, "nach": 1352628, "upl": 4456268}, {"m": 5, "nach": 1621703, "upl": 1436536}, {"m": 6, "nach": 1400530, "upl": 2055367}, {"m": 7, "nach": 1413662, "upl": 1400530}, {"m": 8, "nach": 0, "upl": 1414375}, {"m": 9, "nach": 0, "upl": 200}], "nach": 13065660, "upl": 15093749, "close": -550350, "active": true}, {"code": "3190", "name": "Прочие налоги", "full": "Прочие налоги", "grp": "Налоги", "open": 0, "months": [{"m": 1, "nach": 0, "upl": 0}, {"m": 2, "nach": 0, "upl": 0}, {"m": 3, "nach": 21009, "upl": 0}, {"m": 4, "nach": 0, "upl": 21009}, {"m": 5, "nach": 0, "upl": 0}, {"m": 6, "nach": 0, "upl": 0}, {"m": 7, "nach": 0, "upl": 0}, {"m": 8, "nach": 0, "upl": 0}, {"m": 9, "nach": 0, "upl": 0}], "nach": 21009, "upl": 21009, "close": 0, "active": true}, {"code": "3220", "name": "ОПВ", "full": "Обязательные пенсионные взносы", "grp": "Соцплатежи", "open": 2725770, "months": [{"m": 1, "nach": 2763349, "upl": 2745196}, {"m": 2, "nach": 2461749, "upl": 2763349}, {"m": 3, "nach": 2789160, "upl": 2461749}, {"m": 4, "nach": 2566524, "upl": 2801315}, {"m": 5, "nach": 3113526, "upl": 2533634}, {"m": 6, "nach": 2649720, "upl": 3964170}, {"m": 7, "nach": 2639258, "upl": 2649720}, {"m": 8, "nach": 0, "upl": 2630678}, {"m": 9, "nach": 0, "upl": 0}], "nach": 18983286, "upl": 22549811, "close": -840755, "active": true}, {"code": "3250", "name": "ОПВР", "full": "Обязательные пенсионные взносы работодателя", "grp": "Соцплатежи", "open": 583382, "months": [{"m": 1, "nach": 870498, "upl": 589591}, {"m": 2, "nach": 788903, "upl": 867549}, {"m": 3, "nach": 855642, "upl": 788903}, {"m": 4, "nach": 817965, "upl": 859896}, {"m": 5, "nach": 923072, "upl": 0}, {"m": 6, "nach": 806821, "upl": 2039008}, {"m": 7, "nach": 771157, "upl": 803846}, {"m": 8, "nach": 0, "upl": 771157}, {"m": 9, "nach": 0, "upl": 0}], "nach": 5834058, "upl": 6719950, "close": -302510, "active": true}, {"code": "3211", "name": "СО", "full": "Социальные отчисления", "grp": "Соцплатежи", "open": 1275823, "months": [{"m": 1, "nach": 1313315, "upl": 1285867}, {"m": 2, "nach": 1203661, "upl": 1313315}, {"m": 3, "nach": 1326671, "upl": 1203661}, {"m": 4, "nach": 1251995, "upl": 1326671}, {"m": 5, "nach": 1475392, "upl": 2512490}, {"m": 6, "nach": 1260810, "upl": 683070}, {"m": 7, "nach": 1248058, "upl": 1222108}, {"m": 8, "nach": 0, "upl": 1248098}, {"m": 9, "nach": 0, "upl": 0}], "nach": 9079902, "upl": 10795280, "close": -439555, "active": true}, {"code": "3213", "name": "ОСМС", "full": "Отчисления на ОСМС", "grp": "Соцплатежи", "open": 737406, "months": [{"m": 1, "nach": 745371, "upl": 733349}, {"m": 2, "nach": 655736, "upl": 745371}, {"m": 3, "nach": 728722, "upl": 661499}, {"m": 4, "nach": 657669, "upl": 722959}, {"m": 5, "nach": 808993, "upl": 657669}, {"m": 6, "nach": 694010, "upl": 1016349}, {"m": 7, "nach": 707765, "upl": 694010}, {"m": 8, "nach": 0, "upl": 702831}, {"m": 9, "nach": 0, "upl": 0}], "nach": 4998266, "upl": 5934037, "close": -198365, "active": true}, {"code": "3212", "name": "ВОСМС", "full": "Взносы на ОСМС", "grp": "Соцплатежи", "open": 465601, "months": [{"m": 1, "nach": 496959, "upl": 488920}, {"m": 2, "nach": 437153, "upl": 496959}, {"m": 3, "nach": 485791, "upl": 440995}, {"m": 4, "nach": 438443, "upl": 481949}, {"m": 5, "nach": 539321, "upl": 438443}, {"m": 6, "nach": 462682, "upl": 687558}, {"m": 7, "nach": 471843, "upl": 462682}, {"m": 8, "nach": 0, "upl": 468554}, {"m": 9, "nach": 0, "upl": 0}], "nach": 3332192, "upl": 3966060, "close": -168267, "active": true}]};
+const MN=["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString("ru-RU").replace(/,/g," ");
+const mln=n=>{const a=Math.abs(n);if(a>=1e6)return (n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" млн";if(a>=1e3)return (n/1e3).toLocaleString("ru-RU",{maximumFractionDigits:0})+" тыс";return fmt(n);};
+const YEAR=D.year;const nMon=Math.max(...D.taxes.flatMap(t=>t.months.map(m=>m.m)));
+document.querySelectorAll('h2').forEach(h=>h.innerHTML=h.innerHTML.replace('{год}',YEAR));
+$('sub').textContent=D.org+' (БИН '+D.bin+') · расчёты с бюджетом по данным 1С (счета 3100 «Налоги» и 3200 «Соц. платежи») · начислено · уплачено · сальдо';
+document.querySelector('.note').innerHTML=document.querySelector('.note').innerHTML.replace(/\{год\}/g,YEAR);
+// период: {a,b} диапазон месяцев (1..nMon)
+const PRESETS=[{k:'y',t:'Весь год',a:1,b:nMon}];
+const nq=Math.ceil(nMon/3);const RQ=["I","II","III","IV"];
+for(let qi=0;qi<nq;qi++){const a=qi*3+1,b=Math.min(qi*3+3,nMon);PRESETS.push({k:'q'+qi,t:RQ[qi]+' кв',a,b});}
+let cur=PRESETS[0];
+function buildPresets(){const box=$('presets');box.innerHTML='';PRESETS.forEach(p=>{const b=document.createElement('button');b.className='pchip'+(p.k===cur.k?' on':'');b.textContent=p.t;b.onclick=()=>{cur=p;draw();};box.appendChild(b);});
+ // выпадающий список месяцев
+ const sel=document.createElement('select');sel.className='psel';sel.innerHTML='<option value="">Месяц…</option>'+Array.from({length:nMon},(_,i)=>'<option value="'+(i+1)+'">'+MN[i]+' '+YEAR+'</option>').join('');
+ sel.onchange=()=>{if(sel.value){cur={k:'m'+sel.value,t:MN[+sel.value-1]+' '+YEAR,a:+sel.value,b:+sel.value};draw();}};box.appendChild(sel);}
+function calc(t,a,b){
+ let before=0;t.months.forEach(m=>{if(m.m<a)before+=m.nach-m.upl;});
+ let nach=0,upl=0;t.months.forEach(m=>{if(m.m>=a&&m.m<=b){nach+=m.nach;upl+=m.upl;}});
+ const start=t.open+before;const end=start+nach-upl;
+ return {start,nach,upl,end};
+}
+function draw(){
+ document.querySelectorAll('#presets .pchip').forEach(b=>b.classList.toggle('on',b.textContent===cur.t));
+ const sel=document.querySelector('#presets select');if(sel&&!cur.k.startsWith('m'))sel.value='';
+ $('tabnote').textContent='Период: '+cur.t+' '+YEAR+(cur.k.startsWith('m')?'':', '+YEAR+' г.');
+ // строки таблицы
+ const groups=[...new Set(D.taxes.map(t=>t.grp))];
+ let tot={start:0,nach:0,upl:0,end:0};let rows='';const debt=[];
+ groups.forEach(g=>{
+  const items=D.taxes.filter(t=>t.grp===g).map(t=>({t,c:calc(t,cur.a,cur.b)})).filter(o=>o.c.nach||o.c.upl||o.c.start||o.c.end);
+  if(!items.length)return;
+  rows+='<tr class="grp"><td colspan="5">'+g+'</td></tr>';
+  let gt={start:0,nach:0,upl:0,end:0};
+  items.forEach(({t,c})=>{
+   gt.start+=c.start;gt.nach+=c.nach;gt.upl+=c.upl;gt.end+=c.end;
+   if(c.end>1)debt.push({name:t.name,v:c.end});
+   rows+='<tr><td class="tname">'+t.name+'<small>'+t.full+' · сч. '+t.code+'</small></td>'
+    +'<td class="r '+cls(c.start)+'">'+bal(c.start)+'</td>'
+    +'<td class="r">'+(c.nach?fmt(c.nach):'<span class=zero>—</span>')+'</td>'
+    +'<td class="r">'+(c.upl?fmt(c.upl):'<span class=zero>—</span>')+'</td>'
+    +'<td class="r '+cls(c.end)+'">'+bal(c.end)+'</td></tr>';
+  });
+  rows+='<tr class="tot"><td>Итого · '+g+'</td><td class="r '+cls(gt.start)+'">'+bal(gt.start)+'</td><td class="r">'+fmt(gt.nach)+'</td><td class="r">'+fmt(gt.upl)+'</td><td class="r '+cls(gt.end)+'">'+bal(gt.end)+'</td></tr>';
+  tot.start+=gt.start;tot.nach+=gt.nach;tot.upl+=gt.upl;tot.end+=gt.end;
+ });
+ rows+='<tr class="tot" style="border-top:2px solid #0e7490"><td>ВСЕГО</td><td class="r '+cls(tot.start)+'">'+bal(tot.start)+'</td><td class="r">'+fmt(tot.nach)+'</td><td class="r">'+fmt(tot.upl)+'</td><td class="r '+cls(tot.end)+'">'+bal(tot.end)+'</td></tr>';
+ $('tb').innerHTML=rows;
+ // KPI
+ $('kNach').textContent=mln(tot.nach);$('kNachp').textContent=fmt(tot.nach)+' ₸';
+ $('kUpl').textContent=mln(tot.upl);$('kUplp').textContent=fmt(tot.upl)+' ₸';
+ const owed=D.taxes.reduce((s,t)=>{const e=calc(t,cur.a,cur.b).end;return s+(e>0?e:0);},0);
+ const over=D.taxes.reduce((s,t)=>{const e=calc(t,cur.a,cur.b).end;return s+(e<0?-e:0);},0);
+ $('kDebt').textContent=mln(owed);$('kOver').textContent=mln(over);
+ // столбики долга
+ debt.sort((a,b)=>b.v-a.v);
+ if(debt.length){const max=Math.max(...debt.map(d=>d.v));const cols=['#e11d48','#f43f5e','#fb7185','#0e7490','#0f766e','#6d28d9','#7c3aed','#d97706'];
+  $('debtBars').innerHTML=debt.map((d,i)=>'<div class="barrow"><div class="nm">'+d.name+'</div><div class="bar"><span style="width:'+Math.max(2,d.v/max*100)+'%;background:'+cols[i%cols.length]+'"></span></div><div class="vl">'+fmt(d.v)+' ₸</div></div>').join('');
+  $('debtBars').style.display='';$('noDebt').style.display='none';}
+ else{$('debtBars').style.display='none';$('noDebt').style.display='';}
+ drawChart();
+ window.__cur=cur;
+}
+function cls(v){return v>1?'owed':v<-1?'over':'zero';}
+function bal(v){if(Math.abs(v)<1)return '<span class=zero>0</span>';return (v>0?'':'−')+fmt(Math.abs(v));}
+function drawChart(){
+ // помесячно по всей компании: начислено vs уплачено
+ const data=[];for(let m=1;m<=nMon;m++){let n=0,u=0;D.taxes.forEach(t=>t.months.forEach(x=>{if(x.m===m){n+=x.nach;u+=x.upl;}}));data.push({m,n,u});}
+ const PL=58,PT=14,PB=20,H=250;const W=Math.max(560,PL+data.length*72);
+ const max=Math.max(1,...data.flatMap(d=>[d.n,d.u]));
+ const gh=H-PT-PB,bx=(W-PL)/data.length,base=H-PB;
+ let bars='';data.forEach((d,i)=>{const x=PL+i*bx;const w=bx*0.30;
+  const hn=d.n/max*gh,hu=d.u/max*gh;
+  bars+='<rect x="'+(x+bx*0.16)+'" y="'+(base-hn)+'" width="'+w+'" height="'+hn+'" rx="3" fill="#0e7490"><title>'+MN[d.m-1]+': начислено '+fmt(d.n)+' ₸</title></rect>';
+  bars+='<rect x="'+(x+bx*0.16+w+3)+'" y="'+(base-hu)+'" width="'+w+'" height="'+hu+'" rx="3" fill="#0f9d6a"><title>'+MN[d.m-1]+': уплачено '+fmt(d.u)+' ₸</title></rect>';
+  bars+='<text x="'+(x+bx/2)+'" y="'+(base+15)+'" text-anchor="middle" font-size="11" fill="#64748b">'+MN[d.m-1]+'</text>';});
+ let gl='';for(let g=0;g<=4;g++){const y=base-gh*g/4;gl+='<line x1="'+PL+'" y1="'+y+'" x2="'+W+'" y2="'+y+'" stroke="#eef2f7"/><text x="'+(PL-8)+'" y="'+(y+3)+'" text-anchor="end" font-size="9.5" fill="#94a3b8">'+(g?mln(max*g/4):'0')+'</text>';}
+ $('chart').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" font-family="Inter,sans-serif">'+gl+bars+'</svg>';
+}
+$('exp').onclick=()=>{const c=window.__cur;const rows=[['Налог','Счёт','Группа','Сальдо на начало','Начислено','Уплачено','Сальдо на конец']];
+ D.taxes.forEach(t=>{const cc=calc(t,c.a,c.b);if(cc.nach||cc.upl||cc.start||cc.end)rows.push([t.name,t.code,t.grp,Math.round(cc.start),Math.round(cc.nach),Math.round(cc.upl),Math.round(cc.end)]);});
+ const csv=rows.map(r=>r.join(';')).join('\n');const b=new Blob(["﻿"+csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Налоги_'+c.t+'_'+YEAR+'.csv';a.click();};
+buildPresets();draw();
+var _tt=$('toTop');if(_tt){addEventListener('scroll',function(){_tt.classList.toggle('show',scrollY>420);},{passive:true});_tt.onclick=function(){scrollTo({top:0,behavior:'smooth'});};}
+</script>
+<script>(function(){var H=3598380722243995;function cyrb53(s,seed){seed=seed||0;var h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(var i=0,ch;i<s.length;i++){ch=s.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0);}function go(){var v=(document.getElementById("pw").value||"").toUpperCase().replace(/О/g,"O").replace(/С/g,"C");if(cyrb53(v)===H){document.body.classList.remove("locked");var g=document.getElementById("gate");if(g)g.remove();}else{document.getElementById("er").textContent="Неверный пароль";document.getElementById("pw").select();}}var _pw=document.getElementById("pw");var _done=false;document.getElementById("go").onclick=go;_pw.addEventListener("keydown",function(e){if(e.key==="Enter")go();});function _unlock(){if(_done)return;_done=true;_pw.readOnly=false;_pw.value="";}_pw.addEventListener("focus",_unlock);_pw.addEventListener("mousedown",_unlock);setTimeout(function(){_unlock();_pw.focus();},80);})();</script></body></html>
