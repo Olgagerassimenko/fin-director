@@ -22,8 +22,8 @@ BASE = "https://buh.uchet.kz/R5verbrarsal8204/odata/standard.odata/"
 ORG_BIN = "210340021859"          # ТОО Фудзавод
 REG = "AccountingRegister_Типовой"
 
-USER = os.environ.get("ODATA_USER") or ""
-PASS = os.environ.get("ODATA_PASS") or ""
+USER = (os.environ.get("ODATA_USER") or "").strip()
+PASS = (os.environ.get("ODATA_PASS") or "").strip()
 if not USER or not PASS:
     print("НЕТ секретов ODATA_USER / ODATA_PASS — нечем авторизоваться в 1С")
     sys.exit(1)
