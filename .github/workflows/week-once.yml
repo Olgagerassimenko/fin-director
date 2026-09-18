@@ -1,0 +1,46 @@
+name: week-once
+# Разовая выгрузка недели из айко: отгрузка (нетто, за вычетом возвратов),
+# поступление ДС и сами возвраты — по контрагентам, свёрнуто по ведущему номеру.
+# Считает всё воркер; раннер GitHub нужен только потому, что домен воркера
+# недоступен снаружи.
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "начало периода ГГГГ-ММ-ДД"
+        required: true
+        default: "2026-09-12"
+      to:
+        description: "конец периода ГГГГ-ММ-ДД (включительно)"
+        required: true
+        default: "2026-09-18"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: выгрузка недели
+        env:
+          SITE: https://lucky-river-eaf1.findirfoodzavod.workers.dev
+          F: ${{ github.event.inputs.from }}
+          T: ${{ github.event.inputs.to }}
+        run: |
+          set -e
+          mkdir -p _week
+          for ep in sales_week pay_week returns_week; do
+            curl -sS --max-time 240 -o "_week/${ep}_${F}_${T}.csv" "$SITE/$ep?from=$F&to=$T&t=fzw2026"
+            echo "--- $ep ---"; head -4 "_week/${ep}_${F}_${T}.csv"; wc -l "_week/${ep}_${F}_${T}.csv"
+          done
+
+      - name: сохранить в репозиторий
+        run: |
+          git config user.name  "pulse-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add _week
+          git commit -m "неделя ${{ github.event.inputs.from }}..${{ github.event.inputs.to }} из айко [skip ci]" || echo "нет изменений"
+          git push
