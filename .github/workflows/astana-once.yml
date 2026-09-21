@@ -1,0 +1,21 @@
+name: astana-once
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: pip install -r requirements.txt
+      - run: python astana_data.py
+      - name: сохранить
+        run: |
+          git config user.name "pulse-bot"; git config user.email "bot@users.noreply.github.com"
+          git add -f astana_meta.js astana_log.txt
+          git commit -m "астана: данные по точкам [skip ci]" || echo "нет изменений"
+          git pull --rebase -X theirs origin main || git rebase --abort || true
+          git push origin HEAD:main
