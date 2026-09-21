@@ -743,16 +743,22 @@ async function salesWeek(env, url) {
   const toExcl = isoD(new Date(Date.parse(to) + 86400000));
   const token = await iikoAuth();
   const rows = await iikoMonth(token, from, toExcl);
+  /* ?raw=1 — не сворачивать по ведущему номеру, а отдать каждую точку
+     отдельной строкой. Нужно, чтобы считать экономику отдельных точек
+     (например, какие из лавок Яндекса возим в Астану). Возвраты при этом
+     не вычитаются: они приходят свёрнутыми по номеру и на точки не делятся. */
+  const rawPts = p.get("raw") === "1";
   const agg = {};
   for (const r of rows) {
     const ca = String(r["Counteragent.Name"] || "").trim();
     if (!ca) continue;
-    agg[ctrKey(ca)] = (agg[ctrKey(ca)] || 0) + (r["Sum.Incoming"] || 0);
+    const k = rawPts ? ca : ctrKey(ca);
+    agg[k] = (agg[k] || 0) + (r["Sum.Incoming"] || 0);
   }
   /* Отгрузка нетто: из реализации вычитаем возвраты. Без этого ДЗ в таблице
      росла на всю сумму возвращённого товара — долг, которого нет.
      ?gross=1 — прежнее поведение, без вычета, если нужно сравнить. */
-  if (p.get("gross") !== "1") {
+  if (p.get("gross") !== "1" && !rawPts) {
     const ret = await olapReturns(token, from, toExcl);
     for (const [k, v] of Object.entries(ret)) agg[k] = (agg[k] || 0) - v;
   }
