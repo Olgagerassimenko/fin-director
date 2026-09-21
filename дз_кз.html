@@ -734,9 +734,12 @@ function showAtab(name,el){
    листа КЗ). Одна неделя — показываем её как есть; отрезок — складываем
    приход и оплату по поставщику, а долг берём на конец отрезка: это остаток
    на дату, его нельзя суммировать. */
-var KZW={from:null,to:null,quick:1};
+var KZW=null;
+/* buildKzMismatch() вызывается из buildAnalytics() ВЫШЕ по файлу, ещё до того как
+   эта строка выполнится, поэтому состояние поднимаем лениво — через kzw(). */
+function kzw(){ if(!KZW) KZW={from:null,to:null,quick:1}; return KZW; }
 function kzWeeks(){ const kz=(window.DZ_KZ&&window.DZ_KZ.kz)||{}; return Array.isArray(kz.anaWeeks)?kz.anaWeeks:[]; }
-function kzSlice(){
+function kzSlice(){ kzw();
   const W=kzWeeks(); if(!W.length) return null;
   let i1=W.findIndex(w=>w.k===KZW.from), i2=W.findIndex(w=>w.k===KZW.to);
   if(i1<0) i1=W.length-1; if(i2<0) i2=W.length-1;
@@ -754,7 +757,7 @@ function kzSlice(){
     :((part[0].label||part[0].k).split('–')[0]+'–'+((part[part.length-1].label||'').split('–').pop()));
   return {rows:Object.values(map), label:label, date:last.date||'', weeks:part.length};
 }
-function kzFillControls(){
+function kzFillControls(){ kzw();
   const W=kzWeeks(); const f=document.getElementById('k-from'), t=document.getElementById('k-to');
   if(!W.length||!f||!t) { const r=document.getElementById('k-range'); if(r) r.style.display='none'; return; }
   const opts=W.map(w=>'<option value="'+w.k+'">'+(w.label||w.k)+'</option>').join('');
@@ -762,14 +765,14 @@ function kzFillControls(){
   if(!KZW.from) KZW.from=W[Math.max(0,W.length-1)].k;
   if(!KZW.to)   KZW.to=W[W.length-1].k;
   f.value=KZW.from; t.value=KZW.to;
-  f.onchange=function(){ KZW.from=this.value; KZW.quick=null; kzMarkQuick(); buildKzMismatch(); };
-  t.onchange=function(){ KZW.to=this.value;   KZW.quick=null; kzMarkQuick(); buildKzMismatch(); };
+  f.onchange=function(){ kzw(); KZW.from=this.value; KZW.quick=null; kzMarkQuick(); buildKzMismatch(); };
+  t.onchange=function(){ kzw(); KZW.to=this.value;   KZW.quick=null; kzMarkQuick(); buildKzMismatch(); };
   const q=document.getElementById('k-quick');
   if(q&&!q.dataset.wired){
     q.dataset.wired='1';
     q.addEventListener('click',function(e){
       const b=e.target.closest('button'); if(!b) return;
-      const n=+b.getAttribute('data-q'); const WW=kzWeeks(); if(!WW.length) return;
+      const n=+b.getAttribute('data-q'); const WW=kzWeeks(); if(!WW.length) return; kzw();
       KZW.quick=n; KZW.to=WW[WW.length-1].k;
       KZW.from=(n===0?WW[0].k:WW[Math.max(0,WW.length-n)].k);
       kzMarkQuick(); kzFillControls(); buildKzMismatch();
@@ -777,7 +780,7 @@ function kzFillControls(){
   }
   kzMarkQuick();
 }
-function kzMarkQuick(){
+function kzMarkQuick(){ kzw();
   const q=document.getElementById('k-quick'); if(!q) return;
   [].forEach.call(q.querySelectorAll('button'),function(b){
     b.classList.toggle('on', KZW.quick!=null && +b.getAttribute('data-q')===KZW.quick);
