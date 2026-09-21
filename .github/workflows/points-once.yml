@@ -1,0 +1,31 @@
+name: points-once
+# Продажи по ТОЧКАМ (без свёртки по номеру контрагента) за период.
+on:
+  workflow_dispatch:
+    inputs:
+      from: { description: "ГГГГ-ММ-ДД", required: true, default: "2026-01-01" }
+      to:   { description: "ГГГГ-ММ-ДД", required: true, default: "2026-09-20" }
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: выгрузка по точкам
+        env:
+          SITE: https://lucky-river-eaf1.findirfoodzavod.workers.dev
+          F: ${{ github.event.inputs.from }}
+          T: ${{ github.event.inputs.to }}
+        run: |
+          set -e
+          mkdir -p _points
+          curl -sS --max-time 300 -o "_points/points_${F}_${T}.csv" "$SITE/sales_week?from=$F&to=$T&raw=1&t=fzw2026"
+          curl -sS --max-time 300 -o "_points/balance_raw_${T}.csv"  "$SITE/balance?on=$T&raw=1&t=fzw2026"
+          head -3 "_points/points_${F}_${T}.csv"; wc -l "_points/points_${F}_${T}.csv"
+      - name: сохранить
+        run: |
+          git config user.name "pulse-bot"; git config user.email "bot@users.noreply.github.com"
+          git add _points
+          git commit -m "точки ${{ github.event.inputs.from }}..${{ github.event.inputs.to }} [skip ci]" || echo "нет изменений"
+          git push
