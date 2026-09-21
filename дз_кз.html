@@ -737,6 +737,7 @@ function showAtab(name,el){
 var KZW=null;
 /* buildKzMismatch() вызывается из buildAnalytics() ВЫШЕ по файлу, ещё до того как
    эта строка выполнится, поэтому состояние поднимаем лениво — через kzw(). */
+function plNed(n){ const a=n%10,b=n%100; return (a===1&&b!==11)?'неделя':((a>=2&&a<=4)&&(b<10||b>=20))?'недели':'недель'; }
 function kzw(){ if(!KZW) KZW={from:null,to:null,quick:1}; return KZW; }
 function kzWeeks(){ const kz=(window.DZ_KZ&&window.DZ_KZ.kz)||{}; return Array.isArray(kz.anaWeeks)?kz.anaWeeks:[]; }
 function kzSlice(){ kzw();
@@ -815,7 +816,7 @@ function buildKzMismatch(){
   setTx('k-period2',per);
   setTx('k-in',fmtM(IN)); setTx('k-pay',fmtM(PAY)); setTx('k-gap',fmtM(IN-PAY));
   setTx('k-debt-date',dbtDate);
-  setTx('k-range-lbl', sl? (sl.weeks>1? (sl.weeks+' недели: '+per) : per) : '');
+  setTx('k-range-lbl', sl? (sl.weeks>1? (sl.weeks+' '+plNed(sl.weeks)+': '+per) : per) : '');
   let under=0,ahead=0,html='',DEBT=0;
   rows.slice().sort((a,b)=>((+b.kc||0)-(+b.kd||0))-((+a.kc||0)-(+a.kd||0))).forEach(d=>{
     const got=+d.kc||0, paid=+d.kd||0, diff=got-paid, debt=+d.debt||0;
