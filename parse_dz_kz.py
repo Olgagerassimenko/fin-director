@@ -226,9 +226,56 @@ def parse_kz(rows):
                 if d: return d
         return ""
 
+    # ── Все недели, а не только последняя ───────────────────────────────
+    # На странице нужен выбор периода: неделя, месяц, произвольный отрезок.
+    # Для этого отдаём каждую тройку колонок отдельно; страница сама решает,
+    # что сложить. Держим последние 30 недель — дальше лист всё равно пустой,
+    # а файл растёт.
+    ana_weeks = []
+    for pos, di in enumerate(dated_idx):
+        if pos == 0:
+            continue
+        sp = list(range(dated_idx[pos - 1] + 1, di))
+
+        def pick_in(pat, span_=sp):
+            for i in span_:
+                if i < len(header) and re.search(pat, str(header[i]), re.I | re.UNICODE):
+                    return i
+            return None
+
+        ci = pick_in(r"приход\s+товара")
+        cp = pick_in(r"оплата\s+за\s+период")
+        if ci is None and cp is None:
+            continue
+        wrows = []
+        for row in data_rows:
+            nm = (row[0] if row else "").strip()
+            if not is_company(nm):
+                continue
+            g, p = kval(row, ci), kval(row, cp)
+            if g > 0 or p > 0:
+                wrows.append({"n": nm, "kc": round(g), "kd": round(p),
+                              "debt": round(-kval(row, di))})
+        if not wrows:
+            continue
+        lbl = kz_period(ci if ci is not None else cp)
+        dt = ""
+        m_dt = re.search(r"(\d{1,2}\.\d{2}\.\d{2,4})", str(header[di]) if di < len(header) else "")
+        if m_dt:
+            dt = m_dt.group(1)
+        ana_weeks.append({"k": dt or lbl or f"w{pos}", "label": lbl or dt,
+                          "date": dt,
+                          "totalIn": round(sum(r["kc"] for r in wrows)),
+                          "totalPay": round(sum(r["kd"] for r in wrows)),
+                          "rows": wrows})
+    ana_weeks = ana_weeks[-30:]
+    print(f"  КЗ: недель с движением {len(ana_weeks)}"
+          + (f", последняя «{ana_weeks[-1]['label']}»" if ana_weeks else ""))
+
     return {"total": round(latest_total), "date": last_date,
             "dynamics": dynamics, "top": top[:30],
             "ana": kz_ana,
+            "anaWeeks": ana_weeks,
             "anaMeta": {"period": kz_period(in_last),
                         "totalIn":  round(sum(a["kc"] for a in kz_ana)),
                         "totalPay": round(sum(a["kd"] for a in kz_ana))}}
