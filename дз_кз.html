@@ -177,6 +177,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .c-btn.dirty:hover{filter:brightness(1.12);color:#fff}
 .c-btn:disabled{opacity:.5;cursor:default}
 .c-btn:disabled:hover{background:#16233c;color:#cbd5e1}
+#k-range select{background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:5px 9px;font-size:12px;margin-left:6px;cursor:pointer}
+#k-range .kq{border:0;background:transparent;color:#cbd5e1;font-size:12px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer}
+#k-range .kq.on{background:#334155;color:#fff}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
 </head>
@@ -296,6 +299,19 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 
     <!-- НЕСТЫКОВКИ ПО КЗ: зеркало предыдущей вкладки, только с нашей стороны -->
     <div id="atab-kzmis" class="apanel">
+      <!-- Выбор периода: одна неделя или отрезок из нескольких.
+           Приход и оплата складываются, долг берётся на конец отрезка. -->
+      <div class="c-ctl" id="k-range" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px">
+        <div id="k-quick" style="display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:2px">
+          <button type="button" data-q="1"  class="kq">неделя</button>
+          <button type="button" data-q="4"  class="kq">4 недели</button>
+          <button type="button" data-q="13" class="kq">квартал</button>
+          <button type="button" data-q="0"  class="kq">всё</button>
+        </div>
+        <label style="font-size:12px;color:#9db0c9">с<select id="k-from"></select></label>
+        <label style="font-size:12px;color:#9db0c9">по<select id="k-to"></select></label>
+        <span id="k-range-lbl" style="font-size:12px;color:#c9a94e;font-weight:700"></span>
+      </div>
       <div class="a-cards">
         <div class="a-card"><div class="a-card-lbl">Приняли товар <span id="k-period">—</span></div><div class="a-card-val" id="k-in">—</div></div>
         <div class="a-card"><div class="a-card-lbl">Заплатили <span id="k-period2">—</span></div><div class="a-card-val" id="k-pay">—</div></div>
@@ -714,9 +730,64 @@ function showAtab(name,el){
 //  Данные живые (parse_dz_kz.py → DZ_KZ.kz.ana); резервного списка здесь нет —
 //  если колонок в таблице не окажется, честнее показать пустую вкладку,
 //  чем прошлогодние цифры.
+/* Выбор периода. Недели лежат в kz.anaWeeks (каждая — своя тройка колонок
+   листа КЗ). Одна неделя — показываем её как есть; отрезок — складываем
+   приход и оплату по поставщику, а долг берём на конец отрезка: это остаток
+   на дату, его нельзя суммировать. */
+var KZW={from:null,to:null,quick:1};
+function kzWeeks(){ const kz=(window.DZ_KZ&&window.DZ_KZ.kz)||{}; return Array.isArray(kz.anaWeeks)?kz.anaWeeks:[]; }
+function kzSlice(){
+  const W=kzWeeks(); if(!W.length) return null;
+  let i1=W.findIndex(w=>w.k===KZW.from), i2=W.findIndex(w=>w.k===KZW.to);
+  if(i1<0) i1=W.length-1; if(i2<0) i2=W.length-1;
+  if(i1>i2){ const t=i1; i1=i2; i2=t; }
+  const part=W.slice(i1,i2+1);
+  const map={};
+  part.forEach(w=>(w.rows||[]).forEach(r=>{
+    const e=map[r.n]||(map[r.n]={name:r.n,kc:0,kd:0,debt:0});
+    e.kc+=(+r.kc||0); e.kd+=(+r.kd||0);
+  }));
+  // долг — на конец отрезка, из последней недели диапазона
+  const last=part[part.length-1]||{rows:[]};
+  (last.rows||[]).forEach(r=>{ if(map[r.n]) map[r.n].debt=(+r.debt||0); });
+  const label=part.length===1?(part[0].label||part[0].k)
+    :((part[0].label||part[0].k).split('–')[0]+'–'+((part[part.length-1].label||'').split('–').pop()));
+  return {rows:Object.values(map), label:label, date:last.date||'', weeks:part.length};
+}
+function kzFillControls(){
+  const W=kzWeeks(); const f=document.getElementById('k-from'), t=document.getElementById('k-to');
+  if(!W.length||!f||!t) { const r=document.getElementById('k-range'); if(r) r.style.display='none'; return; }
+  const opts=W.map(w=>'<option value="'+w.k+'">'+(w.label||w.k)+'</option>').join('');
+  f.innerHTML=opts; t.innerHTML=opts;
+  if(!KZW.from) KZW.from=W[Math.max(0,W.length-1)].k;
+  if(!KZW.to)   KZW.to=W[W.length-1].k;
+  f.value=KZW.from; t.value=KZW.to;
+  f.onchange=function(){ KZW.from=this.value; KZW.quick=null; kzMarkQuick(); buildKzMismatch(); };
+  t.onchange=function(){ KZW.to=this.value;   KZW.quick=null; kzMarkQuick(); buildKzMismatch(); };
+  const q=document.getElementById('k-quick');
+  if(q&&!q.dataset.wired){
+    q.dataset.wired='1';
+    q.addEventListener('click',function(e){
+      const b=e.target.closest('button'); if(!b) return;
+      const n=+b.getAttribute('data-q'); const WW=kzWeeks(); if(!WW.length) return;
+      KZW.quick=n; KZW.to=WW[WW.length-1].k;
+      KZW.from=(n===0?WW[0].k:WW[Math.max(0,WW.length-n)].k);
+      kzMarkQuick(); kzFillControls(); buildKzMismatch();
+    });
+  }
+  kzMarkQuick();
+}
+function kzMarkQuick(){
+  const q=document.getElementById('k-quick'); if(!q) return;
+  [].forEach.call(q.querySelectorAll('button'),function(b){
+    b.classList.toggle('on', KZW.quick!=null && +b.getAttribute('data-q')===KZW.quick);
+  });
+}
 function buildKzMismatch(){
   const kz=(window.DZ_KZ&&window.DZ_KZ.kz)||{};
-  const src=Array.isArray(kz.ana)?kz.ana:[];
+  kzFillControls();
+  const sl=kzSlice();
+  const src=sl?sl.rows:(Array.isArray(kz.ana)?kz.ana:[]);
   const rows=src.filter(d=>(+d.kc||0)>0||(+d.kd||0)>0);
   const body=document.getElementById('k-mismatch-body');
   const empty=document.getElementById('k-empty');
@@ -729,15 +800,19 @@ function buildKzMismatch(){
     const pane=document.getElementById('atab-kzmis');
     if(pane) pane.querySelectorAll('.a-cards,#k-table,.a-hint:not(#k-empty)')
                  .forEach(e=>e.style.display='none');
+    const rg=document.getElementById('k-range'); if(rg&&kzWeeks().length) rg.style.display='flex';
     return;
   }
   const meta=kz.anaMeta||{};
+  const per=(sl&&sl.label)||meta.period||'за неделю';
+  const dbtDate=(sl&&sl.date)||kz.date||'дату';
   const IN=rows.reduce((s,d)=>s+(+d.kc||0),0);
   const PAY=rows.reduce((s,d)=>s+(+d.kd||0),0);
-  setTx('k-period',meta.period||'за неделю');
-  setTx('k-period2',meta.period||'за неделю');
+  setTx('k-period',per);
+  setTx('k-period2',per);
   setTx('k-in',fmtM(IN)); setTx('k-pay',fmtM(PAY)); setTx('k-gap',fmtM(IN-PAY));
-  setTx('k-debt-date',kz.date||'дату');
+  setTx('k-debt-date',dbtDate);
+  setTx('k-range-lbl', sl? (sl.weeks>1? (sl.weeks+' недели: '+per) : per) : '');
   let under=0,ahead=0,html='',DEBT=0;
   rows.slice().sort((a,b)=>((+b.kc||0)-(+b.kd||0))-((+a.kc||0)-(+a.kd||0))).forEach(d=>{
     const got=+d.kc||0, paid=+d.kd||0, diff=got-paid, debt=+d.debt||0;
