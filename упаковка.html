@@ -311,7 +311,7 @@ tfoot td:first-child{text-align:left}
       st[s] = r.st[s]; stock += r.st[s][0]; stSum += r.st[s][1];
     });
     /* расход — прямой: сколько ушло со склада, а не разница остатков */
-    var out3 = 0, in3 = 0, outAll = 0, lastMove = '';
+    var out3 = 0, in3 = 0, outAll = 0, lastMove = '', curMv = 0;
     var byStore = {};
     MON.forEach(function (k) {
       var m = (r.mv || {})[k]; if (!m) return;
@@ -322,6 +322,9 @@ tfoot td:first-child{text-align:left}
         var b = byStore[s] || (byStore[s] = [0, 0]);
         b[0] += v[0]; b[1] += v[1];
         if (LAST3.indexOf(k) >= 0) { in3 += v[0]; out3 += v[1]; }
+        /* Текущий месяц неполный и в базу расхода не входит — но если позиция
+           в нём двигалась, называть её «не используется» неправильно. */
+        if (k === MON[MON.length - 1]) curMv += v[0] + v[1];
       });
     });
     var sup = Object.keys(r.sup || {});
@@ -331,7 +334,7 @@ tfoot td:first-child{text-align:left}
     var sum = sup.reduce(function (s2, k) { return s2 + (r.sup[k][0] || 0); }, 0);
     return { n:r.n, u:r.u||'', st:st, stock:stock, stSum:stSum, sup:r.sup||{}, sups:sup, main:main,
              price: qty ? sum/qty : 0, buySum:sum, buyQty:qty,
-             out3:out3, in3:in3, outAll:outAll, last:lastMove, byStore:byStore,
+             out3:out3, in3:in3, outAll:outAll, last:lastMove, curMv:curMv, byStore:byStore,
              stores:Object.keys(st) };
   });
 
@@ -348,7 +351,7 @@ tfoot td:first-child{text-align:left}
       /* Позиция без единого движения за три месяца — это не дефицит,
          а вещь, которой сейчас не пользуются. Заказывать её незачем,
          но если на складе лежит остаток, это замороженные деньги. */
-      it.dead = it.out3 <= 0 && it.in3 <= 0;
+      it.dead = it.out3 <= 0 && it.in3 <= 0 && !it.curMv;
       it.st_ = it.dead ? (it.stock > 0 ? 'лежит без движения' : 'не используется')
              : it.perD <= 0 ? 'только приход'
              : it.days < it.lead ? 'дефицит'
@@ -574,6 +577,70 @@ tfoot td:first-child{text-align:left}
   }
 
   /* ── 4. НЕ ИСПОЛЬЗУЕТСЯ ────────────────────────────────────────── */
+  /*  Деньги, которые стоят. Разрезы отвечают на три разных вопроса:
+      «по назначению» — можно ли это вообще вернуть в оборот (брендированную
+      упаковку закрытого проекта переложить не на что), «по виду» — что именно
+      закупили лишнего, «по давности» — насколько это уже безнадёжно.
+      Длина полосы — величина; цвет в разрезе по виду и давности один и тот же,
+      он ничего не кодирует. Двухцветным сделан только разрез по назначению,
+      где цвет несёт смысл, и там он продублирован подписью и легендой.       */
+  var C_NO = '#fbbf24', C_YES = '#60a5fa', C_ONE = '#a78bfa';
+
+  function deadBrand(n) {
+    var t = n.toLowerCase();
+    if (t.indexOf('crave') >= 0) return ['Crave', false];
+    if (/(^|[^а-я])сн([^а-я]|$)/.test(t) || t.indexOf('сладкий ноябрь') >= 0) return ['Сладкий ноябрь', false];
+    if (t.indexOf('магнум') >= 0) return ['Магнум', false];
+    if (t.indexOf('пикассо') >= 0) return ['Пикассо', false];
+    return ['Общая упаковка', true];
+  }
+  function deadKind(n) {
+    var t = n.toLowerCase();
+    if (/короб/.test(t)) return 'Коробки';
+    if (/пакет/.test(t)) return 'Пакеты';
+    if (/этикетк|стикер|наклейк|топпер|слепок/.test(t)) return 'Этикетки и декор';
+    if (/контейнер|боул|лоток|форма|ящик/.test(t)) return 'Контейнеры и формы';
+    if (/стакан|крышк|держател|трубочк|шейкер/.test(t)) return 'Стаканы и крышки';
+    return 'Бумага и прочее';
+  }
+  function deadAge(last) {
+    if (!last) return ['Ни одного движения за год', 4];
+    var cur = MON[MON.length - 1];
+    var m = (+cur.slice(0, 4) - +last.slice(0, 4)) * 12 + (+cur.slice(5, 7) - +last.slice(5, 7));
+    return m >= 12 ? ['Больше года', 3] : m >= 6 ? ['От 6 до 12 месяцев', 2]
+         : m >= 3 ? ['От 3 до 6 месяцев', 1] : ['Меньше 3 месяцев', 0];
+  }
+  /*  Полоса: длина = доля от максимума, значение подписано на самой полосе —
+      читать можно без наведения, поэтому отдельная всплывашка не нужна.   */
+  function deadBar(label, val, share, max, color, sub) {
+    var w = max > 0 ? Math.max(1.5, val / max * 100) : 0;
+    return '<div style="margin-bottom:9px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:3px">'
+      +   '<div style="font-size:12px;color:#dbe6f5">' + label
+      +     (sub ? ' <span style="color:#6b7f9c;font-size:11px">' + sub + '</span>' : '') + '</div>'
+      +   '<div style="font-size:12px;color:#f1f5f9;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums">'
+      +     f0(val) + ' ₸ <span style="color:#8fa2bd;font-weight:600">' + share.toFixed(1).replace('.', ',') + '%</span></div>'
+      + '</div>'
+      + '<div style="height:9px;background:rgba(148,163,184,.12);border-radius:5px;overflow:hidden">'
+      +   '<div style="height:100%;width:' + w.toFixed(2) + '%;background:' + color + ';border-radius:5px"></div>'
+      + '</div></div>';
+  }
+  function deadGroup(list, keyFn, tot) {
+    var g = {}, order = [];
+    list.forEach(function (i) {
+      var k = keyFn(i);
+      if (!g[k]) { g[k] = { sum: 0, n: 0 }; order.push(k); }
+      g[k].sum += i.stSum; g[k].n++;
+    });
+    return order.map(function (k) { return { k: k, sum: g[k].sum, n: g[k].n, share: tot ? g[k].sum / tot * 100 : 0 }; })
+                .sort(function (a, b) { return b.sum - a.sum; });
+  }
+  function deadCard(title, hint, inner) {
+    return '<div class="card" style="margin-top:12px"><div style="font-size:13px;font-weight:700;color:#f1f5f9">'
+      + title + '</div><div style="font-size:11.5px;color:#7f93b0;margin:3px 0 12px;line-height:1.55">' + hint + '</div>'
+      + inner + '</div>';
+  }
+
   function secDead() {
     var a = IT.filter(qmatch).filter(function (i) { return i.dead; });
     a.sort(function (x, y) { return y.stSum - x.stSum; });
@@ -581,26 +648,160 @@ tfoot td:first-child{text-align:left}
     var frozen = withStock.reduce(function (s, i) { return s + i.stSum; }, 0);
     var el = document.getElementById('s-dead');
     if (!a.length) { el.innerHTML = '<div class="card"><div class="empty">Вся упаковка в обороте.</div></div>'; return; }
-    el.innerHTML = '<div class="card">'
-      + '<div class="note" style="margin:0 0 10px">За три последних месяца по этим позициям не было ни прихода, '
-      + 'ни расхода — значит, ими сейчас не пользуются. Заказывать их не нужно. '
-      + 'На складах по ним лежит <b>' + f0(frozen) + ' ₸</b> в ' + withStock.length + ' '
-      + plw(withStock.length,'позиции','позициях','позициях')
-      + ' — это замороженные деньги: их стоит либо вернуть в оборот, либо списать.</div>'
-      + '<div class="tw"><table><thead><tr><th>Позиция</th><th>Остаток</th><th>Лежит, ₸</th>'
+
+    var stockAll = IT.reduce(function (s, i) { return s + i.stSum; }, 0);
+    var sharePack = stockAll ? frozen / stockAll * 100 : 0;
+    var noStock = a.length - withStock.length;
+
+    /* можно ли вернуть в оборот */
+    var reusable = withStock.filter(function (i) { return deadBrand(i.n)[1]; });
+    var reusableSum = reusable.reduce(function (s, i) { return s + i.stSum; }, 0);
+    var lockedSum = frozen - reusableSum;
+    var lockedPct = frozen ? lockedSum / frozen * 100 : 0;
+
+    /* топ-10 и накопленная доля */
+    var run = 0, cum = withStock.map(function (i) { run += i.stSum; return frozen ? run / frozen * 100 : 0; });
+    var top10 = cum.length >= 10 ? cum[9] : (cum.length ? cum[cum.length - 1] : 0);
+
+    var gBrand = deadGroup(withStock, function (i) { return deadBrand(i.n)[0]; }, frozen);
+    var gKind  = deadGroup(withStock, function (i) { return deadKind(i.n); }, frozen);
+    var gAge   = deadGroup(withStock, function (i) { return deadAge(i.last)[0]; }, frozen);
+    gAge.sort(function (x, y) {
+      var ox = 0, oy = 0;
+      withStock.some(function (i) { if (deadAge(i.last)[0] === x.k) { ox = deadAge(i.last)[1]; return true; } });
+      withStock.some(function (i) { if (deadAge(i.last)[0] === y.k) { oy = deadAge(i.last)[1]; return true; } });
+      return ox - oy;
+    });
+    var gStore = deadGroup(withStock, function (i) { return i.stores[0] || '—'; }, frozen);
+
+    var maxB = Math.max.apply(null, gBrand.map(function (x) { return x.sum; }).concat([1]));
+    var maxK = Math.max.apply(null, gKind.map(function (x) { return x.sum; }).concat([1]));
+    var maxA = Math.max.apply(null, gAge.map(function (x) { return x.sum; }).concat([1]));
+    var maxS = Math.max.apply(null, gStore.map(function (x) { return x.sum; }).concat([1]));
+
+    function tile(l, v, s2, c) {
+      return '<div class="kpi" style="--c:' + c + '"><div class="l">' + l + '</div>'
+        + '<div class="v" style="color:' + c + '">' + v + '</div><div class="s">' + s2 + '</div></div>';
+    }
+
+    var html = '';
+
+    /* ── вердикт ── */
+    html += '<div class="card" style="border-left:3px solid ' + C_NO + '">'
+      + '<div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap">'
+      +   '<div><div style="font-size:11px;color:#7f93b0;font-weight:600">ЗАМОРОЖЕНО В УПАКОВКЕ</div>'
+      +   '<div style="font-size:30px;font-weight:800;color:' + C_NO + ';line-height:1.2;font-variant-numeric:tabular-nums">'
+      +     f0(frozen) + ' ₸</div></div>'
+      +   '<div style="flex:1;min-width:280px;font-size:12.5px;color:#c3d2e6;line-height:1.65">'
+      +     'Это <b style="color:#f1f5f9">' + sharePack.toFixed(1).replace('.', ',') + '%</b> всех денег, '
+      +     'которые лежат на складах в упаковке (' + f0(stockAll) + ' ₸). '
+      +     'Лежит в <b style="color:#f1f5f9">' + withStock.length + '</b> '
+      +     plw(withStock.length, 'позиции', 'позициях', 'позициях') + '; ещё ' + noStock + ' '
+      +     plw(noStock, 'позиция', 'позиции', 'позиций') + ' не используется, но остатка не держит — '
+      +     'их просто не надо заказывать.'
+      +     '<div style="margin-top:7px;color:#fcd9a0">Главное: <b>' + lockedPct.toFixed(0) + '%</b> этих денег — '
+      +     'упаковка под конкретный бренд. Её нельзя переложить на другой продукт: это кандидат на списание, а не на возврат в оборот.</div>'
+      +   '</div></div></div>';
+
+    /* ── плитки ── */
+    html += '<div class="kpis" style="margin-top:12px">'
+      + tile('Вернуть в оборот', f0(reusableSum) + ' ₸', 'общая упаковка, ' + reusable.length + ' ' + plw(reusable.length, 'позиция', 'позиции', 'позиций'), C_YES)
+      + tile('Переложить не на что', f0(lockedSum) + ' ₸', 'брендированная упаковка', C_NO)
+      + tile('Топ-10 позиций', top10.toFixed(0) + '%', 'столько дают 10 позиций из ' + withStock.length, C_ONE)
+      + tile('Доля склада упаковки', sharePack.toFixed(1).replace('.', ',') + '%', 'от ' + f0(stockAll) + ' ₸', '#8fa2bd')
+      + '</div>';
+
+    /* ── по назначению ── */
+    html += deadCard('Под что закупали — и можно ли вернуть в оборот',
+      'Единственный разрез, где цвет что-то значит: <span style="color:' + C_YES + ';font-weight:700">синий</span> — общая упаковка, '
+      + 'годится любому продукту. <span style="color:' + C_NO + ';font-weight:700">жёлтый</span> — упаковка с чужим брендом: '
+      + 'другому продукту её не отдать, вернуть поставщику как правило тоже нельзя.',
+      gBrand.map(function (x) {
+        var ok = deadBrand(x.k === 'Общая упаковка' ? 'общая' : x.k)[1];
+        return deadBar(esc(x.k) + ' <span style="font-size:10px;color:' + (ok ? C_YES : C_NO) + ';font-weight:700">'
+          + (ok ? '· в оборот' : '· не переложить') + '</span>',
+          x.sum, x.share, maxB, ok ? C_YES : C_NO, '· ' + x.n + ' ' + plw(x.n, 'позиция', 'позиции', 'позиций'));
+      }).join(''));
+
+    /* ── по виду ── */
+    html += deadCard('По виду упаковки', 'Что именно лежит. Длина полосы — сумма; цвет один на все, он ничего не кодирует.',
+      gKind.map(function (x) {
+        return deadBar(esc(x.k), x.sum, x.share, maxK, C_ONE, '· ' + x.n + ' ' + plw(x.n, 'позиция', 'позиции', 'позиций'));
+      }).join(''));
+
+    /* ── по давности ── */
+    html += deadCard('Сколько уже лежит без движения',
+      'Отсчёт от последнего прихода или расхода. Чем дольше позиция стоит, тем меньше шансов, что она когда-нибудь уйдёт сама.',
+      gAge.map(function (x) {
+        return deadBar(esc(x.k), x.sum, x.share, maxA, C_ONE, '· ' + x.n + ' ' + plw(x.n, 'позиция', 'позиции', 'позиций'));
+      }).join(''));
+
+    /* ── по складам ── */
+    if (gStore.length > 1) {
+      html += deadCard('Где лежит', 'Склад, на котором числится остаток. Полезно, когда пойдёте смотреть глазами.',
+        gStore.map(function (x) {
+          return deadBar(esc(x.k), x.sum, x.share, maxS, C_ONE, '· ' + x.n + ' ' + plw(x.n, 'позиция', 'позиции', 'позиций'));
+        }).join(''));
+    }
+
+    /* ── что делать ── */
+    var topLocked = withStock.filter(function (i) { return !deadBrand(i.n)[1]; }).slice(0, 3);
+    var sups = {};
+    reusable.forEach(function (i) { if (i.main) sups[i.main] = (sups[i.main] || 0) + i.stSum; });
+    var supTop = Object.keys(sups).sort(function (x, y) { return sups[y] - sups[x]; }).slice(0, 3);
+    var oldSum = gAge.filter(function (x) { return x.k !== 'Меньше 3 месяцев' && x.k !== 'От 3 до 6 месяцев'; })
+                     .reduce(function (s2, x) { return s2 + x.sum; }, 0);
+    function act(head2, body, color) {
+      return '<div style="background:#0d1626;border:1px solid var(--line);border-left:3px solid ' + color
+        + ';border-radius:12px;padding:12px 14px">'
+        + '<div style="font-size:12.5px;font-weight:700;color:#e8eef6;margin-bottom:4px">' + head2 + '</div>'
+        + '<div style="font-size:11.5px;color:#8fa2bd;line-height:1.6">' + body + '</div></div>';
+    }
+    html += deadCard('Что с этим делать', 'Три разные суммы и три разных решения — складывать их в одну строку бессмысленно.',
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">'
+      + act('Вернуть в оборот — ' + f0(reusableSum) + ' ₸',
+          'Общая упаковка, её можно раздать по действующим продуктам вместо новых закупок. '
+          + (supTop.length ? 'Больше всего висит на: ' + supTop.map(function (x) { return esc(x) + ' (' + f0(sups[x]) + ')'; }).join(', ') + '. ' : '')
+          + 'Перед следующей заявкой проверьте по этим позициям — заказ можно не делать.', C_YES)
+      + act('Решить по бренду — ' + f0(lockedSum) + ' ₸',
+          'Упаковка проектов, которые сейчас не идут. Варианты ровно три: запустить продукт обратно, '
+          + 'договориться с поставщиком о выкупе или обмене, либо списать и закрыть вопрос. '
+          + (topLocked.length ? 'Начинать с крупного: ' + topLocked.map(function (i) { return esc(i.n.replace(/^У\*\s*/, '')) + ' — ' + f0(i.stSum); }).join('; ') + '.' : ''), C_NO)
+      + act('Списать старое — ' + f0(oldSum) + ' ₸',
+          'Лежит больше полугода или не двигалось ни разу за весь период данных. Чем дольше держим на балансе, '
+          + 'тем дороже обходится место и тем хуже выглядит запас. Инвентаризация покажет, что из этого ещё цело.', '#8fa2bd')
+      + '</div>');
+
+    /* ── таблица ── */
+    html += '<div class="card" style="margin-top:12px">'
+      + '<div style="font-size:13px;font-weight:700;color:#f1f5f9">Позиции целиком</div>'
+      + '<div style="font-size:11.5px;color:#7f93b0;margin:3px 0 4px;line-height:1.55">'
+      + 'Отсортировано по сумме. Колонка «накоплено» показывает, какую часть замороженных денег вы закроете, '
+      + 'разобрав позиции сверху вниз.</div>'
+      + '<div class="tw"><table><thead><tr><th>Позиция</th><th>Остаток</th><th>Лежит, ₸</th><th>Накоплено</th>'
       + '<th>Последнее движение</th><th>Где лежит</th><th>Поставщик</th></tr></thead><tbody>'
       + a.map(function (i) {
-          var where = Object.keys(i.st).map(function(s){ return esc(s); }).join(', ');
-          return '<tr><td>' + esc(i.n) + '<div class="sub2">' + esc(i.u||'') + '</div></td>'
+          var where = Object.keys(i.st).map(function (s2) { return esc(s2); }).join(', ');
+          var k = withStock.indexOf(i);
+          var br = deadBrand(i.n);
+          return '<tr><td>' + esc(i.n)
+            + (br[1] ? '' : ' <span style="font-size:10px;color:' + C_NO + ';font-weight:700">' + esc(br[0]) + '</span>')
+            + '<div class="sub2">' + esc(i.u || '') + '</div></td>'
             + '<td>' + (i.stock ? f1(i.stock) : '<span class="zero">—</span>') + '</td>'
             + '<td>' + (i.stSum ? f0(i.stSum) : '<span class="zero">—</span>') + '</td>'
-            + '<td>' + (i.last ? i.last.slice(5)+'.'+i.last.slice(2,4) : '<span class="zero">нет в данных</span>') + '</td>'
+            + '<td>' + (k >= 0 ? cum[k].toFixed(0) + '%' : '<span class="zero">—</span>') + '</td>'
+            + '<td>' + (i.last ? i.last.slice(5) + '.' + i.last.slice(2, 4) : '<span class="zero">нет в данных</span>') + '</td>'
             + '<td style="text-align:left;white-space:normal;font-size:11px;color:#8fa2bd">'
             +   (where || '<span class="zero">нет на складах</span>') + '</td>'
-            + '<td style="text-align:left;font-size:11px;color:#8fa2bd">' + esc(i.main||'—') + '</td></tr>';
+            + '<td style="text-align:left;font-size:11px;color:#8fa2bd">' + esc(i.main || '—') + '</td></tr>';
         }).join('')
       + '</tbody><tfoot><tr><td>Итого · ' + a.length + '</td><td></td><td>' + f0(frozen)
-      + '</td><td></td><td></td><td></td></tr></tfoot></table></div></div>';
+      + '</td><td>100%</td><td></td><td></td><td></td></tr></tfoot></table></div>'
+      + '<div class="note">Позиция попадает сюда, если за три последних полных месяца по ней не было ни прихода, '
+      + 'ни расхода и в текущем месяце движений тоже нет. Сумма — остаток по учётной стоимости на '
+      + dmy(TH) + '. Брендом помечены позиции, чьё название привязано к конкретному проекту.</div></div>';
+
+    el.innerHTML = html;
   }
 
   /* ── ВЫГРУЗКИ ──────────────────────────────────────────────────── */
