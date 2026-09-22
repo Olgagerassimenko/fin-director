@@ -705,7 +705,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
   </script>
 </div>
 
-<div class="section" id="astana-analytics" style="padding-top:6px" data-av="2">
+<div class="section" id="astana-analytics" style="padding-top:6px" data-av="3">
   <details id="as-details" class="opiu-check" style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:0;overflow:hidden">
     <summary style="cursor:pointer;list-style:none;padding:14px 18px;font-size:14px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:8px;user-select:none;flex-wrap:wrap">
       <span style="color:#c9a94e"><span id="as-caret">&#9656;</span> &#128666; Астана &mdash; анализ Яндекс продажи</span>
@@ -716,6 +716,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       <div id="as-verdict" style="margin:2px 0 12px"></div>
       <div id="as-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;margin-bottom:12px"></div>
       <div id="as-intro" style="background:rgba(148,163,184,.08);border:1px solid #334155;border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.65;color:#cbd5e1;margin:2px 0 12px"></div>
+      <div id="as-fact" style="margin:2px 0 12px"></div>
       <div class="card" style="overflow-x:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
           <div style="font-size:13px;font-weight:700;color:#f1f5f9">&#128202; Выручка по точкам, с начала года</div>
@@ -729,12 +730,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       </div>
       <div class="card" style="margin-top:12px">
         <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:4px">&#129518; Выгодно ли возить &mdash; посчитайте свои затраты</div>
-        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px">Введите фактические расходы на Астану за месяц. Значения сохраняются в этом браузере.</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px">Подставлен факт августа 2026 из счетов ИП Нуртазин М.Б.: 4 межгородних рейса в среднем по 200&#8201;000 &#8376;, развозка по Астане 540&#8201;000 &#8376;, склад 191&#8201;197 &#8376; &mdash; всё без НДС. Меняйте, чтобы проверить свой сценарий; значения сохраняются в этом браузере.</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px">
-          <label style="font-size:12px;color:#cbd5e1">Рейсов в месяц<input id="as-trips" type="number" min="0" step="1" value="4" style="width:100%;margin-top:4px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:13px"></label>
-          <label style="font-size:12px;color:#cbd5e1">Стоимость рейса, &#8376;<input id="as-trip-cost" type="number" min="0" step="10000" value="300000" style="width:100%;margin-top:4px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:13px"></label>
-          <label style="font-size:12px;color:#cbd5e1">Склад в Астане, &#8376;/мес<input id="as-wh" type="number" min="0" step="10000" value="0" style="width:100%;margin-top:4px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:13px"></label>
-          <label style="font-size:12px;color:#cbd5e1">ФОТ и прочее, &#8376;/мес<input id="as-fot" type="number" min="0" step="10000" value="0" style="width:100%;margin-top:4px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:13px"></label>
+          <label style="font-size:12px;color:#cbd5e1">Рейсов Алматы&rarr;Астана<input id="as-trips" type="number" min="0" step="1" value="4" style="width:100%;margin-top:4px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:13px"></label>
+          <label style="font-size:12px;color:#cbd5e1">Стоимость рейса, &#8376;<input id="as-trip-cost" type="number" min="0" step="10000" value="200000" style="width:100%;margin-top:4px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:13px"></label>
+          <label style="font-size:12px;color:#cbd5e1">Склад в Астане, &#8376;/мес<input id="as-wh" type="number" min="0" step="10000" value="191197" style="width:100%;margin-top:4px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:13px"></label>
+          <label style="font-size:12px;color:#cbd5e1">Развозка по Астане, &#8376;/мес<input id="as-fot" type="number" min="0" step="10000" value="540000" style="width:100%;margin-top:4px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:13px"></label>
         </div>
         <div id="as-calc" style="margin-top:12px"></div>
       </div>
@@ -759,17 +760,35 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     function pc(v){ return String(v.toFixed(1)).replace(".",","); }
     var MS=["","Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
     var PAL=["#60a5fa","#34d399","#f59e0b","#a78bfa","#f472b6"];
-    var LSK="astana_costs_v1", NET=0.282;
+    var LSK="astana_costs_v3", NET=0.282;
+    /* Факт августа 2026. Счета ИП Нуртазин М.Б. (перевозки Алматы-Астана и
+       развозка внутри Астаны) + аренда склада. Маржа по позициям - из
+       детального отчёта продаж за 01-31.08.2026; выручка в нём сходится с
+       выручкой астанинских точек в айко (4 187 674) до рубля. */
+    var FACT={
+      label:"Август 2026", k:"2026-08", rev:4187674, units:1268, sku:9,
+      cogs:1674144, marg:2513530,
+      logNet:1340000, vat:214400, logGross:1554400, wh:191197,
+      inter:[["212","14.08","Алматы &ndash; Караганда &ndash; Астана",1,250000],
+             ["226","24.08","Алматы &ndash; Астана, 4 палеты",1,250000],
+             ["226","24.08","Алматы &ndash; Астана",1,150000],
+             ["236","31.08","Алматы &ndash; Астана",1,150000]],
+      city:[["201","06.08","Развозка по Астане",16,15000],
+            ["212","14.08","Развозка по Астане",5,15000],
+            ["226","24.08","Развозка по Астане, разовая",1,75000],
+            ["234","31.08","Развозка по городу",10,15000]],
+      src:"счета ИП Нуртазин М.Б. № 201, 212, 226, 234, 236 + аренда склада"
+    };
     function A(){ return window.ASTANA||null; }
     function sumTot(a){ return a.reduce(function(s,r){return s+(r.tot||0);},0); }
     function monthTot(a,k){ return a.reduce(function(s,r){return s+((r.m&&r.m[k])||0);},0); }
     function closedMonths(D){ var n=new Date(), c=n.getFullYear()+"-"+("0"+(n.getMonth()+1)).slice(-2); return (D.months||[]).filter(function(k){return k<c;}); }
     function avgMonth(D,arr){ var ks=closedMonths(D).slice(-3); if(!ks.length) return 0; return ks.reduce(function(s,k){return s+monthTot(arr,k);},0)/ks.length; }
     function marginPct(D){ return (D.margin!=null?D.margin:28.2); }
-    function costs(){ var d={trips:4,trip:300000,wh:0,fot:0}; try{var s=JSON.parse(localStorage.getItem(LSK)||"null"); if(s) d=Object.assign(d,s);}catch(e){} return d; }
+    function costs(){ var d={trips:4,trip:200000,wh:191197,fot:540000}; try{var s=JSON.parse(localStorage.getItem(LSK)||"null"); if(s) d=Object.assign(d,s);}catch(e){} return d; }
     function saveCosts(c){ try{localStorage.setItem(LSK,JSON.stringify(c));}catch(e){} }
     function num(id,def){ var el=document.getElementById(id); var v=el?parseFloat(el.value):NaN; return isFinite(v)?v:def; }
-    function cur(){ return {trips:num("as-trips",4),trip:num("as-trip-cost",300000),wh:num("as-wh",0),fot:num("as-fot",0)}; }
+    function cur(){ return {trips:num("as-trips",4),trip:num("as-trip-cost",200000),wh:num("as-wh",191197),fot:num("as-fot",540000)}; }
 
     function setSummary(D){
       var e=document.getElementById("as-sum"); if(!e) return;
@@ -779,15 +798,22 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     function setVerdict(D){
       var e=document.getElementById("as-verdict"); if(!e) return;
       var av=avgMonth(D,D.astana), c=cur(), cost=c.trips*c.trip+c.wh+c.fot;
-      var lo=av*NET, res=lo-cost, need=cost/NET;
+      /* База решения - маржа по сырью: если Астану закрыть, заводские
+         постоянные расходы никуда не денутся, а логистика и склад исчезнут.
+         Осторожный сценарий (полная разноска 28,2%) показываем второй строкой. */
+      var m=marginPct(D), hi=av*m/100, lo=av*NET;
+      var res=hi-cost, resLo=lo-cost, needM=av>0?cost/av*100:0;
       var ok=res>=0, col=ok?"#34d399":"#f87171", bg=ok?"rgba(52,211,153,.10)":"rgba(239,68,68,.10)", br=ok?"rgba(52,211,153,.35)":"rgba(239,68,68,.35)";
       e.innerHTML="<div style='background:"+bg+";border:1px solid "+br+";border-radius:12px;padding:13px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap'>"+
         "<div style='font-size:26px;line-height:1'>"+(ok?"&#9989;":"&#10060;")+"</div>"+
         "<div style='flex:1;min-width:240px'>"+
-          "<div style='font-size:15px;font-weight:800;color:"+col+"'>"+(ok?"Астану возить выгодно":"Астана не окупает доставку")+
+          "<div style='font-size:15px;font-weight:800;color:"+col+"'>"+(ok?"Астана окупает доставку":"Астана не окупает доставку")+
           " &mdash; "+(ok?"+":"&minus;")+fmt(Math.abs(res))+" в месяц</div>"+
-          "<div style='font-size:12px;color:#cbd5e1;margin-top:3px'>Выручка "+fmt(av)+" &rarr; маржа "+fmt(lo)+" при затратах "+fmt(cost)+
-          ". Порог безубыточности &mdash; "+fmt(need)+" выручки в месяц"+(av>0?(", это "+String((need/av).toFixed(1)).replace(".",",")+"&times; текущего объёма"):"")+".</div>"+
+          "<div style='font-size:12px;color:#cbd5e1;margin-top:3px'>Выручка "+fmt(av)+" &rarr; маржа по сырью "+pc(m)+"% = "+fmt(hi)+
+          ", прямые расходы на направление "+fmt(cost)+". Логистика и склад съедают "+pc(needM)+"% выручки &mdash; "+
+          "столько и должна давать маржа, чтобы выйти в ноль"+(m>needM?(" (запас "+pc(m-needM)+" п.п.)"):(" (не хватает "+pc(needM-m)+" п.п.)"))+".</div>"+
+          "<div style='font-size:11.5px;color:#94a3b8;margin-top:4px'>Если же разносить на Астану полные заводские затраты (маржа 28,2%), результат "+
+          (resLo>=0?"+":"&minus;")+fmt(Math.abs(resLo))+" &mdash; направление кормит себя, но не тянет свою долю постоянных расходов.</div>"+
         "</div></div>";
     }
     function kpi(label,val,sub,color){
@@ -822,7 +848,90 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
         ". Логистическое плечо длиннее, а объём на точку меньше &mdash; это и есть суть проблемы."+
         "<br><br><b style='color:#f1f5f9'>Как считаем.</b> Маржа по номенклатуре, которую берёт Яндекс, &mdash; "+pc(m)+"%"+
         (D.margin_cover?(" (по "+pc(D.margin_cover)+"% выручки)"):"")+", но это маржа по сырью. "+
-        "Для решения берём осторожную базу &mdash; среднюю маржу завода 28,2%: в ней уже учтены упаковка, труд и постоянные расходы.";
+        "Решение принимаем по ней: если Астану закрыть, исчезнут логистика и склад, а постоянные расходы завода останутся. "+
+        "Вторым числом показываем осторожную базу &mdash; среднюю маржу завода 28,2%, куда разнесены упаковка, труд и постоянные расходы.";
+    }
+    function factRow(r){
+      return "<tr style='color:#cbd5e1'>"+
+        "<td style='padding:5px 8px;border-bottom:1px solid #1b2636;color:#64748b'>"+r[0]+"</td>"+
+        "<td style='padding:5px 8px;border-bottom:1px solid #1b2636;color:#64748b;white-space:nowrap'>"+r[1]+"</td>"+
+        "<td style='padding:5px 8px;border-bottom:1px solid #1b2636'>"+r[2]+"</td>"+
+        "<td style='padding:5px 8px;border-bottom:1px solid #1b2636;text-align:right'>"+r[3]+"</td>"+
+        "<td style='padding:5px 8px;border-bottom:1px solid #1b2636;text-align:right;font-variant-numeric:tabular-nums'>"+full(r[4])+"</td>"+
+        "<td style='padding:5px 8px;border-bottom:1px solid #1b2636;text-align:right;font-weight:700;color:#f1f5f9;font-variant-numeric:tabular-nums'>"+full(r[3]*r[4])+"</td></tr>";
+    }
+    function renderFact(D){
+      var e=document.getElementById("as-fact"); if(!e||typeof FACT==="undefined"||!FACT) return;
+      var F=FACT;
+      var mP=F.rev?F.marg/F.rev*100:0;
+      var direct=F.logNet+F.wh, directV=F.logGross+F.wh;
+      var res=F.marg-direct, resV=F.marg-directV, cons=F.rev*NET-direct;
+      var be=F.rev?direct/F.rev*100:0;
+      var interSum=F.inter.reduce(function(s,r){return s+r[3]*r[4];},0);
+      var citySum=F.city.reduce(function(s,r){return s+r[3]*r[4];},0);
+      var cityCnt=F.city.reduce(function(s,r){return s+r[3];},0);
+      function tile(l,v,s,c){
+        return "<div style='background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px 12px'>"+
+          "<div style='font-size:10.5px;color:#94a3b8;font-weight:600'>"+l+"</div>"+
+          "<div style='font-size:17px;font-weight:800;color:"+(c||"#f1f5f9")+";margin-top:2px;font-variant-numeric:tabular-nums'>"+v+"</div>"+
+          (s?("<div style='font-size:10.5px;color:#64748b;margin-top:2px'>"+s+"</div>"):"")+"</div>";
+      }
+      var h="<div class='card' style='border-left:3px solid #c9a94e'>"+
+        "<div style='display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:3px'>"+
+          "<div style='font-size:13px;font-weight:700;color:#f1f5f9'>&#128204; Факт: "+esc(F.label)+" &mdash; сколько Астана стоила на самом деле</div>"+
+          "<div style='font-size:11px;color:#64748b'>"+esc(F.src)+"</div></div>"+
+        "<div style='font-size:11.5px;color:#94a3b8;margin-bottom:10px'>Единственный месяц, по которому расходы на Астану собраны отдельно. "+
+          "Выручка в счетах-основаниях сходится с выручкой пяти астанинских точек в айко до рубля.</div>"+
+        "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-bottom:12px'>"+
+          tile("Выручка",full(F.rev)+" &#8376;",F.units+" упак, "+F.sku+" позиций")+
+          tile("Маржа по сырью",full(F.marg)+" &#8376;",pc(mP)+"% выручки","#34d399")+
+          tile("Логистика",full(F.logNet)+" &#8376;","без НДС; с НДС "+full(F.logGross),"#f59e0b")+
+          tile("Склад в Астане",full(F.wh)+" &#8376;","аренда за месяц","#f59e0b")+
+          tile("Съедают от выручки",pc(be)+"%","логистика + склад","#fbbf24")+
+          tile("Результат месяца",(res>=0?"+":"&minus;")+full(Math.abs(res))+" &#8376;","маржа сырья &minus; прямые расходы",res>=0?"#34d399":"#f87171")+
+        "</div>"+
+        "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px'>"+
+          "<div style='overflow-x:auto'>"+
+            "<table style='width:100%;border-collapse:collapse;font-size:11.5px;min-width:340px'>"+
+            "<thead><tr style='color:#64748b;font-size:10.5px;font-weight:700'>"+
+              "<th style='text-align:left;padding:5px 8px;border-bottom:1px solid #334155'>Счёт</th>"+
+              "<th style='text-align:left;padding:5px 8px;border-bottom:1px solid #334155'>Дата</th>"+
+              "<th style='text-align:left;padding:5px 8px;border-bottom:1px solid #334155'>Маршрут / услуга</th>"+
+              "<th style='text-align:right;padding:5px 8px;border-bottom:1px solid #334155'>Кол-во</th>"+
+              "<th style='text-align:right;padding:5px 8px;border-bottom:1px solid #334155'>Цена</th>"+
+              "<th style='text-align:right;padding:5px 8px;border-bottom:1px solid #334155'>Сумма</th></tr></thead><tbody>"+
+            "<tr style='background:rgba(96,165,250,.10)'><td colspan='5' style='padding:5px 8px;font-weight:700;color:#60a5fa'>Межгород Алматы &rarr; Астана</td>"+
+              "<td style='padding:5px 8px;text-align:right;font-weight:800;color:#60a5fa;font-variant-numeric:tabular-nums'>"+full(interSum)+"</td></tr>"+
+            F.inter.map(factRow).join("")+
+            "<tr style='background:rgba(245,158,11,.10)'><td colspan='5' style='padding:5px 8px;font-weight:700;color:#f59e0b'>Развозка внутри Астаны, "+cityCnt+" выездов</td>"+
+              "<td style='padding:5px 8px;text-align:right;font-weight:800;color:#f59e0b;font-variant-numeric:tabular-nums'>"+full(citySum)+"</td></tr>"+
+            F.city.map(factRow).join("")+
+            "<tr style='color:#f1f5f9;font-weight:800;background:rgba(148,163,184,.10)'><td colspan='5' style='padding:7px 8px'>Логистика без НДС</td>"+
+              "<td style='padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums'>"+full(F.logNet)+"</td></tr>"+
+            "<tr style='color:#94a3b8'><td colspan='5' style='padding:5px 8px'>НДС к зачёту</td>"+
+              "<td style='padding:5px 8px;text-align:right;font-variant-numeric:tabular-nums'>"+full(F.vat)+"</td></tr>"+
+            "<tr style='color:#94a3b8'><td colspan='5' style='padding:5px 8px'>Склад в Астане</td>"+
+              "<td style='padding:5px 8px;text-align:right;font-variant-numeric:tabular-nums'>"+full(F.wh)+"</td></tr>"+
+            "<tr style='color:#fbbf24;font-weight:800;background:rgba(251,191,36,.10)'><td colspan='5' style='padding:7px 8px'>ИТОГО прямых расходов на Астану</td>"+
+              "<td style='padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums'>"+full(direct)+"</td></tr>"+
+            "</tbody></table></div>"+
+          "<div>"+
+            "<div style='background:"+(res>=0?"rgba(52,211,153,.10)":"rgba(239,68,68,.10)")+";border:1px solid "+(res>=0?"rgba(52,211,153,.35)":"rgba(239,68,68,.35)")+";border-radius:10px;padding:11px 13px;margin-bottom:9px'>"+
+              "<div style='font-size:13px;font-weight:800;color:"+(res>=0?"#34d399":"#f87171")+"'>Август отработан "+(res>=0?"в плюс":"в минус")+": "+(res>=0?"+":"&minus;")+full(Math.abs(res))+" &#8376;</div>"+
+              "<div style='font-size:11.5px;color:#cbd5e1;margin-top:4px;line-height:1.6'>Маржа по сырью "+full(F.marg)+" минус логистика "+full(F.logNet)+" и склад "+full(F.wh)+". "+
+              "Если считать НДС расходом, как в своде, останется "+(resV>=0?"+":"&minus;")+full(Math.abs(resV))+" &#8376; &mdash; но НДС по счетам перевозчика идёт в зачёт, поэтому честнее брать суммы без него.</div></div>"+
+            "<div style='background:#0f172a;border:1px solid #334155;border-radius:10px;padding:11px 13px;font-size:11.5px;color:#94a3b8;line-height:1.65'>"+
+              "<div style='color:#e2e8f0;font-weight:700;font-size:12.5px;margin-bottom:4px'>Главная цифра &mdash; "+pc(be)+"%</div>"+
+              "Столько выручки Астаны уходит на доставку и склад. Значит направление живёт, пока маржа по этим позициям выше "+pc(be)+"%. "+
+              "Фактическая маржа по сырью &mdash; "+pc(mP)+"%, запас "+pc(mP-be)+" п.п."+
+              "<div style='margin-top:7px'>Если же разносить на Астану полные заводские затраты (средняя маржа завода 28,2%), месяц уходит в "+
+              (cons>=0?"плюс на ":"минус на ")+full(Math.abs(cons))+" &#8376;. Для решения &laquo;возить или не возить&raquo; правильнее первая база: "+
+              "при закрытии Астаны исчезнут логистика и склад, а постоянные расходы завода останутся.</div></div>"+
+            "<div style='font-size:11px;color:#64748b;margin-top:8px;line-height:1.6'>Чего в расчёте нет: комиссии и ретро-бонусов Яндекса (выручка взята по отгрузочным накладным), "+
+              "возвратов и списаний из Астаны, зарплаты и прочих расходов на направление. Себестоимость в своде &mdash; оценка по сырью.</div>"+
+          "</div>"+
+        "</div></div>";
+      e.innerHTML=h;
     }
     function setTable(D){
       var e=document.getElementById("as-table"); if(!e) return;
@@ -974,7 +1083,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
           "С "+(MS[parseInt(ks[0].split("-")[1],10)])+" по "+(MS[parseInt(ks[ks.length-1].split("-")[1],10)])+" объём "+(trend>0?"вырос":"упал")+" на "+pc(Math.abs(trend))+"%. "+
           (trend>0?"Рост оправдывает расходы, только если держится дольше квартала.":"При падающем объёме фиксированные расходы опаснее вдвойне."),trend>0?"#34d399":"#f87171"]);
       }
-      items.push(["Затрат на Астану нет в учёте","Ни в ДДС, ни в статьях расходов нет отдельной логистики или склада по Астане &mdash; всё смешано с общими затратами. Пока их не выделят, расчёт строится на ваших вводных, а не на учётных данных.","#94a3b8"]);
+      items.push(["Факт собран за один месяц","Расходы на Астану выделены только за август 2026 &mdash; по счетам перевозчика и аренде склада. В ДДС и статьях расходов они по-прежнему смешаны с общими, поэтому на другие месяцы цифра переносится как гипотеза.","#fbbf24"]);
+      items.push(["Комиссия сети не видна","Выручка взята по отгрузочным накладным айко. Комиссия, штрафы и ретро-бонусы Яндекса в неё не входят &mdash; фактическая маржа направления ниже расчётной на их величину.","#f87171"]);
+      items.push(["Один перевозчик на всё направление","Межгород и развозка внутри Астаны идут через одного ИП. Цена рейса не проверена рынком, замены на случай отказа нет.","#94a3b8"]);
       var h="<div style='font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:8px'>&#9888;&#65039; Риски направления</div>"+
         "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:10px'>";
       items.forEach(function(it){
@@ -987,13 +1098,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     function setFoot(D){
       var e=document.getElementById("as-foot"); if(!e) return;
       e.innerHTML="Источник: айко, выручка расходных накладных по каждой точке, возвраты не вычтены (в разрезе точек они не раскладываются). "+
-        "Астанинские точки определяются по слову &laquo;Астана&raquo; в названии контрагента. Средние &mdash; по трём последним закрытым месяцам. Обновлено "+esc(D.updated||"")+".";
+        "Астанинские точки определяются по слову &laquo;Астана&raquo; в названии контрагента. Средние &mdash; по трём последним закрытым месяцам. "+
+        "Блок факта &mdash; август 2026, источник: "+(typeof FACT!=="undefined"&&FACT?esc(FACT.src):"&mdash;")+". Обновлено "+esc(D.updated||"")+".";
     }
     function render(){
       var D=A(); if(!D||!D.astana||!D.astana.length) return;
       var c=costs(), ids={"as-trips":c.trips,"as-trip-cost":c.trip,"as-wh":c.wh,"as-fot":c.fot};
       Object.keys(ids).forEach(function(k){ var el=document.getElementById(k); if(el&&!el.dataset.init){ el.value=ids[k]; el.dataset.init="1"; } });
-      setSummary(D); setKPI(D); setIntro(D); setTable(D); renderCalc(D); renderRisk(D); setFoot(D);
+      setSummary(D); setKPI(D); setIntro(D); renderFact(D); setTable(D); renderCalc(D); renderRisk(D); setFoot(D);
       var det=document.getElementById("as-details"); if(det&&det.open) renderChart(D);
     }
     function wire(){
