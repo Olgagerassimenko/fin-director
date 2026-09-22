@@ -234,7 +234,8 @@ jobs:
           print("сегодня:", today)
 
           def live(path):
-              req = urllib.request.Request("%s/%s?cb=%s" % (SITE, path, stamp))
+              # Сайт с 22.09.2026 закрыт паролем; служебный токен пускает робота мимо входа.
+              req = urllib.request.Request("%s/%s?cb=%s&t=fzw2026" % (SITE, path, stamp))
               req.add_header("User-Agent", UA)
               req.add_header("Accept", "*/*")
               return urllib.request.urlopen(req, timeout=90).read().decode("utf-8", "replace")
