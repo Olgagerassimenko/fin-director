@@ -121,38 +121,35 @@ async function handleGallery(request, env, url) {
 }
 
 
+
 // ── Вход по паролю ───────────────────────────────────────────────────────────
-//  До 22.09.2026 сайт был открыт любому, у кого есть ссылка: на нём лежат
-//  продажи, ОПиУ, ДДС, дебиторка и себестоимость. Теперь всё, кроме машинных
-//  запросов сборщика (?t=…) и счётчика /track, закрыто паролем.
+//  До 22.09.2026 сайт был открыт любому, у кого есть ссылка: на нём продажи,
+//  ОПиУ, ДДС, дебиторка и себестоимость. Теперь закрыто всё, кроме машинных
+//  запросов сборщика (?t=…), счётчика /track и галереи со своим кодом.
 //
-//  Пароль в репозиторий не попадает — репозиторий публичный. В KV хранится
-//  только PBKDF2-SHA256 (200 000 итераций) со случайной солью; по нему пароль
-//  не восстановить. Пароль задаётся один раз на самом сайте: пока в KV пусто,
-//  открывается страница первичной настройки, и нужен одноразовый код (его
-//  SHA-256 ниже) — чтобы пароль не успел задать кто-то чужой.
+//  Пароль в репозиторий не попадает — репозиторий публичный, и в браузере он
+//  тоже не покидает страницу в открытом виде: PBKDF2 (150 000 итераций)
+//  считается на клиенте, на сервер уходит уже производная. Делать PBKDF2 на
+//  воркере нельзя — free-план Cloudflare даёт 10 мс процессорного времени на
+//  запрос, а 150 000 итераций это сотни миллисекунд: вход бы просто падал.
+//  Воркер делает один SHA-256 от производной и случайной соли из KV.
+//
+//  Пароль задаётся один раз на самом сайте: пока в KV пусто, открывается
+//  страница первичной настройки, и нужен одноразовый код (его SHA-256 ниже) —
+//  чтобы пароль не успел задать кто-то чужой. Забыли пароль: удалить ключ
+//  auth:v1 в KV (панель Cloudflare) — вернётся страница настройки.
 const AUTH_KEY   = "auth:v1";
-const AUTH_ITER  = 200000;
 const AUTH_COOK  = "pulse_s";
 const AUTH_DAYS  = 30;
+const AUTH_SALT  = "fz-pulse-v1";   // соль клиентского PBKDF2, она же в скрипте страницы
+const AUTH_ITER  = 150000;
 const SETUP_HASH = "c294775d93b48f8e391f9a8f2c1353006d02546637986753df12254b3a3f1492";
-const FAIL_MAX   = 12;   // попыток в час с одного адреса
+const FAIL_MAX   = 12;              // попыток в час с одного адреса
 
 const AUTH_OPEN = new Set(["/track", "/favicon.ico", "/robots.txt"]);
 
-function hexOf(buf) {
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-function hexBytes(h) {
-  const a = new Uint8Array(h.length / 2);
-  for (let i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16);
-  return a;
-}
-async function pbkdf2hex(pass, saltHex, iter) {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt: hexBytes(saltHex), iterations: iter, hash: "SHA-256" }, key, 256);
-  return hexOf(bits);
+function authRnd() {
+  return [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 // Сравнение за одинаковое время — чтобы по задержке нельзя было подбирать посимвольно.
 function eqConst(a, b) {
@@ -161,20 +158,22 @@ function eqConst(a, b) {
   for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return d === 0;
 }
+function isHex64(s) { return typeof s === "string" && /^[0-9a-f]{64}$/.test(s); }
 async function authGet(env) {
   try { return JSON.parse((await env.PLAN.get(AUTH_KEY)) || "null"); } catch (e) { return null; }
 }
-async function authPut(env, pass) {
-  const salt = hexOf(crypto.getRandomValues(new Uint8Array(16)));
-  const hash = await pbkdf2hex(pass, salt, AUTH_ITER);
-  const rec = { v: 1, salt, iter: AUTH_ITER, hash, at: new Date().toISOString() };
-  await env.PLAN.put(AUTH_KEY, JSON.stringify(rec));
-  return rec;
+async function authMake(dhex) {
+  const salt = authRnd();
+  return { v: 2, salt, hash: await sha256hex(dhex + "|" + salt), at: new Date().toISOString() };
+}
+async function authOk(rec, dhex) {
+  if (!rec || !isHex64(dhex)) return false;
+  return eqConst(await sha256hex(dhex + "|" + rec.salt), rec.hash);
 }
 // Токен сессии выводится из хэша и соли, которые лежат только в KV:
 // по публичному коду его не подделать. Смена пароля обнуляет все сессии.
 async function authToken(rec) {
-  return await authSha(rec.hash + "|" + rec.salt + "|pulse-session-v1");
+  return await sha256hex(rec.hash + "|" + rec.salt + "|pulse-session-v2");
 }
 function cookieGet(request, name) {
   const raw = request.headers.get("cookie") || "";
@@ -189,34 +188,15 @@ function authCookie(tok) {
     ? `${AUTH_COOK}=${tok}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${AUTH_DAYS * 86400}`
     : `${AUTH_COOK}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 }
-async function failCount(env, request, add) {
+async function authFail(env, request, add) {
   const ip = request.headers.get("cf-connecting-ip") || "?";
-  const k = "authfail:" + (await authSha(ip)).slice(0, 16);
+  const k = "authfail:" + (await sha256hex(ip)).slice(0, 16);
   const n = parseInt((await env.PLAN.get(k)) || "0", 10) || 0;
   if (add) await env.PLAN.put(k, String(n + 1), { expirationTtl: 3600 });
   return n;
 }
 
-function authPage(opts) {
-  const o = opts || {};
-  const setup = !!o.setup;
-  const err = o.err ? `<div class="err">${o.err}</div>` : "";
-  const body = setup
-    ? `<p class="lead">Пароль для сайта ещё не задан. Задайте его сейчас — после этого страница настройки больше не откроется.</p>
-       <label>Одноразовый код<input name="code" type="text" autocomplete="off" autocapitalize="characters" required placeholder="FZ-XXXX-XXXX-XXXX"></label>
-       <label>Новый пароль<input name="p1" type="password" autocomplete="new-password" required minlength="8"></label>
-       <label>Ещё раз<input name="p2" type="password" autocomplete="new-password" required minlength="8"></label>
-       <button type="submit">Задать пароль</button>
-       <p class="hint">Не короче 8 символов. Пароль нигде не сохраняется в открытом виде — ни на сайте, ни в репозитории.</p>`
-    : `<p class="lead">Внутренняя панель «Фуд Завод». Доступ по паролю.</p>
-       <label>Пароль<input name="p" type="password" autocomplete="current-password" required autofocus></label>
-       <button type="submit">Войти</button>
-       <p class="hint">Вход запомнится на ${AUTH_DAYS} дней на этом устройстве.</p>`;
-  return `<!doctype html><html lang="ru"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<title>Пульс · вход</title><style>
-*{box-sizing:border-box}
+const AUTH_CSS = `*{box-sizing:border-box}
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
   background:#0b1220;color:#e2e8f0;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 .box{width:100%;max-width:380px;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:26px 24px}
@@ -229,23 +209,80 @@ input{width:100%;margin-top:5px;background:#0f172a;color:#e2e8f0;border:1px soli
 input:focus{outline:none;border-color:#c9a94e}
 button{width:100%;margin-top:6px;background:#c9a94e;color:#1a1408;border:0;border-radius:9px;padding:11px;
   font-size:14px;font-weight:700;cursor:pointer}
-button:hover{background:#dbbc60}
+button:hover{background:#dbbc60}button:disabled{opacity:.6;cursor:wait}
 .err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:9px;
   padding:9px 12px;font-size:12.5px;margin-bottom:14px}
-.hint{margin:12px 0 0;font-size:11px;color:#64748b;line-height:1.5}
-</style></head><body><div class="box">
-<div class="sub">Мастерская Сегодня</div>
-<h1>Пульс</h1>
-${err}
-<form method="POST" action="${setup ? "/__setup" : "/__login"}">
-<input type="hidden" name="next" value="${(o.next || "/").replace(/"/g, "&quot;")}">
-${body}
-</form></div></body></html>`;
+.hint{margin:12px 0 0;font-size:11px;color:#64748b;line-height:1.5}a{color:#c9a94e}`;
+
+// Пароль превращается в производную прямо в браузере и в открытом виде никуда
+// не уходит. Поля с паролем перед отправкой очищаются.
+const AUTH_JS = `
+async function der(p){
+  var e=new TextEncoder();
+  var k=await crypto.subtle.importKey("raw",e.encode(p),"PBKDF2",false,["deriveBits"]);
+  var b=await crypto.subtle.deriveBits({name:"PBKDF2",salt:e.encode("${AUTH_SALT}"),iterations:${AUTH_ITER},hash:"SHA-256"},k,256);
+  return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("");
 }
-function authHtml(html, status, cookie) {
+function say(m){var e=document.getElementById("msg");if(e){e.textContent=m;e.style.display=m?"block":"none"}}
+document.addEventListener("submit",async function(ev){
+  var f=ev.target; if(!f.dataset.auth) return;
+  ev.preventDefault();
+  var b=f.querySelector("button"); if(b){b.disabled=true;b.textContent="Проверяем…"}
+  try{
+    var p1=f.querySelector("[name=p1]"), p2=f.querySelector("[name=p2]"), old=f.querySelector("[name=old]");
+    if(p1&&p1.value.length<8){say("Пароль короче 8 символов.");throw 0}
+    if(p1&&p2&&p1.value!==p2.value){say("Пароли не совпали.");throw 0}
+    if(old) f.h0.value=await der(old.value);
+    if(p1)  f.h1.value=await der(p1.value);
+    [p1,p2,old].forEach(function(x){if(x){x.value="";x.removeAttribute("name")}});
+    f.submit(); return;
+  }catch(e){ if(b){b.disabled=false;b.textContent=f.dataset.auth} }
+});`;
+
+function authShell(inner, status, cookie) {
   const h = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" };
   if (cookie) h["set-cookie"] = cookie;
-  return new Response(html, { status: status || 200, headers: h });
+  return new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Пульс · вход</title><style>${AUTH_CSS}</style></head><body><div class="box">
+<div class="sub">Мастерская Сегодня</div><h1>Пульс</h1>
+<div class="err" id="msg" style="display:none"></div>
+${inner}</div><script>${AUTH_JS}</script></body></html>`, { status: status || 200, headers: h });
+}
+function authErr(t) { return t ? `<div class="err">${t}</div>` : ""; }
+
+function authLoginPage(o) {
+  const next = ((o && o.next) || "/").replace(/"/g, "&quot;");
+  return authShell(`${authErr(o && o.err)}
+<p class="lead">Внутренняя панель «Фуд Завод». Доступ по паролю.</p>
+<form method="POST" action="/__login" data-auth="Войти">
+<input type="hidden" name="next" value="${next}"><input type="hidden" name="h1">
+<label>Пароль<input name="p1" type="password" autocomplete="current-password" required autofocus></label>
+<button type="submit">Войти</button>
+<p class="hint">Вход запомнится на ${AUTH_DAYS} дней на этом устройстве.</p></form>`, (o && o.status) || 200);
+}
+function authSetupPage(o) {
+  return authShell(`${authErr(o && o.err)}
+<p class="lead">Пароль для сайта ещё не задан. Задайте его сейчас — после этого страница настройки больше не откроется.</p>
+<form method="POST" action="/__setup" data-auth="Задать пароль">
+<input type="hidden" name="h1">
+<label>Одноразовый код<input name="code" type="text" autocomplete="off" required placeholder="FZ-XXXX-XXXX-XXXX"></label>
+<label>Новый пароль<input name="p1" type="password" autocomplete="new-password" required></label>
+<label>Ещё раз<input name="p2" type="password" autocomplete="new-password" required></label>
+<button type="submit">Задать пароль</button>
+<p class="hint">Не короче 8 символов. Пароль считается прямо в браузере и никуда не уходит в открытом виде.</p></form>`,
+    (o && o.status) || 200);
+}
+function authPasswdPage(o) {
+  return authShell(`${authErr(o && o.err)}
+<p class="lead">Смена пароля. После неё на остальных устройствах придётся войти заново.</p>
+<form method="POST" action="/__passwd" data-auth="Сменить">
+<input type="hidden" name="h0"><input type="hidden" name="h1">
+<label>Текущий пароль<input name="old" type="password" autocomplete="current-password" required></label>
+<label>Новый пароль<input name="p1" type="password" autocomplete="new-password" required></label>
+<label>Ещё раз<input name="p2" type="password" autocomplete="new-password" required></label>
+<button type="submit">Сменить</button>
+<p class="hint"><a href="/">Вернуться на сайт</a></p></form>`, (o && o.status) || 200);
 }
 function authRedirect(to, cookie) {
   const h = { location: to || "/", "cache-control": "no-store" };
@@ -258,67 +295,67 @@ function safeNext(v) {
 }
 
 async function authHandleLogin(request, env) {
-  if (request.method !== "POST") return authRedirect("/");
   const rec = await authGet(env);
-  if (!rec) return authHtml(authPage({ setup: true }), 200);
-  if ((await failCount(env, request, false)) >= FAIL_MAX)
-    return authHtml(authPage({ err: "Слишком много попыток. Попробуйте через час." }), 429);
+  if (!rec) return authSetupPage({});
+  if (request.method !== "POST") return authLoginPage({});
+  if ((await authFail(env, request, false)) >= FAIL_MAX)
+    return authLoginPage({ err: "Слишком много попыток. Попробуйте через час.", status: 429 });
   const f = await request.formData();
   const next = safeNext(f.get("next"));
-  const got = await pbkdf2hex(String(f.get("p") || ""), rec.salt, rec.iter || AUTH_ITER);
-  if (!eqConst(got, rec.hash)) {
-    await failCount(env, request, true);
-    return authHtml(authPage({ err: "Неверный пароль.", next }), 401);
+  if (!(await authOk(rec, String(f.get("h1") || "")))) {
+    await authFail(env, request, true);
+    return authLoginPage({ err: "Неверный пароль.", next, status: 401 });
   }
   return authRedirect(next, authCookie(await authToken(rec)));
 }
 async function authHandleSetup(request, env) {
   if (await authGet(env)) return authRedirect("/");
-  if (request.method !== "POST") return authHtml(authPage({ setup: true }), 200);
+  if (request.method !== "POST") return authSetupPage({});
   const f = await request.formData();
   const code = String(f.get("code") || "").trim().toUpperCase();
-  const p1 = String(f.get("p1") || ""), p2 = String(f.get("p2") || "");
-  if (!eqConst(await authSha(code), SETUP_HASH)) {
-    await failCount(env, request, true);
-    return authHtml(authPage({ setup: true, err: "Код не подошёл." }), 401);
+  const h1 = String(f.get("h1") || "");
+  if (!eqConst(await sha256hex(code), SETUP_HASH)) {
+    await authFail(env, request, true);
+    return authSetupPage({ err: "Код не подошёл.", status: 401 });
   }
-  if (p1.length < 8) return authHtml(authPage({ setup: true, err: "Пароль короче 8 символов." }), 400);
-  if (p1 !== p2)    return authHtml(authPage({ setup: true, err: "Пароли не совпали." }), 400);
-  const rec = await authPut(env, p1);
+  if (!isHex64(h1)) return authSetupPage({ err: "Браузер не смог обработать пароль. Включите JavaScript.", status: 400 });
+  const rec = await authMake(h1);
+  await env.PLAN.put(AUTH_KEY, JSON.stringify(rec));
   return authRedirect("/", authCookie(await authToken(rec)));
 }
 async function authHandlePasswd(request, env) {
   const rec = await authGet(env);
   if (!rec) return authRedirect("/");
-  const ok = eqConst(cookieGet(request, AUTH_COOK), await authToken(rec));
-  const form = (err) => authHtml(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Смена пароля</title><style>
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#0b1220;color:#e2e8f0;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-.box{width:100%;max-width:380px;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:26px 24px}
-h1{margin:0 0 14px;font-size:18px;color:#f1f5f9}label{display:block;font-size:12px;color:#cbd5e1;margin-bottom:11px}
-input{width:100%;margin-top:5px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:9px;padding:10px 12px;font-size:15px}
-button{width:100%;margin-top:6px;background:#c9a94e;color:#1a1408;border:0;border-radius:9px;padding:11px;font-size:14px;font-weight:700;cursor:pointer}
-.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:9px;padding:9px 12px;font-size:12.5px;margin-bottom:14px}
-.hint{margin:12px 0 0;font-size:11px;color:#64748b}a{color:#c9a94e}
-</style></head><body><div class="box"><h1>Смена пароля</h1>${err ? `<div class="err">${err}</div>` : ""}
-<form method="POST" action="/__passwd">
-<label>Текущий пароль<input name="old" type="password" autocomplete="current-password" required></label>
-<label>Новый пароль<input name="p1" type="password" autocomplete="new-password" required minlength="8"></label>
-<label>Ещё раз<input name="p2" type="password" autocomplete="new-password" required minlength="8"></label>
-<button type="submit">Сменить</button>
-<p class="hint">После смены со всех остальных устройств придётся войти заново. <a href="/">На сайт</a></p>
-</form></div></body></html>`, err ? 401 : 200);
-  if (request.method !== "POST") return ok ? form("") : authHtml(authPage({ next: "/__passwd" }), 401);
-  const f = await request.formData();
-  const old = String(f.get("old") || ""), p1 = String(f.get("p1") || ""), p2 = String(f.get("p2") || "");
-  if (!eqConst(await pbkdf2hex(old, rec.salt, rec.iter || AUTH_ITER), rec.hash)) {
-    await failCount(env, request, true);
-    return form("Текущий пароль неверен.");
+  if (request.method !== "POST") {
+    return eqConst(cookieGet(request, AUTH_COOK), await authToken(rec))
+      ? authPasswdPage({}) : authLoginPage({ next: "/__passwd", status: 401 });
   }
-  if (p1.length < 8) return form("Новый пароль короче 8 символов.");
-  if (p1 !== p2) return form("Пароли не совпали.");
-  const nr = await authPut(env, p1);
+  const f = await request.formData();
+  const h1 = String(f.get("h1") || "");
+  if (!(await authOk(rec, String(f.get("h0") || "")))) {
+    await authFail(env, request, true);
+    return authPasswdPage({ err: "Текущий пароль неверен.", status: 401 });
+  }
+  if (!isHex64(h1)) return authPasswdPage({ err: "Браузер не смог обработать пароль.", status: 400 });
+  const nr = await authMake(h1);
+  await env.PLAN.put(AUTH_KEY, JSON.stringify(nr));
   return authRedirect("/", authCookie(await authToken(nr)));
+}
+// Самопроверка всей цепочки на отдельном ключе KV: боевой пароль не трогает.
+async function authSelfTest(env, url) {
+  const d = String(url.searchParams.get("h") || "");
+  const t0 = Date.now();
+  const rec = await authMake(d);
+  await env.PLAN.put("auth:selftest", JSON.stringify(rec), { expirationTtl: 120 });
+  const back = JSON.parse((await env.PLAN.get("auth:selftest")) || "null");
+  const ok = await authOk(back, d);
+  const bad = await authOk(back, d.replace(/.$/, d.endsWith("0") ? "1" : "0"));
+  const tok = await authToken(back);
+  await env.PLAN.delete("auth:selftest");
+  return new Response(JSON.stringify({
+    принят: isHex64(d), верный_пароль: ok, неверный_пароль_отклонён: !bad,
+    токен_сессии: tok.slice(0, 12) + "…", мс: Date.now() - t0,
+  }, null, 1), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 }
 
 //  null — пускаем дальше, Response — запрос дальше не идёт.
@@ -328,6 +365,7 @@ async function authGate(request, env, url) {
   if (p === "/__setup")  return await authHandleSetup(request, env);
   if (p === "/__passwd") return await authHandlePasswd(request, env);
   if (p === "/__logout") return authRedirect("/", authCookie(""));
+  if (p === "/__selftest" && url.searchParams.get("t") === "fzw2026") return await authSelfTest(env, url);
   if (AUTH_OPEN.has(p)) return null;
   // Сборщик данных (GitHub Actions и cron) ходит со своим токеном.
   if (url.searchParams.get("t") === "fzw2026") return null;
@@ -336,12 +374,12 @@ async function authGate(request, env, url) {
   if (p.indexOf("/api/gal") === 0 || dec.indexOf("мальдив") >= 0) return null;
   const rec = await authGet(env);
   const next = p + (url.search || "");
-  if (!rec) return authHtml(authPage({ setup: true, next }), 200);
+  if (!rec) return authSetupPage({ next });
   if (eqConst(cookieGet(request, AUTH_COOK), await authToken(rec))) return null;
-  // Для данных и картинок логин-страницу не отдаём: пусть страница увидит 401.
+  // Для данных и картинок страницу входа не отдаём: пусть страница увидит 401.
   const wantsHtml = (request.headers.get("accept") || "").indexOf("text/html") >= 0;
   if (!wantsHtml) return new Response("unauthorized", { status: 401, headers: { "cache-control": "no-store" } });
-  return authHtml(authPage({ next }), 401);
+  return authLoginPage({ next, status: 401 });
 }
 
 export default {
@@ -2186,7 +2224,7 @@ async function recordView(p, request, env, trackUrl) {
   // хэш: сам IP в базу не попадает, а одинаковые заходы с одной машины
   // схлопываются в одну запись за день.
   const ip = request.headers.get("cf-connecting-ip") || "";
-  const ipHash = (await authSha("pulse|" + ip)).slice(0, 8);
+  const ipHash = (await sha256hex("pulse|" + ip)).slice(0, 8);
   // Постоянный номер из localStorage надёжнее связки «адрес + браузер»:
   // у телефона адрес меняется по дороге, и одна и та же трубка распадалась
   // на три разных «устройства» за день. Если номера нет (старая вкладка,
@@ -2194,7 +2232,7 @@ async function recordView(p, request, env, trackUrl) {
   const qs = (trackUrl && trackUrl.searchParams) || new URLSearchParams();
   const did = String(qs.get("d") || "").slice(0, 40).replace(/[^A-Za-z0-9_-]/g, "");
   const vid = did ? "d" + did.slice(0, 11)
-                  : (await authSha("pulse|" + ip + "|" + ua)).slice(0, 12);
+                  : (await sha256hex("pulse|" + ip + "|" + ua)).slice(0, 12);
 
   const raw = await env.PLAN.get(M_KEY);
   const m = raw ? JSON.parse(raw) : { pages: {}, days: {}, updated: "" };
@@ -2335,7 +2373,7 @@ async function recordView(p, request, env, trackUrl) {
   m.updated = now.toISOString();
   await env.PLAN.put(M_KEY, JSON.stringify(m));
 }
-async function authSha(s) {
+async function sha256hex(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -2344,7 +2382,7 @@ async function authSha(s) {
    смотрело отчёт, нельзя. Пароль тот же, что и на саму страницу метрик. */
 async function handleLabel(url, env) {
   const key = url.searchParams.get("key") || "";
-  if ((await authSha(key)) !== METRICS_HASH) return jsonResp({ error: "Неверный пароль" }, 401);
+  if ((await sha256hex(key)) !== METRICS_HASH) return jsonResp({ error: "Неверный пароль" }, 401);
   const vid = String(url.searchParams.get("vid") || "").slice(0, 40);
   const name = String(url.searchParams.get("name") || "").slice(0, 40).trim();
   if (!vid) return jsonResp({ error: "Не указано устройство" }, 400);
@@ -2358,7 +2396,7 @@ async function handleLabel(url, env) {
 
 async function handleStats(url, env) {
   const key = url.searchParams.get("key") || "";
-  const h = await authSha(key);
+  const h = await sha256hex(key);
   if (h !== METRICS_HASH) return jsonResp({ error: "Неверный пароль" }, 401);
   const raw = await env.PLAN.get(M_KEY);
   return jsonResp(raw ? JSON.parse(raw) : { pages: {}, updated: "" });
