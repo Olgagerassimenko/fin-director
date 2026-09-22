@@ -120,9 +120,238 @@ async function handleGallery(request, env, url) {
   return galJson({ error: "неизвестный запрос" }, 404);
 }
 
+
+// ── Вход по паролю ───────────────────────────────────────────────────────────
+//  До 22.09.2026 сайт был открыт любому, у кого есть ссылка: на нём лежат
+//  продажи, ОПиУ, ДДС, дебиторка и себестоимость. Теперь всё, кроме машинных
+//  запросов сборщика (?t=…) и счётчика /track, закрыто паролем.
+//
+//  Пароль в репозиторий не попадает — репозиторий публичный. В KV хранится
+//  только PBKDF2-SHA256 (200 000 итераций) со случайной солью; по нему пароль
+//  не восстановить. Пароль задаётся один раз на самом сайте: пока в KV пусто,
+//  открывается страница первичной настройки, и нужен одноразовый код (его
+//  SHA-256 ниже) — чтобы пароль не успел задать кто-то чужой.
+const AUTH_KEY   = "auth:v1";
+const AUTH_ITER  = 200000;
+const AUTH_COOK  = "pulse_s";
+const AUTH_DAYS  = 30;
+const SETUP_HASH = "c294775d93b48f8e391f9a8f2c1353006d02546637986753df12254b3a3f1492";
+const FAIL_MAX   = 12;   // попыток в час с одного адреса
+
+const AUTH_OPEN = new Set(["/track", "/favicon.ico", "/robots.txt"]);
+
+function hexOf(buf) {
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function hexBytes(h) {
+  const a = new Uint8Array(h.length / 2);
+  for (let i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16);
+  return a;
+}
+async function sha256hex(s) {
+  return hexOf(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+}
+async function pbkdf2hex(pass, saltHex, iter) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: hexBytes(saltHex), iterations: iter, hash: "SHA-256" }, key, 256);
+  return hexOf(bits);
+}
+// Сравнение за одинаковое время — чтобы по задержке нельзя было подбирать посимвольно.
+function eqConst(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+async function authGet(env) {
+  try { return JSON.parse((await env.PLAN.get(AUTH_KEY)) || "null"); } catch (e) { return null; }
+}
+async function authPut(env, pass) {
+  const salt = hexOf(crypto.getRandomValues(new Uint8Array(16)));
+  const hash = await pbkdf2hex(pass, salt, AUTH_ITER);
+  const rec = { v: 1, salt, iter: AUTH_ITER, hash, at: new Date().toISOString() };
+  await env.PLAN.put(AUTH_KEY, JSON.stringify(rec));
+  return rec;
+}
+// Токен сессии выводится из хэша и соли, которые лежат только в KV:
+// по публичному коду его не подделать. Смена пароля обнуляет все сессии.
+async function authToken(rec) {
+  return await sha256hex(rec.hash + "|" + rec.salt + "|pulse-session-v1");
+}
+function cookieGet(request, name) {
+  const raw = request.headers.get("cookie") || "";
+  for (const part of raw.split(";")) {
+    const i = part.indexOf("=");
+    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
+  }
+  return "";
+}
+function authCookie(tok) {
+  return tok
+    ? `${AUTH_COOK}=${tok}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${AUTH_DAYS * 86400}`
+    : `${AUTH_COOK}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+}
+async function failCount(env, request, add) {
+  const ip = request.headers.get("cf-connecting-ip") || "?";
+  const k = "authfail:" + (await sha256hex(ip)).slice(0, 16);
+  const n = parseInt((await env.PLAN.get(k)) || "0", 10) || 0;
+  if (add) await env.PLAN.put(k, String(n + 1), { expirationTtl: 3600 });
+  return n;
+}
+
+function authPage(opts) {
+  const o = opts || {};
+  const setup = !!o.setup;
+  const err = o.err ? `<div class="err">${o.err}</div>` : "";
+  const body = setup
+    ? `<p class="lead">Пароль для сайта ещё не задан. Задайте его сейчас — после этого страница настройки больше не откроется.</p>
+       <label>Одноразовый код<input name="code" type="text" autocomplete="off" autocapitalize="characters" required placeholder="FZ-XXXX-XXXX-XXXX"></label>
+       <label>Новый пароль<input name="p1" type="password" autocomplete="new-password" required minlength="8"></label>
+       <label>Ещё раз<input name="p2" type="password" autocomplete="new-password" required minlength="8"></label>
+       <button type="submit">Задать пароль</button>
+       <p class="hint">Не короче 8 символов. Пароль нигде не сохраняется в открытом виде — ни на сайте, ни в репозитории.</p>`
+    : `<p class="lead">Внутренняя панель «Фуд Завод». Доступ по паролю.</p>
+       <label>Пароль<input name="p" type="password" autocomplete="current-password" required autofocus></label>
+       <button type="submit">Войти</button>
+       <p class="hint">Вход запомнится на ${AUTH_DAYS} дней на этом устройстве.</p>`;
+  return `<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Пульс · вход</title><style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:#0b1220;color:#e2e8f0;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.box{width:100%;max-width:380px;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:26px 24px}
+h1{margin:0 0 4px;font-size:19px;color:#f1f5f9}
+.sub{margin:0 0 16px;font-size:12px;color:#c9a94e;letter-spacing:.4px;text-transform:uppercase;font-weight:700}
+.lead{margin:0 0 16px;font-size:13px;color:#94a3b8}
+label{display:block;font-size:12px;color:#cbd5e1;margin-bottom:11px}
+input{width:100%;margin-top:5px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:9px;
+  padding:10px 12px;font-size:15px}
+input:focus{outline:none;border-color:#c9a94e}
+button{width:100%;margin-top:6px;background:#c9a94e;color:#1a1408;border:0;border-radius:9px;padding:11px;
+  font-size:14px;font-weight:700;cursor:pointer}
+button:hover{background:#dbbc60}
+.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:9px;
+  padding:9px 12px;font-size:12.5px;margin-bottom:14px}
+.hint{margin:12px 0 0;font-size:11px;color:#64748b;line-height:1.5}
+</style></head><body><div class="box">
+<div class="sub">Мастерская Сегодня</div>
+<h1>Пульс</h1>
+${err}
+<form method="POST" action="${setup ? "/__setup" : "/__login"}">
+<input type="hidden" name="next" value="${(o.next || "/").replace(/"/g, "&quot;")}">
+${body}
+</form></div></body></html>`;
+}
+function authHtml(html, status, cookie) {
+  const h = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" };
+  if (cookie) h["set-cookie"] = cookie;
+  return new Response(html, { status: status || 200, headers: h });
+}
+function authRedirect(to, cookie) {
+  const h = { location: to || "/", "cache-control": "no-store" };
+  if (cookie) h["set-cookie"] = cookie;
+  return new Response(null, { status: 303, headers: h });
+}
+function safeNext(v) {
+  const s = String(v || "/");
+  return s.startsWith("/") && !s.startsWith("//") ? s : "/";
+}
+
+async function authHandleLogin(request, env) {
+  if (request.method !== "POST") return authRedirect("/");
+  const rec = await authGet(env);
+  if (!rec) return authHtml(authPage({ setup: true }), 200);
+  if ((await failCount(env, request, false)) >= FAIL_MAX)
+    return authHtml(authPage({ err: "Слишком много попыток. Попробуйте через час." }), 429);
+  const f = await request.formData();
+  const next = safeNext(f.get("next"));
+  const got = await pbkdf2hex(String(f.get("p") || ""), rec.salt, rec.iter || AUTH_ITER);
+  if (!eqConst(got, rec.hash)) {
+    await failCount(env, request, true);
+    return authHtml(authPage({ err: "Неверный пароль.", next }), 401);
+  }
+  return authRedirect(next, authCookie(await authToken(rec)));
+}
+async function authHandleSetup(request, env) {
+  if (await authGet(env)) return authRedirect("/");
+  if (request.method !== "POST") return authHtml(authPage({ setup: true }), 200);
+  const f = await request.formData();
+  const code = String(f.get("code") || "").trim().toUpperCase();
+  const p1 = String(f.get("p1") || ""), p2 = String(f.get("p2") || "");
+  if (!eqConst(await sha256hex(code), SETUP_HASH)) {
+    await failCount(env, request, true);
+    return authHtml(authPage({ setup: true, err: "Код не подошёл." }), 401);
+  }
+  if (p1.length < 8) return authHtml(authPage({ setup: true, err: "Пароль короче 8 символов." }), 400);
+  if (p1 !== p2)    return authHtml(authPage({ setup: true, err: "Пароли не совпали." }), 400);
+  const rec = await authPut(env, p1);
+  return authRedirect("/", authCookie(await authToken(rec)));
+}
+async function authHandlePasswd(request, env) {
+  const rec = await authGet(env);
+  if (!rec) return authRedirect("/");
+  const ok = eqConst(cookieGet(request, AUTH_COOK), await authToken(rec));
+  const form = (err) => authHtml(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Смена пароля</title><style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#0b1220;color:#e2e8f0;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.box{width:100%;max-width:380px;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:26px 24px}
+h1{margin:0 0 14px;font-size:18px;color:#f1f5f9}label{display:block;font-size:12px;color:#cbd5e1;margin-bottom:11px}
+input{width:100%;margin-top:5px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:9px;padding:10px 12px;font-size:15px}
+button{width:100%;margin-top:6px;background:#c9a94e;color:#1a1408;border:0;border-radius:9px;padding:11px;font-size:14px;font-weight:700;cursor:pointer}
+.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:9px;padding:9px 12px;font-size:12.5px;margin-bottom:14px}
+.hint{margin:12px 0 0;font-size:11px;color:#64748b}a{color:#c9a94e}
+</style></head><body><div class="box"><h1>Смена пароля</h1>${err ? `<div class="err">${err}</div>` : ""}
+<form method="POST" action="/__passwd">
+<label>Текущий пароль<input name="old" type="password" autocomplete="current-password" required></label>
+<label>Новый пароль<input name="p1" type="password" autocomplete="new-password" required minlength="8"></label>
+<label>Ещё раз<input name="p2" type="password" autocomplete="new-password" required minlength="8"></label>
+<button type="submit">Сменить</button>
+<p class="hint">После смены со всех остальных устройств придётся войти заново. <a href="/">На сайт</a></p>
+</form></div></body></html>`, err ? 401 : 200);
+  if (request.method !== "POST") return ok ? form("") : authHtml(authPage({ next: "/__passwd" }), 401);
+  const f = await request.formData();
+  const old = String(f.get("old") || ""), p1 = String(f.get("p1") || ""), p2 = String(f.get("p2") || "");
+  if (!eqConst(await pbkdf2hex(old, rec.salt, rec.iter || AUTH_ITER), rec.hash)) {
+    await failCount(env, request, true);
+    return form("Текущий пароль неверен.");
+  }
+  if (p1.length < 8) return form("Новый пароль короче 8 символов.");
+  if (p1 !== p2) return form("Пароли не совпали.");
+  const nr = await authPut(env, p1);
+  return authRedirect("/", authCookie(await authToken(nr)));
+}
+
+//  null — пускаем дальше, Response — запрос дальше не идёт.
+async function authGate(request, env, url) {
+  const p = url.pathname;
+  if (p === "/__login")  return await authHandleLogin(request, env);
+  if (p === "/__setup")  return await authHandleSetup(request, env);
+  if (p === "/__passwd") return await authHandlePasswd(request, env);
+  if (p === "/__logout") return authRedirect("/", authCookie(""));
+  if (AUTH_OPEN.has(p)) return null;
+  // Сборщик данных (GitHub Actions и cron) ходит со своим токеном.
+  if (url.searchParams.get("t") === "fzw2026") return null;
+  // Галерея «Мальдивы» закрыта собственным кодом — её не трогаем.
+  let dec = p; try { dec = decodeURIComponent(p); } catch (e) {}
+  if (p.indexOf("/api/gal") === 0 || dec.indexOf("мальдив") >= 0) return null;
+  const rec = await authGet(env);
+  const next = p + (url.search || "");
+  if (!rec) return authHtml(authPage({ setup: true, next }), 200);
+  if (eqConst(cookieGet(request, AUTH_COOK), await authToken(rec))) return null;
+  // Для данных и картинок логин-страницу не отдаём: пусть страница увидит 401.
+  const wantsHtml = (request.headers.get("accept") || "").indexOf("text/html") >= 0;
+  if (!wantsHtml) return new Response("unauthorized", { status: 401, headers: { "cache-control": "no-store" } });
+  return authHtml(authPage({ next }), 401);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const _gate = await authGate(request, env, url);
+    if (_gate) return _gate;
     if (url.pathname === "/dz_kz.js") {
       const cache = caches.default;
       const noCache = url.searchParams.has("nocache");

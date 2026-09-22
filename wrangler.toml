@@ -6,6 +6,10 @@ account_id = "34b1c57751a5a5dd59816ae75362cb69"
 [assets]
 directory = "."
 binding = "ASSETS"
+# Без этой строки Cloudflare отдаёт HTML и js напрямую из [assets], минуя
+# worker.js, — и проверка пароля до них не доезжает. С ней каждый запрос
+# сначала проходит через воркер, который либо пускает, либо показывает вход.
+experimental_serve_directly = false
 
 [[kv_namespaces]]
 binding = "PLAN"
