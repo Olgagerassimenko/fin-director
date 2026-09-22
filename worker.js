@@ -148,9 +148,6 @@ function hexBytes(h) {
   for (let i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16);
   return a;
 }
-async function sha256hex(s) {
-  return hexOf(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
-}
 async function pbkdf2hex(pass, saltHex, iter) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
@@ -177,7 +174,7 @@ async function authPut(env, pass) {
 // Токен сессии выводится из хэша и соли, которые лежат только в KV:
 // по публичному коду его не подделать. Смена пароля обнуляет все сессии.
 async function authToken(rec) {
-  return await sha256hex(rec.hash + "|" + rec.salt + "|pulse-session-v1");
+  return await authSha(rec.hash + "|" + rec.salt + "|pulse-session-v1");
 }
 function cookieGet(request, name) {
   const raw = request.headers.get("cookie") || "";
@@ -194,7 +191,7 @@ function authCookie(tok) {
 }
 async function failCount(env, request, add) {
   const ip = request.headers.get("cf-connecting-ip") || "?";
-  const k = "authfail:" + (await sha256hex(ip)).slice(0, 16);
+  const k = "authfail:" + (await authSha(ip)).slice(0, 16);
   const n = parseInt((await env.PLAN.get(k)) || "0", 10) || 0;
   if (add) await env.PLAN.put(k, String(n + 1), { expirationTtl: 3600 });
   return n;
@@ -281,7 +278,7 @@ async function authHandleSetup(request, env) {
   const f = await request.formData();
   const code = String(f.get("code") || "").trim().toUpperCase();
   const p1 = String(f.get("p1") || ""), p2 = String(f.get("p2") || "");
-  if (!eqConst(await sha256hex(code), SETUP_HASH)) {
+  if (!eqConst(await authSha(code), SETUP_HASH)) {
     await failCount(env, request, true);
     return authHtml(authPage({ setup: true, err: "Код не подошёл." }), 401);
   }
@@ -2189,7 +2186,7 @@ async function recordView(p, request, env, trackUrl) {
   // хэш: сам IP в базу не попадает, а одинаковые заходы с одной машины
   // схлопываются в одну запись за день.
   const ip = request.headers.get("cf-connecting-ip") || "";
-  const ipHash = (await sha256hex("pulse|" + ip)).slice(0, 8);
+  const ipHash = (await authSha("pulse|" + ip)).slice(0, 8);
   // Постоянный номер из localStorage надёжнее связки «адрес + браузер»:
   // у телефона адрес меняется по дороге, и одна и та же трубка распадалась
   // на три разных «устройства» за день. Если номера нет (старая вкладка,
@@ -2197,7 +2194,7 @@ async function recordView(p, request, env, trackUrl) {
   const qs = (trackUrl && trackUrl.searchParams) || new URLSearchParams();
   const did = String(qs.get("d") || "").slice(0, 40).replace(/[^A-Za-z0-9_-]/g, "");
   const vid = did ? "d" + did.slice(0, 11)
-                  : (await sha256hex("pulse|" + ip + "|" + ua)).slice(0, 12);
+                  : (await authSha("pulse|" + ip + "|" + ua)).slice(0, 12);
 
   const raw = await env.PLAN.get(M_KEY);
   const m = raw ? JSON.parse(raw) : { pages: {}, days: {}, updated: "" };
@@ -2338,7 +2335,7 @@ async function recordView(p, request, env, trackUrl) {
   m.updated = now.toISOString();
   await env.PLAN.put(M_KEY, JSON.stringify(m));
 }
-async function sha256hex(s) {
+async function authSha(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -2347,7 +2344,7 @@ async function sha256hex(s) {
    смотрело отчёт, нельзя. Пароль тот же, что и на саму страницу метрик. */
 async function handleLabel(url, env) {
   const key = url.searchParams.get("key") || "";
-  if ((await sha256hex(key)) !== METRICS_HASH) return jsonResp({ error: "Неверный пароль" }, 401);
+  if ((await authSha(key)) !== METRICS_HASH) return jsonResp({ error: "Неверный пароль" }, 401);
   const vid = String(url.searchParams.get("vid") || "").slice(0, 40);
   const name = String(url.searchParams.get("name") || "").slice(0, 40).trim();
   if (!vid) return jsonResp({ error: "Не указано устройство" }, 400);
@@ -2361,7 +2358,7 @@ async function handleLabel(url, env) {
 
 async function handleStats(url, env) {
   const key = url.searchParams.get("key") || "";
-  const h = await sha256hex(key);
+  const h = await authSha(key);
   if (h !== METRICS_HASH) return jsonResp({ error: "Неверный пароль" }, 401);
   const raw = await env.PLAN.get(M_KEY);
   return jsonResp(raw ? JSON.parse(raw) : { pages: {}, updated: "" });
