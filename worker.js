@@ -341,23 +341,6 @@ async function authHandlePasswd(request, env) {
   await env.PLAN.put(AUTH_KEY, JSON.stringify(nr));
   return authRedirect("/", authCookie(await authToken(nr)));
 }
-// Самопроверка всей цепочки на отдельном ключе KV: боевой пароль не трогает.
-async function authSelfTest(env, url) {
-  const d = String(url.searchParams.get("h") || "");
-  const t0 = Date.now();
-  const rec = await authMake(d);
-  await env.PLAN.put("auth:selftest", JSON.stringify(rec), { expirationTtl: 120 });
-  const back = JSON.parse((await env.PLAN.get("auth:selftest")) || "null");
-  const ok = await authOk(back, d);
-  const bad = await authOk(back, d.replace(/.$/, d.endsWith("0") ? "1" : "0"));
-  const tok = await authToken(back);
-  await env.PLAN.delete("auth:selftest");
-  return new Response(JSON.stringify({
-    принят: isHex64(d), верный_пароль: ok, неверный_пароль_отклонён: !bad,
-    токен_сессии: tok.slice(0, 12) + "…", мс: Date.now() - t0,
-  }, null, 1), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
-}
-
 //  null — пускаем дальше, Response — запрос дальше не идёт.
 async function authGate(request, env, url) {
   const p = url.pathname;
@@ -365,7 +348,6 @@ async function authGate(request, env, url) {
   if (p === "/__setup")  return await authHandleSetup(request, env);
   if (p === "/__passwd") return await authHandlePasswd(request, env);
   if (p === "/__logout") return authRedirect("/", authCookie(""));
-  if (p === "/__selftest" && url.searchParams.get("t") === "fzw2026") return await authSelfTest(env, url);
   if (AUTH_OPEN.has(p)) return null;
   // Сборщик данных (GitHub Actions и cron) ходит со своим токеном.
   if (url.searchParams.get("t") === "fzw2026") return null;
