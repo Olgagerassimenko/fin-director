@@ -741,7 +741,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       </div>
       <div class="card" style="margin-top:12px;overflow-x:auto">
         <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:4px">&#127919; Матрица сценариев</div>
-        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px">Результат месяца после производственных затрат при разном числе рейсов и цене рейса. Склад и ФОТ берутся из полей выше.</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px">Результат месяца по марже сырья при разном числе межгородних рейсов и цене рейса. Склад и развозка по городу берутся из полей выше.</div>
         <div id="as-matrix"></div>
       </div>
       <div class="card" style="margin-top:12px">
@@ -816,6 +816,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
           (resLo>=0?"+":"&minus;")+fmt(Math.abs(resLo))+" &mdash; направление кормит себя, но не тянет свою долю постоянных расходов.</div>"+
         "</div></div>";
     }
+    function plR(n){ var a=n%10,b=n%100; return (a===1&&b!==11)?"рейса":((a>=2&&a<=4)&&(b<10||b>=20))?"рейсов":"рейсов"; }
     function kpi(label,val,sub,color){
       return "<div class='card' style='padding:12px 14px'>"+
         "<div style='font-size:11px;color:#94a3b8;font-weight:600'>"+label+"</div>"+
@@ -1018,7 +1019,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     }
     function renderMatrix(D){
       var e=document.getElementById("as-matrix"); if(!e) return;
-      var c=cur(), av=avgMonth(D,D.astana), lo=av*NET, fixed=c.wh+c.fot;
+      var c=cur(), av=avgMonth(D,D.astana), m=marginPct(D), lo=av*m/100, fixed=c.wh+c.fot;
       var trips=[1,2,3,4,5,6,8], prices=[150000,200000,250000,300000,350000,400000];
       var h="<table style='width:100%;border-collapse:collapse;font-size:12px;min-width:560px'><thead><tr>"+
         "<th style='text-align:left;padding:6px 8px;color:#64748b;font-size:11px;border-bottom:1px solid #334155'>цена рейса &#8595; / рейсов &#8594;</th>";
@@ -1035,25 +1036,29 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
         });
         h+="</tr>";
       });
-      h+="</tbody></table><div style='font-size:11px;color:#64748b;margin-top:8px'>Зелёное &mdash; направление окупается, красное &mdash; нет. Обведена ваша текущая комбинация. Склад и ФОТ ("+fmt(fixed)+") учтены в каждой ячейке.</div>";
+      h+="</tbody></table><div style='font-size:11px;color:#64748b;margin-top:8px'>Зелёное &mdash; направление окупается, красное &mdash; нет. Обведена ваша текущая комбинация. Склад и развозка по городу ("+fmt(fixed)+") учтены в каждой ячейке.</div>";
       e.innerHTML=h;
     }
     function renderLevers(D){
       var e=document.getElementById("as-levers"); if(!e) return;
-      var c=cur(), av=avgMonth(D,D.astana), lo=av*NET, cost=c.trips*c.trip+c.wh+c.fot, gap=cost-lo;
+      var c=cur(), av=avgMonth(D,D.astana), m=marginPct(D), lo=av*m/100, cost=c.trips*c.trip+c.wh+c.fot, gap=cost-lo;
       var items=[];
       if(gap<=0){
-        e.innerHTML="<div style='font-size:12.5px;color:#34d399;line-height:1.6'>Направление уже окупается при ваших вводных. Запас прочности &mdash; "+fmt(-gap)+
-          " в месяц: столько можно потерять на объёме или добавить на затратах, прежде чем Астана уйдёт в минус.</div>";
+        var dropPct=av>0?(-gap)/lo*100:0, maxPriceOK=c.trips>0?(lo-c.wh-c.fot)/c.trips:0, minRev=m>0?cost/(m/100):0;
+        e.innerHTML="<div style='font-size:12.5px;color:#34d399;line-height:1.7'>Направление окупается при ваших вводных. Запас прочности &mdash; <b>"+fmt(-gap)+
+          "</b> в месяц.<br>Выручка может упасть на "+pc(dropPct)+"% (до "+fmt(minRev)+"), или цена рейса вырасти до "+fmt(maxPriceOK)+
+          " вместо нынешних "+fmt(c.trip)+", прежде чем Астана уйдёт в минус.<br>"+
+          "<span style='color:#94a3b8'>Считано по марже сырья &mdash; это верная база для решения «возить или нет». Если разносить полные заводские затраты (28,2%), запаса нет: результат "+
+          "&minus;"+fmt(Math.abs(av*NET-cost))+".</span></div>";
         return;
       }
-      var needRev=cost/NET, addRev=needRev-av;
+      var needRev=m>0?cost/(m/100):0, addRev=needRev-av;
       var perPoint=D.astana.length?addRev/D.astana.length:0;
       var maxTrips=c.trip>0?Math.floor((lo-c.wh-c.fot)/c.trip):0;
       var maxPrice=c.trips>0?(lo-c.wh-c.fot)/c.trips:0;
-      var priceUp=av>0?(gap/NET)/av*100:0;
+      var priceUp=(av>0&&m>0)?(gap/(m/100))/av*100:0;
       items.push(["&#128200; Поднять объём","Нужно "+fmt(needRev)+" выручки в месяц вместо "+fmt(av)+" &mdash; это +"+fmt(addRev)+", или по "+fmt(perPoint)+" на каждую из "+D.astana.length+" точек.","#60a5fa"]);
-      items.push(["&#128667; Сократить рейсы","При нынешнем объёме окупается не больше "+(maxTrips>0?maxTrips:0)+" рейсов в месяц против "+c.trips+". Каждый лишний рейс по "+full(c.trip)+" &#8376; забирает маржу целиком.","#f59e0b"]);
+      items.push(["&#128667; Сократить рейсы","При нынешнем объёме окупается не больше "+(maxTrips>0?maxTrips:0)+" "+plR(maxTrips>0?maxTrips:0)+" в месяц против "+c.trips+". Каждый лишний рейс по "+full(c.trip)+" &#8376; забирает маржу целиком.","#f59e0b"]);
       items.push(["&#128176; Сбить цену рейса","Чтобы выйти в ноль при "+c.trips+" рейсах, рейс должен стоить не дороже "+fmt(Math.max(0,maxPrice))+" против нынешних "+fmt(c.trip)+".","#a78bfa"]);
       items.push(["&#127991; Поднять цену отгрузки","Поднять цены для астанинских точек примерно на "+pc(Math.max(0,priceUp))+"% &mdash; тогда та же выручка даст нужную маржу. Риск: Яндекс сравнивает цены по сети.","#34d399"]);
       var h="<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px'>";
