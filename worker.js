@@ -401,9 +401,20 @@ export default {
       return salesCore(env, url);
     }
     if (url.pathname === "/sku_live.js") {
-      return skuJs(env, url);
+      /* 23.09.2026. Раньше отсюда всегда отдавался снимок из KV, который
+         собирает buildSku() прямо из айко. Этот сбор молча падал с 24.07.2026
+         (ошибка гасилась в .catch у крона), а KV отдавал июльский снимок —
+         и «SKU-аналитика 360», «Повышение цен» и «Себестоимость и маржа»
+         два месяца показывали июльские цифры со свежей датой сверху.
+         Настоящий источник — SKU_iiko/generate.py: он собирает sku_live.js
+         каждую ночь и кладёт файл в репозиторий. Его и отдаём.
+         ?rebuild=1 по-прежнему запускает сбор в воркере — для разбора. */
+      if (url.searchParams.get("rebuild") === "1") return skuJs(env, url);
     }
     if (url.pathname === "/sku_totals.json") {
+      /* Читает тот же снимок из KV, что и старый маршрут sku_live.js, то есть
+         может быть несвежим. Сейчас его никто не вызывает; если понадобится —
+         считать надо от sku_live.js из репозитория. */
       const p = JSON.parse((await env.PLAN.get(SKU_KEY)) || "null");
       const out = { updated: p?.meta?.pulled, through: p?.meta?.through,
                     sku_count: p?.skus?.length || 0,
@@ -499,7 +510,10 @@ export default {
     // 03:00 UTC = 08:00 по Алматы — обновляем продажи из айко
     if (event.cron === "0 3 * * *") {
       ctx.waitUntil(buildSales(env).catch((e) => console.error("продажи:", String(e))));
-      ctx.waitUntil(buildSku(env).catch((e) => console.error("sku:", String(e))));
+      /* buildSku здесь больше не вызываем: sku_live.js собирает ночной
+         прогон в GitHub Actions (SKU_iiko/generate.py) и кладёт в репозиторий.
+         Второй сбор в воркере два месяца падал незаметно и только жёг
+         запросы к айко. Ручной запуск остался на /sku_live.js?rebuild=1. */
       // buildDays здесь НЕ вызываем: 03:00 UTC покрывает часовой крон ниже.
       // Два параллельных вызова читали и писали бы одни и те же ключи, и тот,
       // кто закончит вторым, затёр бы только что найденные правки.
