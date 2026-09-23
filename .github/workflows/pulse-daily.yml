@@ -244,6 +244,12 @@ jobs:
               m = re.search(r'"(?:updated|pulled)":\s*"(\d{2}\.\d{2}\.\d{4})', txt)
               return m.group(1) if m else "?"
 
+          def date_sku(txt):
+              # В sku_live.js больше мегабайта данных, дата сборки — в хвосте,
+              # в SKU_LIVE_META. Общий date_meta мог бы поймать чужое поле.
+              m = re.search(r'SKU_LIVE_META\s*=\s*\{[^{}]*?"pulled":\s*"(\d{2}\.\d{2}\.\d{4})', txt)
+              return m.group(1) if m else "?"
+
           def date_zakup(txt):
               m = re.search(r'window\.__ZG="([^"]+)"', txt)
               if not m: return "?"
@@ -255,7 +261,13 @@ jobs:
                     ("ДДС", "dds_meta.js", date_meta),
                     ("ДДС прямой", "ddsp_meta.js", date_meta),
                     ("закуп", "zakup_data.js", date_zakup),
-                    ("ДЗ/КЗ", "dz_kz.js", date_meta)]
+                    ("ДЗ/КЗ", "dz_kz.js", date_meta),
+                    # 23.09.2026: сбор SKU в воркере падал с 24.07 и два месяца
+                    # отдавал июльский снимок, а проверки на него не было —
+                    # «SKU 360», «Повышение цен» и «Себестоимость и маржа»
+                    # молча показывали старые цифры. Теперь сверяем и его.
+                    ("SKU 360", "sku_live.js", date_sku),
+                    ("упаковка", "upak_data.js", date_meta)]
 
           # 1) собранные файлы — главная проверка (упал iiko => красный прогон)
           stale = []
