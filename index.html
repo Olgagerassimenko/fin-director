@@ -321,6 +321,15 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-v" id="p-win-v">—</div>
         <div class="pt-d" id="p-win-d">загрузка…</div>
       </a>
+      <!-- Рекорд закупа за неделю: что взяли крупнее всего. Считается только
+           по закрытым неделям — в текущей закуп ещё идёт, и «рекорд» по ней
+           был бы недосчитанным. Данные — маленький zakup_top.js, чтобы не
+           тянуть на главную мегабайт zakup_data.js ради двух строк. -->
+      <a class="pt" href="закуп.html" id="p-zak" title="Крупнейшая закупка за последнюю полную неделю">
+        <div class="pt-l">Закуп недели</div>
+        <div class="pt-v" id="p-zak-v">—</div>
+        <div class="pt-d" id="p-zak-d">загрузка…</div>
+      </a>
       <a class="pt" href="дз_кз.html" title="Нам должны и мы должны">
         <div class="pt-l">Долги</div>
         <div class="pt-v" id="p-debt-v">—</div>
@@ -1180,6 +1189,30 @@ a.card.key .card-title{padding-right:100px;}
     var u=document.getElementById('pulse-upd');
     if(u&&META.pulled) u.textContent='продажи из iiko · обновлено '+META.pulled+' · данные по '+(META.through||'—');
     renderFc();
+  });
+
+  /* ── ЗАКУП НЕДЕЛИ ───────────────────────────────────────────────
+     Лидер закупа за последнюю ПОЛНУЮ неделю и следом второй. Рекордом
+     называем только то, что и правда максимум года по этой позиции —
+     иначе «рекорд» стоял бы на плашке каждую неделю. */
+  load('/zakup_top.js?v=1',function(){
+    var Z=window.ZAKUP_TOP;
+    if(!Z||!Z.top||!Z.top.length){ set('p-zak','—','нет данных'); return; }
+    var a=Z.top[0], b=Z.top[1];
+    var qty=num(a.qty)+(a.u?(' '+a.u):'');
+    var d=(a.rec?'🏆 ':'')+short(a.n,24)+' · '+qty+' · '+Z.label
+        + (b? ('<br>затем '+short(b.n,20)+' — '+money(b.sum)) : '');
+    set('p-zak', money(a.sum), d);
+    var el=document.getElementById('p-zak');
+    if(el){
+      var parts=['Неделя '+Z.label+': закупили на '+money(Z.weekSum)+' по '+Z.n+' позициям.'];
+      Z.top.slice(0,3).forEach(function(x,i){
+        parts.push((i+1)+'. '+x.n+' — '+num(x.sum)+' ₸ ('+num(x.qty)+' '+x.u+' по '+num(x.price)+' ₸, '+x.sup+')'
+          +(x.rec?' — максимум года':(x.maxSum?(' · максимум года '+money(x.maxSum)+' в '+x.maxLabel):'')));
+      });
+      if(a.prev) parts.push('Неделей раньше по лидеру было '+money(a.prev)+'.');
+      el.title=parts.join('\n');
+    }
   });
 
   /* ── НАЛИЧНЫЕ В КАССЕ ───────────────────────────────────────────
