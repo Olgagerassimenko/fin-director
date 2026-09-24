@@ -931,6 +931,13 @@ a.card.key .card-title{padding-right:100px;}
     if(a>=1e3) return Math.round(x/1e3)+' тыс ₸';
     return Math.round(x)+' ₸'; }
   function num(x){ return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+  /* money() округляет миллионы до целых — 2 783 010 читалось как «3 млн».
+     Там, где важна точность до десятых, берём money1(). */
+  function money1(x){ var a=Math.abs(x);
+    if(a>=1e9) return (x/1e9).toFixed(2).replace('.',',')+' млрд ₸';
+    if(a>=1e6) return (x/1e6).toFixed(1).replace('.',',')+' млн ₸';
+    if(a>=1e3) return Math.round(x/1e3)+' тыс ₸';
+    return Math.round(x)+' ₸'; }
   function chg(now,was,good){
     if(!was) return '';
     var d=now-was, cls=(d>0)===(good>0)?'up':'down';
@@ -1201,16 +1208,16 @@ a.card.key .card-title{padding-right:100px;}
     var a=Z.top[0], b=Z.top[1];
     var qty=num(a.qty)+(a.u?(' '+a.u):'');
     var d=(a.rec?'🏆 ':'')+short(a.n,24)+' · '+qty+' · '+Z.label
-        + (b? ('<br>затем '+short(b.n,20)+' — '+money(b.sum)) : '');
-    set('p-zak', money(a.sum), d);
+        + (b? ('<br>затем '+short(b.n,20)+' — '+money1(b.sum)) : '');
+    set('p-zak', money1(a.sum), d);
     var el=document.getElementById('p-zak');
     if(el){
-      var parts=['Неделя '+Z.label+': закупили на '+money(Z.weekSum)+' по '+Z.n+' позициям.'];
+      var parts=['Неделя '+Z.label+': закупили на '+money1(Z.weekSum)+' по '+Z.n+' позициям.'];
       Z.top.slice(0,3).forEach(function(x,i){
         parts.push((i+1)+'. '+x.n+' — '+num(x.sum)+' ₸ ('+num(x.qty)+' '+x.u+' по '+num(x.price)+' ₸, '+x.sup+')'
-          +(x.rec?' — максимум года':(x.maxSum?(' · максимум года '+money(x.maxSum)+' в '+x.maxLabel):'')));
+          +(x.rec?' — максимум года':(x.maxSum?(' · максимум года '+money1(x.maxSum)+' в '+x.maxLabel):'')));
       });
-      if(a.prev) parts.push('Неделей раньше по лидеру было '+money(a.prev)+'.');
+      if(a.prev) parts.push('Неделей раньше по лидеру было '+money1(a.prev)+'.');
       el.title=parts.join('\n');
     }
   });
@@ -1223,14 +1230,8 @@ a.card.key .card-title{padding-right:100px;}
     if(!C){ set('p-cash','—','нет данных'); return; }
     var d=String(C.date||'').split('-');
     var when=d.length===3?(d[2]+'.'+d[1]):'';
-    /* money() округляет миллионы до целых: 1 468 931 превратилось бы в «1 млн».
-       Для остатка это слишком грубо, поэтому здесь свой формат с десятой. */
-    function m1(x){ var a=Math.abs(x);
-      if(a>=1e6) return (x/1e6).toFixed(1).replace('.',',')+' млн ₸';
-      if(a>=1e3) return Math.round(x/1e3)+' тыс ₸';
-      return Math.round(x)+' ₸'; }
-    set('p-cash', m1(C.nal),
-        'безнал ' + m1(C.beznal) + ' · всего ' + m1(C.nal+C.beznal) + (when?(' · на '+when):''));
+    set('p-cash', money1(C.nal),
+        'безнал ' + money1(C.beznal) + ' · всего ' + money1(C.nal+C.beznal) + (when?(' · на '+when):''));
     var el=document.getElementById('p-cash');
     if(el&&C.acc){
       var parts=[];
