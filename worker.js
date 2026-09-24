@@ -15,6 +15,9 @@ const CACHE_TTL = 3600; // секунд
 // Файлы данных, которые пересобирает ежедневный прогон. Их нельзя кэшировать:
 // имя не меняется, а содержимое меняется по нескольку раз в день.
 // (*_meta.js ловится отдельно регулярным выражением.)
+// Пути, по которым файл из репозитория главнее сборки воркера (см. _repoWins).
+const REPO_WINS = new Set(["/dz_kz.js", "/sales_live.js", "/sku_live.js"]);
+
 const DATA_FILES = new Set([
   "/zakup_data.js", "/dz_kz.js", "/kz_ana.js", "/opiu_audit.js", "/opiu_iiko.js", "/ddsp_days.js",
   "/sku_live.js", "/sku_analytics.js", "/contractor_items.js", "/contractors.js",
@@ -369,7 +372,17 @@ export default {
     const url = new URL(request.url);
     const _gate = await authGate(request, env, url);
     if (_gate) return _gate;
-    if (url.pathname === "/dz_kz.js") {
+
+    /* 24.09.2026. Пока ассеты отдавались Cloudflare напрямую, эти пути брались
+       из репозитория, и собственные сборки воркера до них не доезжали. После
+       включения run_worker_first (это понадобилось для пароля) каждый запрос
+       пошёл через воркер, и он начал перекрывать файлы своими версиями: по
+       /dz_kz.js сайт откатился на 04.09, потому что разбор заголовков «ДЗ на …»
+       в воркере остался старый, а в parse_dz_kz.py его давно починили.
+       Истина для этих путей — файл из репозитория: его собирает ночной прогон,
+       он полнее и свежее. Сборка в воркере остаётся доступной по ?rebuild=1. */
+    const _repoWins = REPO_WINS.has(url.pathname) && url.searchParams.get("rebuild") !== "1";
+    if (url.pathname === "/dz_kz.js" && !_repoWins) {
       const cache = caches.default;
       const noCache = url.searchParams.has("nocache");
       let resp = noCache ? null : await cache.match(CACHE_KEY);
@@ -388,7 +401,7 @@ export default {
     if (url.pathname === "/api/plan") {
       return handlePlan(request, env);
     }
-    if (url.pathname === "/sales_live.js") {
+    if (url.pathname === "/sales_live.js" && !_repoWins) {
       return salesJs(env, url);
     }
     if (url.pathname === "/sales_today.js") {
@@ -409,7 +422,7 @@ export default {
          Настоящий источник — SKU_iiko/generate.py: он собирает sku_live.js
          каждую ночь и кладёт файл в репозиторий. Его и отдаём.
          ?rebuild=1 по-прежнему запускает сбор в воркере — для разбора. */
-      if (url.searchParams.get("rebuild") === "1") return skuJs(env, url);
+      if (!_repoWins) return skuJs(env, url);
     }
     if (url.pathname === "/sku_totals.json") {
       /* Читает тот же снимок из KV, что и старый маршрут sku_live.js, то есть
