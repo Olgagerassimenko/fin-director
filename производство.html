@@ -1620,12 +1620,18 @@
         /* Ведём к самой вкладке, а не к строке кнопок. Раньше прокрутка
            останавливалась на кнопках, содержимое оставалось ниже экрана —
            и клик по плашке выглядел так, будто ничего не произошло. */
-        var pane=document.getElementById("p-"+t);
-        if(pane){
+        /* Прокрутку делаем мгновенной и повторяем после перерисовки панели.
+           Плавная не доезжала: переключение вкладки дважды пересчитывает
+           графики (resizePane на 60 и 320 мс), высота меняется прямо во время
+           анимации, и браузер её обрывает — со стороны выглядело как будто
+           клик вообще ничего не сделал. */
+        var goPane=function(){
+          var pane=document.getElementById("p-"+t); if(!pane) return;
           var off=parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stick"),10)||0;
           var y=pane.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop)-off-10;
-          window.scrollTo({top:Math.max(0,y),behavior:"smooth"});
-        }
+          window.scrollTo(0,Math.max(0,y));
+        };
+        goPane(); setTimeout(goPane,120); setTimeout(goPane,380);
       });
     });
     [].forEach.call(document.querySelectorAll(".chip[data-tc]"),function(c){
