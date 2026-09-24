@@ -446,7 +446,26 @@ function render(){
  if(TAB==='hl')html=(typeof renderHL==='function'?renderHL():''); else if(TAB==='mk')html=(typeof renderMK==='function'?renderMK():''); else if(TAB==='an')html=(typeof renderAN==='function'?renderAN():''); else if(TAB==='po')html=renderPO(); else if(TAB==='tv')html=renderTV(); else if(TAB==='dv')html=renderDV(); else if(TAB==='sk')html=renderSK(); else if(TAB==='ce')html=renderCE(); else if(TAB==='os')html=renderOS(); else if(TAB==='kz')html=renderKZ(); else html=renderPM();
  document.getElementById('body').innerHTML=html;
 }
-PKEY=defKey(); render();
+/* Глубокая ссылка с главной: #вкладка[/режим[/период]] — например
+   #ce/week/2026-37 открывает «Цены закупа» на нужной неделе. Без этого
+   плашка вела «куда-то на страницу закупа», и нужный разрез приходилось
+   искать руками. Неизвестные значения игнорируем — страница открывается
+   как обычно. */
+(function(){
+  var seg=(location.hash||'').replace(/^#/,'').split('/');
+  var t=seg[0], m=seg[1], k=seg[2];
+  if(t && TABS.some(function(x){return x[0]===t;})) TAB=t;
+  if(m && ['day','week','month','year','period'].indexOf(m)>=0) MODE=m;
+  PKEY=defKey();
+  if(k){
+    var ok = (MODE==='week')  ? WEEKS.some(function(w){return w.k===k;})
+           : (MODE==='month') ? MONTHS.indexOf(k)>=0
+           : (MODE==='day')   ? DAYS.indexOf(k)>=0 : false;
+    if(ok) PKEY=k;
+  }
+  if(MODE==='period') initAnRange();
+})();
+render();
 </script>
 <script>
 /* ═══ Аналитика сырья и истории закупа (данные из iiko, объект D) · период-aware ═══ */

@@ -1252,6 +1252,13 @@ a.card.key .card-title{padding-right:100px;}
     set('p-zak', line(a,true)+line(b,false),
         'всего ' + money1(Z.weekSum) + ' по ' + num(Z.n) + ' ' +
         (Z.n%10===1&&Z.n%100!==11 ? 'позиции' : 'позициям'));
+    /* Ссылки ведут прямо в нужный разрез закупа на нужной неделе, а не
+       просто на страницу: #вкладка/режим/период разбирает сам закуп. */
+    var deep=function(id,tab){
+      var e=document.getElementById(id);
+      if(e&&Z.week) e.setAttribute('href','закуп.html#'+tab+'/week/'+Z.week);
+    };
+    deep('p-zak','tv'); deep('p-up','ce'); deep('p-fresh','tv');
     var el=document.getElementById('p-zak');
     if(el){
       var parts=['Неделя '+Z.label+': закупили на '+money1(Z.weekSum)+' по '+Z.n+' позициям.'];
