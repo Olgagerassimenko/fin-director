@@ -156,6 +156,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pt-l{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
   color:rgba(255,255,255,.5);min-height:12px;}
 .pt-v{font-size:21px;font-weight:900;color:#fff;margin-top:7px;letter-spacing:-.5px;}
+#p-zak .pt-v{font-size:inherit;font-weight:inherit;letter-spacing:normal;margin-top:6px;}
 .pt-d{font-size:11px;margin-top:4px;color:rgba(255,255,255,.45);}
 .pt .up{color:#34d399;font-weight:800;}
 .pt .down{color:#fb7185;font-weight:800;}
@@ -326,7 +327,7 @@ a.card.key .card-title{padding-right:100px;}
            был бы недосчитанным. Данные — маленький zakup_top.js, чтобы не
            тянуть на главную мегабайт zakup_data.js ради двух строк. -->
       <a class="pt" href="закуп.html" id="p-zak" title="Крупнейшая закупка за последнюю полную неделю">
-        <div class="pt-l">Закуп недели</div>
+        <div class="pt-l" id="p-zak-l">Закуп недели</div>
         <div class="pt-v" id="p-zak-v">—</div>
         <div class="pt-d" id="p-zak-d">загрузка…</div>
       </a>
@@ -1206,10 +1207,24 @@ a.card.key .card-title{padding-right:100px;}
     var Z=window.ZAKUP_TOP;
     if(!Z||!Z.top||!Z.top.length){ set('p-zak','—','нет данных'); return; }
     var a=Z.top[0], b=Z.top[1];
-    var qty=num(a.qty)+(a.u?(' '+a.u):'');
-    var d=(a.rec?'🏆 ':'')+short(a.n,24)+' · '+qty+' · '+Z.label
-        + (b? ('<br>затем '+short(b.n,20)+' — '+money1(b.sum)) : '');
-    set('p-zak', money1(a.sum), d);
+    /* Крупно — количество: «сколько взяли» читается в килограммах и штуках,
+       а не в тенге. Сумма остаётся рядом мелким, чтобы было с чем сверяться.
+       Неделя ушла в заголовок плашки — она общая для обеих строк. */
+    var lab=document.getElementById('p-zak-l');
+    if(lab) lab.innerHTML='Закуп недели <span style="color:#a78bfa">'+Z.label+'</span>';
+    function line(x,first){
+      if(!x) return '';
+      return '<div style="'+(first?'':'margin-top:7px')+'">'
+        + '<div style="font-size:19px;font-weight:900;color:#fff;line-height:1.15;letter-spacing:-.4px">'
+        +   (x.rec?'<span title="максимум года по этой позиции">🏆 </span>':'')
+        +   num(x.qty)+' '+(x.u||'') + '</div>'
+        + '<div style="font-size:11px;font-weight:600;color:#b9c6dd;margin-top:1px;line-height:1.35">'
+        +   short(x.n,26)+' <span style="color:#8ea0be;font-weight:500">· '+money1(x.sum)+'</span></div>'
+        + '</div>';
+    }
+    set('p-zak', line(a,true)+line(b,false),
+        'всего ' + money1(Z.weekSum) + ' по ' + num(Z.n) + ' ' +
+        (Z.n%10===1&&Z.n%100!==11 ? 'позиции' : 'позициям'));
     var el=document.getElementById('p-zak');
     if(el){
       var parts=['Неделя '+Z.label+': закупили на '+money1(Z.weekSum)+' по '+Z.n+' позициям.'];
