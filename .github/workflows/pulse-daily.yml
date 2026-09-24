@@ -24,6 +24,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 42
     steps:
+      - name: "Дата запуска (Алматы)"
+        # Прогон идёт до полутора часов и иногда переходит алматинскую
+        # полночь: начался 23-го в 23:42, закончился 24-го в 00:21. Проверка
+        # свежести сравнивала дату данных с датой на момент проверки и честно
+        # ругалась, что «данные за 23.09 вместо 24.09». Запоминаем дату старта
+        # и считаем свежими данные любого из этих двух дней.
+        run: TZ=Asia/Almaty date +%d.%m.%Y > /tmp/pulse_day.txt
+
       - name: Получить репозиторий
         uses: actions/checkout@v4
 
@@ -227,11 +235,18 @@ jobs:
           import datetime, re, sys, time, urllib.request, gzip, base64
           TZ = datetime.timezone(datetime.timedelta(hours=5))
           today = datetime.datetime.now(TZ).strftime("%d.%m.%Y")
+          # Дата на момент старта прогона: если он перешёл полночь, обе даты
+          # законны. Вне полуночи они совпадают, и поблажки не возникает.
+          try:
+              started = open("/tmp/pulse_day.txt").read().strip() or today
+          except Exception:
+              started = today
+          OK_DAYS = {today, started}
           SITE = "https://lucky-river-eaf1.findirfoodzavod.workers.dev"
           stamp = str(int(time.time()))
           UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                 "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
-          print("сегодня:", today)
+          print("сегодня:", today, ("(прогон начат %s)" % started) if started != today else "")
 
           def live(path):
               # Сайт с 22.09.2026 закрыт паролем; служебный токен пускает робота мимо входа.
@@ -277,8 +292,8 @@ jobs:
               except Exception as e:
                   d = "ошибка: %s" % e
               print("%-12s собрано: %s" % (title, d))
-              if d != today:
-                  stale.append("%s: данные за %s вместо %s" % (title, d, today))
+              if d not in OK_DAYS:
+                  stale.append("%s: данные за %s вместо %s" % (title, d, " или ".join(sorted(OK_DAYS))))
 
           # 2) сайт — предупреждение (Cloudflare может не пустить робота)
           print("")
@@ -289,7 +304,7 @@ jobs:
               try:
                   s = fn(live(path))
                   print("%-12s на сайте: %s" % (title, s))
-                  if s != today:
+                  if s not in OK_DAYS:
                       rolled.append("%s: на сайте %s" % (title, s))
               except Exception as e:
                   print("%-12s на сайте: проверить не удалось (%s)" % (title, e))
