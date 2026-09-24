@@ -478,12 +478,16 @@
       return '<i class="'+(on?('in'+(tone?' '+tone:'')):'')+'" style="height:'+h+'px"></i>';
     }).join('')+'</div>';
   }
-  function mcard(tab,cls,label,val,sub,sp,go){
+  /* note — за какой отрезок цифра. Две плашки из шести не зависят от выбора
+     периода: себестоимость единицы всегда сравнивает первый закрытый месяц
+     с последним, а тех.карты приходят из iiko одним месяцем. Молчать об этом
+     нельзя — иначе при выборе «август» они выглядят как противоречие. */
+  function mcard(tab,cls,label,val,sub,sp,go,note){
     return '<button type="button" class="mc'+(cls?' '+cls:'')+(tab===CURTAB?' on':'')+
       '" data-go="'+tab+'">'+
       '<div class="mcl">'+label+'</div><div class="mcv">'+val+'</div>'+
       '<div class="mcs">'+sub+'</div>'+(sp||'')+
-      '<div class="mcg"><span></span><span class="mcgo">'+go+' →</span></div></button>';
+      '<div class="mcg"><span>'+(note||'')+'</span><span class="mcgo">'+go+' →</span></div></button>';
   }
 
   /* ── ГЛАВНОЕ ─────────────────────────────────────────────────────
@@ -500,7 +504,7 @@
       (dPct===null? ("за "+PER)
         : (D.mo_labels[closed]+" — "+mln(netto[closed])+", "+
            (dPct>0?'<span class="down">+':'<span class="up">')+dPct+"%</span> к "+D.mo_labels[cmp])),
-      spark(netto,"g"), "Выпуск"));
+      spark(netto,"g"), "Выпуск", "за "+PER));
 
     // 2. себестоимость единицы
     var U=ucStats();
@@ -508,7 +512,7 @@
       (U.med>0?"+":"")+pc(U.med)+"%",
       "медиана по "+fmt(U.list.length)+" позициям · дороже на 10%+ — <b>"+fmt(U.big.length)+"</b>"+
       (U.allS? (", это "+pct(U.bigS,U.allS)+"% выпуска") : ""),
-      "", "Разобрать"));
+      "", "Разобрать", "сравнение "+D.mo_labels[0]+" → "+D.mo_labels[CLOSED]+", период не влияет"));
 
     // 3. потери: списания + недостачи
     var woSum=SA((D.writeoff||{}).mo);
@@ -520,14 +524,14 @@
     out.push(mcard("wo","bad","Потери за период", mln(loss),
       pc((Math.round(lossPct*10)/10).toFixed(1))+"% товарного выпуска · списания "+mln(woSum)+
       " + недостачи "+mln(Math.max(0,invNet)),
-      spark((D.writeoff||{}).mo,"r"), "Списания"));
+      spark((D.writeoff||{}).mo,"r"), "Списания", "за "+PER));
 
     // 4. инвентаризация
     out.push(mcard("inv", invNet>0?"warn2":"good","Сальдо инвентаризаций",
       (invNet>0?"−":"+")+mln(Math.abs(invNet)).replace("-",""),
       "недостачи "+mln(invOut)+" · излишки "+mln(invIn)+
       (V.hist&&V.hist.length? (" · складов в пересчётах — "+V.hist.length) : ""),
-      spark(V.mo_out,"r"), "Инвентаризации"));
+      spark(V.mo_out,"r"), "Инвентаризации", "за "+PER));
 
     // 5. тех.карта — данные приходят одним закрытым месяцем
     var T=D.techcard||{};
@@ -536,7 +540,7 @@
       (over>0?"+":"")+pc((Math.round(over*10)/10).toFixed(1))+"%",
       "факт "+mln(T.fact_sum)+" против нормы "+mln(T.plan_sum)+" · "+(T.month||"")+
       " · без техкарты — <b>"+fmt(T.n_nocard||0)+"</b> позиций",
-      "", "Тех.карта"));
+      "", "Тех.карта", "только "+(T.month||"")+", период не влияет"));
 
     // 6. из чего себестоимость
     var G=D.groups||{};
@@ -545,7 +549,7 @@
     var own=Math.max(0,inpTot-buy);
     out.push(mcard("grp","","Покупное сырьё", (inpTot? pct(buy,inpTot):0)+"%",
       mln(buy)+" из "+mln(inpTot)+" · свой передел "+mln(own),
-      spark(G.mo_buy,""), "Структура"));
+      spark(G.mo_buy,""), "Структура", "за "+PER));
 
     return '<div class="mainwrap"><div class="mainhd"><b>Главное за '+PER+'</b>'+
       '<span>кликните плашку — откроется вкладка с разбором</span></div>'+
