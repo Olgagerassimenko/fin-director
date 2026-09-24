@@ -311,10 +311,15 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-v" id="p-cash-v">—</div>
         <div class="pt-d" id="p-cash-d">загрузка…</div>
       </a>
-      <a class="pt" href="продажи_2026.html" title="Возвраты покупателей за месяц, уже вычтены из выручки">
-        <div class="pt-l">Возвраты</div>
-        <div class="pt-v" id="p-ret-v">—</div>
-        <div class="pt-d" id="p-ret-d">загрузка…</div>
+      <!-- 24.09.2026: вместо «Возвратов» — достижение месяца. Возвраты
+           остались на дашборде продаж, где их видно в разрезе; на главной
+           полезнее то, чем месяц запомнился. Рекорд не выдумывается:
+           считается по закрытым месяцам, и если рекорда нет — так и пишем. -->
+      <a class="pt" href="продажи_2026.html" id="p-win"
+         title="Считается по закрытым месяцам: текущий идёт неполным и в сравнении всегда проигрывал бы">
+        <div class="pt-l">Достижение месяца</div>
+        <div class="pt-v" id="p-win-v">—</div>
+        <div class="pt-d" id="p-win-d">загрузка…</div>
       </a>
       <a class="pt" href="дз_кз.html" title="Нам должны и мы должны">
         <div class="pt-l">Долги</div>
@@ -939,8 +944,49 @@ a.card.key .card-title{padding-right:100px;}
     /* Топ-категория ушла с главной 05.09.2026: она почти не менялась месяцами,
        а место заняла плитка прогноза. Разрез по категориям остался в «Продажах». */
     /* Плитка «Топ-товар» убрана 24.09.2026 — на её месте остаток наличных. */
-    renderRet(); renderFc();
+    renderWin(); renderFc();
   });
+
+  /* ── ДОСТИЖЕНИЕ МЕСЯЦА ──────────────────────────────────────────
+     Плитка ищет, чем закрытый месяц оказался хорош, и говорит правду:
+     сначала проверяет рекорд года по выручке, потом серию роста, потом
+     превышение среднего. Не нашлось ничего — так и пишет, что рекорда нет.
+     Текущий месяц в расчёт не берём: он неполный и в сравнении с целыми
+     месяцами всегда выглядел бы провалом.                              */
+  var MES=['','январь','февраль','март','апрель','май','июнь','июль',
+           'август','сентябрь','октябрь','ноябрь','декабрь'];
+  function mes(k){ return MES[+String(k).slice(5,7)] || k; }
+  function plm(n){ var a=n%10, b=n%100;
+    if(b>=11&&b<=14) return 'месяцев';
+    return a===1?'месяц':(a>=2&&a<=4)?'месяца':'месяцев'; }
+  function pct1(x){ return Math.abs(x).toFixed(1).replace('.',','); }
+  function renderWin(){
+    if(!SUM) return;
+    var ms=(SUM.months||[]).filter(function(m){ return m.k!==SUM.month && (m.rev||0)>0; });
+    if(ms.length<2){ set('p-win','—','мало закрытых месяцев'); return; }
+    var last=ms[ms.length-1], prev=ms[ms.length-2];
+    var best=ms.reduce(function(a,b){ return b.rev>a.rev ? b : a; });
+    var avg=ms.reduce(function(t,m){ return t+m.rev; },0)/ms.length;
+    var d=prev.rev ? (last.rev/prev.rev-1)*100 : 0;
+    var streak=0;
+    for(var i=ms.length-1;i>0;i--){ if(ms[i].rev>ms[i-1].rev) streak++; else break; }
+    var sub;
+    if(best.k===last.k){
+      sub='🏆 '+mes(last.k)+' — лучший месяц года · '+(d>=0?'+':'−')+pct1(d)+'% к '+mes(prev.k);
+    } else if(streak>=2){
+      sub='🏆 '+streak+' '+plm(streak)+' роста подряд · рекорд года — '+mes(best.k)+', '+money(best.rev);
+    } else if(last.rev>avg){
+      sub='🏆 '+mes(last.k)+' выше среднего по году на '+pct1(last.rev/avg*100-100)+'%';
+    } else {
+      sub='рекорда нет: '+mes(last.k)+' '+(d>=0?'+':'−')+pct1(d)+'% к '+mes(prev.k)
+        +' · лучший — '+mes(best.k);
+    }
+    set('p-win', money(last.rev), sub);
+    var el=document.getElementById('p-win');
+    if(el) el.title='Выручка '+num(last.rev)+' ₸ за '+mes(last.k)
+      +'. Считаем по закрытым месяцам: '+mes(ms[0].k)+'–'+mes(last.k)
+      +'. Текущий месяц не участвует, он ещё не закончился.';
+  }
 
   /* ── ПРОГНОЗ ПРОДАЖ ЗА МЕСЯЦ ────────────────────────────────────
      Считается из тех же sales_sum.js (выручка по месяцам) и sales_meta.js
@@ -1123,26 +1169,14 @@ a.card.key .card-title{padding-right:100px;}
   }
   pulseFcNew();
 
-  /* Возвраты живут в sales_meta.js, а доля от выручки — в sales_sum.js.
-     Файлы грузятся параллельно, поэтому рисуем плитку только когда
-     пришли оба: иначе доля считалась бы от нуля и выходило «100%». */
+  /* Плитка «Возвраты» убрана 24.09.2026 — разрез остался в «Продажах».
+     META по-прежнему нужна прогнозу: из неё берётся дата последних данных. */
   var META=null;
-  function renderRet(){
-    if(!META) return;
-    var R=META.returns||{}, keys=Object.keys(R).sort();
-    if(!keys.length) return;
-    /* показываем с начала года: текущий месяц ещё не набрал возвратов
-       и в одиночку давал бы обманчивый ноль */
-    var tot=0; keys.forEach(function(k){ tot+=R[k]||0; });
-    var net=(SUM&&SUM.yearRev)||0, gross=net+tot;
-    set('p-ret','−'+money(tot),
-        (gross?(tot/gross*100).toFixed(1)+'% от выручки · ':'')+'с начала года');
-  }
   load('/sales_meta.js?v=2',function(){
     META=window.SALES_META||{};
     var u=document.getElementById('pulse-upd');
     if(u&&META.pulled) u.textContent='продажи из iiko · обновлено '+META.pulled+' · данные по '+(META.through||'—');
-    renderRet(); renderFc();
+    renderFc();
   });
 
   /* ── НАЛИЧНЫЕ В КАССЕ ───────────────────────────────────────────
