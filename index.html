@@ -191,6 +191,10 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pt-edu .pt-v{font-size:15px;line-height:1.3;}
 /* Плитка прогноза — единственная, которая не ведёт в отчёт, а раскрывает расчёт
    прямо на месте. Знак «?» справа подсказывает, что по ней можно кликнуть. */
+.pt-chip{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:8.5px;
+  letter-spacing:.06em;background:rgba(167,139,250,.22);color:#ddd6fe;border:1px solid rgba(167,139,250,.35);
+  cursor:pointer;vertical-align:middle;}
+.pt-chip:hover{background:rgba(167,139,250,.38);color:#fff;}
 .pt-fc{cursor:pointer;background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.35);}
 .pt-fc:hover{background:rgba(124,58,237,.28);}
 .fc-q{float:right;font-size:11px;font-weight:900;color:rgba(196,181,253,.9);letter-spacing:0;}
@@ -312,6 +316,26 @@ a.card.key .card-title{padding-right:100px;}
   <div class="pulse">
     <div class="pulse-hdr"><span class="pulse-t">Пульс на сегодня</span><span class="pulse-s" id="pulse-upd">—</span></div>
     <div class="pulse-grid">
+      <!-- 24.09.2026: вместо «Топ-товара» — остаток наличных. Топ-товар почти
+           не менялся, длинное название не влезало в плитку и обрезалось на
+           середине слова; разрез по товарам остался в «Продажах». Деньги на
+           руках — то, на что смотрят каждый день. -->
+      <a class="pt" href="дашборд_ддс_прямой.html#DAY1" id="p-cash"
+         title="Остаток на кассовых счетах. Открывает «ДДС за день» на сегодняшней дате — там видно, откуда деньги пришли и куда ушли.">
+        <div class="pt-l">Наличные в кассе<span class="pt-chip" id="p-cash-more" role="button" tabindex="0">счета</span></div>
+        <div class="pt-v" id="p-cash-v">—</div>
+        <div class="pt-d" id="p-cash-d">загрузка…</div>
+      </a>
+      <a class="pt" href="дз_кз.html#mismatch" id="p-dz" title="Сколько нам должны покупатели — открывает разбор «Кто нам недоплатил»">
+        <div class="pt-l">Нам должны · ДЗ</div>
+        <div class="pt-v" id="p-dz-v">—</div>
+        <div class="pt-d" id="p-dz-d">загрузка…</div>
+      </a>
+      <a class="pt" href="дз_кз.html#kzmis" id="p-kz" title="Сколько мы должны поставщикам — открывает разбор «Кому недоплатили мы»">
+        <div class="pt-l">Мы должны · КЗ</div>
+        <div class="pt-v" id="p-kz-v">—</div>
+        <div class="pt-d" id="p-kz-d">загрузка…</div>
+      </a>
       <a class="pt" id="p-sales" href="продажи_2026.html" title="Выручка последнего месяца за вычетом возвратов, из iiko">
         <div class="pt-l">Продажи за месяц</div>
         <div class="pt-v" id="p-sales-v">—</div>
@@ -325,16 +349,6 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-v" id="p-fc-v">—</div>
         <div class="pt-d" id="p-fc-d">загрузка…</div>
       </div>
-      <!-- 24.09.2026: вместо «Топ-товара» — остаток наличных. Топ-товар почти
-           не менялся, длинное название не влезало в плитку и обрезалось на
-           середине слова; разрез по товарам остался в «Продажах». Деньги на
-           руках — то, на что смотрят каждый день. -->
-      <a class="pt" href="дашборд_ддс_прямой.html" id="p-cash"
-         title="Остаток на кассовых счетах: главная касса, касса взаиморасчётов, карта Айданы. Остальные счета — безнал.">
-        <div class="pt-l">Наличные в кассе</div>
-        <div class="pt-v" id="p-cash-v">—</div>
-        <div class="pt-d" id="p-cash-d">загрузка…</div>
-      </a>
       <!-- 24.09.2026: вместо «Возвратов» — достижение месяца. Возвраты
            остались на дашборде продаж, где их видно в разрезе; на главной
            полезнее то, чем месяц запомнился. Рекорд не выдумывается:
@@ -344,6 +358,11 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-l">Достижение месяца</div>
         <div class="pt-v" id="p-win-v">—</div>
         <div class="pt-d" id="p-win-d">загрузка…</div>
+      </a>
+      <a class="pt" href="продажи_2026.html#contractors" id="p-buy" title="Крупнейший покупатель месяца — открывает список контрагентов">
+        <div class="pt-l" id="p-buy-l">Кто больше всех купил</div>
+        <div class="pt-v" id="p-buy-v">—</div>
+        <div class="pt-d" id="p-buy-d">загрузка…</div>
       </a>
       <!-- Рекорд закупа за неделю: что взяли крупнее всего. Считается только
            по закрытым неделям — в текущей закуп ещё идёт, и «рекорд» по ней
@@ -371,21 +390,6 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-v" id="p-fresh-v">—</div>
         <div class="pt-d" id="p-fresh-d">загрузка…</div>
       </a>
-      <a class="pt" href="продажи_2026.html#contractors" id="p-buy" title="Крупнейший покупатель месяца — открывает список контрагентов">
-        <div class="pt-l" id="p-buy-l">Кто больше всех купил</div>
-        <div class="pt-v" id="p-buy-v">—</div>
-        <div class="pt-d" id="p-buy-d">загрузка…</div>
-      </a>
-      <a class="pt" href="дз_кз.html#mismatch" id="p-dz" title="Сколько нам должны покупатели — открывает разбор «Кто нам недоплатил»">
-        <div class="pt-l">Нам должны · ДЗ</div>
-        <div class="pt-v" id="p-dz-v">—</div>
-        <div class="pt-d" id="p-dz-d">загрузка…</div>
-      </a>
-      <a class="pt" href="дз_кз.html#kzmis" id="p-kz" title="Сколько мы должны поставщикам — открывает разбор «Кому недоплатили мы»">
-        <div class="pt-l">Мы должны · КЗ</div>
-        <div class="pt-v" id="p-kz-v">—</div>
-        <div class="pt-d" id="p-kz-d">загрузка…</div>
-      </a>
       <!-- «Путеводитель» стоит последним, справа от долгов: это не показатель дня,
            а ссылка на справку, и в ряду цифр ей место с краю. -->
       <a class="pt pt-edu" href="путеводитель.html" title="Как читать Пульс — что есть на сайте и с чего начать">
@@ -395,6 +399,7 @@ a.card.key .card-title{padding-right:100px;}
       </a>
     </div>
     <div class="fc-box" id="p-fc-box" style="display:none"></div>
+    <div class="fc-box" id="p-cash-box" style="display:none"></div>
   </div>
 
   <!-- БЛОК 01: ДЕНЬГИ -->
@@ -1375,6 +1380,40 @@ a.card.key .card-title{padding-right:100px;}
     var when=d.length===3?(d[2]+'.'+d[1]):'';
     set('p-cash', money1(C.nal),
         'безнал ' + money1(C.beznal) + ' · всего ' + money1(C.nal+C.beznal) + (when?(' · на '+when):''));
+    /* «счета» раскрывают остатки по всем счетам прямо на главной: клик по
+       самой плашке ведёт в ДДС за день, а разбивку часто нужно просто
+       посмотреть, не уходя со страницы. */
+    var chip=document.getElementById('p-cash-more'), box=document.getElementById('p-cash-box');
+    if(chip&&box){
+      var draw=function(){
+        var nal=C.nalAcc||[], rows=Object.keys(C.acc||{});
+        rows.sort(function(a,b){ return (C.acc[b]||0)-(C.acc[a]||0); });
+        box.innerHTML='<div style="padding:14px 16px">'
+          + '<div style="font-size:13px;font-weight:800;color:#f1f5f9;margin-bottom:8px">Остатки по счетам на '+when+'</div>'
+          + '<table style="width:100%;border-collapse:collapse;font-size:12.5px">'
+          + rows.map(function(k){
+              var isNal=nal.indexOf(k)>=0, v=C.acc[k]||0;
+              return '<tr><td style="padding:5px 0;color:'+(isNal?'#6ee7b7':'#cbd5e1')+'">'
+                + (isNal?'● ':'○ ')+k+'</td>'
+                + '<td style="padding:5px 0;text-align:right;font-variant-numeric:tabular-nums;color:'
+                + (v?'#f1f5f9':'#64748b')+'">'+num(v)+' ₸</td></tr>';
+            }).join('')
+          + '<tr><td style="padding:8px 0 0;border-top:1px solid rgba(255,255,255,.12);font-weight:800;color:#6ee7b7">● Наличные</td>'
+          + '<td style="padding:8px 0 0;border-top:1px solid rgba(255,255,255,.12);text-align:right;font-weight:800;color:#6ee7b7">'+num(C.nal)+' ₸</td></tr>'
+          + '<tr><td style="padding:3px 0;font-weight:800;color:#cbd5e1">○ Безнал</td>'
+          + '<td style="padding:3px 0;text-align:right;font-weight:800;color:#cbd5e1">'+num(C.beznal)+' ₸</td></tr>'
+          + '</table>'
+          + '<div style="font-size:11px;color:#94a3b8;margin-top:9px">Наличными считаем главную кассу, кассу взаиморасчётов и карту Айданы. '
+          + '<a href="дашборд_ддс_прямой.html#DAY1" style="color:#c4b5fd">Открыть ДДС за день →</a></div></div>';
+      };
+      var toggle=function(e){
+        if(e){ e.preventDefault(); e.stopPropagation(); }
+        if(box.style.display==='none'){ draw(); box.style.display='block'; chip.textContent='скрыть'; }
+        else { box.style.display='none'; chip.textContent='счета'; }
+      };
+      chip.onclick=toggle;
+      chip.onkeydown=function(e){ if(e.key==='Enter'||e.key===' ') toggle(e); };
+    }
     var el=document.getElementById('p-cash');
     if(el&&C.acc){
       var parts=[];

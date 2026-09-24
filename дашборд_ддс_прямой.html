@@ -942,6 +942,18 @@ function setActive(k){document.querySelectorAll('.tab').forEach(t=>t.classList.t
 function addTab(k,label,mark){const t=document.createElement('div');t.className='tab';t.dataset.k=k;
  t.innerHTML=label+(mark?'<span class="dot">•</span>':'');t.onclick=()=>go(k);tabs.appendChild(t);}
 function goYear(){const y=D.year;const toRu=(D.mmeta[y.to]||{}).ru||'';renderPeriod(y,'2026 год (январь — '+(toRu.split(' ')[0]||'')+')','2026 год',true);}
+/* Глубокая ссылка с главной: #DAY1 — «ДДС за день» на сегодняшней дате,
+   #YEAR — год, #2026-09 — месяц. Плашка «Наличные в кассе» ведёт сюда:
+   остаток без движения за день читается наполовину. */
+function openFromHash(){
+  var k=(location.hash||'').replace(/^#/,'').trim();
+  if(!k) return false;
+  var t=null, all=document.querySelectorAll('.tab');
+  for(var i=0;i<all.length;i++){ if(all[i].dataset.k===k){ t=all[i]; break; } }
+  if(!t) return false;
+  go(k);
+  return true;
+}
 function go(k){
  payAll=false; setActive(k);
  dp.classList.remove('show'); rp.classList.remove('show'); d1p.classList.remove('show');
@@ -989,4 +1001,5 @@ if(D.byDay&&Object.keys(D.byDay).length){
  document.getElementById('rgo').onclick=()=>{let a=rfrom.value,b=rto.value;if(!a||!b)return;if(a>b){rfrom.value=b;rto.value=a;a=rfrom.value;b=rto.value;}payAll=false;CUR={type:'range'};renderRange(a,b);};
 }
 go(MK.length?MK[MK.length-1]:'YEAR');
+try{ openFromHash(); window.addEventListener('hashchange',openFromHash); }catch(e){}
 </script></body></html>
