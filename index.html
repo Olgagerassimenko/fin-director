@@ -156,7 +156,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pt-l{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
   color:rgba(255,255,255,.5);min-height:12px;}
 .pt-v{font-size:21px;font-weight:900;color:#fff;margin-top:7px;letter-spacing:-.5px;}
-#p-zak .pt-v{font-size:inherit;font-weight:inherit;letter-spacing:normal;margin-top:6px;}
+#p-zak .pt-v,#p-up .pt-v,#p-fresh .pt-v,#p-buy .pt-v{font-size:inherit;font-weight:inherit;letter-spacing:normal;margin-top:6px;}
 .pt-d{font-size:11px;margin-top:4px;color:rgba(255,255,255,.45);}
 .pt .up{color:#34d399;font-weight:800;}
 .pt .down{color:#fb7185;font-weight:800;}
@@ -334,6 +334,25 @@ a.card.key .card-title{padding-right:100px;}
       <!-- Дебиторка и кредиторка разведены по разным плашкам: это разные
            деньги и разные разговоры — одну сумму мы собираем, другую отдаём.
            В подписи у каждой крупнейший контрагент: с него начинается разбор. -->
+      <!-- Конкретика по закупу и покупателям: что подорожало, что взяли
+           впервые и кто больше всех купил. Данные — маленькие zakup_top.js и
+           buyer_top.js: тянуть на главную мегабайтные файлы закупа и
+           контрагентов ради шести строк нельзя. -->
+      <a class="pt" href="закуп.html" id="p-up" title="Рост цены закупа неделя к неделе">
+        <div class="pt-l" id="p-up-l">Подорожало за неделю</div>
+        <div class="pt-v" id="p-up-v">—</div>
+        <div class="pt-d" id="p-up-d">загрузка…</div>
+      </a>
+      <a class="pt" href="закуп.html" id="p-fresh" title="Позиции, которых раньше в закупе не было">
+        <div class="pt-l">Взяли впервые</div>
+        <div class="pt-v" id="p-fresh-v">—</div>
+        <div class="pt-d" id="p-fresh-d">загрузка…</div>
+      </a>
+      <a class="pt" href="продажи_2026.html" id="p-buy" title="Крупнейший покупатель месяца">
+        <div class="pt-l" id="p-buy-l">Кто больше всех купил</div>
+        <div class="pt-v" id="p-buy-v">—</div>
+        <div class="pt-d" id="p-buy-d">загрузка…</div>
+      </a>
       <a class="pt" href="дз_кз.html" id="p-dz" title="Сколько нам должны покупатели">
         <div class="pt-l">Нам должны · ДЗ</div>
         <div class="pt-v" id="p-dz-v">—</div>
@@ -1243,6 +1262,74 @@ a.card.key .card-title{padding-right:100px;}
       if(a.prev) parts.push('Неделей раньше по лидеру было '+money1(a.prev)+'.');
       el.title=parts.join('\n');
     }
+
+    /* Подорожание. Сортируем по переплате, а не по процентам: скачок на
+       копеечной позиции всегда выглядел бы страшнее, чем пять процентов на
+       том, что берут тоннами. */
+    var U=Z.up||[];
+    var ul=document.getElementById('p-up-l');
+    if(ul) ul.innerHTML='Подорожало <span style="color:#a78bfa">'+Z.label+'</span>';
+    if(!U.length){ set('p-up','—','за неделю цены не выросли'); }
+    else {
+      var upline=function(x,first){
+        if(!x) return '';
+        return '<div style="'+(first?'':'margin-top:7px')+'">'
+          + '<div style="font-size:19px;font-weight:900;color:#fca5a5;line-height:1.15;letter-spacing:-.4px">+'
+          +   String(x.d).replace('.',',')+'%</div>'
+          + '<div style="font-size:11px;font-weight:600;color:#b9c6dd;margin-top:1px;line-height:1.35">'
+          +   short(x.n,24)+' <span style="color:#8ea0be;font-weight:500">'+num(x.was)+'→'+num(x.now)+' ₸</span></div>'
+          + '</div>';
+      };
+      var over=0; U.forEach(function(x){ over+=x.over||0; });
+      set('p-up', upline(U[0],true)+upline(U[1],false), 'переплата за неделю '+money1(over));
+      var eU=document.getElementById('p-up');
+      if(eU) eU.title='Цена за единицу, '+Z.label+' против '+(Z.prevLabel||'прошлой недели')+':\n'
+        + U.map(function(x){ return '• '+x.n+': '+num(x.was)+' → '+num(x.now)+' ₸ (+'+x.d+'%), закупили '
+            + num(x.qty)+' на '+num(x.sum)+' ₸, переплата '+num(x.over)+' ₸'; }).join('\n')
+        + '\nБерём позиции с закупом от 150 тыс ₸: на мелочи скачок цены ничего не значит.';
+    }
+
+    /* Взяли впервые: чего не было ни на одной неделе года, и то, к чему
+       вернулись после месяца перерыва и дольше. */
+    var F=Z.fresh||[];
+    if(!F.length){ set('p-fresh','—','новых позиций за неделю нет'); }
+    else {
+      var fline=function(x,first){
+        if(!x) return '';
+        return '<div style="'+(first?'':'margin-top:7px')+'">'
+          + '<div style="font-size:19px;font-weight:900;color:#fff;line-height:1.15;letter-spacing:-.4px">'
+          +   money1(x.sum)+'</div>'
+          + '<div style="font-size:11px;font-weight:600;color:#b9c6dd;margin-top:1px;line-height:1.35">'
+          +   short(x.n,24)+' <span style="color:#8ea0be;font-weight:500">· '
+          +   (x.first?'впервые в этом году':('не брали с '+x.lastSeen))+'</span></div>'
+          + '</div>';
+      };
+      set('p-fresh', fline(F[0],true)+fline(F[1],false), 'неделя '+Z.label);
+      var eF=document.getElementById('p-fresh');
+      if(eF) eF.title=F.map(function(x){ return '• '+x.n+' — '+num(x.sum)+' ₸ ('+num(x.qty)+' '+(x.u||'')+', '+x.sup+'), '
+          +(x.first?'впервые в этом году':('в прошлый раз '+x.lastSeen)); }).join('\n');
+    }
+  });
+
+  /* ── КТО БОЛЬШЕ ВСЕХ КУПИЛ ──────────────────────────────────────
+     Крупнейший покупатель месяца: сумма, доля в выручке и что берёт чаще. */
+  function pcRu(x){ return String(x).replace('.',','); }
+  load('/buyer_top.js?v=1',function(){
+    var B=window.BUYER_TOP;
+    if(!B||!B.top){ set('p-buy','—','нет данных'); return; }
+    var t=B.top, bl=document.getElementById('p-buy-l');
+    if(bl) bl.innerHTML='Кто больше всех купил <span style="color:#a78bfa">'+(B.monthLabel||'')+'</span>';
+    set('p-buy',
+      '<div style="font-size:21px;font-weight:900;color:#fff;line-height:1.15;letter-spacing:-.4px">'+money1(t.rev)+'</div>'
+      + '<div style="font-size:12px;font-weight:700;color:#e8eef6;margin-top:3px;line-height:1.3">'+short(t.n,26)+'</div>',
+      (t.pct? (pcRu(t.pct)+'% всей выручки месяца') : '')
+      + (t.item? ('<br>чаще всего берёт '+short(t.item,24)) : ''));
+    var eB=document.getElementById('p-buy');
+    if(eB) eB.title=t.full+': '+num(t.rev)+' ₸ за '+(B.monthLabel||'месяц')
+      + (t.pct?(', '+pcRu(t.pct)+'% выручки'):'')
+      + (t.points>1?(', точек — '+t.points):'')
+      + (t.item?('\nТоп-позиция: '+t.item+' — '+num(t.itemRev)+' ₸'):'')
+      + (B.year?('\nЗа год лидер — '+B.year.n+', '+num(B.year.rev)+' ₸'):'');
   });
 
   /* ── НАЛИЧНЫЕ В КАССЕ ───────────────────────────────────────────
