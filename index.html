@@ -955,7 +955,10 @@ a.card.key .card-title{padding-right:100px;}
      месяцами всегда выглядел бы провалом.                              */
   var MES=['','январь','февраль','март','апрель','май','июнь','июль',
            'август','сентябрь','октябрь','ноябрь','декабрь'];
+  var MES_D=['','январю','февралю','марту','апрелю','маю','июню','июлю',
+             'августу','сентябрю','октябрю','ноябрю','декабрю'];
   function mes(k){ return MES[+String(k).slice(5,7)] || k; }
+  function mesD(k){ return MES_D[+String(k).slice(5,7)] || k; }   // «к июлю», а не «к июль»
   function plm(n){ var a=n%10, b=n%100;
     if(b>=11&&b<=14) return 'месяцев';
     return a===1?'месяц':(a>=2&&a<=4)?'месяца':'месяцев'; }
@@ -972,13 +975,13 @@ a.card.key .card-title{padding-right:100px;}
     for(var i=ms.length-1;i>0;i--){ if(ms[i].rev>ms[i-1].rev) streak++; else break; }
     var sub;
     if(best.k===last.k){
-      sub='🏆 '+mes(last.k)+' — лучший месяц года · '+(d>=0?'+':'−')+pct1(d)+'% к '+mes(prev.k);
+      sub='🏆 '+mes(last.k)+' — лучший месяц года · '+(d>=0?'+':'−')+pct1(d)+'% к '+mesD(prev.k);
     } else if(streak>=2){
       sub='🏆 '+streak+' '+plm(streak)+' роста подряд · рекорд года — '+mes(best.k)+', '+money(best.rev);
     } else if(last.rev>avg){
       sub='🏆 '+mes(last.k)+' выше среднего по году на '+pct1(last.rev/avg*100-100)+'%';
     } else {
-      sub='рекорда нет: '+mes(last.k)+' '+(d>=0?'+':'−')+pct1(d)+'% к '+mes(prev.k)
+      sub='рекорда нет: '+mes(last.k)+' '+(d>=0?'+':'−')+pct1(d)+'% к '+mesD(prev.k)
         +' · лучший — '+mes(best.k);
     }
     set('p-win', money(last.rev), sub);
