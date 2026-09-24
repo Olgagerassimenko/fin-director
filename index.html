@@ -148,17 +148,25 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pulse-hdr{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
 .pulse-t{font-size:11px;font-weight:800;color:#fff;letter-spacing:.14em;text-transform:uppercase;}
 .pulse-s{font-size:11px;color:rgba(255,255,255,.45);}
-.pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:11px;}
-.pt{position:relative;overflow:hidden;display:block;text-decoration:none;background:rgba(255,255,255,.04);
+/* grid-auto-rows:1fr — плашки в одном ряду одной высоты. Без этого ряд
+   выглядел рваным: у одной плашки две строки, у соседней пять. */
+.pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:11px;
+  grid-auto-rows:1fr;align-items:stretch;}
+.pt{position:relative;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;
+  background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.028));
   border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px 14px;--g:#a78bfa;
   transition:transform .18s,border-color .25s,background .25s,box-shadow .3s;}
 /* Свечение как на внутренних страницах: цветной круг в углу под содержимым
    (там так сделаны карточки «Нам должны» и «Мы должны»). Цвет — по смыслу
    плашки, поэтому ряд читается ещё до чтения цифр: зелёное — наши деньги,
    красное — чужие, золотое — достижение. Под курсором разгорается. */
-.pt::before{content:'';position:absolute;top:-34px;right:-34px;width:132px;height:132px;border-radius:50%;
-  background:var(--g);opacity:.15;pointer-events:none;transition:opacity .3s,transform .3s;}
-.pt:hover::before{opacity:.28;transform:scale(1.12);}
+.pt::before{content:'';position:absolute;top:-70px;right:-70px;width:210px;height:210px;
+  background:radial-gradient(circle,var(--g) 0%,rgba(0,0,0,0) 68%);
+  opacity:.20;pointer-events:none;transition:opacity .35s,transform .35s;}
+.pt:hover::before{opacity:.40;transform:scale(1.08);}
+/* тонкий блик по верхней кромке — чтобы плашка читалась объёмной, а не плоской */
+.pt::after{content:'';position:absolute;inset:0;border-radius:14px;pointer-events:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07);}
 .pt>*{position:relative;z-index:1;}
 .pt:hover{transform:translateY(-2px);border-color:var(--g);
   background:rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(0,0,0,.38);}
@@ -166,6 +174,8 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 #p-zak{--g:#38bdf8} #p-up{--g:#f87171} #p-fresh{--g:#a78bfa} #p-buy{--g:#60a5fa}
 #p-dz{--g:#34d399} #p-kz{--g:#f87171} .pt-edu{--g:#c4b5fd}
 @media (prefers-reduced-motion:reduce){ .pt,.pt::before{transition:none} .pt:hover{transform:none} }
+/* последняя строка плашки прижата вниз — подписи выравниваются по ряду */
+.pt .pt-d{margin-top:auto;padding-top:4px;}
 .pt-l{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
   color:rgba(255,255,255,.5);min-height:12px;}
 .pt-v{font-size:21px;font-weight:900;color:#fff;margin-top:7px;letter-spacing:-.5px;}
@@ -1323,7 +1333,7 @@ a.card.key .card-title{padding-right:100px;}
           + '<div style="font-size:19px;font-weight:900;color:#fff;line-height:1.15;letter-spacing:-.4px">'
           +   money1(x.sum)+'</div>'
           + '<div style="font-size:11px;font-weight:600;color:#b9c6dd;margin-top:1px;line-height:1.35">'
-          +   short(x.n,24)+' <span style="color:#8ea0be;font-weight:500">· '
+          +   short(x.n,30)+' <span style="color:#8ea0be;font-weight:500">· '
           +   (x.first?'впервые в этом году':('не брали с '+x.lastSeen))+'</span></div>'
           + '</div>';
       };
