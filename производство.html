@@ -30,6 +30,36 @@
   .ct{font-size:14px;font-weight:800;margin-bottom:3px}
   .cs{font-size:11.5px;color:var(--mut);margin-bottom:12px;line-height:1.5}
   .kpis{display:grid;gap:11px;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));margin-bottom:12px}
+  /* ── Блок «Главное» ──────────────────────────────────────────────
+     Шесть плашек — по одной на вкладку: цифра, что она значит и куда
+     идти разбираться. Плашка кликабельна и открывает свою вкладку,
+     у открытой подсвечена рамка. Полоски внизу — помесячная динамика;
+     месяцы вне выбранного периода приглушены.                      */
+  .mainwrap{margin:0 0 14px}
+  .mainhd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 9px}
+  .mainhd b{font-size:14px;color:#f1f5f9;letter-spacing:.01em}
+  .mainhd span{font-size:11.5px;color:var(--mut)}
+  .mainbar{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(232px,1fr))}
+  .mc{position:relative;text-align:left;font:inherit;cursor:pointer;
+      background:var(--card);border:1px solid var(--line);border-left:3px solid var(--line);
+      border-radius:13px;padding:13px 14px 11px;transition:transform .12s,border-color .12s,background .12s}
+  .mc:hover{transform:translateY(-2px);background:var(--card2)}
+  .mc:focus-visible{outline:2px solid var(--acc2);outline-offset:2px}
+  .mc.on{border-color:var(--acc2);border-left-color:var(--acc2);
+         background:linear-gradient(140deg,rgba(139,124,246,.18),rgba(139,124,246,.04))}
+  .mc.bad{border-left-color:var(--red)} .mc.warn2{border-left-color:var(--gold)}
+  .mc.good{border-left-color:var(--green)}
+  .mc .mcl{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}
+  .mc .mcv{font-size:25px;font-weight:900;line-height:1.15;letter-spacing:-.5px;margin-top:5px;color:#fff}
+  .mc .mcs{font-size:11.5px;color:#cbd8ea;margin-top:4px;line-height:1.5}
+  .mc .mcg{font-size:10.5px;color:var(--mut);margin-top:7px;display:flex;align-items:center;
+           justify-content:space-between;gap:8px}
+  .mc .mcgo{color:var(--acc2);font-weight:700;white-space:nowrap}
+  .mc .spark{display:flex;align-items:flex-end;gap:2px;height:20px;margin-top:8px}
+  .mc .spark i{flex:1;border-radius:2px 2px 0 0;min-height:2px;background:rgba(157,176,202,.22)}
+  .mc .spark i.in{background:var(--acc2)}
+  .mc .spark i.in.r{background:var(--red)} .mc .spark i.in.g{background:var(--green)}
+  @media(max-width:640px){ .mc .mcv{font-size:21px} }
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
   .kpi .v{font-size:28px;font-weight:900;line-height:1.1;letter-spacing:-.5px}
   .kpi .l{font-size:12.5px;font-weight:700;margin-top:6px;color:#f1f5f9}
@@ -421,6 +451,107 @@
     grp:["Из чего себестоимость","Из чего складываются деньги производства — мясо, молочка, овощи, "+
          "упаковка — и что из этого своё, а что куплено."]
   };
+  /* Статистика по себестоимости единицы считается один раз и здесь, и на
+     вкладке: если считать её в двух местах, однажды они разойдутся. */
+  function ucStats(){
+    var L=D.unitcost||[], upN=0, dnN=0, mxU=null, mnU=null;
+    L.forEach(function(r){
+      if(r.d>0)upN++; else if(r.d<0)dnN++;
+      if(!mxU||r.d>mxU.d)mxU=r; if(!mnU||r.d<mnU.d)mnU=r;
+    });
+    var ds=L.map(function(r){return r.d;}).sort(function(a,b){return a-b;});
+    var med=ds.length? ds[Math.floor(ds.length/2)] : 0;
+    var big=L.filter(function(r){return r.d>10;});
+    var bigS=big.reduce(function(a,r){return a+(r.s||0);},0);
+    var allS=L.reduce(function(a,r){return a+(r.s||0);},0);
+    return {list:L,upN:upN,dnN:dnN,mxU:mxU,mnU:mnU,med:med,big:big,bigS:bigS,allS:allS};
+  }
+
+  /* Полоска помесячной динамики. Месяцы вне выбранного периода приглушены —
+     видно и общий ход, и то, какой кусок сейчас на экране. */
+  function spark(arr,tone){
+    if(!arr||!arr.length) return '';
+    var mx=1; arr.forEach(function(v){ mx=Math.max(mx,Math.abs(v||0)); });
+    return '<div class="spark">'+arr.map(function(v,i){
+      var h=Math.max(2,Math.round(Math.abs(v||0)/mx*20));
+      var on=(i>=RA&&i<=RB);
+      return '<i class="'+(on?('in'+(tone?' '+tone:'')):'')+'" style="height:'+h+'px"></i>';
+    }).join('')+'</div>';
+  }
+  function mcard(tab,cls,label,val,sub,sp,go){
+    return '<button type="button" class="mc'+(cls?' '+cls:'')+(tab===CURTAB?' on':'')+
+      '" data-go="'+tab+'">'+
+      '<div class="mcl">'+label+'</div><div class="mcv">'+val+'</div>'+
+      '<div class="mcs">'+sub+'</div>'+(sp||'')+
+      '<div class="mcg"><span></span><span class="mcgo">'+go+' →</span></div></button>';
+  }
+
+  /* ── ГЛАВНОЕ ─────────────────────────────────────────────────────
+     Шесть чисел, которые отвечают на вопрос «что с производством»:
+     сколько сделали, дорожает ли единица, сколько потеряли на списаниях
+     и недостачах, укладываемся ли в норму по картам и на чём стоит
+     себестоимость. Все цифры — из тех же формул, что и вкладки,
+     и пересчитываются при смене периода.                            */
+  function mainHTML(){
+    var out=[];
+
+    // 1. выпуск
+    out.push(mcard("out","", "Товарный выпуск", mln(yearNetto),
+      (dPct===null? ("за "+PER)
+        : (D.mo_labels[closed]+" — "+mln(netto[closed])+", "+
+           (dPct>0?'<span class="down">+':'<span class="up">')+dPct+"%</span> к "+D.mo_labels[cmp])),
+      spark(netto,"g"), "Выпуск"));
+
+    // 2. себестоимость единицы
+    var U=ucStats();
+    out.push(mcard("cost", U.med>0?"warn2":"", "Себестоимость единицы",
+      (U.med>0?"+":"")+pc(U.med)+"%",
+      "медиана по "+fmt(U.list.length)+" позициям · дороже на 10%+ — <b>"+fmt(U.big.length)+"</b>"+
+      (U.allS? (", это "+pct(U.bigS,U.allS)+"% выпуска") : ""),
+      "", "Разобрать"));
+
+    // 3. потери: списания + недостачи
+    var woSum=SA((D.writeoff||{}).mo);
+    var V=D.invent||{};
+    var invIn=SA(V.mo_in), invOut=SA(V.mo_out);
+    var invNet=invIn? (invOut-invIn) : invOut;
+    var loss=woSum+Math.max(0,invNet);
+    var lossPct=yearNetto? (loss/yearNetto*100) : 0;
+    out.push(mcard("wo","bad","Потери за период", mln(loss),
+      pc((Math.round(lossPct*10)/10).toFixed(1))+"% товарного выпуска · списания "+mln(woSum)+
+      " + недостачи "+mln(Math.max(0,invNet)),
+      spark((D.writeoff||{}).mo,"r"), "Списания"));
+
+    // 4. инвентаризация
+    out.push(mcard("inv", invNet>0?"warn2":"good","Сальдо инвентаризаций",
+      (invNet>0?"−":"+")+mln(Math.abs(invNet)).replace("-",""),
+      "недостачи "+mln(invOut)+" · излишки "+mln(invIn)+
+      (V.hist&&V.hist.length? (" · складов в пересчётах — "+V.hist.length) : ""),
+      spark(V.mo_out,"r"), "Инвентаризации"));
+
+    // 5. тех.карта — данные приходят одним закрытым месяцем
+    var T=D.techcard||{};
+    var over=(T.plan_sum? (T.fact_sum/T.plan_sum-1)*100 : 0);
+    out.push(mcard("tc", over>0?"bad":"good","Расход против нормы",
+      (over>0?"+":"")+pc((Math.round(over*10)/10).toFixed(1))+"%",
+      "факт "+mln(T.fact_sum)+" против нормы "+mln(T.plan_sum)+" · "+(T.month||"")+
+      " · без техкарты — <b>"+fmt(T.n_nocard||0)+"</b> позиций",
+      "", "Тех.карта"));
+
+    // 6. из чего себестоимость
+    var G=D.groups||{};
+    var buy=SA(G.mo_buy);
+    var inpTot=(G.inp||[]).reduce(function(a,r){ return a+S(r); },0);
+    var own=Math.max(0,inpTot-buy);
+    out.push(mcard("grp","","Покупное сырьё", (inpTot? pct(buy,inpTot):0)+"%",
+      mln(buy)+" из "+mln(inpTot)+" · свой передел "+mln(own),
+      spark(G.mo_buy,""), "Структура"));
+
+    return '<div class="mainwrap"><div class="mainhd"><b>Главное за '+PER+'</b>'+
+      '<span>кликните плашку — откроется вкладка с разбором</span></div>'+
+      '<div class="mainbar">'+out.join("")+'</div></div>';
+  }
+
   function pitchHTML(){
     var t=PITCH[CURTAB]; if(!t) return '';
     return '<b>'+t[0]+'.</b> '+t[1];
@@ -457,6 +588,7 @@
     (FULLP?'':' · остальные вкладки пересчитаны под этот же период')+
     ' · данные из iiko по <b>'+D.through+'</b> · последний закрытый месяц — <b>'+
     D.mo_labels[CLOSED]+'</b></span></div>'+
+  mainHTML()+
 
   // ═══ ВЫПУСК ═══
   '<div class="pane on" id="p-out">'+
@@ -590,18 +722,12 @@
   // ── себестоимость единицы ────────────────────────────────────
   function unitTable(){
     var L=D.mo_labels;
-    var upN=0,dnN=0,mxU=null,mnU=null;
-    D.unitcost.forEach(function(r){
-      if(r.d>0)upN++; else if(r.d<0)dnN++;
-      if(!mxU||r.d>mxU.d)mxU=r; if(!mnU||r.d<mnU.d)mnU=r;
-    });
     // Медиана честнее среднего: пара позиций с ростом в разы утащила бы
     // среднее вверх и создала впечатление, что дорожает всё.
-    var ds=D.unitcost.map(function(r){return r.d;}).sort(function(a,b){return a-b;});
-    var med=ds.length? ds[Math.floor(ds.length/2)] : 0;
-    var big=D.unitcost.filter(function(r){return r.d>10;});
-    var bigS=big.reduce(function(a,r){return a+(r.s||0);},0);
-    var allS=D.unitcost.reduce(function(a,r){return a+(r.s||0);},0);
+    // Считает ucStats() — та же функция кормит плашку «Главного».
+    var _U=ucStats();
+    var upN=_U.upN, dnN=_U.dnN, mxU=_U.mxU, mnU=_U.mnU;
+    var med=_U.med, big=_U.big, bigS=_U.bigS, allS=_U.allS;
 
     return '<div class="kpis">'+
       kpi("hi",(med>0?"+":"")+pc(med)+"%","Медианное изменение",
@@ -1475,6 +1601,20 @@
         setPitch();
         resizePane();
         setTimeout(resizePane,60); setTimeout(resizePane,320);
+      });
+    });
+    // Плашка «Главного» — та же кнопка вкладки, только крупнее: жмём на
+    // соответствующую .tb, чтобы вся логика переключения жила в одном месте.
+    [].forEach.call(document.querySelectorAll(".mc[data-go]"),function(m){
+      m.addEventListener("click",function(){
+        var t=m.getAttribute("data-go");
+        var b=document.querySelector('.tb[data-p="'+t+'"]');
+        if(!b) return;
+        b.click();
+        [].forEach.call(document.querySelectorAll(".mc"),function(x){x.classList.remove("on");});
+        m.classList.add("on");
+        var tabs=document.querySelector(".tabs");
+        if(tabs) tabs.scrollIntoView({behavior:"smooth",block:"start"});
       });
     });
     [].forEach.call(document.querySelectorAll(".chip[data-tc]"),function(c){
