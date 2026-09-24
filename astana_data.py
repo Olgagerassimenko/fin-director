@@ -22,7 +22,9 @@ SITE = "https://lucky-river-eaf1.findirfoodzavod.workers.dev"
 # Служебный токен приходит из секрета прогона; строка в коде осталась
 # запасной, пока все прогоны не переведены на секрет.
 import os
-TOKEN = os.environ.get("PULSE_TOKEN") or "fzw2026"
+# Служебный токен — только из секрета прогона. Без него запрос честно
+# получит «forbidden», и прогон покраснеет, а не соберёт тишину.
+TOKEN = os.environ["PULSE_TOKEN"]
 YEAR = 2026
 LOG = open(os.path.join(HERE, "astana_log.txt"), "w", encoding="utf-8")
 

@@ -21,13 +21,12 @@ const CACHE_TTL = 3600; // секунд
 // по ней любой мог дёрнуть /balance, /sales_week и /pay_week и получить цифры
 // мимо пароля на сайте. Настоящее значение теперь лежит в секретах Cloudflare
 // (env.PULSE_TOKEN) и в секретах GitHub — в коде его нет.
-// SVC_OLD принимается временно, пока не переведены все прогоны.
-const SVC_OLD = "fzw2026";
+// Прежнее значение из кода убрано 24.09.2026, после того как все прогоны
+// перешли на секрет: пока оно принималось, дыра оставалась открытой.
 function svcOk(p, env) {
   const t = (p && p.get) ? (p.get("t") || "") : "";
   const real = (env && env.PULSE_TOKEN) || "";
-  if (real && eqConst(t, real)) return true;
-  return eqConst(t, SVC_OLD);
+  return !!real && eqConst(t, real);
 }
 
 const REPO_WINS = new Set(["/dz_kz.js", "/sales_live.js", "/sku_live.js"]);
