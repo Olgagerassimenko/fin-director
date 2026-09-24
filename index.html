@@ -1271,20 +1271,23 @@ a.card.key .card-title{padding-right:100px;}
     if(ul) ul.innerHTML='Подорожало <span style="color:#a78bfa">'+Z.label+'</span>';
     if(!U.length){ set('p-up','—','за неделю цены не выросли'); }
     else {
+      /* Цены ниже сотни показываем с десятой: 48,6→54,1 и «+11,2%» сходятся,
+         а округлённые «49→55» читались бы как двенадцать процентов. */
+      var fmtP=function(v){ return v<100 ? String(Math.round(v*10)/10).replace('.',',') : num(v); };
       var upline=function(x,first){
         if(!x) return '';
         return '<div style="'+(first?'':'margin-top:7px')+'">'
           + '<div style="font-size:19px;font-weight:900;color:#fca5a5;line-height:1.15;letter-spacing:-.4px">+'
           +   String(x.d).replace('.',',')+'%</div>'
           + '<div style="font-size:11px;font-weight:600;color:#b9c6dd;margin-top:1px;line-height:1.35">'
-          +   short(x.n,24)+' <span style="color:#8ea0be;font-weight:500">'+num(x.was)+'→'+num(x.now)+' ₸</span></div>'
+          +   short(x.n,24)+' <span style="color:#8ea0be;font-weight:500">'+fmtP(x.was)+'→'+fmtP(x.now)+' ₸</span></div>'
           + '</div>';
       };
       var over=0; U.forEach(function(x){ over+=x.over||0; });
       set('p-up', upline(U[0],true)+upline(U[1],false), 'переплата за неделю '+money1(over));
       var eU=document.getElementById('p-up');
       if(eU) eU.title='Цена за единицу, '+Z.label+' против '+(Z.prevLabel||'прошлой недели')+':\n'
-        + U.map(function(x){ return '• '+x.n+': '+num(x.was)+' → '+num(x.now)+' ₸ (+'+x.d+'%), закупили '
+        + U.map(function(x){ return '• '+x.n+': '+fmtP(x.was)+' → '+fmtP(x.now)+' ₸ (+'+x.d+'%), закупили '
             + num(x.qty)+' на '+num(x.sum)+' ₸, переплата '+num(x.over)+' ₸'; }).join('\n')
         + '\nБерём позиции с закупом от 150 тыс ₸: на мелочи скачок цены ничего не значит.';
     }
