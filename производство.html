@@ -487,7 +487,7 @@
       '" data-go="'+tab+'">'+
       '<div class="mcl">'+label+'</div><div class="mcv">'+val+'</div>'+
       '<div class="mcs">'+sub+'</div>'+(sp||'')+
-      '<div class="mcg"><span>'+(note||'')+'</span><span class="mcgo">'+go+' →</span></div></button>';
+      '<div class="mcg"><span>'+(note||'')+'</span><span class="mcgo">открыть «'+go+'» →</span></div></button>';
   }
 
   /* ── ГЛАВНОЕ ─────────────────────────────────────────────────────
@@ -1617,8 +1617,15 @@
         b.click();
         [].forEach.call(document.querySelectorAll(".mc"),function(x){x.classList.remove("on");});
         m.classList.add("on");
-        var tabs=document.querySelector(".tabs");
-        if(tabs) tabs.scrollIntoView({behavior:"smooth",block:"start"});
+        /* Ведём к самой вкладке, а не к строке кнопок. Раньше прокрутка
+           останавливалась на кнопках, содержимое оставалось ниже экрана —
+           и клик по плашке выглядел так, будто ничего не произошло. */
+        var pane=document.getElementById("p-"+t);
+        if(pane){
+          var off=parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stick"),10)||0;
+          var y=pane.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop)-off-10;
+          window.scrollTo({top:Math.max(0,y),behavior:"smooth"});
+        }
       });
     });
     [].forEach.call(document.querySelectorAll(".chip[data-tc]"),function(c){
