@@ -149,10 +149,23 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pulse-t{font-size:11px;font-weight:800;color:#fff;letter-spacing:.14em;text-transform:uppercase;}
 .pulse-s{font-size:11px;color:rgba(255,255,255,.45);}
 .pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:11px;}
-.pt{display:block;text-decoration:none;background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px 14px;transition:.18s;}
-.pt:hover{transform:translateY(-2px);border-color:rgba(167,139,250,.65);
-  background:rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(0,0,0,.35);}
+.pt{position:relative;overflow:hidden;display:block;text-decoration:none;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px 14px;--g:#a78bfa;
+  transition:transform .18s,border-color .25s,background .25s,box-shadow .3s;}
+/* Свечение как на внутренних страницах: цветной круг в углу под содержимым
+   (там так сделаны карточки «Нам должны» и «Мы должны»). Цвет — по смыслу
+   плашки, поэтому ряд читается ещё до чтения цифр: зелёное — наши деньги,
+   красное — чужие, золотое — достижение. Под курсором разгорается. */
+.pt::before{content:'';position:absolute;top:-34px;right:-34px;width:132px;height:132px;border-radius:50%;
+  background:var(--g);opacity:.15;pointer-events:none;transition:opacity .3s,transform .3s;}
+.pt:hover::before{opacity:.28;transform:scale(1.12);}
+.pt>*{position:relative;z-index:1;}
+.pt:hover{transform:translateY(-2px);border-color:var(--g);
+  background:rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(0,0,0,.38);}
+#p-sales{--g:#60a5fa} #p-fc{--g:#a78bfa} #p-cash{--g:#34d399} #p-win{--g:#fbbf24}
+#p-zak{--g:#38bdf8} #p-up{--g:#f87171} #p-fresh{--g:#a78bfa} #p-buy{--g:#60a5fa}
+#p-dz{--g:#34d399} #p-kz{--g:#f87171} .pt-edu{--g:#c4b5fd}
+@media (prefers-reduced-motion:reduce){ .pt,.pt::before{transition:none} .pt:hover{transform:none} }
 .pt-l{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
   color:rgba(255,255,255,.5);min-height:12px;}
 .pt-v{font-size:21px;font-weight:900;color:#fff;margin-top:7px;letter-spacing:-.5px;}
@@ -289,7 +302,7 @@ a.card.key .card-title{padding-right:100px;}
   <div class="pulse">
     <div class="pulse-hdr"><span class="pulse-t">Пульс на сегодня</span><span class="pulse-s" id="pulse-upd">—</span></div>
     <div class="pulse-grid">
-      <a class="pt" href="продажи_2026.html" title="Выручка последнего месяца за вычетом возвратов, из iiko">
+      <a class="pt" id="p-sales" href="продажи_2026.html" title="Выручка последнего месяца за вычетом возвратов, из iiko">
         <div class="pt-l">Продажи за месяц</div>
         <div class="pt-v" id="p-sales-v">—</div>
         <div class="pt-d" id="p-sales-d">загрузка…</div>
@@ -348,17 +361,17 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-v" id="p-fresh-v">—</div>
         <div class="pt-d" id="p-fresh-d">загрузка…</div>
       </a>
-      <a class="pt" href="продажи_2026.html" id="p-buy" title="Крупнейший покупатель месяца">
+      <a class="pt" href="продажи_2026.html#contractors" id="p-buy" title="Крупнейший покупатель месяца — открывает список контрагентов">
         <div class="pt-l" id="p-buy-l">Кто больше всех купил</div>
         <div class="pt-v" id="p-buy-v">—</div>
         <div class="pt-d" id="p-buy-d">загрузка…</div>
       </a>
-      <a class="pt" href="дз_кз.html" id="p-dz" title="Сколько нам должны покупатели">
+      <a class="pt" href="дз_кз.html#mismatch" id="p-dz" title="Сколько нам должны покупатели — открывает разбор «Кто нам недоплатил»">
         <div class="pt-l">Нам должны · ДЗ</div>
         <div class="pt-v" id="p-dz-v">—</div>
         <div class="pt-d" id="p-dz-d">загрузка…</div>
       </a>
-      <a class="pt" href="дз_кз.html" id="p-kz" title="Сколько мы должны поставщикам">
+      <a class="pt" href="дз_кз.html#kzmis" id="p-kz" title="Сколько мы должны поставщикам — открывает разбор «Кому недоплатили мы»">
         <div class="pt-l">Мы должны · КЗ</div>
         <div class="pt-v" id="p-kz-v">—</div>
         <div class="pt-d" id="p-kz-d">загрузка…</div>

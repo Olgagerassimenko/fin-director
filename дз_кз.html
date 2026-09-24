@@ -636,6 +636,22 @@ const ANA = (window.DZ_KZ && window.DZ_KZ.dz && Array.isArray(window.DZ_KZ.dz.an
 const TKC = ANA.reduce((s,d)=>s+(+d.kc||0),0), TKD = ANA.reduce((s,d)=>s+(+d.kd||0),0);
 function fmtN(n){if(!n)return'0';return Math.round(n).toLocaleString('ru-RU');}
 
+/* Глубокая ссылка с главной: #mismatch, #kzmis, #consign, #shares, #kzana —
+   плашка ведёт сразу в нужный разбор, а не «куда-то на страницу долгов». */
+function openAtabFromHash(){
+  var n=(location.hash||'').replace(/^#/,'');
+  if(!n||!document.getElementById('atab-'+n)) return;
+  var tabs=document.querySelectorAll('.atab');
+  for(var i=0;i<tabs.length;i++){
+    if((tabs[i].getAttribute('onclick')||'').indexOf("'"+n+"'")>=0){
+      showAtab(n,tabs[i]);
+      try{ tabs[i].scrollIntoView({block:'center'}); }catch(e){}
+      return;
+    }
+  }
+}
+window.addEventListener('hashchange',openAtabFromHash);
+window.addEventListener('load',openAtabFromHash);
 function showAtab(name,el){
   document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.apanel').forEach(p=>p.classList.remove('active'));

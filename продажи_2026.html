@@ -681,6 +681,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     function wire(){
       var t=document.getElementById("rf-tabs");
       if(t) t.addEventListener("click",function(e){ var b=e.target.closest?e.target.closest("button"):null; if(!b)return; st.tab=b.getAttribute("data-tab"); st.showAll=false; styleTabs(); renderList(); });
+      /* Глубокая ссылка с главной: #contractors или #products открывает
+         нужный список сразу, без поиска глазами по длинной странице. */
+      (function(){
+        var n=(location.hash||'').replace(/^#/,'');
+        if(n!=='contractors'&&n!=='products') return;
+        st.tab=n; st.showAll=false; styleTabs(); renderList();
+        if(t){ try{ t.scrollIntoView({block:'center'}); }catch(e){} }
+      })();
       var mo=document.getElementById("rf-month"); if(mo) mo.addEventListener("change",function(){ st.month=this.value; renderList(); renderDonuts(); });
       var so=document.getElementById("rf-sort"); if(so) so.addEventListener("change",function(){ st.sort=this.value; renderList(); });
       var se=document.getElementById("rf-search"); if(se) se.addEventListener("input",function(){ st.q=this.value; st.showAll=false; renderList(); });
