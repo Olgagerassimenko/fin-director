@@ -331,10 +331,18 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-v" id="p-zak-v">—</div>
         <div class="pt-d" id="p-zak-d">загрузка…</div>
       </a>
-      <a class="pt" href="дз_кз.html" title="Нам должны и мы должны">
-        <div class="pt-l">Долги</div>
-        <div class="pt-v" id="p-debt-v">—</div>
-        <div class="pt-d" id="p-debt-d">загрузка…</div>
+      <!-- Дебиторка и кредиторка разведены по разным плашкам: это разные
+           деньги и разные разговоры — одну сумму мы собираем, другую отдаём.
+           В подписи у каждой крупнейший контрагент: с него начинается разбор. -->
+      <a class="pt" href="дз_кз.html" id="p-dz" title="Сколько нам должны покупатели">
+        <div class="pt-l">Нам должны · ДЗ</div>
+        <div class="pt-v" id="p-dz-v">—</div>
+        <div class="pt-d" id="p-dz-d">загрузка…</div>
+      </a>
+      <a class="pt" href="дз_кз.html" id="p-kz" title="Сколько мы должны поставщикам">
+        <div class="pt-l">Мы должны · КЗ</div>
+        <div class="pt-v" id="p-kz-v">—</div>
+        <div class="pt-d" id="p-kz-d">загрузка…</div>
       </a>
       <!-- «Путеводитель» стоит последним, справа от долгов: это не показатель дня,
            а ссылка на справку, и в ряду цифр ей место с краю. -->
@@ -1263,12 +1271,27 @@ a.card.key .card-title{padding-right:100px;}
       var d=o&&o.dynamics; if(!d||d.length<2) return '—';
       return chg(d[d.length-1].total,d[d.length-2].total,good).trim();
     }
-    /* рост любого из долгов трактуем как минус: дебиторка — деньги, которые
-       до нас не дошли, кредиторка — которые мы ещё должны отдать */
-    if(Z.dz&&Z.kz) set('p-debt',
-      '<span style="font-size:16px">ДЗ '+money(Z.dz.total)+'</span><br>'
-      +'<span style="font-size:16px">КЗ '+money(Z.kz.total)+'</span>',
-      'за неделю ДЗ '+pct(Z.dz,-1)+' · КЗ '+pct(Z.kz,-1)+' · на '+(Z.dz.date||'—'));
+    /* Рост любого из долгов трактуем как минус: дебиторка — деньги, которые
+       до нас не дошли, кредиторка — которые мы ещё должны отдать.
+       Крупнейший контрагент выносим в подпись: без имени сумма долга — просто
+       число, а с именем это уже задача, с кем разговаривать. */
+    function leader(o,slovo){
+      var t=(o&&o.top)||[]; if(!t.length||!t[0]||!t[0].debt) return '';
+      var d=t[0].debt, sh=o.total? Math.round(d/o.total*100) : 0;
+      return '<br>' + slovo + ' <b style="color:#e8eef6">' + short(String(t[0].name).replace(/^\d+-/,''),22) +
+             '</b> ' + money1(d) + (sh?(' · '+sh+'% суммы'):'');
+    }
+    if(Z.dz) set('p-dz', money(Z.dz.total),
+      'за неделю ' + pct(Z.dz,-1) + ' · на ' + (Z.dz.date||'—') + leader(Z.dz,'больше всех должен'));
+    if(Z.kz) set('p-kz', money(Z.kz.total),
+      'за неделю ' + pct(Z.kz,-1) + ' · на ' + (Z.kz.date||'—') + leader(Z.kz,'больше всех должны'));
+    var eD=document.getElementById('p-dz');
+    if(eD&&Z.dz&&Z.dz.top) eD.title='Кто нам должен, крупнейшие:\n'
+      + Z.dz.top.slice(0,5).map(function(x,i){ return (i+1)+'. '+x.name+' — '+num(x.debt)+' ₸'; }).join('\n')
+      + (Z.dz.excludedTotal? ('\nОтдельно снято как безнадёжное: '+money1(Z.dz.excludedTotal)) : '');
+    var eK=document.getElementById('p-kz');
+    if(eK&&Z.kz&&Z.kz.top) eK.title='Кому мы должны, крупнейшие:\n'
+      + Z.kz.top.slice(0,5).map(function(x,i){ return (i+1)+'. '+x.name+' — '+num(x.debt)+' ₸'; }).join('\n');
   });
 })();
 </script>
