@@ -301,10 +301,15 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-v" id="p-fc-v">—</div>
         <div class="pt-d" id="p-fc-d">загрузка…</div>
       </div>
-      <a class="pt" href="продажи_2026.html" title="Позиция с наибольшей выручкой за месяц">
-        <div class="pt-l">Топ-товар</div>
-        <div class="pt-v" id="p-sku-v">—</div>
-        <div class="pt-d" id="p-sku-d">загрузка…</div>
+      <!-- 24.09.2026: вместо «Топ-товара» — остаток наличных. Топ-товар почти
+           не менялся, длинное название не влезало в плитку и обрезалось на
+           середине слова; разрез по товарам остался в «Продажах». Деньги на
+           руках — то, на что смотрят каждый день. -->
+      <a class="pt" href="дашборд_ддс_прямой.html" id="p-cash"
+         title="Остаток на кассовых счетах: главная касса, касса взаиморасчётов, карта Айданы. Остальные счета — безнал.">
+        <div class="pt-l">Наличные в кассе</div>
+        <div class="pt-v" id="p-cash-v">—</div>
+        <div class="pt-d" id="p-cash-d">загрузка…</div>
       </a>
       <a class="pt" href="продажи_2026.html" title="Возвраты покупателей за месяц, уже вычтены из выручки">
         <div class="pt-l">Возвраты</div>
@@ -933,8 +938,7 @@ a.card.key .card-title{padding-right:100px;}
        остались на дашборде продаж, поэтому здесь их больше не считаем. */
     /* Топ-категория ушла с главной 05.09.2026: она почти не менялась месяцами,
        а место заняла плитка прогноза. Разрез по категориям остался в «Продажах». */
-    if(SUM.topSku) set('p-sku', '<span style="font-size:15px">'+short(String(SUM.topSku.n).replace(/^Упак\s+/i,''),22)+'</span>',
-        money(SUM.topSku.rev)+(SUM.topSku.qty?' · '+num(SUM.topSku.qty)+' шт за месяц':''));
+    /* Плитка «Топ-товар» убрана 24.09.2026 — на её месте остаток наличных. */
     renderRet(); renderFc();
   });
 
@@ -1139,6 +1143,31 @@ a.card.key .card-title{padding-right:100px;}
     var u=document.getElementById('pulse-upd');
     if(u&&META.pulled) u.textContent='продажи из iiko · обновлено '+META.pulled+' · данные по '+(META.through||'—');
     renderRet(); renderFc();
+  });
+
+  /* ── НАЛИЧНЫЕ В КАССЕ ───────────────────────────────────────────
+     Остатки по счетам на последнюю дату из ддс_прямой.json. Разбивку
+     на нал и безнал делает gen_ddsp.py — там же список кассовых счетов. */
+  load('/ddsp_days.js?v=1',function(){
+    var C=(window.DDSP_DAYS||{}).cash;
+    if(!C){ set('p-cash','—','нет данных'); return; }
+    var d=String(C.date||'').split('-');
+    var when=d.length===3?(d[2]+'.'+d[1]):'';
+    /* money() округляет миллионы до целых: 1 468 931 превратилось бы в «1 млн».
+       Для остатка это слишком грубо, поэтому здесь свой формат с десятой. */
+    function m1(x){ var a=Math.abs(x);
+      if(a>=1e6) return (x/1e6).toFixed(1).replace('.',',')+' млн ₸';
+      if(a>=1e3) return Math.round(x/1e3)+' тыс ₸';
+      return Math.round(x)+' ₸'; }
+    set('p-cash', m1(C.nal),
+        'безнал ' + m1(C.beznal) + ' · всего ' + m1(C.nal+C.beznal) + (when?(' · на '+when):''));
+    var el=document.getElementById('p-cash');
+    if(el&&C.acc){
+      var parts=[];
+      (C.nalAcc||[]).forEach(function(k){ if(C.acc[k]!=null) parts.push(k+' — '+num(C.acc[k])); });
+      el.title='Наличные ' + num(C.nal) + ' ₸: ' + parts.join('; ')
+        + '. Остальные счета — безнал, ' + num(C.beznal) + ' ₸.';
+    }
   });
 
   load('/dz_kz.js?v=1',function(){

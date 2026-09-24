@@ -31,8 +31,25 @@ for _d, _arts in (D.get("byDay") or {}).items():
             if _v>0: _i+=_v
             else: _o+=-_v
     if _i or _o: _days[_d]={"in":round(_i),"out":round(_o)}
+# Остаток по счетам на последнюю дату, разложенный на наличные и безнал.
+# «Нал» — деньги на руках: главная касса, касса взаиморасчётов и карта Айданы,
+# через которую проходит наличка. Остальные счета банковские — это безнал.
+# Список счетов держим здесь, а не на странице: появится новый кассовый счёт —
+# правка в одном месте, и главная подхватит его сама.
+NAL_ACC=["99Главная касса","Касса Взаиморасчеты","ФЗ Айдана каспи"]
+_bb=D.get("balByDay") or {}
+_cash=None
+if _bb:
+    _bd=max(_bb); _acc=_bb[_bd] or {}
+    _cash={"date":_bd,
+           "nal":round(sum(v for k,v in _acc.items() if k in NAL_ACC)),
+           "beznal":round(sum(v for k,v in _acc.items() if k not in NAL_ACC)),
+           "nalAcc":NAL_ACC,
+           "acc":{k:round(v) for k,v in _acc.items()}}
+    print("касса на %s: нал %s, безнал %s" % (_bd,_cash["nal"],_cash["beznal"]))
+
 open(os.path.join(HERE,"ddsp_days.js"),"w",encoding="utf-8").write(
     "window.DDSP_DAYS="+json.dumps({"updated":D.get("updated",""),"updatedFull":D.get("updatedFull",""),
-        "through":D.get("through",""),"today":D.get("today",""),"days":_days},ensure_ascii=False)+";")
+        "through":D.get("through",""),"today":D.get("today",""),"days":_days,"cash":_cash},ensure_ascii=False)+";")
 print("ddsp_days.js: дней с движением", len(_days))
 print("дашборд_ддс_прямой.html собран, месяцев:",len(D.get("months",{})),"дней:",len(D.get("days",{})))
