@@ -214,6 +214,26 @@ def write_sales_sum(ds):
     mk = sorted(k for k in ds if _re.match(r"^\d{4}-\d{2}$", k))
     if not mk:
         return
+
+    # С июля 2026 часть возвратов проводится не обратной реализацией, а актом
+    # приёма услуг на счёт «Торговая выручка». В номенклатуре таких возвратов
+    # нет, поэтому в DS (он собран по товарам) они не попадают и выручка
+    # оказывается завышенной: за июль–сентябрь на 12,6 млн. ОПиУ их вычитает,
+    # и из-за этого «Продажи» и ОПиУ расходились на ту же сумму.
+    # iiko_export.py кладёт их помесячно в sales_meta.js → returns_svc.
+    # Вычитаем на уровне месяца: разложить по товарам их нельзя.
+    svc = {}
+    try:
+        _t = open(os.path.join(HERE, "sales_meta.js"), encoding="utf-8").read()
+        svc = (json.loads(_t[_t.index("=") + 1:].rstrip().rstrip(";")) or {}).get("returns_svc") or {}
+        svc = {k: (v or 0) for k, v in svc.items()}
+    except Exception as e:
+        print("sales_sum.js: возвраты актами услуг не прочитаны (%s)" % e)
+
+    def _net(k):
+        """Выручка месяца за вычетом обоих каналов возвратов."""
+        return (ds[k].get("total_rev") or 0) - (svc.get(k) or 0)
+
     cur, prev = ds[mk[-1]], (ds[mk[-2]] if len(mk) > 1 else None)
     cats = cur.get("categories") or []
     top = (cur.get("top20") or [])
@@ -221,24 +241,28 @@ def write_sales_sum(ds):
     out = {
         "month": mk[-1],
         "label": cur.get("label") or mk[-1],
-        "rev": cur.get("total_rev") or 0,
+        "rev": _net(mk[-1]),
+        "revGross": cur.get("total_rev") or 0,
+        "svcRet": svc.get(mk[-1]) or 0,
         "gp": cur.get("total_gp") or 0,
         "gpEst": bool(cur.get("gp_est")),
         "sku": cur.get("sku_count") or 0,
         "magRev": cur.get("mag_rev") or 0,
         "magPct": cur.get("mag_pct") or 0,
-        "prevRev": (prev or {}).get("total_rev") or 0,
+        "prevRev": (_net(mk[-2]) if len(mk) > 1 else 0),
         "prevLabel": (prev or {}).get("label") or "",
-        "yearRev": year.get("total_rev") or sum((ds[k].get("total_rev") or 0) for k in mk),
+        "yearRev": sum(_net(k) for k in mk),
+        "yearSvcRet": sum((svc.get(k) or 0) for k in mk),
         "yearGp": year.get("total_gp") or sum((ds[k].get("total_gp") or 0) for k in mk),
-        "months": [{"k": k, "rev": ds[k].get("total_rev") or 0} for k in mk],
+        "months": [{"k": k, "rev": _net(k)} for k in mk],
         "topCat": ({"n": cats[0].get("cat"), "rev": cats[0].get("rev"), "pct": cats[0].get("pct")} if cats else None),
         "topSku": ({"n": top[0].get("name"), "rev": top[0].get("rev"), "qty": top[0].get("qty")} if top else None),
     }
     path = os.path.join(HERE, "sales_sum.js")
     open(path, "w", encoding="utf-8").write(
         "window.SALES_SUM=" + json.dumps(out, ensure_ascii=False) + ";")
-    print("sales_sum.js: %s, выручка %.1f млн" % (out["label"], out["rev"] / 1e6))
+    print("sales_sum.js: %s, выручка %.1f млн (возвраты актами услуг за год −%.1f млн)"
+          % (out["label"], out["rev"] / 1e6, (out.get("yearSvcRet") or 0) / 1e6))
 
 
 def inject_ds(html, ds):
