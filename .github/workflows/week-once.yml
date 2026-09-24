@@ -26,14 +26,16 @@ jobs:
 
       - name: выгрузка недели
         env:
+          PULSE_TOKEN: ${{ secrets.PULSE_TOKEN }}
           SITE: https://lucky-river-eaf1.findirfoodzavod.workers.dev
           F: ${{ github.event.inputs.from }}
           T: ${{ github.event.inputs.to }}
         run: |
+          TOK="${PULSE_TOKEN:-fzw2026}"
           set -e
           mkdir -p _week
           for ep in sales_week pay_week returns_week; do
-            curl -sS --max-time 240 -o "_week/${ep}_${F}_${T}.csv" "$SITE/$ep?from=$F&to=$T&t=fzw2026"
+            curl -sS --max-time 240 -o "_week/${ep}_${F}_${T}.csv" "$SITE/$ep?from=$F&to=$T&t=$TOK"
             echo "--- $ep ---"; head -4 "_week/${ep}_${F}_${T}.csv"; wc -l "_week/${ep}_${F}_${T}.csv"
           done
 

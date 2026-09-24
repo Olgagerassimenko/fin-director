@@ -28,6 +28,10 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 42
+    # Служебный токен нужен и сборщику Астаны, и проверке свежести: сайт
+    # закрыт паролем, машинные запросы проходят по нему. Значение — в секретах.
+    env:
+      PULSE_TOKEN: ${{ secrets.PULSE_TOKEN }}
     steps:
       - name: "Дата запуска (Алматы)"
         # Прогон идёт до полутора часов и иногда переходит алматинскую
@@ -248,6 +252,8 @@ jobs:
               started = today
           OK_DAYS = {today, started}
           SITE = "https://lucky-river-eaf1.findirfoodzavod.workers.dev"
+          import os as _os
+          SVC = _os.environ.get("PULSE_TOKEN") or "fzw2026"
           stamp = str(int(time.time()))
           UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                 "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
@@ -255,7 +261,7 @@ jobs:
 
           def live(path):
               # Сайт с 22.09.2026 закрыт паролем; служебный токен пускает робота мимо входа.
-              req = urllib.request.Request("%s/%s?cb=%s&t=fzw2026" % (SITE, path, stamp))
+              req = urllib.request.Request("%s/%s?cb=%s&t=%s" % (SITE, path, stamp, SVC))
               req.add_header("User-Agent", UA)
               req.add_header("Accept", "*/*")
               return urllib.request.urlopen(req, timeout=90).read().decode("utf-8", "replace")

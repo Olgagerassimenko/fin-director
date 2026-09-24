@@ -21,13 +21,15 @@ jobs:
 
       - name: выгрузка баланса
         env:
+          PULSE_TOKEN: ${{ secrets.PULSE_TOKEN }}
           SITE: https://lucky-river-eaf1.findirfoodzavod.workers.dev
           D: ${{ github.event.inputs.on_date }}
         run: |
+          TOK="${PULSE_TOKEN:-fzw2026}"
           set -e
           mkdir -p _balance
-          curl -sS --max-time 240 -o "_balance/balance_${D}.csv"     "$SITE/balance?on=$D&t=fzw2026"
-          curl -sS --max-time 240 -o "_balance/balance_${D}_raw.csv" "$SITE/balance?on=$D&raw=1&t=fzw2026"
+          curl -sS --max-time 240 -o "_balance/balance_${D}.csv"     "$SITE/balance?on=$D&t=$TOK"
+          curl -sS --max-time 240 -o "_balance/balance_${D}_raw.csv" "$SITE/balance?on=$D&raw=1&t=$TOK"
           echo "--- свёрнутый ---"; head -5 "_balance/balance_${D}.csv"; wc -l "_balance/balance_${D}.csv"
           echo "--- по точкам ---"; head -5 "_balance/balance_${D}_raw.csv"; wc -l "_balance/balance_${D}_raw.csv"
 

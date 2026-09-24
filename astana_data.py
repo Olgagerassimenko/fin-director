@@ -19,7 +19,10 @@ sys.path.insert(0, HERE)
 import almaty
 
 SITE = "https://lucky-river-eaf1.findirfoodzavod.workers.dev"
-TOKEN = "fzw2026"
+# Служебный токен приходит из секрета прогона; строка в коде осталась
+# запасной, пока все прогоны не переведены на секрет.
+import os
+TOKEN = os.environ.get("PULSE_TOKEN") or "fzw2026"
 YEAR = 2026
 LOG = open(os.path.join(HERE, "astana_log.txt"), "w", encoding="utf-8")
 

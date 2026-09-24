@@ -14,14 +14,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: выгрузка по точкам
         env:
+          PULSE_TOKEN: ${{ secrets.PULSE_TOKEN }}
           SITE: https://lucky-river-eaf1.findirfoodzavod.workers.dev
           F: ${{ github.event.inputs.from }}
           T: ${{ github.event.inputs.to }}
         run: |
+          TOK="${PULSE_TOKEN:-fzw2026}"
           set -e
           mkdir -p _points
-          curl -sS --max-time 300 -o "_points/points_${F}_${T}.csv" "$SITE/sales_week?from=$F&to=$T&raw=1&t=fzw2026"
-          curl -sS --max-time 300 -o "_points/balance_raw_${T}.csv"  "$SITE/balance?on=$T&raw=1&t=fzw2026"
+          curl -sS --max-time 300 -o "_points/points_${F}_${T}.csv" "$SITE/sales_week?from=$F&to=$T&raw=1&t=$TOK"
+          curl -sS --max-time 300 -o "_points/balance_raw_${T}.csv"  "$SITE/balance?on=$T&raw=1&t=$TOK"
           head -3 "_points/points_${F}_${T}.csv"; wc -l "_points/points_${F}_${T}.csv"
       - name: сохранить
         run: |

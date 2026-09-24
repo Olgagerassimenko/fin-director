@@ -16,6 +16,20 @@ const CACHE_TTL = 3600; // секунд
 // имя не меняется, а содержимое меняется по нескольку раз в день.
 // (*_meta.js ловится отдельно регулярным выражением.)
 // Пути, по которым файл из репозитория главнее сборки воркера (см. _repoWins).
+// Служебный токен для машинных запросов (сборщики данных и кроны).
+// До 24.09.2026 это была строка прямо в этом файле, а репозиторий публичный:
+// по ней любой мог дёрнуть /balance, /sales_week и /pay_week и получить цифры
+// мимо пароля на сайте. Настоящее значение теперь лежит в секретах Cloudflare
+// (env.PULSE_TOKEN) и в секретах GitHub — в коде его нет.
+// SVC_OLD принимается временно, пока не переведены все прогоны.
+const SVC_OLD = "fzw2026";
+function svcOk(p, env) {
+  const t = (p && p.get) ? (p.get("t") || "") : "";
+  const real = (env && env.PULSE_TOKEN) || "";
+  if (real && eqConst(t, real)) return true;
+  return eqConst(t, SVC_OLD);
+}
+
 const REPO_WINS = new Set(["/dz_kz.js", "/sales_live.js", "/sku_live.js"]);
 
 const DATA_FILES = new Set([
@@ -353,7 +367,7 @@ async function authGate(request, env, url) {
   if (p === "/__logout") return authRedirect("/", authCookie(""));
   if (AUTH_OPEN.has(p)) return null;
   // Сборщик данных (GitHub Actions и cron) ходит со своим токеном.
-  if (url.searchParams.get("t") === "fzw2026") return null;
+  if (svcOk(url.searchParams, env)) return null;
   // Галерея «Мальдивы» закрыта собственным кодом — её не трогаем.
   let dec = p; try { dec = decodeURIComponent(p); } catch (e) {}
   if (p.indexOf("/api/gal") === 0 || dec.indexOf("мальдив") >= 0) return null;
@@ -829,7 +843,7 @@ async function iikoCtrList(token) {
 
 async function ctrBalance(env, url) {
   const p = url.searchParams;
-  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  if (!svcOk(p, env)) return new Response("forbidden", { status: 403 });
   const on = p.get("on") || "";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(on) && !p.get("ts"))
     return new Response("need on=YYYY-MM-DD", { status: 400 });
@@ -879,7 +893,7 @@ async function ctrBalance(env, url) {
 const PROBE_OK = ["/resto/api/v2/reports/balance", "/resto/api/v2/entities", "/resto/api/suppliers"];
 async function iikoApiProbe(env, url) {
   const p = url.searchParams;
-  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  if (!svcOk(p, env)) return new Response("forbidden", { status: 403 });
   const path = p.get("path") || "";
   if (!PROBE_OK.some((x) => path.startsWith(x)))
     return new Response("путь не разрешён", { status: 400 });
@@ -895,7 +909,7 @@ async function iikoApiProbe(env, url) {
 
 async function payWeek(env, url) {
   const p = url.searchParams;
-  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  if (!svcOk(p, env)) return new Response("forbidden", { status: 403 });
   const from = p.get("from"), to = p.get("to");
   if (!from || !to) return new Response("need from & to", { status: 400 });
   const toExcl = new Date(Date.parse(to) + 86400000).toISOString().slice(0, 10);
@@ -984,7 +998,7 @@ async function olapReturns(token, from, toExcl) {
 /* Только возвраты, без отгрузки — чтобы было видно, из чего складывается нетто. */
 async function returnsWeek(env, url) {
   const p = url.searchParams;
-  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  if (!svcOk(p, env)) return new Response("forbidden", { status: 403 });
   const from = p.get("from"), to = p.get("to");
   if (!from || !to) return new Response("need from & to", { status: 400 });
   const toExcl = new Date(Date.parse(to) + 86400000).toISOString().slice(0, 10);
@@ -1000,7 +1014,7 @@ async function returnsWeek(env, url) {
 
 async function salesWeek(env, url) {
   const p = url.searchParams;
-  if (p.get("t") !== "fzw2026")
+  if (!svcOk(p, env))
     return new Response("forbidden", { status: 403 });
   const isoD = (d) => d.toISOString().slice(0, 10);
   let from = p.get("from"), to = p.get("to");
