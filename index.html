@@ -174,8 +174,10 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 #p-zak{--g:#38bdf8} #p-up{--g:#f87171} #p-fresh{--g:#a78bfa} #p-buy{--g:#60a5fa}
 #p-dz{--g:#34d399} #p-kz{--g:#f87171} .pt-edu{--g:#c4b5fd}
 @media (prefers-reduced-motion:reduce){ .pt,.pt::before{transition:none} .pt:hover{transform:none} }
-/* последняя строка плашки прижата вниз — подписи выравниваются по ряду */
-.pt .pt-d{margin-top:auto;padding-top:4px;}
+/* Прижимать подпись к низу (margin-top:auto) оказалось плохо: у короткой
+   плашки между цифрой и подписью зияла дыра в полплашки. Содержимое идёт
+   подряд сверху, а пустота — там, где ей и место, внизу. */
+.pt .pt-d{padding-top:4px;}
 .pt-l{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
   color:rgba(255,255,255,.5);min-height:12px;}
 .pt-v{font-size:21px;font-weight:900;color:#fff;margin-top:7px;letter-spacing:-.5px;}
