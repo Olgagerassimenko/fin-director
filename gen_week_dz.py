@@ -124,18 +124,29 @@ def norm(x):
     x = (x or "").replace("\xa0", " ").strip().lower()
     return re.sub(r"\s+", " ", x)
 
-SHIP_N = {norm(k): v for k, v in ship.items()}
-PAY_N  = {norm(k): v for k, v in pay.items()}
+def key(name):
+    """Ключ склейки — номер контрагента, как в таблице: «102-Яндекс лавка ... (все точки)»
+    в iiko рассыпан на два десятка точек с тем же номером."""
+    s = norm(name)
+    m = re.match(r"^\s*(\d+)", s)
+    return m.group(1) if m else s
+
+def roll(d):
+    out = {}
+    for k, v in d.items(): out[key(k)] = out.get(key(k), 0.0) + v
+    return out
+
+SHIP_K, PAY_K = roll(ship), roll(pay)
 
 out_rows, hit_s, hit_p = [], set(), set()
 for i, row in enumerate(rows):
     nm = (row[0] if row else "").strip()
-    n = norm(nm)
-    if not n:
+    if not norm(nm):
         out_rows.append([i + 1, nm, "", ""]); continue
-    sv, pv = SHIP_N.get(n), PAY_N.get(n)
-    if sv is not None: hit_s.add(n)
-    if pv is not None: hit_p.add(n)
+    k = key(nm)
+    sv, pv = SHIP_K.get(k), PAY_K.get(k)
+    if sv is not None: hit_s.add(k)
+    if pv is not None: hit_p.add(k)
     out_rows.append([i + 1, nm,
                      "" if sv is None else round(sv, 2),
                      "" if pv is None else round(pv, 2)])
@@ -147,9 +158,11 @@ with open(os.path.join(HERE, "неделя_дз.csv"), "w", encoding="utf-8-sig"
                 "Поступление ДС с %s по %s" % (D1.strftime("%d.%m.%Y"), (D2 - timedelta(days=1)).strftime("%d.%m.%Y"))])
     w.writerows(out_rows)
 
-miss_s = sorted(set(SHIP_N) - hit_s)
-miss_p = sorted(set(PAY_N) - hit_p)
-log("сопоставлено: отгрузка %d из %d, поступления %d из %d" % (len(hit_s), len(SHIP_N), len(hit_p), len(PAY_N)))
+SHIP_N, PAY_N = SHIP_K, PAY_K
+miss_s = sorted(k for k in set(SHIP_N) - hit_s if abs(SHIP_N[k]) > 1)
+miss_p = sorted(k for k in set(PAY_N) - hit_p if abs(PAY_N[k]) > 1)
+log("сопоставлено по номеру: отгрузка %d из %d групп, поступления %d из %d" % (len(hit_s), len(SHIP_N), len(hit_p), len(PAY_N)))
+log("сумма по строкам таблицы: отгрузка %.2f, поступления %.2f" % (sum(r[2] or 0 for r in out_rows if r[2] != ""), sum(r[3] or 0 for r in out_rows if r[3] != "")))
 if miss_s:
     log("\nЕСТЬ В IIKO, НЕТ В ТАБЛИЦЕ — отгрузка:")
     for n in miss_s: log("   %-55s %15.2f" % (n[:55], SHIP_N[n]))
