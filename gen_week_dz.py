@@ -77,16 +77,16 @@ def rng():
             "includeLow": True, "includeHigh": False}
 
 def by_contr_ship(types):
+    """Как в iiko_export.py: без фильтра по подразделению, сумма — Sum.Incoming."""
     body = {"reportType": "TRANSACTIONS", "buildSummary": "true",
             "groupByRowFields": ["Counteragent.Name"],
-            "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
+            "aggregateFields": ["Sum.Incoming"],
             "filters": {"DateTime.DateTyped": rng(),
-                        "Department": {"filterType": "IncludeValues", "values": [DEPT]},
                         "TransactionType": {"filterType": "IncludeValues", "values": types}}}
     out = {}
     for row in olap(body):
         nm = (row.get("Counteragent.Name") or "").strip()
-        v = (row.get("Sum.Incoming") or 0) - (row.get("Sum.Outgoing") or 0)
+        v = row.get("Sum.Incoming") or 0
         if nm: out[nm] = out.get(nm, 0.0) + v
     return out
 
