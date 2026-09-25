@@ -1436,16 +1436,23 @@ a.card.key .card-title{padding-right:100px;}
        до нас не дошли, кредиторка — которые мы ещё должны отдать.
        Крупнейший контрагент выносим в подпись: без имени сумма долга — просто
        число, а с именем это уже задача, с кем разговаривать. */
-    function leader(o,slovo){
-      var t=(o&&o.top)||[]; if(!t.length||!t[0]||!t[0].debt) return '';
-      var d=t[0].debt, sh=o.total? Math.round(d/o.total*100) : 0;
-      return '<br>' + slovo + ' <b style="color:#e8eef6">' + short(String(t[0].name).replace(/^\d+-/,''),22) +
-             '</b> ' + money1(d) + (sh?(' · '+sh+'% суммы'):'');
+    /* Три крупнейших контрагента вместо одного: долг почти всегда собран
+       в нескольких именах, и по одному лидеру не видно, сколько их. Недельное
+       изменение убрано — по неделе к неделе долги почти не двигаются, строка
+       занимала место и ничего не сообщала. */
+    function top3(o){
+      var t=(o&&o.top)||[];
+      if(!t.length) return '';
+      return '<div style="margin-top:5px">' + t.slice(0,3).map(function(x){
+        var sh=o.total? Math.round((x.debt||0)/o.total*100) : 0;
+        return '<div style="display:flex;justify-content:space-between;gap:8px;line-height:1.45">'
+          + '<span style="color:#dbe4f2">'+short(String(x.name).replace(/^\d+-/,''),20)+'</span>'
+          + '<span style="white-space:nowrap;color:#8ea0be">'+money1(x.debt)
+          + (sh?(' <b style="color:#cbd5e1;font-weight:700">'+sh+'%</b>'):'')+'</span></div>';
+      }).join('') + '</div>';
     }
-    if(Z.dz) set('p-dz', money(Z.dz.total),
-      'за неделю ' + pct(Z.dz,-1) + ' · на ' + (Z.dz.date||'—') + leader(Z.dz,'больше всех должен'));
-    if(Z.kz) set('p-kz', money(Z.kz.total),
-      'за неделю ' + pct(Z.kz,-1) + ' · на ' + (Z.kz.date||'—') + leader(Z.kz,'больше всех должны'));
+    if(Z.dz) set('p-dz', money(Z.dz.total), 'на ' + (Z.dz.date||'—') + top3(Z.dz));
+    if(Z.kz) set('p-kz', money(Z.kz.total), 'на ' + (Z.kz.date||'—') + top3(Z.kz));
     var eD=document.getElementById('p-dz');
     if(eD&&Z.dz&&Z.dz.top) eD.title='Кто нам должен, крупнейшие:\n'
       + Z.dz.top.slice(0,5).map(function(x,i){ return (i+1)+'. '+x.name+' — '+num(x.debt)+' ₸'; }).join('\n')
