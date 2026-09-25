@@ -1,0 +1,51 @@
+name: Неделя ДЗ — отгрузка и поступления по контрагентам
+
+# Разовый прогон: собирает из iiko две колонки для таблицы
+# «Баланс по поставщикам и дебиторам», лист «ДЗ-», и кладёт
+# результат в репозиторий файлом неделя_дз.csv.
+# Запускается только вручную (workflow_dispatch) — расписания нет.
+
+on:
+  workflow_dispatch:
+    inputs:
+      week_from:
+        description: "Начало недели, ГГГГ-ММ-ДД (включительно)"
+        required: false
+        default: "2026-09-19"
+      week_to:
+        description: "Конец периода, ГГГГ-ММ-ДД (НЕ включается)"
+        required: false
+        default: "2026-09-26"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: week-dz-once
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      WEEK_FROM: ${{ inputs.week_from }}
+      WEEK_TO: ${{ inputs.week_to }}
+    steps:
+      - name: Получить репозиторий
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Зависимости
+        run: pip install -r requirements.txt
+      - name: Собрать неделю из iiko
+        run: python gen_week_dz.py
+      - name: Сохранить результат
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse-bot@users.noreply.github.com"
+          git add -f неделя_дз.csv неделя_дз_LOG.txt
+          git commit -m "неделя ДЗ: отгрузка и поступления по контрагентам [skip ci]" || echo "нечего сохранять"
+          git push
