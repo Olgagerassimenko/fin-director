@@ -1445,8 +1445,10 @@ a.card.key .card-title{padding-right:100px;}
       if(!t.length) return '';
       return '<div style="margin-top:5px">' + t.slice(0,3).map(function(x){
         var sh=o.total? Math.round((x.debt||0)/o.total*100) : 0;
-        return '<div style="display:flex;justify-content:space-between;gap:8px;line-height:1.45">'
-          + '<span style="color:#dbe4f2">'+short(String(x.name).replace(/^\d+-/,''),20)+'</span>'
+        return '<div style="display:flex;justify-content:space-between;gap:8px;line-height:1.45;align-items:baseline">'
+          + '<span style="color:#dbe4f2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"'
+          + ' title="'+String(x.name).replace(/"/g,'&quot;')+'">'
+          + String(x.name).replace(/^\d+-/,'')+'</span>'
           + '<span style="white-space:nowrap;color:#8ea0be">'+money1(x.debt)
           + (sh?(' <b style="color:#cbd5e1;font-weight:700">'+sh+'%</b>'):'')+'</span></div>';
       }).join('') + '</div>';
