@@ -425,7 +425,7 @@
     if (pk) ((window.CTR || {})[pk] || []).forEach(function (c) { pmap[c.num] = c; });
     var pi = periodInfo(MK), k = pi.partial ? pi.dim / pi.days : 1;
     var data = cur.ctr, max = data.length ? data[0].rev : 1;
-    var h = '', nc = 0, sum = 0, fsum = 0, psum = 0, plsum = 0, ptsum = 0;
+    var h = '', nc = 0, sum = 0, fsum = 0, psum = 0, plsum = 0, ptsum = 0, fplan = 0;
     data.forEach(function (c, i) {
       var items = c.items, nameHit = c.name.toLowerCase().indexOf(q) >= 0;
       if (q) {
@@ -442,8 +442,12 @@
       // прогноз на полный месяц: сколько выйдет, если темп сохранится.
       // Только для незакрытого месяца — в закрытом прогнозировать нечего.
       var fc = pi.partial ? s2 * k : 0;
-      fsum += fc; psum += prevRev; ptsum += c.points > 1 ? c.points : 1;
+      fsum += fc; psum += prevRev;
+      if (c.points > 1) ptsum += c.points;
       plsum += PLAN[c.num] || 0;
+      // для итогового «выполнено» берём только тех, кому план задан:
+      // иначе весь оборот сравнивался бы с планом пары контрагентов
+      if (PLAN[c.num]) fplan += pi.partial ? fc : s2;
       h += '<div class="ctr-acc' + (open ? ' open' : '') + '">'
         + '<div class="ctr-head" onclick="ctrToggle(' + i + ')">'
         + '<span class="ctr-arrow">▶</span>'
@@ -497,7 +501,8 @@
       + '<span class="r big">' + sf(sum) + '</span>'
       + '<span class="r ctr-fc">' + (fsum ? '≈ ' + sf(fsum) : '') + '</span>'
       + '<span class="r pl">' + (plsum ? sf(plsum) : '—') + '</span>'
-      + '<span class="r">' + (planSameMonth() ? doneCell(pi.partial ? fsum : sum, plsum) : '') + '</span>'
+      + '<span class="r"' + (plsum ? ' title="по контрагентам с планом: ' + sf(fplan) + ' против ' + sf(plsum) + '"' : '')
+      + '>' + (planSameMonth() ? doneCell(fplan, plsum) : '') + '</span>'
       + '<span></span><span class="r">100%</span></div>';
 
     var list = document.getElementById('ctr-list');
