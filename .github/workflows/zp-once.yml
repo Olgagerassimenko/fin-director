@@ -25,6 +25,8 @@ jobs:
         run: |
           git config user.name "pulse-bot"
           git config user.email "pulse-bot@users.noreply.github.com"
-          git add -f зп_РАЗВЕДКА.txt зп_август.csv зп_LOG.txt 2>/dev/null || true
+          for f in зп_РАЗВЕДКА.txt зп_август.csv зп_LOG.txt зп_сотрудники.csv; do
+            [ -f "$f" ] && git add -f "$f" || true
+          done
           git commit -m "ЗП: выгрузка из iiko [skip ci]" || echo "нечего сохранять"
           git push
