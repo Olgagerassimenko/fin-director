@@ -1,0 +1,99 @@
+iiko ok, период 2026-08-01 — 2026-09-01
+
+=== СЧЕТА со словом зарплат/зп/оплат труда (всего счетов 911)
+   Авансы выданные                               тип=ACCOUNTS_PAYABLE   код=3.07
+   1.Зарплата                                    тип=EXPENSES           код=
+   Доход от невыплаченной зп                     тип=OTHER_INCOME       код=
+   2.5.11.ЗП Доставка                            тип=EXPENSES           код=5.03
+   Удержания из ЗП                               тип=OTHER_INCOME       код=7.05
+   Зарплата                                      тип=EXPENSES           код=6.01
+   4-Подотчет                                    тип=DEBTS_OF_EMPLOYEES код=1.08
+   2.1.ЗП Производство                           тип=COST_OF_GOODS_SOLD код=
+   2.1.1.ЗП Зал                                  тип=EXPENSES           код=
+   2.5.2.ЗП ОтделПродаж                          тип=EXPENSES           код=
+   3.1.1.ЗП АУП                                  тип=EXPENSES           код=
+
+=== /resto/api/employees -> 200, 6897153 байт
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><employees><employee><id>3b11d078-8008-489b-a52d-26764730385d</id><code>1235801162</code><name>0</name><login></login><mainRoleId>01a014eb-6609-c206-dbed-3102179f80be</mainRoleId><rolesIds>01a014eb-6609-c206-dbed-3102179f80be</rolesIds><mainRoleCode></mainRoleCode><roleCodes></roleCodes><hireDate>2025-03-11T00:00:00+05:00</hireDate><cardNumber></cardNumber><taxpayerIdNumber></taxpayerIdNumber><snils></snils><departmentCodesState>EMPTY</departmentCodesState><responsibilityDepartmentCodesState>EMPTY</responsibilityDepartmentCodesState><deleted>false</deleted><supplier>false</supplier><employee>true</employee><client>false</client><representsStore>false</representsStore><publicExternalData/></employee><employee><id>8f3e6775-8707-4cae-a587-0844c8074e9b</id><code>1235802518</code><name>0 Бигазиева Маншук CV</name><login>UprM</login><mainRoleId>7d2764b2-4071-49cc-a4d3-162227ae8fc1</mainRoleId><rolesIds>7d2764b2-4071-49cc-a4d3-162227ae8fc1</rolesIds><mainRoleCode></mainRoleCode><roleCodes></roleCodes><hireDate>2026-06-01T00:00:00+05:00</hireDate><cardNumber></cardNumber><taxpayerIdNumber></taxpayerIdNumber><snils></snils><departmentCodesState>EMPTY</departmentCodesState><responsibilityDepartmentCodesState>EMPTY</responsibilityDepartmentCodesState><deleted>false</deleted><supplier>false</supplier><employee>true</employee><client>false</client><representsStore>false</representsStore><publicExternalData/></employee><employee><id>ac
+
+=== /resto/api/v2/employees -> 200, 6897153 байт
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><employees><employee><id>3b11d078-8008-489b-a52d-26764730385d</id><code>1235801162</code><name>0</name><login></login><mainRoleId>01a014eb-6609-c206-dbed-3102179f80be</mainRoleId><rolesIds>01a014eb-6609-c206-dbed-3102179f80be</rolesIds><mainRoleCode></mainRoleCode><roleCodes></roleCodes><hireDate>2025-03-11T00:00:00+05:00</hireDate><cardNumber></cardNumber><taxpayerIdNumber></taxpayerIdNumber><snils></snils><departmentCodesState>EMPTY</departmentCodesState><responsibilityDepartmentCodesState>EMPTY</responsibilityDepartmentCodesState><deleted>false</deleted><supplier>false</supplier><employee>true</employee><client>false</client><representsStore>false</representsStore><publicExternalData/></employee><employee><id>8f3e6775-8707-4cae-a587-0844c8074e9b</id><code>1235802518</code><name>0 Бигазиева Маншук CV</name><login>UprM</login><mainRoleId>7d2764b2-4071-49cc-a4d3-162227ae8fc1</mainRoleId><rolesIds>7d2764b2-4071-49cc-a4d3-162227ae8fc1</rolesIds><mainRoleCode></mainRoleCode><roleCodes></roleCodes><hireDate>2026-06-01T00:00:00+05:00</hireDate><cardNumber></cardNumber><taxpayerIdNumber></taxpayerIdNumber><snils></snils><departmentCodesState>EMPTY</departmentCodesState><responsibilityDepartmentCodesState>EMPTY</responsibilityDepartmentCodesState><deleted>false</deleted><supplier>false</supplier><employee>true</employee><client>false</client><representsStore>false</representsStore><publicExternalData/></employee><employee><id>ac
+
+=== OLAP: счёт «Зарплата», группировка сотрудник × тип проводки
+строк: 490
+   {"Counteragent.Name": null, "Sum.Incoming": 3539050, "Sum.Outgoing": 79816582, "TransactionType": "CUSTOM"}
+   {"Counteragent.Name": "EasyTap Business ТОО", "Sum.Incoming": 1219215, "Sum.Outgoing": 0, "TransactionType": "INCOMING_SERVICE"}
+   {"Counteragent.Name": "Абдимамын Балжан", "Sum.Incoming": 0, "Sum.Outgoing": 3850, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Абдимамын Балжан", "Sum.Incoming": 72000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Абдинабиева Собира", "Sum.Incoming": 0, "Sum.Outgoing": 4085, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Абдинабиева Собира", "Sum.Incoming": 374000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Абдинабиева Угилжан", "Sum.Incoming": 0, "Sum.Outgoing": 12461, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Абдинабиева Угилжан", "Sum.Incoming": 207000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Абдраманова Аигуль", "Sum.Incoming": 0, "Sum.Outgoing": 3964, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Абдраманова Аигуль", "Sum.Incoming": 19824, "Sum.Outgoing": 0, "TransactionType": "BONUS"}
+   {"Counteragent.Name": "Абдраманова Аигуль", "Sum.Incoming": 236000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Абдранова Айшагул", "Sum.Incoming": 264000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Абдуллаев Турганбай", "Sum.Incoming": 0, "Sum.Outgoing": 18160, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Абдуллаев Турганбай", "Sum.Incoming": 17490, "Sum.Outgoing": 0, "TransactionType": "BONUS"}
+   {"Counteragent.Name": "Абдуллаев Турганбай", "Sum.Incoming": 348933, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Абдуллаева Нигора У", "Sum.Incoming": 0, "Sum.Outgoing": 10277, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Абдуллаева Нигора У", "Sum.Incoming": 10965, "Sum.Outgoing": 0, "TransactionType": "BONUS"}
+   {"Counteragent.Name": "Абдуллаева Нигора У", "Sum.Incoming": 191000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Абибова Кызханым", "Sum.Incoming": 0, "Sum.Outgoing": 4576, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Абибова Кызханым", "Sum.Incoming": 319485, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Абитжанов Амир", "Sum.Incoming": 0, "Sum.Outgoing": 1404, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Абитжанов Амир", "Sum.Incoming": 91000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Абитов Руслан", "Sum.Incoming": 0, "Sum.Outgoing": 66000, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Абитов Руслан", "Sum.Incoming": 675000, "Sum.Outgoing": 0, "TransactionType": "EMPLOYEE_PAYMENT"}
+   {"Counteragent.Name": "Абитова Самал", "Sum.Incoming": 0, "Sum.Outgoing": 3732, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Абитова Самал", "Sum.Incoming": 210000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Абитова Самал", "Sum.Incoming": 100000, "Sum.Outgoing": 0, "TransactionType": "EMPLOYEE_PAYMENT"}
+   {"Counteragent.Name": "Абыханов Исламбек У", "Sum.Incoming": 0, "Sum.Outgoing": 4501, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Авутова Бахтнур У", "Sum.Incoming": 85000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Адамбосынов Максат", "Sum.Incoming": 0, "Sum.Outgoing": 5154, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Адамбосынов Максат", "Sum.Incoming": 59034, "Sum.Outgoing": 0, "TransactionType": "BONUS"}
+   {"Counteragent.Name": "Адамбосынов Максат", "Sum.Incoming": 290000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Азизов Турсунмагамет", "Sum.Incoming": 39576, "Sum.Outgoing": 0, "TransactionType": "BONUS"}
+   {"Counteragent.Name": "Азизов Турсунмагамет", "Sum.Incoming": 272000, "Sum.Outgoing": 0, "TransactionType": "EMPLOYEE_PAYMENT"}
+   {"Counteragent.Name": "Азимова Гульзирям", "Sum.Incoming": 0, "Sum.Outgoing": 30124, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Азимова Гульзирям", "Sum.Incoming": 103000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Азимова Саням", "Sum.Incoming": 350000, "Sum.Outgoing": 0, "TransactionType": "EMPLOYEE_PAYMENT"}
+   {"Counteragent.Name": "Азимханова Асигуль У", "Sum.Incoming": 36000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Айбасова Айгуль", "Sum.Incoming": 0, "Sum.Outgoing": 79172, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Айбасова Айгуль", "Sum.Incoming": 302253, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Айнабекова Куралай У", "Sum.Incoming": 38253, "Sum.Outgoing": 0, "TransactionType": "BONUS"}
+   {"Counteragent.Name": "Акимжан Анеля", "Sum.Incoming": 0, "Sum.Outgoing": 26344, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Акимжан Анеля", "Sum.Incoming": 50000, "Sum.Outgoing": 0, "TransactionType": "BONUS"}
+   {"Counteragent.Name": "Акимжан Анеля", "Sum.Incoming": 383750, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Акимжан Улбосын", "Sum.Incoming": 0, "Sum.Outgoing": 12209, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Акимжан Улбосын", "Sum.Incoming": 20000, "Sum.Outgoing": 0, "TransactionType": "BONUS"}
+   {"Counteragent.Name": "Акимжан Улбосын", "Sum.Incoming": 353000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Аллазова Телли", "Sum.Incoming": 0, "Sum.Outgoing": 3850, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Аллазова Телли", "Sum.Incoming": 107272, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Алнур Акнур У", "Sum.Incoming": 0, "Sum.Outgoing": 2524, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Алнур Акнур У", "Sum.Incoming": 142000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Альжанова Зауреш", "Sum.Incoming": 0, "Sum.Outgoing": 18009, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Альжанова Зауреш", "Sum.Incoming": 10000, "Sum.Outgoing": 0, "TransactionType": "BONUS"}
+   {"Counteragent.Name": "Альжанова Зауреш", "Sum.Incoming": 275000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Аман Бану", "Sum.Incoming": 1000000, "Sum.Outgoing": 0, "TransactionType": "EMPLOYEE_PAYMENT"}
+   {"Counteragent.Name": "Амандосов  Танаткан", "Sum.Incoming": 0, "Sum.Outgoing": 25030, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Амандосов  Танаткан", "Sum.Incoming": 2000, "Sum.Outgoing": 0, "TransactionType": "BONUS"}
+   {"Counteragent.Name": "Амандосов  Танаткан", "Sum.Incoming": 315000, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+   {"Counteragent.Name": "Аманова Алмагуль", "Sum.Incoming": 0, "Sum.Outgoing": 17220, "TransactionType": "PENALTY"}
+   {"Counteragent.Name": "Аманова Алмагуль", "Sum.Incoming": 315090, "Sum.Outgoing": 0, "TransactionType": "TARIFF_HOUR"}
+
+=== OLAP: все счета, где в августе есть проводки с сотрудниками (топ по обороту)
+   Зарплата                                           вх       81477546  исх       82459018
+   Текущие расчеты с сотрудниками                     вх       71992398  исх       77577781
+   2.1.ЗП Производство                                вх       58279328  исх              0
+   Авансы выданные                                    вх       10584010  исх       24699734
+   3.1.1.ЗП АУП                                       вх       22395754  исх              0
+   2.5.Налоги Производство                            вх        6093251  исх              0
+   3.3.2.Налоги НДС                                   вх        5500000  исх              0
+   Удержания из ЗП                                    вх              0  исх        4395184
+   3.1.4. Налоги АУП                                  вх        2278190  исх              0
+   2.4.Питание персонала                              вх        1459515  исх              0
+   3.1.2.Аренда квартир д/сотрудников (АУП)           вх        1090149  исх              0
+   2.3.Аренда квартир д/сотрудников (пр-во)           вх         260000  исх              0
+
+готово
