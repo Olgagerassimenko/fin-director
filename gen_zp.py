@@ -51,8 +51,9 @@ log("iiko ok. период: %s — %s" % (D1, D2))
 # ── справочник категорий из ШР ──────────────────────────────────────────
 KAT = {}
 def nk(x): return re.sub(r"\s+", " ", (x or "").replace(" ", " ")).strip().lower()
-p = os.path.join(HERE, "зп_категории.csv")
-if os.path.exists(p):
+for fn in ("зп_категории.csv", "зп_категории_доп.csv"):
+    p = os.path.join(HERE, fn)
+    if not os.path.exists(p): continue
     for row in list(csv.reader(open(p, encoding="utf-8-sig"), delimiter=";"))[1:]:
         if len(row) >= 2 and row[0].strip(): KAT[nk(row[0])] = row[1].strip().upper()
 POS = {}
@@ -68,14 +69,21 @@ def kat_of(role):
     расходятся («Клининг» против «Служба клининга»)."""
     n = nk(role)
     if not n: return "", ""
-    if n.startswith("ю_уволенные"):
-        rest = n.replace("ю_уволенные", "").strip(" /")
-        k = KAT.get(rest) or POS.get(rest) or ("B" if "ауп" in rest else "D")
-        return k, "уволен"
-    if n in KAT: return KAT[n], "работает"
+    st = "работает"
+    for pre in ("ю_уволенные", "я_уволенные", "я_неисп*", "я_неисп", "уволенные"):
+        if n.startswith(pre):
+            n = n[len(pre):].strip(" /*")
+            st = "уволен" if "уволен" in pre else "не используется"
+            break
+    if st != "работает":
+        rest = n
+        k = KAT.get(rest) or POS.get(rest.split("/")[-1].strip()) or ("B" if "ауп" in rest else "D")
+        return k, st
+    if n in KAT: return KAT[n], st
     tail = n.split("/")[-1].strip()
-    if tail in POS: return POS[tail], "работает"
-    return "", "работает"
+    if tail in KAT: return KAT[tail], st
+    if tail in POS: return POS[tail], st
+    return "", st
 
 # ── роли (должности) ────────────────────────────────────────────────────
 ROLE = {}
