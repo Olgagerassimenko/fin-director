@@ -107,6 +107,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .sal-q{font-size:11px;color:#9db0c9;background:#0d1729;border:1px solid #1e2c46;
   border-radius:7px;padding:4px 9px;cursor:pointer;transition:all .15s}
 .sal-q:hover{color:#e8eef6;border-color:#3b82f6}
+.sal-find{background:#0f1e33;color:#e8eef6;border:1px solid #2b3d5c;border-radius:8px;
+  padding:5px 10px;font-size:12.5px;font-family:inherit;min-width:220px}
+.sal-find::placeholder{color:#6b7f9c}
+.sal-find:focus{outline:none;border-color:#3b82f6}
+.sal-xls{font-size:11.5px;font-weight:700;color:#4ade80;background:#0d1f18;
+  border:1px solid #1f4436;border-radius:8px;padding:5px 11px;cursor:pointer;transition:all .15s}
+.sal-xls:hover{background:#12291f;border-color:#4ade80}
+.sal-xls:disabled{opacity:.5;cursor:default}
 .a-table{width:100%;border-collapse:collapse;font-size:12px}
 .a-table th{padding:7px 10px;text-align:left;color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1e293b;background:#0a1424}
 .a-table th.r{text-align:right}
@@ -415,6 +423,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
           <span class="sal-q" data-back="7">неделю назад</span>
           <span class="sal-q" data-back="30">месяц назад</span>
         </div>
+        <input type="search" id="sal-find" class="sal-find" placeholder="Поиск по контрагенту" autocomplete="off">
+        <button id="sal-xls" class="sal-xls" type="button">Выгрузить в Excel</button>
         <span id="sal-upd" style="margin-left:auto"></span>
       </div>
       <div class="a-cards">
@@ -1254,7 +1264,7 @@ function buildConsign(){
     return v;
   }
 
-  function render(){
+  let render=function(){
     const d=new Date(inp.value+'T00:00:00');
     if(isNaN(d)) return;
     const idx=Math.round((d-base)/day);
@@ -1276,15 +1286,83 @@ function buildConsign(){
       +'Столбцы сортируются по клику.';
     body.innerHTML='<div class="kz-scroll"><table class="a-table"><thead><tr>'
       +'<th>Поставщик</th><th class="r">Баланс на '+ru(d)+'</th></tr></thead><tbody>'
-      +rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td class="r" style="color:'
+      +rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td class="r" data-v="'+x.v+'" style="color:'
         +(x.v>0?'#f87171':'#4ade80')+'">'+fmt(x.v)+'</td></tr>').join('')
-      +'</tbody><tfoot><tr><td>Итого</td><td class="r">'+fmt(owe-pre)+'</td></tr></tfoot></table></div>'
+      +'</tbody><tfoot><tr><td id="sal-foot-lbl">Итого</td><td class="r" id="sal-foot">'+fmt(owe-pre)+'</td></tr></tfoot></table></div>'
       +((S.missing&&S.missing.length)
         ? '<p class="kz-note" style="margin-top:10px">В листе КЗ есть, а на счёте 3.06 в айко под таким именем нет — '
           +S.missing.length+' контрагентов, в сумму не вошли: '+esc(S.missing.join(', '))+'.</p>'
         : '');
-  }
+  };
   function esc(t){ return String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+  /* Поиск как в айко: фильтруем уже отрисованную таблицу, чтобы сортировка
+     по клику на заголовок не сбрасывалась. Итог внизу считаем по видимым. */
+  const find=document.getElementById('sal-find');
+  function applyFind(){
+    const q=(find&&find.value||'').trim().toLowerCase();
+    const tb=body.querySelector('tbody'); if(!tb) return;
+    let shown=0, sum=0;
+    [].forEach.call(tb.rows,r=>{
+      const hit=!q || r.cells[0].textContent.toLowerCase().indexOf(q)>=0;
+      r.style.display = hit ? '' : 'none';
+      if(hit){ shown++; sum+=+(r.cells[1].dataset.v||0); }
+    });
+    const lbl=document.getElementById('sal-foot-lbl'), ft=document.getElementById('sal-foot');
+    if(lbl) lbl.textContent = q ? 'Итого по найденным ('+shown+')' : 'Итого';
+    if(ft)  ft.textContent  = fmt(sum);
+  }
+  if(find) find.addEventListener('input',applyFind);
+
+  /* Выгрузка в Excel — ровно то, что сейчас на экране: с учётом даты,
+     поиска и порядка сортировки. Библиотеку тянем только по нажатию,
+     чтобы не грузить её всем подряд. */
+  function loadXLSX(){
+    if(window.XLSX) return Promise.resolve();
+    return new Promise((ok,bad)=>{
+      const sc=document.createElement('script');
+      sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      sc.onload=ok; sc.onerror=()=>bad(new Error('не загрузилась библиотека'));
+      document.head.appendChild(sc);
+    });
+  }
+  const xbtn=document.getElementById('sal-xls');
+  if(xbtn) xbtn.addEventListener('click',async()=>{
+    const old=xbtn.textContent;
+    xbtn.disabled=true; xbtn.textContent='Готовлю…';
+    try{
+      await loadXLSX();
+      const d=new Date(inp.value+'T00:00:00');
+      const tb=body.querySelector('tbody');
+      const vis=[].filter.call(tb.rows,r=>r.style.display!=='none');
+      const aoa=[['Баланс по поставщикам на '+ru(d)],
+                 [S.account+' (айко), только контрагенты из листа КЗ'],
+                 ['плюс — мы должны, минус — переплата у поставщика'],
+                 [],
+                 ['Контрагент','Баланс, ₸']];
+      vis.forEach(r=>aoa.push([r.cells[0].textContent, +(r.cells[1].dataset.v||0)]));
+      aoa.push(['Итого', vis.reduce((a,r)=>a+ +(r.cells[1].dataset.v||0),0)]);
+      const ws=XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols']=[{wch:46},{wch:18}];
+      for(let i=5;i<aoa.length;i++){
+        const c=ws[XLSX.utils.encode_cell({r:i,c:1})];
+        if(c) c.z='# ##0';
+      }
+      const wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,'Баланс');
+      // имя латиницей: браузер режет кириллицу в download и файл уезжает
+      // безымянным «download» без расширения
+      XLSX.writeFile(wb,'Balans_postavshikov_'+iso(d)+'.xlsx');
+      xbtn.textContent='Готово';
+    }catch(e){
+      xbtn.textContent='Не вышло';
+      console.error(e);
+    }
+    setTimeout(()=>{xbtn.disabled=false; xbtn.textContent=old;},1600);
+  });
+
+  const _render=render;
+  render=function(){ _render(); applyFind(); };
 
   inp.addEventListener('change',render);
   document.querySelectorAll('.sal-q').forEach(b=>b.addEventListener('click',()=>{
