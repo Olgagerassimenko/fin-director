@@ -44,6 +44,21 @@ def norm(s):
     return re.sub(r"\s+", " ", s).strip()
 
 
+FORM = re.compile(r"^(.*?\b(?:тоо|ип|ао|жшс|llp|ltd|кх)\b)", re.I | re.U)
+
+
+def core(s):
+    """Имя без хвоста-пояснения. В таблице пишут «Кристалл полимер ТОО хоз
+    товары», в айко — «Кристалл полимер ТОО»: обрезаем по форме собственности.
+    Если формы нет, берём первые два слова — этого хватает, чтобы поймать
+    «ЕСИК ЕТ МЯСОКОМБИНАТ» против «Есик Ет»."""
+    n = norm(s)
+    m = FORM.match(n)
+    if m:
+        return m.group(1).strip()
+    return " ".join(n.split()[:2])
+
+
 def kz_names():
     rows = fetch_csv(KZ_GID)
     if not rows:
@@ -101,15 +116,29 @@ def main():
         if n:
             iiko_names.setdefault(norm(n), n)
 
-    matched, missing = [], []
+    # по «ядру» имени — только там, где кандидат ровно один, иначе легко
+    # склеить двух разных поставщиков
+    by_core = {}
+    for k, v in iiko_names.items():
+        by_core.setdefault(core(v), []).append(v)
+
+    matched, missing, fuzzy = [], [], []
     for n in sheet:
         hit = iiko_names.get(norm(n))
+        if not hit:
+            cand = by_core.get(core(n)) or []
+            if len(cand) == 1:
+                hit, _ = cand[0], fuzzy.append((n, cand[0]))
         (matched.append(hit) if hit else missing.append(n))
     matched = sorted(set(matched))
     print(f"нашлись в айко: {len(matched)}, не нашлись: {len(missing)}")
+    if fuzzy:
+        print(f"  сведены по ядру имени ({len(fuzzy)}):")
+        for a, b in fuzzy:
+            print(f"    «{a}» → «{b}»")
     if missing:
-        print("  без движения на счёте 3.06: " + ", ".join(missing[:15])
-              + (" …" if len(missing) > 15 else ""))
+        print("  нет на счёте 3.06: " + ", ".join(missing[:20])
+              + (" …" if len(missing) > 20 else ""))
 
     # входящий остаток на 1 января
     opening = {}
