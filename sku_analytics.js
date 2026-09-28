@@ -228,7 +228,18 @@
       + '<div><div class="dyn-lbl">' + esc(monthName(MK)) + (pi.partial ? ' · 1–' + pi.days : '') + '</div>'
       + '<div class="dyn-val">' + sf(curTotal) + '</div>'
       + '<div class="dyn-sub">' + Object.keys(cur.sku).length + ' позиций · ' + cur.ctr.length + ' контрагентов'
-      + (pi.partial ? ' · в темпе на месяц ≈ <b style="color:#a78bfa">' + sf(curRate) + '</b>' : '') + '</div></div>';
+      + '</div></div>';
+    /* План и прогноз — такими же крупными плашками, как сама выручка:
+       это три цифры одного разговора, и мельчить их в подписи неправильно. */
+    var pt = planTotal();
+    html += '<div class="dyn-kpis">'
+      + (pi.partial ? '<div class="dyn-kpi fc"><span>прогноз месяца</span><b>' + sf(curRate) + '</b></div>' : '')
+      + '<div class="dyn-kpi pl' + (pt ? '' : ' empty') + '"><span>план месяца</span><b>'
+        + (pt ? sf(pt) : '— не задан') + '</b></div>'
+      + (pt ? '<div class="dyn-kpi ' + (curRate >= pt ? 'ok' : 'bad') + '"><span>'
+              + (curRate >= pt ? 'перевыполнение' : 'не хватает') + '</span><b>'
+              + sf(Math.abs(curRate - pt)) + '</b></div>' : '')
+      + '</div>';
     if (pk) {
       html += '<div class="dyn-delta ' + (d >= 0 ? 'up' : 'down') + '">' + (d >= 0 ? '▲' : '▼') + ' '
         + Math.abs(d).toFixed(1) + '%<span style="font-size:12px;font-weight:600;opacity:.75">к '
@@ -485,7 +496,7 @@
   function planLoad(mk, done) {
     PLAN_SKU = null;
     if (!mk || mk === 'year') { PLAN = {}; PLAN_MK = ''; PLAN_UPD = ''; return done && done(); }
-    fetch('/plan?m=' + encodeURIComponent(mk), { credentials: 'same-origin' })
+    fetch('/api/salesplan?m=' + encodeURIComponent(mk), { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : { items: {} }; })
       .then(function (o) { PLAN = o.items || {}; PLAN_MK = mk; PLAN_UPD = o.updated || ''; })
       .catch(function () { PLAN = {}; PLAN_MK = mk; PLAN_UPD = ''; })
@@ -494,7 +505,7 @@
 
   function planSave(items, mode) {
     if (!PLAN_MK) return Promise.resolve();
-    return fetch('/plan?m=' + encodeURIComponent(PLAN_MK), {
+    return fetch('/api/salesplan?m=' + encodeURIComponent(PLAN_MK), {
       method: 'POST', credentials: 'same-origin',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ items: items, mode: mode || 'merge' })
@@ -576,7 +587,7 @@
     if (wfs) wfs.style.display = (mk === 'year') ? 'none' : '';
     window.drawCtr();
     // план приходит с сервера — перерисуем, когда доедет
-    planLoad(mk, function () { window.drawCtr(); planBar(); });
+    planLoad(mk, function () { hero(); window.drawCtr(); planBar(); });
     if (mk !== 'year' && window.wfInit) window.wfInit();
     drawYearByCtr();
   };
@@ -1202,7 +1213,7 @@
     el.classList.add('saving');
     planSave(o, 'merge').then(function () {
       el.classList.remove('saving');
-      window.drawCtr(); planBar();
+      hero(); window.drawCtr(); planBar();
     }).catch(function () { el.classList.remove('saving'); el.classList.add('err'); });
   }, true);
 
@@ -1290,7 +1301,7 @@
     btn.disabled = true; btn.textContent = 'Сохраняю…';
     planSave(items, mode).then(function () {
       btn.textContent = 'Вставить';
-      window.planClose(); window.drawCtr(); planBar();
+      window.planClose(); hero(); window.drawCtr(); planBar();
     }).catch(function () { btn.textContent = 'Не вышло'; btn.disabled = false; });
   };
 
@@ -1303,11 +1314,11 @@
       var v = Math.round(c.rev * (1 + (pct || 0) / 100));
       if (v > 0) items[c.num] = v;
     });
-    planSave(items, 'replace').then(function () { window.drawCtr(); planBar(); });
+    planSave(items, 'replace').then(function () { hero(); window.drawCtr(); planBar(); });
   };
 
   window.planClear = function () {
-    planSave({}, 'replace').then(function () { window.drawCtr(); planBar(); });
+    planSave({}, 'replace').then(function () { hero(); window.drawCtr(); planBar(); });
   };
 
   /* Строка над таблицей: план, прогноз, разрыв и сколько надо отгружать

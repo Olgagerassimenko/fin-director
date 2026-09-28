@@ -504,7 +504,7 @@ export default {
     if (url.pathname === "/api/halal") {
       return handleHalal(request, env);
     }
-    if (url.pathname === "/plan") return handlePlan(request, env, url)
+    if (url.pathname === "/api/salesplan") return handleSalesPlan(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/track") return handleTrack(url, request, env, ctx);
     if (url.pathname === "/mstats") return handleStats(url, env);
@@ -1839,12 +1839,12 @@ async function handleHalal(request, env) {
 //   salesplan:2026-09 -> {items:{"85":115000000,...}, updated:"...", by:"..."}
 // Маршрут закрыт тем же паролем, что и весь сайт: authGate отрабатывает
 // раньше маршрутизации, так что отдельной проверки здесь не нужно.
-const PLAN_PREFIX = "salesplan:";
+const SALESPLAN_PREFIX = "salesplan:";
 
-async function handlePlan(request, env, url) {
+async function handleSalesPlan(request, env, url) {
   const m = (url.searchParams.get("m") || "").slice(0, 7);
   if (!/^\d{4}-\d{2}$/.test(m)) return jsonResp({ error: "нужен месяц вида 2026-09" }, 400);
-  const key = PLAN_PREFIX + m;
+  const key = SALESPLAN_PREFIX + m;
 
   if (request.method === "GET") {
     const raw = await env.PLAN.get(key);

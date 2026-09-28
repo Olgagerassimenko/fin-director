@@ -112,6 +112,18 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
    Поле ввода стоит прямо в строке: план правят по одному контрагенту,
    и открывать ради этого диалог — лишний клик. Сохранение по Enter и по
    уходу из поля, поэтому потерять цифру нельзя. */
+/* Три цифры месяца рядом: факт, прогноз, план. Одинаковый вес — чтобы
+   взгляд не считал план второстепенным. */
+.dyn-kpis{display:flex;gap:10px;flex-wrap:wrap}
+.dyn-kpi{display:flex;flex-direction:column;gap:3px;padding:10px 15px;border-radius:12px;
+  background:#131f38;border:1px solid #33456b;min-width:132px}
+.dyn-kpi span{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#93a6c8}
+.dyn-kpi b{font-size:20px;font-weight:800;color:#e2e8f0;white-space:nowrap}
+.dyn-kpi.fc{border-color:#2b6f8c;background:#0e2230}.dyn-kpi.fc b{color:#7dd3fc}
+.dyn-kpi.pl{border-color:#6b5520;background:#231e12}.dyn-kpi.pl b{color:#fde68a}
+.dyn-kpi.pl.empty b{font-size:14px;font-weight:700;color:#a8924f}
+.dyn-kpi.ok{border-color:#1f6b45;background:#0d2419}.dyn-kpi.ok b{color:#4ade80}
+.dyn-kpi.bad{border-color:#6b2424;background:#2a1414}.dyn-kpi.bad b{color:#f87171}
 .pl-wrap{display:block;text-align:right}
 .pl-inp{width:100%;background:#131f38;border:1px dashed #40527d;border-radius:8px;
   padding:6px 8px;color:#93a6c8;font:700 13px/1 inherit;text-align:right;outline:none;
