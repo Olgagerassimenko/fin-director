@@ -1278,7 +1278,11 @@ function buildConsign(){
       +'<th>Поставщик</th><th class="r">Баланс на '+ru(d)+'</th></tr></thead><tbody>'
       +rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td class="r" style="color:'
         +(x.v>0?'#f87171':'#4ade80')+'">'+fmt(x.v)+'</td></tr>').join('')
-      +'</tbody><tfoot><tr><td>Итого</td><td class="r">'+fmt(owe-pre)+'</td></tr></tfoot></table></div>';
+      +'</tbody><tfoot><tr><td>Итого</td><td class="r">'+fmt(owe-pre)+'</td></tr></tfoot></table></div>'
+      +((S.missing&&S.missing.length)
+        ? '<p class="kz-note" style="margin-top:10px">В листе КЗ есть, а на счёте 3.06 в айко под таким именем нет — '
+          +S.missing.length+' контрагентов, в сумму не вошли: '+esc(S.missing.join(', '))+'.</p>'
+        : '');
   }
   function esc(t){ return String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
