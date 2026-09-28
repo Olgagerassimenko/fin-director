@@ -134,6 +134,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 .pl-inp:focus{border-color:#fbbf24;color:#fde68a;background:#231e12;box-shadow:0 0 0 3px rgba(251,191,36,.20)}
 .pl-inp.saving{opacity:.5}
 .pl-inp.err{border-color:#f87171}
+.pl-inp.ok{border-color:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.22)}
+/* Всплывающее подтверждение записи: кнопки «Сохранить» нет, и без него
+   непонятно, ушла цифра на сервер или нет. */
+#pl-toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);z-index:10000;
+  padding:11px 18px;border-radius:11px;font:700 13px/1 inherit;font-family:inherit;
+  color:#0b1120;background:linear-gradient(135deg,#86efac,#4ade80);
+  box-shadow:0 10px 30px rgba(0,0,0,.45);opacity:0;pointer-events:none;
+  transition:opacity .2s,transform .2s}
+#pl-toast.show{opacity:1;transform:translate(-50%,0)}
+#pl-toast.bad{color:#fff;background:linear-gradient(135deg,#f87171,#dc2626)}
 .pl-do{font-size:12.5px;font-weight:800;text-align:right;display:block}
 .pl-do.ok{color:#4ade80}.pl-do.warn{color:#fbbf24}.pl-do.bad{color:#f87171}.pl-do.none{color:#475569}
 .pl-num{color:#fbbf24!important;font-weight:700}

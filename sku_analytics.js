@@ -1212,6 +1212,23 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && e.target && e.target.classList.contains('pl-inp')) { e.target.blur(); }
   });
+  /* Кнопки «Сохранить» нет: план пишется на сервер сразу. Чтобы это не
+     приходилось принимать на веру, показываем, что запись прошла, —
+     иначе человек не знает, можно ли закрывать вкладку. */
+  function planToast(text, bad) {
+    var t = document.getElementById('pl-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'pl-toast';
+      document.body.appendChild(t);
+    }
+    t.textContent = text;
+    t.className = 'show' + (bad ? ' bad' : '');
+    clearTimeout(planToast._t);
+    planToast._t = setTimeout(function () { t.className = ''; }, 2600);
+  }
+  window.planToast = planToast;
+
   document.addEventListener('change', function (e) {
     var el = e.target;
     if (!el || !el.classList || !el.classList.contains('pl-inp')) return;
@@ -1221,8 +1238,16 @@
     el.classList.add('saving');
     planSave(o, 'merge').then(function () {
       el.classList.remove('saving');
+      planToast(v ? 'План сохранён' : 'План по строке убран');
       hero(); window.drawCtr(); planBar();
-    }).catch(function () { el.classList.remove('saving'); el.classList.add('err'); });
+      // подсветим строку, которую только что записали
+      var again = document.querySelector('.pl-inp[data-num="' + num + '"]');
+      if (again) { again.classList.add('ok'); setTimeout(function () { again.classList.remove('ok'); }, 1400); }
+    }).catch(function () {
+      el.classList.remove('saving'); el.classList.add('err');
+      el.title = 'не сохранилось — проверьте связь и повторите';
+      planToast('Не сохранилось — проверьте связь', true);
+    });
   }, true);
 
   /* Вставка плана списком. Берём две колонки как есть из Excel: слева
@@ -1307,10 +1332,15 @@
     var mode = document.getElementById('pl-replace').checked ? 'replace' : 'merge';
     var btn = document.getElementById('pl-apply');
     btn.disabled = true; btn.textContent = 'Сохраняю…';
+    var n = Object.keys(items).length;
     planSave(items, mode).then(function () {
       btn.textContent = 'Вставить';
       window.planClose(); hero(); window.drawCtr(); planBar();
-    }).catch(function () { btn.textContent = 'Не вышло'; btn.disabled = false; });
+      planToast('План сохранён — ' + n + ' строк');
+    }).catch(function () {
+      btn.textContent = 'Не вышло'; btn.disabled = false;
+      planToast('Не сохранилось — проверьте связь', true);
+    });
   };
 
   /* Быстрое заполнение: взять факт прошлого месяца и, если надо, накинуть
@@ -1322,11 +1352,16 @@
       var v = Math.round(c.rev * (1 + (pct || 0) / 100));
       if (v > 0) items[c.num] = v;
     });
-    planSave(items, 'replace').then(function () { hero(); window.drawCtr(); planBar(); });
+    planSave(items, 'replace').then(function () {
+      hero(); window.drawCtr(); planBar();
+      planToast('План сохранён — ' + Object.keys(items).length + ' строк');
+    }).catch(function () { planToast('Не сохранилось — проверьте связь', true); });
   };
 
   window.planClear = function () {
-    planSave({}, 'replace').then(function () { hero(); window.drawCtr(); planBar(); });
+    planSave({}, 'replace').then(function () {
+      hero(); window.drawCtr(); planBar(); planToast('План на месяц убран');
+    }).catch(function () { planToast('Не сохранилось — проверьте связь', true); });
   };
 
   /* Строка над таблицей: план, прогноз, разрыв и сколько надо отгружать
@@ -1345,7 +1380,7 @@
     var nowDay = pi.days ? fact / pi.days : 0;
     var h = '<span class="pl-lbl">План месяца</span>';
     if (!pt) {
-      h += '<span class="pl-empty">не задан</span>';
+      h += '<span class="pl-empty">не задан · впишите сумму в колонке «План» — сохранится сразу</span>';
     } else {
       var fc = pi.partial ? fact * (pi.dim / pi.days) : fact;
       h += '<b class="pl-big">' + sf(pt) + '</b>'
@@ -1358,7 +1393,8 @@
               : 'план уже перекрыт фактом')
           + '</span>';
       }
-      if (PLAN_UPD) h += '<span class="pl-upd">правили ' + esc(PLAN_UPD) + '</span>';
+      h += '<span class="pl-upd">' + (PLAN_UPD ? 'сохранён ' + esc(PLAN_UPD) : '')
+        + ' · правки записываются сразу, кнопки «сохранить» нет</span>';
     }
     h += '<span class="pl-acts">'
       + '<button class="pl-btn main" onclick="planPaste()">Вставить план списком</button>'
