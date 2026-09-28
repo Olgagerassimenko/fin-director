@@ -152,6 +152,41 @@ for r0 in rows:
     MOVE.setdefault(nk(nm), {"name": nm})
     MOVE[nk(nm)][t] = MOVE[nk(nm)].get(t, 0.0) + (r0.get("Sum.Incoming") or 0) - (r0.get("Sum.Outgoing") or 0)
 
+# ── прочие счета по людям: удержания, питание, подотчёт ────────────────
+EXTRA_ACC = ["Удержания из ЗП", "2.4.Питание персонала", "4-Подотчет", "Авансы выданные"]
+rows_e = olap({"reportType": "TRANSACTIONS", "buildSummary": "true",
+               "groupByRowFields": ["Counteragent.Name", "Account.Name"],
+               "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
+               "filters": {"DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                                                  "from": D1.isoformat(), "to": D2.isoformat(),
+                                                  "includeLow": True, "includeHigh": False},
+                           "Account.Name": {"filterType": "IncludeValues", "values": EXTRA_ACC}}})
+EXTRA = {}
+for r0 in rows_e:
+    nm = (r0.get("Counteragent.Name") or "").strip()
+    if not nm: continue
+    a = (r0.get("Account.Name") or "").strip()
+    EXTRA.setdefault(nk(nm), {})[a] = EXTRA.get(nk(nm), {}).get(a, 0.0) + \
+        (r0.get("Sum.Incoming") or 0) - (r0.get("Sum.Outgoing") or 0)
+log("прочие счета: строк %d, человек %d" % (len(rows_e), len(EXTRA)))
+
+# ── предыдущий месяц, для сравнения ────────────────────────────────────
+from datetime import timedelta
+P2 = D1
+P1 = (D1 - timedelta(days=1)).replace(day=1)
+rows_p = olap({"reportType": "TRANSACTIONS", "buildSummary": "true",
+               "groupByRowFields": ["Counteragent.Name"],
+               "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
+               "filters": {"DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                                                  "from": P1.isoformat(), "to": P2.isoformat(),
+                                                  "includeLow": True, "includeHigh": False},
+                           "Account.Name": {"filterType": "IncludeValues", "values": [ZP_ACC]}}})
+PREV = {}
+for r0 in rows_p:
+    nm = (r0.get("Counteragent.Name") or "").strip()
+    if nm: PREV[nk(nm)] = PREV.get(nk(nm), 0.0) + (r0.get("Sum.Incoming") or 0) - (r0.get("Sum.Outgoing") or 0)
+log("предыдущий месяц %s — %s: человек %d" % (P1, P2, len(PREV)))
+
 keys = set(MOVE) | set(B1) | set(B2)
 log("человек в ведомости: %d" % len(keys))
 
@@ -172,19 +207,26 @@ for k in keys:
     nach = okl + tar + bon
     b1, b2 = round(B1.get(k, 0.0)), round(B2.get(k, 0.0))
     vyp = round(b1 + nach - pen - b2)
-    out.append([nm, e.get("code", ""), role, kat, GRP.get(kat, ""), st, okl, tar, bon, nach, pen, vyp, b1, b2])
+    ex = EXTRA.get(k, {})
+    uder = round(-ex.get("Удержания из ЗП", 0.0))
+    pit  = round(ex.get("2.4.Питание персонала", 0.0))
+    pod  = round(ex.get("4-Подотчет", 0.0) + ex.get("Авансы выданные", 0.0))
+    prev = round(PREV.get(k, 0.0))
+    out.append([nm, e.get("code", ""), role, kat, GRP.get(kat, ""), st, okl, tar, bon, nach, pen,
+                uder, pit, pod, prev, vyp, b1, b2])
 
 order = {"A": 0, "B": 1, "C": 2, "D": 3, "": 4}
 out.sort(key=lambda x: (order.get(x[3], 4), -x[9]))
 HEAD = ["Сотрудник", "Табельный номер", "Должность", "Категория", "Группа", "Статус",
-        "Оклад (фикс)", "Тариф (часы)", "Премия", "НАЧИСЛЕНО", "Удержано",
+        "Оклад (фикс)", "Тариф (часы)", "Премия", "НАЧИСЛЕНО", "Штраф",
+        "Удержания из ЗП", "Питание персонала", "Подотчёт и авансы", "Начислено пред. месяц",
         "Выплачено", "Остаток на начало", "Остаток на конец"]
 with open(os.path.join(HERE, "зп_сотрудники.csv"), "w", encoding="utf-8-sig", newline="") as f:
     w = csv.writer(f, delimiter=";"); w.writerow(HEAD)
     for r0 in out: w.writerow(r0)
-    tot = ["ИТОГО", "", "", "", "", ""] + [sum(r0[i] for r0 in out) for i in range(6, 14)]
+    tot = ["ИТОГО", "", "", "", "", ""] + [sum(r0[i] for r0 in out) for i in range(6, 18)]
     w.writerow(tot)
-log("начислено всего: %s, удержано %s, выплачено %s" % (tot[9], tot[10], tot[11]))
+log("начислено %s, штрафы %s, удержания %s, питание %s, пред.месяц %s" % (tot[9], tot[10], tot[11], tot[12], tot[14]))
 
 # ── свод по категориям ──────────────────────────────────────────────────
 with open(os.path.join(HERE, "зп_свод.csv"), "w", encoding="utf-8-sig", newline="") as f:
