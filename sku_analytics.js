@@ -335,8 +335,10 @@
         + '<td class="sku-num">' + num(s.q) + '</td>'
         + '<td class="sku-num sku-rev">' + num(s.r) + '</td>'
         + (pi.partial ? '<td class="sku-num sku-fc">≈ ' + num(s.r * k) + '</td>' : '')
-        + (hasPlan ? '<td class="sku-num pl-num">' + (SP[s.n] ? num(SP[s.n]) : '—') + '</td>'
-                   + '<td class="sku-num">' + doneCell(s.r * k, SP[s.n] || 0) + '</td>' : '')
+        + (hasPlan ? '<td class="sku-num pl-num"' + (SP.plan[s.n]
+                        ? ' title="по клиентам, у которых план задан: прогноз ' + num(SP.fc[s.n]) + '"' : '')
+                     + '>' + (SP.plan[s.n] ? num(SP.plan[s.n]) : '—') + '</td>'
+                   + '<td class="sku-num">' + doneCell(SP.fc[s.n] || 0, SP.plan[s.n] || 0) + '</td>' : '')
         + '<td class="sku-num" style="color:#64748b">' + (cur.total ? (s.r / cur.total * 100).toFixed(1) : 0) + '%</td>'
         + '<td class="sku-num">' + pill(s.r * k, s._prev, s._new) + '</td>'
         + '<td class="sku-num" style="color:#94a3b8">' + s.buyers.length + '</td></tr>';
@@ -522,11 +524,17 @@
      чему; в шапке это видно по расхождению итогов. */
   function planBySku(mk) {
     if (PLAN_SKU) return PLAN_SKU;
-    var out = {};
+    var pi = periodInfo(mk), k = pi.partial ? pi.dim / pi.days : 1;
+    var out = { plan: {}, fc: {} };
     (index(mk).ctr || []).forEach(function (c) {
       var p = PLAN[c.num];
       if (!p || !c.rev) return;
-      (c.items || []).forEach(function (it) { out[it.n] = (out[it.n] || 0) + p * (it.r / c.rev); });
+      (c.items || []).forEach(function (it) {
+        out.plan[it.n] = (out.plan[it.n] || 0) + p * (it.r / c.rev);
+        // прогноз считаем только по тем же клиентам: иначе процент выполнения
+        // сравнивал бы весь спрос на позицию с планом одного покупателя
+        out.fc[it.n] = (out.fc[it.n] || 0) + it.r * k;
+      });
     });
     PLAN_SKU = out;
     return out;
@@ -1344,8 +1352,11 @@
         + '<span class="pl-gap ' + (fc >= pt ? 'ok' : 'bad') + '">'
         + (fc >= pt ? 'прогноз выше на ' : 'прогноза не хватает на ') + sf(Math.abs(fc - pt)) + '</span>';
       if (pi.partial && left > 0) {
-        h += '<span class="pl-need">осталось ' + left + ' дн. · надо <b>' + sf(perDay)
-          + '</b> в день, сейчас идёт <b>' + sf(nowDay) + '</b></span>';
+        h += '<span class="pl-need">осталось ' + left + ' дн. · '
+          + (need > 0
+              ? 'надо <b>' + sf(perDay) + '</b> в день, сейчас идёт <b>' + sf(nowDay) + '</b>'
+              : 'план уже перекрыт фактом')
+          + '</span>';
       }
       if (PLAN_UPD) h += '<span class="pl-upd">правили ' + esc(PLAN_UPD) + '</span>';
     }
