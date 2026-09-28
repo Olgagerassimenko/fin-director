@@ -43,7 +43,7 @@ const DATA_FILES = new Set([
 // ── Метрики посещений («что смотрят») ──
 const M_KEY = "metrics:v1";
 // SHA-256 пароля вкладки «Метрики» (сам пароль в репозиторий не попадает)
-const METRICS_HASH = "2391eadda6fbf6a5907d84883fdd4e84da1614f7de7db7dd74e4eb7e7ed1d67b";
+const METRICS_HASH = "83cf8b609de60036a8277bd0e96135751bbc07eb234256d4b65b893360651bf2";
 /* Запасная вставка счётчика в <head>. На деле до страниц она не доезжает:
    Cloudflare отдаёт файлы из [assets] в обход скрипта воркера, и HTMLRewriter
    ниже срабатывает только для HTML, собранного самим воркером. Настоящий
