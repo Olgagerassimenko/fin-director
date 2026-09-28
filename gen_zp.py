@@ -36,7 +36,8 @@ PASS  = re.search(r'PASS\s*=\s*"([^"]+)"',  src).group(1)
 
 D1 = date.fromisoformat(os.environ.get("ZP_FROM") or "2026-08-01")
 D2 = date.fromisoformat(os.environ.get("ZP_TO")   or "2026-09-01")
-ZP_ACC = "Зарплата"
+ZP_ACC = "Зарплата"                              # накопительный регистр начислений
+DEBT_ACC = "Текущие расчеты с сотрудниками"      # реальный долг перед человеком
 GRP = {"A": "Топ-менеджмент", "B": "АУП", "C": "АУП производство", "D": "Сотрудники"}
 
 LOG = open(os.path.join(HERE, "зп_LOG.txt"), "w", encoding="utf-8")
@@ -113,9 +114,9 @@ log("сотрудников в справочнике: %d" % len(EMP))
 # ── остатки по счёту «Зарплата» на дату ─────────────────────────────────
 ACC = {a["id"]: (a.get("name") or "") for a in
        s.get(f"{URL}/resto/api/v2/entities/accounts/list", params={"key": tok}, verify=False, timeout=120).json()}
-ZP_IDS = {i for i, n in ACC.items() if n == ZP_ACC}
+ZP_IDS = {i for i, n in ACC.items() if n == DEBT_ACC}
 CA = {v["id"]: v["name"] for v in EMP.values() if v.get("id")}
-log("счетов «Зарплата»: %d, сотрудников-контрагентов: %d" % (len(ZP_IDS), len(CA)))
+log("счетов «%s»: %d, сотрудников-контрагентов: %d" % (DEBT_ACC, len(ZP_IDS), len(CA)))
 
 def bal(d):
     js = s.get(f"{URL}/resto/api/v2/reports/balance/counteragents",
@@ -128,7 +129,7 @@ def bal(d):
             if nm: out[nk(nm)] = out.get(nk(nm), 0.0) + (x.get("sum") or 0)
     return out
 B1, B2 = bal(D1), bal(D2)
-log("остатки: на начало %d чел, на конец %d чел" % (len(B1), len(B2)))
+log("остатки по «%s»: на начало %d чел, на конец %d чел" % (DEBT_ACC, len(B1), len(B2)))
 
 # ── начисления и удержания за период ────────────────────────────────────
 def olap(body):
@@ -187,7 +188,22 @@ for r0 in rows_p:
     if nm: PREV[nk(nm)] = PREV.get(nk(nm), 0.0) + (r0.get("Sum.Incoming") or 0) - (r0.get("Sum.Outgoing") or 0)
 log("предыдущий месяц %s — %s: человек %d" % (P1, P2, len(PREV)))
 
-keys = set(MOVE) | set(B1) | set(B2)
+# ── выплаты: PAYOUT по счёту расчётов с сотрудниками ───────────────────
+rows_pay = olap({"reportType": "TRANSACTIONS", "buildSummary": "true",
+                 "groupByRowFields": ["Counteragent.Name"],
+                 "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
+                 "filters": {"DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                                                    "from": D1.isoformat(), "to": D2.isoformat(),
+                                                    "includeLow": True, "includeHigh": False},
+                             "Account.Name": {"filterType": "IncludeValues", "values": [DEBT_ACC]},
+                             "TransactionType": {"filterType": "IncludeValues", "values": ["PAYOUT"]}}})
+PAY = {}
+for r0 in rows_pay:
+    nm = (r0.get("Counteragent.Name") or "").strip()
+    if nm: PAY[nk(nm)] = PAY.get(nk(nm), 0.0) + (r0.get("Sum.Incoming") or 0) - (r0.get("Sum.Outgoing") or 0)
+log("выплаты PAYOUT: %d человек, сумма %.0f" % (len(PAY), sum(PAY.values())))
+
+keys = set(MOVE) | set(B1) | set(B2) | set(PAY)
 log("человек в ведомости: %d" % len(keys))
 
 # ── файл по сотрудникам ─────────────────────────────────────────────────
@@ -205,8 +221,8 @@ for k in keys:
     bon = round(m.get("BONUS", 0.0))
     pen = round(-m.get("PENALTY", 0.0))          # штраф приходит со знаком минус
     nach = okl + tar + bon
-    b1, b2 = round(B1.get(k, 0.0)), round(B2.get(k, 0.0))
-    vyp = round(b1 + nach - pen - b2)
+    b1, b2 = -round(B1.get(k, 0.0)), -round(B2.get(k, 0.0))   # долг показываем положительным
+    vyp = round(PAY.get(k, 0.0))
     ex = EXTRA.get(k, {})
     uder = round(-ex.get("Удержания из ЗП", 0.0))
     pit  = round(ex.get("2.4.Питание персонала", 0.0))
@@ -220,7 +236,7 @@ out.sort(key=lambda x: (order.get(x[3], 4), -x[9]))
 HEAD = ["Сотрудник", "Табельный номер", "Должность", "Категория", "Группа", "Статус",
         "Оклад (фикс)", "Тариф (часы)", "Премия", "НАЧИСЛЕНО", "Штраф",
         "Удержания из ЗП", "Питание персонала", "Подотчёт и авансы", "Начислено пред. месяц",
-        "Выплачено", "Остаток на начало", "Остаток на конец"]
+        "Выплачено", "Долг на начало", "Долг на конец"]
 with open(os.path.join(HERE, "зп_сотрудники.csv"), "w", encoding="utf-8-sig", newline="") as f:
     w = csv.writer(f, delimiter=";"); w.writerow(HEAD)
     for r0 in out: w.writerow(r0)
