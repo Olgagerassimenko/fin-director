@@ -94,4 +94,20 @@ for dt in (D1, D2):
         if x.get("counteragent") in ids and abs(x.get("sum") or 0) > 0.5:
             log("   %-34s %14.0f" % (ACC.get(x.get("account"), "?")[:34], x.get("sum") or 0)); found = True
     if not found: log("   остатков нет")
+# 5. есть ли вообще в плане счетов налоги, удерживаемые с работника
+log("\nСЧЕТА, ПОХОЖИЕ НА НАЛОГИ И ВЗНОСЫ С РАБОТНИКА:")
+pat = re.compile(r"ипн|опв|восмс|осмс|соцотчисл|соц\.отчисл|пенсион|подоходн|удержан|взнос", re.I)
+for a in sorted(ACC.items(), key=lambda x: x[1]):
+    if pat.search(a[1] or ""): log("   %s" % a[1])
+log("\nОБОРОТЫ ПО ЭТИМ СЧЕТАМ ЗА ПЕРИОД (все сотрудники):")
+tax_ids = [v for k, v in ACC.items() if pat.search(v or "")]
+if tax_ids:
+    rows = olap({"reportType": "TRANSACTIONS", "buildSummary": "true",
+                 "groupByRowFields": ["Account.Name", "TransactionType"],
+                 "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
+                 "filters": {"DateTime.DateTyped": RNG,
+                             "Account.Name": {"filterType": "IncludeValues", "values": sorted(set(tax_ids))}}})
+    for x in rows:
+        log("   %-34s %-22s вх %13.0f  исх %13.0f" % (str(x.get("Account.Name"))[:34],
+            str(x.get("TransactionType"))[:22], x.get("Sum.Incoming") or 0, x.get("Sum.Outgoing") or 0))
 log("\nготово")
