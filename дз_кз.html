@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Дебиторка и Кредиторка · Фуд Завод</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="dz_kz.js?v=3" onerror="window.DZ_KZ=null"></script>
+<script src="dz_kz.js" onerror="window.DZ_KZ=null"></script>
 <script src="kz_ana.js?v=1" onerror="window.KZ_ANA=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -13,7 +13,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 
 /* ── HEADER ── */
 .hdr{display:flex;align-items:center;gap:10px;padding:14px 28px;border-bottom:1px solid #1e293b}
-.back{font-size:12px;color:#9db0c9;text-decoration:none;padding:5px 10px;border:1px solid #1e293b;border-radius:8px;transition:all .15s;white-space:nowrap}
+.back{font-size:12px;color:#9db0c9;text-decoration:none;padding:5px 10px;border:1px solid #1e293b;border-radius:8px;transition:all .15s}
 .back:hover{color:#a78bfa;border-color:#7c3aed}
 .hdr-title{font-size:16px;font-weight:800;color:#f1f5f9;margin-left:6px}
 .hdr-badge{margin-left:auto;font-size:20px;font-weight:800;color:#04160e;background:#22e08a;border:1px solid #16a34a;border-radius:22px;padding:10px 22px;letter-spacing:.3px}
@@ -69,16 +69,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .row-bar{width:60px;height:3px;background:#ffffff08;border-radius:2px;flex-shrink:0;overflow:hidden}
 .row-fill{height:100%;border-radius:2px}
 .row-val{font-size:15px;font-weight:800;white-space:nowrap;min-width:74px;text-align:right}
+.row-dlt{font-size:12px;font-weight:700;white-space:nowrap;min-width:72px;text-align:right}
+.dlt-up{color:#f87171}.dlt-dn{color:#34d399}.dlt-flat{color:#64748b}.dlt-new{color:#fbbf24}
 .col-headers{display:flex;align-items:center;gap:8px;padding:6px 16px 4px;border-top:1px solid #1e293b}
 .col-h{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em}
 .col-h.name{flex:1}
 .col-h.bar{width:60px;flex-shrink:0}
 .col-h.val{min-width:64px;text-align:right}
+.col-h.dlt{min-width:72px;text-align:right}
 
 /* ── ANALYTICS SECTION ── */
-/* Шапки таблиц были #334155 на почти чёрном фоне — контраст 1.9 при норме 4.5,
-   подписи колонок читались как тень. Стало #94a3b8 (7.5), наведение —
-   светлее, а не темнее, как было. */
 .analytics-wrap{margin:0 28px 28px;background:#0f172a;border:1px solid #1e293b;border-radius:14px;overflow:hidden}
 .analytics-tabs{display:flex;border-bottom:1px solid #1e293b}
 .atab{padding:10px 18px;font-size:12px;font-weight:600;color:#9db0c9;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
@@ -92,15 +92,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .a-card-val{font-size:18px;font-weight:800;color:#f1f5f9}
 .a-card-val.red{color:#f87171}.a-card-val.green{color:#4ade80}.a-card-val.yellow{color:#fbbf24}
 .a-table{width:100%;border-collapse:collapse;font-size:12px}
-.a-table th{padding:7px 10px;text-align:left;color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1e293b;background:#0a1424}
+.a-table th{padding:7px 10px;text-align:left;color:#334155;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1e293b;background:#070e1a}
 .a-table th.r{text-align:right}
 .a-table td{padding:8px 10px;border-bottom:1px solid #0f172a;color:#cbd5e1}
 .a-table td.r{text-align:right;font-variant-numeric:tabular-nums}
 .a-table tr:hover td{background:#0a1929}
 .badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700}
-/* Пояснение под карточками: одна строка о том, что именно считает таблица,
-   чтобы цифру не приходилось расшифровывать по памяти. */
-.a-hint{font-size:11.5px;color:#9db0c9;margin-bottom:10px;line-height:1.5}
 .b-red{background:#450a0a;color:#f87171}.b-green{background:#052e16;color:#4ade80}.b-yellow{background:#422006;color:#fbbf24}
 
 /* ── NO DATA ── */
@@ -123,17 +120,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .kz-h b{font-size:13px;color:#e2e8f0;font-weight:800}
 .kz-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .kz-scroll{overflow-x:auto}
-/* Плашка периода над разбором закупа: без неё сотни миллионов в таблицах
-   читались как «неизвестно за что» — за неделю, за месяц или за всё время. */
-.kz-per{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px;
-  padding:9px 13px;border-radius:10px;background:#0a1929;border:1px solid #1e293b}
-.kz-per b{font-size:12.5px;color:#e8eef6;font-weight:800}
-.kz-per span{font-size:11px;color:#8ea3bd}
 .a-table td.pos{color:#4ade80}.a-table td.neg{color:#f87171}
 .a-table tfoot td{border-top:1px solid #1e293b;font-weight:800;color:#e2e8f0;padding:8px 10px}
 .a-table tfoot td.r{text-align:right;font-variant-numeric:tabular-nums}
 .a-table th{cursor:pointer;user-select:none;white-space:nowrap}
-.a-table th:hover{color:#e2e8f0}
+.a-table th:hover{color:#64748b}
 .a-table th .sa{margin-left:5px;font-size:9px;opacity:0;transition:opacity .12s}
 .a-table th:hover .sa{opacity:.4}
 .a-table th.sorted{color:#60a5fa}
@@ -153,40 +144,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
   font-size:12px;font-weight:800;color:#f5b544;}
 .excl-tot .n{flex:1}
 .excl-why{margin-top:8px;font-size:11px;line-height:1.55;color:#a9997c;}
-
-/* Консигнация: срок правится руками */
-.c-ctl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding:11px 14px;
-  background:#0d1729;border:1px solid #1e2c46;border-radius:12px}
-.c-ctl label{font-size:11.5px;color:#9db0c9;font-weight:700;display:flex;align-items:center;gap:9px}
-.c-ctl input{width:74px;background:#0a1424;border:1px solid #2a3a58;color:#e8eef6;border-radius:8px;
-  padding:6px 9px;font-size:13px;font-weight:800;text-align:right;font-family:inherit}
-.c-ctl input:focus{outline:none;border-color:#60a5fa}
-.c-btn{background:#16233c;border:1px solid #2a3a58;color:#cbd5e1;border-radius:9px;padding:7px 12px;
-  font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
-.c-btn:hover{background:#1e2f4d;color:#fff}
-.c-ctl-note{font-size:11px;color:#64748b;margin-left:auto}
-.c-in{width:56px;background:#0a1424;border:1px solid #2a3a58;color:#e8eef6;border-radius:7px;
-  padding:4px 7px;font-size:12px;text-align:right;font-family:inherit;font-variant-numeric:tabular-nums}
-.c-in:focus{outline:none;border-color:#60a5fa}
-.c-in.own{border-color:#a16207;background:#1a1508;color:#fcd34d}
-.c-day{display:flex;align-items:center;justify-content:flex-end;gap:7px}
-.c-same{background:transparent;border:1px solid #2a3a58;color:#8ea3bd;border-radius:6px;
-  padding:3px 7px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
-.c-same:hover{border-color:#60a5fa;color:#e8eef6}
-.c-btn.dirty{background:linear-gradient(135deg,#b45309,#7c2d12);border-color:#a16207;color:#fde68a}
-.c-btn.dirty:hover{filter:brightness(1.12);color:#fff}
-.c-btn:disabled{opacity:.5;cursor:default}
-.c-btn:disabled:hover{background:#16233c;color:#cbd5e1}
-#k-range select{background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:5px 9px;font-size:12px;margin-left:6px;cursor:pointer}
-#k-range .kq{border:0;background:transparent;color:#cbd5e1;font-size:12px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer}
-#k-range .kq.on{background:#334155;color:#fff}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
 </head>
 <body>
 
 <div class="hdr">
-  <a class="back" href="index.html">← На Пульс</a>
+  <a class="back" href="index.html">← Назад</a>
   <span class="hdr-title">💰 ДЗ / КЗ</span>
   <div class="hdr-badge" id="upd-badge">обновлено —</div>
 </div>
@@ -228,11 +192,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
   <!-- CHARTS -->
   <div class="charts-grid">
     <div class="chart-wrap">
-      <div class="sec-title">📈 Нам должны — растёт или падает</div>
+      <div class="sec-title">📈 ДЗ — нам должны</div>
       <canvas id="ch-dz" height="130"></canvas>
     </div>
     <div class="chart-wrap">
-      <div class="sec-title">📉 Мы должны — растёт или падает</div>
+      <div class="sec-title">📉 КЗ — мы должны</div>
       <canvas id="ch-kz" height="130"></canvas>
     </div>
   </div>
@@ -242,13 +206,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
     <div class="tbl-card">
       <div class="tbl-head">
         <div class="tbl-head-dot" style="background:#34d399"></div>
-        <div class="tbl-head-label">Кто нам должен больше всех</div>
+        <div class="tbl-head-label">Топ дебиторов</div>
         <div class="tbl-head-sum" id="dz-sum" style="color:#34d399"></div>
       </div>
       <div class="col-headers">
         <span class="col-h" style="width:16px;flex-shrink:0">#</span>
         <span class="col-h name">Контрагент</span>
         <span class="col-h bar">Доля</span>
+        <span class="col-h dlt">Δ нед.</span>
         <span class="col-h val">Сумма</span>
       </div>
       <div id="dz-list"></div>
@@ -257,13 +222,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
     <div class="tbl-card">
       <div class="tbl-head">
         <div class="tbl-head-dot" style="background:#f87171"></div>
-        <div class="tbl-head-label">Кому мы должны больше всех</div>
+        <div class="tbl-head-label">Топ кредиторов</div>
         <div class="tbl-head-sum" id="kz-sum" style="color:#f87171"></div>
       </div>
       <div class="col-headers">
         <span class="col-h" style="width:16px;flex-shrink:0">#</span>
         <span class="col-h name">Контрагент</span>
         <span class="col-h bar">Доля</span>
+        <span class="col-h dlt">Δ нед.</span>
         <span class="col-h val">Сумма</span>
       </div>
       <div id="kz-list"></div>
@@ -273,113 +239,49 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
   <!-- ANALYTICS: отгрузки/оплаты 04.07–10.07 -->
   <div class="analytics-wrap">
     <div class="analytics-tabs">
-      <div class="atab active" onclick="showAtab('mismatch',this)">⚠️ Кто нам недоплатил</div>
-      <div class="atab" onclick="showAtab('kzmis',this)">⛔ Кому недоплатили мы</div>
-      <div class="atab" onclick="showAtab('consign',this)">📅 Кто просрочил консигнацию</div>
-      <div class="atab" onclick="showAtab('shares',this)">🥧 Кто держит оборот</div>
-      <div class="atab" onclick="showAtab('kzana',this)">🧾 Кому уходят деньги за закуп</div>
+      <div class="atab active" onclick="showAtab('mismatch',this)">⚠️ Нестыковки</div>
+      <div class="atab" onclick="showAtab('consign',this)">📅 Консигнация</div>
+      <div class="atab" onclick="showAtab('shares',this)">🥧 Доли</div>
+      <div class="atab" onclick="showAtab('kzana',this)">🧾 Аналитика КЗ</div>
     </div>
 
     <!-- НЕСТЫКОВКИ -->
     <div id="atab-mismatch" class="apanel active">
       <div class="a-cards">
-        <div class="a-card"><div class="a-card-lbl">Отгрузили <span id="a-period">—</span></div><div class="a-card-val" id="a-ship">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Забрали деньгами <span id="a-period2">—</span></div><div class="a-card-val" id="a-pay">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Не добрали</div><div class="a-card-val red" id="a-gap">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Клиентов в долгу</div><div class="a-card-val yellow" id="a-under-cnt">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Отгрузка <span id="a-period">—</span></div><div class="a-card-val" id="a-ship">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Оплата <span id="a-period2">—</span></div><div class="a-card-val" id="a-pay">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Разрыв (недоплата)</div><div class="a-card-val red" id="a-gap">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Клиентов недоплатили</div><div class="a-card-val yellow" id="a-under-cnt">—</div></div>
       </div>
-      <p class="a-hint">Неделя к неделе: сколько клиенту отгрузили и сколько он за ту же неделю заплатил.
-        <b style="color:#f87171">Не добрали</b> — деньги, которые остались у клиента. Спрашивать по этому списку сверху вниз.</p>
       <table class="a-table">
-        <thead><tr><th>Контрагент</th><th class="r">Отгрузили, тнг</th><th class="r">Заплатил, тнг</th><th class="r">Не добрали, тнг</th><th class="r">Покрытие</th><th>Статус</th></tr></thead>
+        <thead><tr><th>Контрагент</th><th class="r">Отгрузка, тнг</th><th class="r">Оплата, тнг</th><th class="r">Разрыв, тнг</th><th class="r">Покрытие</th><th>Статус</th></tr></thead>
         <tbody id="a-mismatch-body"></tbody>
-        <tfoot id="a-mismatch-foot"></tfoot>
       </table>
-    </div>
-
-    <!-- НЕСТЫКОВКИ ПО КЗ: зеркало предыдущей вкладки, только с нашей стороны -->
-    <div id="atab-kzmis" class="apanel">
-      <!-- Выбор периода: одна неделя или отрезок из нескольких.
-           Приход и оплата складываются, долг берётся на конец отрезка. -->
-      <div class="c-ctl" id="k-range" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px">
-        <div id="k-quick" style="display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:2px">
-          <button type="button" data-q="1"  class="kq">неделя</button>
-          <button type="button" data-q="4"  class="kq">4 недели</button>
-          <button type="button" data-q="13" class="kq">квартал</button>
-          <button type="button" data-q="0"  class="kq">всё</button>
-        </div>
-        <label style="font-size:12px;color:#9db0c9">с<select id="k-from"></select></label>
-        <label style="font-size:12px;color:#9db0c9">по<select id="k-to"></select></label>
-        <span id="k-range-lbl" style="font-size:12px;color:#c9a94e;font-weight:700"></span>
-      </div>
-      <div class="a-cards">
-        <div class="a-card"><div class="a-card-lbl">Приняли товар <span id="k-period">—</span></div><div class="a-card-val" id="k-in">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Заплатили <span id="k-period2">—</span></div><div class="a-card-val" id="k-pay">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Не заплатили</div><div class="a-card-val red" id="k-gap">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Поставщиков ждут денег</div><div class="a-card-val yellow" id="k-under-cnt">—</div></div>
-      </div>
-      <p class="a-hint">Та же неделя, но с нашей стороны: сколько товара приняли на склад и сколько за ту же неделю отдали деньгами.
-        <b style="color:#f87171">Не заплатили</b> — на столько за неделю вырос наш долг перед поставщиком.
-        <b style="color:#4ade80">Гасим долг</b> — за неделю отдали больше, чем взяли; <b style="color:#4ade80">Аванс поставщику</b> — долга нет, деньги у него.
-        Столбец «Долг на дату» — общий остаток, он не про эту неделю: минус в нём значит наш аванс.</p>
-      <table class="a-table" id="k-table">
-        <thead><tr><th>Поставщик</th><th class="r">Приняли, тнг</th><th class="r">Заплатили, тнг</th><th class="r">Не заплатили, тнг</th><th class="r">Покрытие</th><th class="r">Долг на <span id="k-debt-date">дату</span></th><th>Статус</th></tr></thead>
-        <tbody id="k-mismatch-body"></tbody>
-        <tfoot id="k-mismatch-foot"></tfoot>
-      </table>
-      <p class="a-hint" id="k-empty" style="display:none">Недельных колонок «Приход товара за период» и «Оплата за период»
-        в листе КЗ не нашлось — разбор появится после ближайшего обновления таблицы.</p>
     </div>
 
     <!-- КОНСИГНАЦИЯ -->
     <div id="atab-consign" class="apanel">
       <div class="a-cards">
         <div class="a-card"><div class="a-card-lbl">ДЗ <span id="c-date">—</span> (консигнация)</div><div class="a-card-val" id="c-dz">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">В сроке (&le;<span class="c-days">14</span> дней)</div><div class="a-card-val green" id="c-interm">—</div></div>
-        <div class="a-card"><div class="a-card-lbl">Просрочено (&gt;<span class="c-days">14</span> дней)</div><div class="a-card-val red" id="c-over">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">В сроке (&le;14 дней)</div><div class="a-card-val green" id="c-interm">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Просрочено (&gt;14 дней)</div><div class="a-card-val red" id="c-over">—</div></div>
         <div class="a-card"><div class="a-card-lbl">% просрочки</div><div class="a-card-val" id="c-overpct">—</div></div>
       </div>
-
-      <!-- Срок консигнации меняется прямо здесь: общий для всех и свой у каждого -->
-      <div class="c-ctl">
-        <label>Срок консигнации, дней
-          <input id="c-days-all" type="number" min="1" max="120" step="1" value="14">
-        </label>
-        <button class="c-btn" id="c-apply">Применить ко всем</button>
-        <button class="c-btn" id="c-save" disabled>Правки сохранены</button>
-        <button class="c-btn" id="c-reset">Сбросить мои правки</button>
-        <span class="c-ctl-note" id="c-custom">—</span>
-        <!-- Отсюда таблица отвечает «кто просрочил». Что с этим делать —
-             на отдельной странице: там же обещания и список на обзвон. -->
-        <a class="c-btn" id="c-work" href="просрочка.html"
-           style="margin-left:auto;text-decoration:none;border-color:rgba(248,113,113,.45);color:#fca5a5">
-          📞 Работа с просрочкой →</a>
-      </div>
-
       <p style="font-size:11.5px;color:#9db0c9;margin-bottom:10px;line-height:1.5">
-        <b style="color:#e8eef6">ДЗ <span class="c-date2">—</span></b> — вся сумма, которую клиент должен.
-        <b style="color:#f87171">Просрочено</b> — часть ДЗ сверх отгрузок за срок консигнации: если клиент должен
-        больше, чем мы отгрузили ему за этот срок, разница — деньги, которые он должен был вернуть раньше.
-        Срок можно поменять и всем сразу, и каждому свой — в колонке «Дней». Правки сохраняются в этом браузере.
-        <b style="color:#e8eef6">Возраст</b> — сколько дней самым старым неоплаченным деньгам: идём от свежих
-        отгрузок к старым, пока не наберём сумму долга. Столбцы «Отгрузка» и «Оплата» — за последнюю неделю.
+        Консигнация 14 дней. <b style="color:#e8eef6">ДЗ <span class="c-date2">—</span></b> — вся сумма, которую клиент должен (отгрузки за 2 недели минус оплаты).
+        <b style="color:#f87171">Просрочено</b> — часть ДЗ старше 14 дней (сверх отгрузок за последние 2 недели). Столбцы «Отгрузка» и «Оплата» — за последнюю неделю.
       </p>
       <table class="a-table">
-        <thead><tr><th>Контрагент</th><th class="r">Отгрузка нед.</th><th class="r">Оплата нед.</th><th class="r">ДЗ <span class="c-date2">—</span></th><th class="r">Дней</th><th class="r">В сроке</th><th class="r">Просрочено</th><th class="r">Возраст</th><th>Риск</th></tr></thead>
+        <thead><tr><th>Контрагент</th><th class="r">Отгрузка нед.</th><th class="r">Оплата нед.</th><th class="r">ДЗ <span class="c-date2">—</span></th><th class="r">Просрочено</th><th>Риск</th></tr></thead>
         <tbody id="a-consign-body"></tbody>
-        <tfoot id="a-consign-foot"></tfoot>
       </table>
     </div>
 
     <!-- ДОЛИ -->
     <div id="atab-shares" class="apanel">
-      <p class="a-hint">Кто делает нам оборот за неделю <b id="s-period" style="color:#e8eef6">—</b>:
-        доля контрагента в отгрузке против его доли в оплате. <b style="color:#f87171">Отгрузка выше</b> —
-        берёт больше, чем платит, и на нём копится долг.</p>
       <table class="a-table">
         <thead><tr><th>Контрагент</th><th class="r">Отгрузка</th><th class="r">Доля %</th><th class="r">Оплата</th><th class="r">Доля %</th><th>Перекос</th></tr></thead>
         <tbody id="a-shares-body"></tbody>
-        <tfoot id="a-shares-foot"></tfoot>
       </table>
     </div>
 
@@ -391,57 +293,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 </div>
 
 <script>
-const CONS_KEY='pulse_consign_days';
-let CONS_DEF=14, CONS_OWN={};
-try{
-  const raw=localStorage.getItem(CONS_KEY);
-  if(raw){const o=JSON.parse(raw); CONS_DEF=+o.def||14; CONS_OWN=o.own||{};}
-}catch(e){}
-let CONS_DIRTY=false;
-function consSave(){
-  try{localStorage.setItem(CONS_KEY,JSON.stringify({def:CONS_DEF,own:CONS_OWN}));}catch(e){}
-  CONS_DIRTY=false; consBtn('Сохранено');
-}
-// правки применяются к расчёту сразу, а в память браузера — только по кнопке:
-// иначе непонятно, что уже сохранено, а что нет
-function consTouch(){ CONS_DIRTY=true; consBtn(); }
-function consBtn(text){
-  const b=document.getElementById('c-save');
-  if(!b) return;
-  b.textContent = text || (CONS_DIRTY ? 'Сохранить мои правки' : 'Правки сохранены');
-  b.className = 'c-btn' + (CONS_DIRTY ? ' dirty' : '');
-  b.disabled = !CONS_DIRTY;
-  if(text) setTimeout(()=>{ if(!CONS_DIRTY) consBtn(); }, 1800);
-}
-function consDays(name){
-  const v=CONS_OWN[name];
-  return (v===undefined||v===null||!isFinite(v)) ? CONS_DEF : v;
-}
-// сумма отгрузок за N дней; неполная неделя — пропорционально
-function consWindow(d,days){
-  const w=(d.ships&&d.ships.length)?d.ships:[d.ship||0,d.shipPrev||0];
-  let left=days,s=0;
-  for(let i=0;i<w.length&&left>0;i++){
-    const take=Math.min(7,left);
-    s+=(+w[i]||0)*take/7;
-    left-=take;
-  }
-  return s;
-}
-// возраст самых старых неоплаченных денег, в днях
-function consAge(d){
-  const w=(d.ships&&d.ships.length)?d.ships:[d.ship||0,d.shipPrev||0];
-  let cum=0;
-  for(let i=0;i<w.length;i++){
-    const x=+w[i]||0;
-    if(cum+x>=d.dz){
-      const f=x>0?(d.dz-cum)/x:0;
-      return i*7+Math.max(1,Math.round(f*7));
-    }
-    cum+=x;
-  }
-  return null;                    // отгрузок не хватает — долг старше всей истории
-}
 function fmt(v,short){
   if(!v&&v!==0||isNaN(v))return'—';
   const abs=Math.abs(v),s=v<0?'−':v>0&&!short?'':'' ;
@@ -461,16 +312,31 @@ function fmtNet(v){
   return sign+abs.toFixed(0);
 }
 
+/* Δ к прошлой неделе. Рост долга — плохо (красный), снижение — хорошо (зелёный),
+   и для ДЗ, и для КЗ: в обоих случаях речь о непогашенном остатке.
+   prev отсутствует → колонка пустая (нет базы для сравнения). */
+function delta(r){
+  if(r.prev===undefined||r.prev===null) return {txt:'', cls:'dlt-flat', tip:''};
+  const d=r.debt-r.prev;
+  if(!r.prev && r.debt)  return {txt:'новый', cls:'dlt-new',  tip:'на прошлой неделе долга не было'};
+  if(Math.abs(d)<1)      return {txt:'—',     cls:'dlt-flat', tip:'без изменений'};
+  const pct=r.prev?Math.round(d/r.prev*100):null;
+  return {txt:fmtNet(d), cls:d>0?'dlt-up':'dlt-dn',
+          tip:'было '+fmt(r.prev)+(pct!==null?'  ('+(d>0?'+':'−')+Math.abs(pct)+'%)':'')};
+}
+
 function buildList(id, rows, color){
   const el=document.getElementById(id); if(!el) return;
   const max=rows.length?rows[0].debt:1;
   el.innerHTML=rows.slice(0,30).map((r,i)=>{
     const pct=Math.round(r.debt/max*100);
     const nm=r.name.length>38?r.name.slice(0,36)+'…':r.name;
+    const dl=delta(r);
     return`<div class="row">
       <span class="row-num">${i+1}</span>
       <span class="row-name">${nm}</span>
       <div class="row-bar"><div class="row-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="row-dlt ${dl.cls}" title="${dl.tip}">${dl.txt}</span>
       <span class="row-val" style="color:${color}">${fmt(r.debt)}</span>
     </div>`;
   }).join('');
@@ -636,22 +502,6 @@ const ANA = (window.DZ_KZ && window.DZ_KZ.dz && Array.isArray(window.DZ_KZ.dz.an
 const TKC = ANA.reduce((s,d)=>s+(+d.kc||0),0), TKD = ANA.reduce((s,d)=>s+(+d.kd||0),0);
 function fmtN(n){if(!n)return'0';return Math.round(n).toLocaleString('ru-RU');}
 
-/* Глубокая ссылка с главной: #mismatch, #kzmis, #consign, #shares, #kzana —
-   плашка ведёт сразу в нужный разбор, а не «куда-то на страницу долгов». */
-function openAtabFromHash(){
-  var n=(location.hash||'').replace(/^#/,'');
-  if(!n||!document.getElementById('atab-'+n)) return;
-  var tabs=document.querySelectorAll('.atab');
-  for(var i=0;i<tabs.length;i++){
-    if((tabs[i].getAttribute('onclick')||'').indexOf("'"+n+"'")>=0){
-      showAtab(n,tabs[i]);
-      try{ tabs[i].scrollIntoView({block:'center'}); }catch(e){}
-      return;
-    }
-  }
-}
-window.addEventListener('hashchange',openAtabFromHash);
-window.addEventListener('load',openAtabFromHash);
 function showAtab(name,el){
   document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.apanel').forEach(p=>p.classList.remove('active'));
@@ -667,7 +517,7 @@ function showAtab(name,el){
   const AM=(window.DZ_KZ&&window.DZ_KZ.dz&&window.DZ_KZ.dz.anaMeta)||{period:'04–10.07'};
   const fmtMln=n=>{const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1)+' млн':a>=1e3?Math.round(n/1e3)+' тыс':fmtN(n);};
   const setTx=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  setTx('a-period',AM.period);setTx('a-period2',AM.period);setTx('s-period',AM.period);
+  setTx('a-period',AM.period);setTx('a-period2',AM.period);
   setTx('a-ship',fmtMln(TKC));setTx('a-pay',fmtMln(TKD));setTx('a-gap',fmtMln(TKC-TKD));
 
   // НЕСТЫКОВКИ
@@ -676,8 +526,8 @@ function showAtab(name,el){
     const diff=d.kc-d.kd;
     const cov=d.kc>0?(d.kd/d.kc*100).toFixed(0)+'%':'—';
     let badge,status;
-    if(diff>0){badge='b-red';status='⚠️ Не добрали';under++;}
-    else if(diff<0){badge='b-green';status='✅ Заплатил вперёд';}
+    if(diff>0){badge='b-red';status='⚠️ Недоплата';under++;}
+    else if(diff<0){badge='b-green';status='✅ Аванс';}
     else{badge='b-green';status='✅ Ровно';}
     mb.innerHTML+=`<tr>
       <td>${d.name}</td>
@@ -690,23 +540,9 @@ function showAtab(name,el){
   });
   const uc=document.getElementById('a-under-cnt');
   if(uc) uc.textContent=under;
-  /* Строка ИТОГО: без неё колонки приходилось складывать глазами. Живёт в
-     tfoot, поэтому сортировка по столбцу её не трогает — она всегда внизу. */
-  const mf=document.getElementById('a-mismatch-foot');
-  if(mf) mf.innerHTML=`<tr>
-      <td>ИТОГО · ${rows.length} контрагентов</td>
-      <td class="r">${fmtN(TKC)}</td>
-      <td class="r">${fmtN(TKD)}</td>
-      <td class="r" style="color:${TKC-TKD>0?'#f87171':'#4ade80'}">${TKC-TKD>0?'+':''}${fmtN(TKC-TKD)}</td>
-      <td class="r">${TKC>0?(TKD/TKC*100).toFixed(0)+'%':'—'}</td>
-      <td style="color:#9db0c9;font-weight:600">недобрали у ${under}</td>
-    </tr>`;
 
   // КОНСИГНАЦИЯ — живая ДЗ из Google (worker → DZ_KZ.dz.consign)
   buildConsign();
-
-  // КОМУ НЕДОПЛАТИЛИ МЫ — то же самое, но с нашей стороны прилавка
-  buildKzMismatch();
 
   // ДОЛИ
   const sb=document.getElementById('a-shares-body');
@@ -729,278 +565,59 @@ function showAtab(name,el){
       <td style="font-size:11px;color:${pc}">${perekos}</td>
     </tr>`;
   });
-  const sf=document.getElementById('a-shares-foot');
-  if(sf) sf.innerHTML=`<tr>
-      <td>ИТОГО · ${ANA.length} контрагентов</td>
-      <td class="r">${fmtN(TKC)}</td><td class="r">100%</td>
-      <td class="r">${fmtN(TKD)}</td><td class="r">100%</td>
-      <td style="color:#9db0c9;font-weight:600">разрыв ${fmtN(TKC-TKD)}</td>
-    </tr>`;
 })();
 
-// ── КОМУ НЕДОПЛАТИЛИ МЫ: нестыковки по кредиторке ──────────────────────
-//  Зеркало вкладки «Кто нам недоплатил». В листе КЗ каждая неделя занимает
-//  три колонки: приход товара, оплата за период, остаток долга на дату.
-//  Приход — новый долг перед поставщиком, оплата — его погашение.
-//  Разрыв в плюс значит: товар взяли, деньги не отдали, долг за неделю вырос.
-//  Данные живые (parse_dz_kz.py → DZ_KZ.kz.ana); резервного списка здесь нет —
-//  если колонок в таблице не окажется, честнее показать пустую вкладку,
-//  чем прошлогодние цифры.
-/* Выбор периода. Недели лежат в kz.anaWeeks (каждая — своя тройка колонок
-   листа КЗ). Одна неделя — показываем её как есть; отрезок — складываем
-   приход и оплату по поставщику, а долг берём на конец отрезка: это остаток
-   на дату, его нельзя суммировать. */
-var KZW=null;
-/* buildKzMismatch() вызывается из buildAnalytics() ВЫШЕ по файлу, ещё до того как
-   эта строка выполнится, поэтому состояние поднимаем лениво — через kzw(). */
-function plNed(n){ const a=n%10,b=n%100; return (a===1&&b!==11)?'неделя':((a>=2&&a<=4)&&(b<10||b>=20))?'недели':'недель'; }
-function kzw(){ if(!KZW) KZW={from:null,to:null,quick:1}; return KZW; }
-function kzWeeks(){ const kz=(window.DZ_KZ&&window.DZ_KZ.kz)||{}; return Array.isArray(kz.anaWeeks)?kz.anaWeeks:[]; }
-function kzSlice(){ kzw();
-  const W=kzWeeks(); if(!W.length) return null;
-  let i1=W.findIndex(w=>w.k===KZW.from), i2=W.findIndex(w=>w.k===KZW.to);
-  if(i1<0) i1=W.length-1; if(i2<0) i2=W.length-1;
-  if(i1>i2){ const t=i1; i1=i2; i2=t; }
-  const part=W.slice(i1,i2+1);
-  const map={};
-  part.forEach(w=>(w.rows||[]).forEach(r=>{
-    const e=map[r.n]||(map[r.n]={name:r.n,kc:0,kd:0,debt:0});
-    e.kc+=(+r.kc||0); e.kd+=(+r.kd||0);
-  }));
-  // долг — на конец отрезка, из последней недели диапазона
-  const last=part[part.length-1]||{rows:[]};
-  (last.rows||[]).forEach(r=>{ if(map[r.n]) map[r.n].debt=(+r.debt||0); });
-  const label=part.length===1?(part[0].label||part[0].k)
-    :((part[0].label||part[0].k).split('–')[0]+'–'+((part[part.length-1].label||'').split('–').pop()));
-  return {rows:Object.values(map), label:label, date:last.date||'', weeks:part.length};
-}
-function kzFillControls(){ kzw();
-  const W=kzWeeks(); const f=document.getElementById('k-from'), t=document.getElementById('k-to');
-  if(!W.length||!f||!t) { const r=document.getElementById('k-range'); if(r) r.style.display='none'; return; }
-  const opts=W.map(w=>'<option value="'+w.k+'">'+(w.label||w.k)+'</option>').join('');
-  f.innerHTML=opts; t.innerHTML=opts;
-  if(!KZW.from) KZW.from=W[Math.max(0,W.length-1)].k;
-  if(!KZW.to)   KZW.to=W[W.length-1].k;
-  f.value=KZW.from; t.value=KZW.to;
-  f.onchange=function(){ kzw(); KZW.from=this.value; KZW.quick=null; kzMarkQuick(); buildKzMismatch(); };
-  t.onchange=function(){ kzw(); KZW.to=this.value;   KZW.quick=null; kzMarkQuick(); buildKzMismatch(); };
-  const q=document.getElementById('k-quick');
-  if(q&&!q.dataset.wired){
-    q.dataset.wired='1';
-    q.addEventListener('click',function(e){
-      const b=e.target.closest('button'); if(!b) return;
-      const n=+b.getAttribute('data-q'); const WW=kzWeeks(); if(!WW.length) return; kzw();
-      KZW.quick=n; KZW.to=WW[WW.length-1].k;
-      KZW.from=(n===0?WW[0].k:WW[Math.max(0,WW.length-n)].k);
-      kzMarkQuick(); kzFillControls(); buildKzMismatch();
-    });
-  }
-  kzMarkQuick();
-}
-function kzMarkQuick(){ kzw();
-  const q=document.getElementById('k-quick'); if(!q) return;
-  [].forEach.call(q.querySelectorAll('button'),function(b){
-    b.classList.toggle('on', KZW.quick!=null && +b.getAttribute('data-q')===KZW.quick);
-  });
-}
-function buildKzMismatch(){
-  const kz=(window.DZ_KZ&&window.DZ_KZ.kz)||{};
-  kzFillControls();
-  const sl=kzSlice();
-  const src=sl?sl.rows:(Array.isArray(kz.ana)?kz.ana:[]);
-  const rows=src.filter(d=>(+d.kc||0)>0||(+d.kd||0)>0);
-  const body=document.getElementById('k-mismatch-body');
-  const empty=document.getElementById('k-empty');
-  const setTx=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  const fmtM=n=>{const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1)+' млн':a>=1e3?Math.round(n/1e3)+' тыс':fmtN(n);};
-  if(!rows.length){
-    // Пустую таблицу и прочерки в карточках не показываем: пусть будет
-    // одно честное предложение, почему разбора пока нет.
-    if(empty) empty.style.display='block';
-    const pane=document.getElementById('atab-kzmis');
-    if(pane) pane.querySelectorAll('.a-cards,#k-table,.a-hint:not(#k-empty)')
-                 .forEach(e=>e.style.display='none');
-    const rg=document.getElementById('k-range'); if(rg&&kzWeeks().length) rg.style.display='flex';
-    return;
-  }
-  const meta=kz.anaMeta||{};
-  const per=(sl&&sl.label)||meta.period||'за неделю';
-  const dbtDate=(sl&&sl.date)||kz.date||'дату';
-  const IN=rows.reduce((s,d)=>s+(+d.kc||0),0);
-  const PAY=rows.reduce((s,d)=>s+(+d.kd||0),0);
-  setTx('k-period',per);
-  setTx('k-period2',per);
-  setTx('k-in',fmtM(IN)); setTx('k-pay',fmtM(PAY)); setTx('k-gap',fmtM(IN-PAY));
-  setTx('k-debt-date',dbtDate);
-  setTx('k-range-lbl', sl? (sl.weeks>1? (sl.weeks+' '+plNed(sl.weeks)+': '+per) : per) : '');
-  let under=0,ahead=0,html='',DEBT=0;
-  rows.slice().sort((a,b)=>((+b.kc||0)-(+b.kd||0))-((+a.kc||0)-(+a.kd||0))).forEach(d=>{
-    const got=+d.kc||0, paid=+d.kd||0, diff=got-paid, debt=+d.debt||0;
-    DEBT+=debt;
-    const cov=got>0?(paid/got*100).toFixed(0)+'%':'—';
-    /* Статус — только про неделю. Раньше при diff<0 всегда писали «Заплатили
-       вперёд», и рядом с зелёной галочкой стоял долг на 6 млн — читалось как
-       ошибка. Аванс — это когда долга уже нет; пока долг есть, мы его гасим. */
-    let badge,status;
-    if(diff>0){badge='b-red';status='⚠️ Не заплатили';under++;}
-    else if(diff<0&&debt>0){badge='b-green';status='↓ Гасим долг';ahead++;}
-    else if(diff<0&&debt<0){badge='b-green';status='✅ Аванс поставщику';ahead++;}
-    else if(diff<0){badge='b-green';status='✅ Рассчитались';ahead++;}
-    else{badge='b-green';status='✅ Ровно';}
-    html+=`<tr>
-      <td>${d.name}</td>
-      <td class="r">${fmtN(got)}</td>
-      <td class="r">${fmtN(paid)}</td>
-      <td class="r" style="color:${diff>0?'#f87171':diff<0?'#4ade80':'#cbd5e1'}">${diff>0?'+':''}${fmtN(diff)}</td>
-      <td class="r">${cov}</td>
-      <td class="r" style="color:${debt<0?'#4ade80':'#cbd5e1'}"
-          title="${debt<0?'у поставщика лежит наш аванс':'наш долг перед поставщиком'}">${fmtN(debt)}</td>
-      <td><span class="badge ${badge}">${status}</span></td>
-    </tr>`;
-  });
-  if(body) body.innerHTML=html;
-  setTx('k-under-cnt',under);
-  const kf=document.getElementById('k-mismatch-foot');
-  if(kf) kf.innerHTML=`<tr>
-      <td>ИТОГО · ${rows.length} поставщиков</td>
-      <td class="r">${fmtN(IN)}</td>
-      <td class="r">${fmtN(PAY)}</td>
-      <td class="r" style="color:${IN-PAY>0?'#f87171':'#4ade80'}">${IN-PAY>0?'+':''}${fmtN(IN-PAY)}</td>
-      <td class="r">${IN>0?(PAY/IN*100).toFixed(0)+'%':'—'}</td>
-      <td class="r">${fmtN(DEBT)}</td>
-      <td style="color:#9db0c9;font-weight:600">не платили ${under} · гасим ${ahead}</td>
-    </tr>`;
-}
-
-// ── КОНСИГНАЦИЯ ────────────────────────────────────────────────────────
-// Сколько денег у клиента зависло дольше срока. Срок раньше был зашит —
-// четырнадцать дней всем, — но по факту он разный: кому-то дали неделю,
-// кому-то три. Теперь он правится прямо на странице: общий сверху и свой
-// у каждого в колонке «Дней». Правки живут в этом браузере.
-//
-// Как считаем. В таблице ДЗ отгрузки лежат понедельно. Берём столько недель,
-// сколько укладывается в срок, неполную неделю делим по дням: при сроке
-// в десять дней это последняя неделя целиком плюс три седьмых предыдущей.
-// Всё, что клиент должен сверх этой суммы, он должен был вернуть раньше —
-// это и есть просрочка. Возраст самых старых денег ищем тем же ходом:
-// идём от свежих отгрузок к старым, пока не наберём сумму долга.
+// ── КОНСИГНАЦИЯ: реальная ДЗ (14 дней) из Google-таблицы ──
 function buildConsign(){
   const D=window.DZ_KZ, dz=D&&D.dz;
   const meta=(dz&&dz.consignMeta)||{date:'',prevDate:''};
   const CON=(dz&&dz.consign)||[];
   const fmtM=n=>{const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1)+' млн':a>=1e3?Math.round(n/1e3)+' тыс':fmtN(n);};
   const pD=s=>{const p=String(s).split('.');if(p.length!==3)return null;let y=p[2];if(y.length===2)y='20'+y;return new Date(+y,+p[1]-1,+p[0]);};
+  const aD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
   const lD=d=>d?String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0'):'—';
   const end=pD(meta.date);
   const dateShort=end?lD(end)+'.'+String(end.getFullYear()).slice(2):(meta.date||'—');
-  const weeks=(meta.weeks||[]).length;
+  const dueRange=end?lD(aD(end,8))+'–'+lD(aD(end,14)):'—'; // отгрузка недели (−6..0) + 14 дней
 
+  // подписи дат
   document.querySelectorAll('.c-date2').forEach(e=>e.textContent='на '+dateShort);
-  document.querySelectorAll('.c-days').forEach(e=>e.textContent=CONS_DEF);
   const setT=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   setT('c-date','на '+dateShort);
+  setT('c-due',dueRange);
 
   const cb=document.getElementById('a-consign-body');
   if(!cb)return;
   cb.innerHTML='';
-  if(!D||!dz){cb.innerHTML='<tr><td colspan="9" style="color:#9db0c9">Данные ДЗ ещё не загружены — обновите страницу.</td></tr>';return;}
+  if(!D||!dz){cb.innerHTML='<tr><td colspan="6" style="color:#9db0c9">Данные ДЗ ещё не загружены — обновите страницу.</td></tr>';return;}
 
   let sDz=0,sOver=0,sInterm=0;
   const list=CON.filter(d=>d.dz>0).sort((a,b)=>b.dz-a.dz);
-  const hist=(list[0]&&list[0].ships&&list[0].ships.length)||2;
-  const maxDays=Math.max(14,hist*7);
   list.forEach(d=>{
-    const days=consDays(d.name);
-    const win=consWindow(d,days);
-    const over=Math.max(0,d.dz-win);
-    const interm=d.dz-over;
-    const age=consAge(d);
+    const win=(d.ship||0)+(d.shipPrev||0); // отгрузки за 2 недели = в пределах 14 дней
+    const over=Math.max(0,d.dz-win);        // ДЗ сверх 2 недель = старше 14 дней = просрочено
+    const interm=d.dz-over;                 // в пределах срока (≤14 дней)
     sDz+=d.dz;sOver+=over;sInterm+=interm;
     let risk,rc;
-    if(over<=0){risk='🟢 В сроке';rc='b-green';}
-    else if(over<d.dz*0.5){risk='🟡 Частично просрочено';rc='b-yellow';}
-    else{risk='🔴 Просрочено';rc='b-red';}
-    const own=CONS_OWN[d.name]!==undefined;
+    if(over>0){risk='🔴 Просрочено';rc='b-red';}
+    else{risk='🟡 В сроке';rc='b-yellow';}
     cb.innerHTML+=`<tr>
       <td>${d.name}</td>
       <td class="r">${fmtN(d.ship)}</td>
       <td class="r">${fmtN(d.pay)}</td>
       <td class="r" style="font-weight:800;color:#e8eef6">${fmtN(d.dz)}</td>
-      <td class="r"><div class="c-day"><input class="c-in${own?' own':''}" type="number" min="1" max="${maxDays}" step="1"
-        value="${days}" data-cons="${String(d.name).replace(/"/g,'&quot;')}">${own
-        ? `<button class="c-same" title="вернуть строку к общему сроку ${CONS_DEF} дней"
-             data-same="${String(d.name).replace(/"/g,'&quot;')}">как все</button>` : ''}</div></td>
-      <td class="r" style="color:${interm>0?'#4ade80':'#64748b'}">${interm>0?fmtN(interm):'—'}</td>
-      <td class="r" style="color:${over>0?'#f87171':'#64748b'};font-weight:${over>0?'800':'400'}">${over>0?fmtN(over):'—'}</td>
-      <td class="r" style="color:${age===null?'#f87171':age>days?'#fbbf24':'#9db0c9'}">${age===null?'>'+maxDays+' дн':age+' дн'}</td>
+      <td class="r" style="color:${over>0?'#f87171':'#64748b'}">${over>0?fmtN(over):'—'}</td>
       <td><span class="badge ${rc}">${risk}</span></td>
     </tr>`;
   });
-  if(!list.length)cb.innerHTML='<tr><td colspan="9" style="color:#9db0c9">Нет открытой дебиторки по консигнации.</td></tr>';
-
-  const cf=document.getElementById('a-consign-foot');
-  if(cf) cf.innerHTML = list.length ? `<tr>
-      <td>ИТОГО · ${list.length} клиентов</td>
-      <td class="r">${fmtN(list.reduce((a,d)=>a+(+d.ship||0),0))}</td>
-      <td class="r">${fmtN(list.reduce((a,d)=>a+(+d.pay||0),0))}</td>
-      <td class="r" style="color:#e8eef6">${fmtN(sDz)}</td>
-      <td class="r" style="color:#9db0c9">${CONS_DEF}</td>
-      <td class="r" style="color:#4ade80">${fmtN(sInterm)}</td>
-      <td class="r" style="color:${sOver>0?'#f87171':'#64748b'}">${sOver>0?fmtN(sOver):'—'}</td>
-      <td class="r"></td>
-      <td style="color:#9db0c9;font-weight:600">${sDz>0?(sOver/sDz*100).toFixed(1)+'% просрочки':''}</td>
-    </tr>` : '';
+  if(!list.length)cb.innerHTML='<tr><td colspan="6" style="color:#9db0c9">Нет открытой дебиторки по консигнации.</td></tr>';
 
   setT('c-dz',fmtM(sDz));
   setT('c-interm',fmtM(sInterm));
   setT('c-over',fmtM(sOver));
   const op=document.getElementById('c-overpct');
   if(op){const pct=sDz>0?(sOver/sDz*100):0;op.textContent=pct.toFixed(1)+'%';op.className='a-card-val '+(pct<5?'green':pct<20?'yellow':'red');}
-
-  const nOwn=Object.keys(CONS_OWN).length;
-  setT('c-custom', (weeks? 'история отгрузок '+weeks+' недель · ':'')
-    + (nOwn? 'свой срок у '+nOwn+' контрагентов' : 'у всех общий срок'));
-
-  // ввод по каждому контрагенту
-  cb.querySelectorAll('[data-cons]').forEach(inp=>{
-    inp.addEventListener('change',()=>{
-      const nm=inp.getAttribute('data-cons');
-      let v=parseFloat(String(inp.value).replace(',','.'));
-      if(!isFinite(v)||v<1) v=1;
-      if(v>maxDays) v=maxDays;
-      if(v===CONS_DEF) delete CONS_OWN[nm]; else CONS_OWN[nm]=v;
-      consTouch(); buildConsign();
-    });
-  });
-  // вернуть строку к общему сроку
-  cb.querySelectorAll('[data-same]').forEach(b=>{
-    b.addEventListener('click',()=>{
-      delete CONS_OWN[b.getAttribute('data-same')];
-      consTouch(); buildConsign();
-    });
-  });
-  consBtn();
 }
-
-// управление сроком — вешаем один раз
-(function consCtl(){
-  const all=document.getElementById('c-days-all');
-  if(!all) return;
-  all.value=CONS_DEF;
-  const apply=()=>{
-    let v=parseFloat(String(all.value).replace(',','.'));
-    if(!isFinite(v)||v<1) v=1;
-    if(v>120) v=120;
-    CONS_DEF=v; all.value=v; consTouch(); buildConsign();
-  };
-  all.addEventListener('change',apply);
-  const ap=document.getElementById('c-apply');
-  if(ap) ap.addEventListener('click',()=>{CONS_OWN={};apply();});   // всем один срок
-  const sv=document.getElementById('c-save');
-  if(sv) sv.addEventListener('click',()=>{consSave();buildConsign();});
-  const rs=document.getElementById('c-reset');
-  if(rs) rs.addEventListener('click',()=>{CONS_OWN={};CONS_DEF=14;all.value=14;consSave();buildConsign();});
-})();
 
 /* ═══════════ АНАЛИТИКА КРЕДИТОРСКОЙ ЗАДОЛЖЕННОСТИ ═══════════
    Данные из закупа: что поступило на склад и что оплачено, понедельно.
@@ -1016,14 +633,6 @@ function buildConsign(){
       +(sub?'<p class="kz-note">'+sub+'</p>':'')+inner+'</div>';
   }
   var W=A.weeks||[], last=W[W.length-1]||{};
-  /* «2026-09» в тексте для директора читается как машинный код — переводим
-     в «сентябрь 2026». Ключи приходят из iiko в виде ГГГГ-ММ. */
-  var MNAM=['январь','февраль','март','апрель','май','июнь','июль',
-            'август','сентябрь','октябрь','ноябрь','декабрь'];
-  function mname(k){
-    var m=String(k||'').match(/^(\d{4})-(\d{2})$/);
-    return m ? MNAM[+m[2]-1]+' '+m[1] : (k||'');
-  }
   var tp=W.reduce(function(s,w){return s+w.prihod;},0), to=W.reduce(function(s,w){return s+w.oplata;},0);
 
   /* 1. Понедельно: поступило ↔ оплачено */
@@ -1070,7 +679,7 @@ function buildConsign(){
       +'<td class="r">'+num(r.avg)+'</td><td class="r">'+r.x+'×</td><td class="r neg">'+num(r.extra)+'</td></tr>';
   }).join('');
   var ovSum=(A.over6||[]).reduce(function(s,r){return s+r.extra;},0);
-  var t4=ov? '<div class="kz-scroll"><table class="a-table"><thead><tr><th>Позиция</th><th class="r">'+mname(A.curMonth)+'</th>'
+  var t4=ov? '<div class="kz-scroll"><table class="a-table"><thead><tr><th>Позиция</th><th class="r">'+A.curMonth+'</th>'
     +'<th class="r">Обычно в месяц</th><th class="r">Во сколько раз</th><th class="r">Сверх обычного</th></tr></thead><tbody>'+ov+'</tbody></table></div>'
     : '<p class="kz-note">Позиций выше среднего нет.</p>';
 
@@ -1099,32 +708,19 @@ function buildConsign(){
     +'<th class="r">Хватит на</th><th class="r">Берут в неделю</th></tr></thead><tbody>'+fr+'</tbody></table></div>'
     : '<p class="kz-note">Излишков нет.</p>';
 
-  /* Период разбора. Раньше его нигде не было: в таблице поставщиков стояли
-     сотни миллионов, и по цифрам нельзя было понять — это за неделю, за месяц
-     или за всё время. Считаем один раз из самих недель и подписываем каждый
-     раздел, чтобы сумму не приходилось угадывать. */
-  var wFrom=(W[0]&&W[0].label||'').split('–')[0];
-  var wTo  =(last.label||'').split('–').pop();
-  var PER  = W.length ? wFrom+' – '+wTo : '';
-  var ZA   = W.length ? 'За '+W.length+' нед. ('+PER+'). ' : '';
-
   box.innerHTML =
-    '<div class="kz-per"><b>Разбор закупа за '+W.length+' недель · '+PER+'</b>'
-   + '<span>данные из iiko по '+A.through+' · собрано '+A.updated+'</span></div>'
-   + '<p class="kz-note">Поступление на склад берётся по накладным, оплата — по платежам поставщикам.</p>'
-   + sec('#f87171','Считаем по неделям: взяли товар — отдали деньги · '+PER, v1, t1)
-   + sec('#fbbf24','Разобраться с поставщиками: кому недоплатили, кому переплатили · '+PER,
-         ZA+'Перекос со знаком плюс — заплатили больше, чем приняли товара. Со знаком минус — приняли товара больше, чем заплатили: это и есть накопленный долг. Колонка «Долг сейчас» — остаток на '+A.through+', он не за период.', t2)
-   + sec('#60a5fa','Кому платим вперёд без причины · '+PER,
-         ZA+'Деньги ушли, товара на эту сумму не поступило, и долга за поставщиком тоже нет. Всего авансом: <b>'+num(advSum)+' ₸</b>.', t3)
-   + sec('#a78bfa','Кто набрал больше, чем берём обычно · '+mname(A.curMonth),
-         'Сравниваем '+mname(A.curMonth)+' со средним за '+mname(A.baseMonths[0])+' – '+mname(A.baseMonths[1])+'. Месяц ещё не закрыт, поэтому превышение занижено — реальный перебор больше. Всего сверх обычного: <b>'+num(ovSum)+' ₸</b>.', t4)
-   + sec('#fb923c','Взяли сверх нормы за неделю '+A.lastWeek,
-         'Берём последнюю ЗАКРЫТУЮ неделю ('+A.lastWeek+'), а не текущую: текущая ещё набирается и сравнивать её не с чем. Сравнение — с медианой предыдущих 8 недель по каждой позиции.', t5)
-   + sec('#22d3ee','Что не заказали за неделю '+A.lastWeek,
-         'Та же закрытая неделя '+A.lastWeek+'. Позиции, которые берут почти каждую неделю, но на этой не купили вовсе. Если остатка нет — цех встанет или будет докупать срочно и дороже.', t6)
-   + sec('#34d399','Деньги, замороженные на складе · остатки на '+A.through,
-         'Не за период, а срез на сегодня: хватит больше чем на 3 недели вперёд. Всего лежит: <b>'+num(frSum)+' ₸</b>.', t7);
+    '<p class="kz-note">Источник — закуп из iiko по '+A.through+'. Поступление на склад берётся по накладным, оплата — по платежам поставщикам. Собрано '+A.updated+'.</p>'
+   + sec('#f87171','Понедельно: поступило на склад ↔ оплачено', v1, t1)
+   + sec('#fbbf24','Перекос по поставщикам — кому недоплатили, кому переплатили',
+         'Перекос со знаком плюс — заплатили больше, чем приняли товара. Со знаком минус — приняли товара больше, чем заплатили: это и есть накопленный долг.', t2)
+   + sec('#60a5fa','Неоправданно много оплачено — платим вперёд',
+         'Деньги ушли, товара на эту сумму не поступило, и долга за поставщиком тоже нет. Всего авансом: <b>'+num(advSum)+' ₸</b>.', t3)
+   + sec('#a78bfa','Заказано выше среднего за 6 месяцев',
+         'Сравниваем '+A.curMonth+' со средним за '+(A.baseMonths[0]||'')+' – '+(A.baseMonths[1]||'')+'. Месяц ещё не закрыт, поэтому превышение занижено — реальный перебор больше. Всего сверх обычного: <b>'+num(ovSum)+' ₸</b>.', t4)
+   + sec('#fb923c','Взяли сверх обычного за неделю '+A.lastWeek, 'Сравнение с медианой предыдущих 8 недель по каждой позиции.', t5)
+   + sec('#22d3ee','Пропустили за неделю '+A.lastWeek,
+         'Позиции, которые берут почти каждую неделю, но на этой не купили вовсе. Если остатка нет — цех встанет или будет докупать срочно и дороже.', t6)
+   + sec('#34d399','Замороженные остатки сырья', 'Хватит больше чем на 3 недели вперёд. Всего лежит: <b>'+num(frSum)+' ₸</b>.', t7);
 })();
 
 </script>
