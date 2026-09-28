@@ -1,0 +1,43 @@
+name: ЗП — карточка сотрудника
+
+on:
+  workflow_dispatch:
+    inputs:
+      who:
+        description: "Часть ФИО"
+        required: false
+        default: "Яковлев"
+      zp_from:
+        description: "С даты, ГГГГ-ММ-ДД"
+        required: false
+        default: "2026-06-01"
+      zp_to:
+        description: "По дату (не включается)"
+        required: false
+        default: "2026-09-01"
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ZP_WHO: ${{ inputs.who }}
+      ZP_FROM: ${{ inputs.zp_from }}
+      ZP_TO: ${{ inputs.zp_to }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - run: python gen_zp_person.py
+      - name: Сохранить
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse-bot@users.noreply.github.com"
+          [ -f зп_карточка.txt ] && git add -f зп_карточка.txt || true
+          git commit -m "ЗП: карточка сотрудника [skip ci]" || echo "нечего сохранять"
+          git push
