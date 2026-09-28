@@ -67,6 +67,7 @@
   var PLAN_MK = '';              // за какой месяц загружен PLAN
   var PLAN_UPD = '';             // когда его last правили
   var PLAN_SKU = null;           // кеш разложенного по позициям
+  var PLAN_PICK = '';            // какой месяц плана правим (может быть не тот, что в таблице)
   var TREND = null;              // {sku: {mk: rev}}
   var CH = null;                 // график в раскрытой строке
 
@@ -231,7 +232,7 @@
       + '</div></div>';
     /* План и прогноз — такими же крупными плашками, как сама выручка:
        это три цифры одного разговора, и мельчить их в подписи неправильно. */
-    var pt = planTotal();
+    var pt = planSameMonth() ? planTotal() : 0;
     html += '<div class="dyn-kpis">'
       + (pi.partial ? '<div class="dyn-kpi fc"><span>прогноз месяца</span><b>' + sf(curRate) + '</b></div>' : '')
       + '<div class="dyn-kpi pl' + (pt ? '' : ' empty') + '"><span>план месяца</span><b>'
@@ -309,7 +310,7 @@
     var totalRows = rows.length, LIM = 150, cut = false;
     if (!SHOW_ALL && totalRows > LIM) { rows = rows.slice(0, LIM); cut = true; }
 
-    var SP = planBySku(MK), hasPlan = planTotal() > 0;
+    var SP = planBySku(MK), hasPlan = planSameMonth() && planTotal() > 0;
     var h = '<div class="sku-wrap"><table class="sku-tbl"><thead><tr>'
       + '<th style="width:34px">#</th>'
       + th('n', 'Позиция') + th('cat', 'Категория')
@@ -452,7 +453,7 @@
         + '<span class="ctr-fc" title="если темп месяца сохранится до конца">'
         + (fc ? '≈ ' + sf(fc) : '') + '</span>'
         + planInput(c.num, PLAN[c.num] || 0)
-        + doneCell(pi.partial ? fc : s2, PLAN[c.num] || 0)
+        + (planSameMonth() ? doneCell(pi.partial ? fc : s2, PLAN[c.num] || 0) : '<span></span>')
         + pill(c.rev * k, prevRev, !p)
         + '<span class="ctr-pct">' + c.pct + '%</span></div>'
         + '<div class="ctr-bar"><i style="width:' + Math.max(1, Math.round(c.rev / max * 100)) + '%"></i></div>'
@@ -460,7 +461,7 @@
         + '<th>Позиция</th><th style="text-align:right">Кол-во</th>'
         + '<th style="text-align:right">Сумма</th>'
         + (pi.partial ? '<th style="text-align:right" title="если темп месяца сохранится до конца">Прогноз</th>' : '')
-        + (PLAN[c.num] ? '<th style="text-align:right" title="план контрагента, разложенный по его структуре закупа">План</th>' : '')
+        + (planSameMonth() && PLAN[c.num] ? '<th style="text-align:right" title="план контрагента, разложенный по его структуре закупа">План</th>' : '')
         + '<th style="text-align:right">Было</th>'
         + '<th style="text-align:right">Динамика</th></tr></thead><tbody>'
         + items.map(function (it) {
@@ -469,7 +470,7 @@
             + '<td style="text-align:right;color:#94a3b8">' + num(it.q) + '</td>'
             + '<td style="text-align:right;font-weight:700;color:#a78bfa">' + num(it.r) + '</td>'
             + (pi.partial ? '<td class="sku-fc" style="text-align:right">≈ ' + num(it.r * k) + '</td>' : '')
-            + (PLAN[c.num] ? '<td class="pl-num" style="text-align:right">' + num(PLAN[c.num] * (it.r / (c.rev || 1))) + '</td>' : '')
+            + (planSameMonth() && PLAN[c.num] ? '<td class="pl-num" style="text-align:right">' + num(PLAN[c.num] * (it.r / (c.rev || 1))) + '</td>' : '')
             + '<td style="text-align:right;color:#64748b">' + (pr ? num(pr) : '—') + '</td>'
             + '<td style="text-align:right">' + pill(it.r * k, pr, !pr) + '</td></tr>';
         }).join('')
@@ -480,7 +481,9 @@
       + '<span></span><span>Контрагент</span>'
       + '<span class="r">Точек</span><span class="r">Было</span><span class="r">Стало</span>'
       + '<span class="r ctr-fc">Прогноз</span>'
-      + '<span class="r">План</span><span class="r" title="прогноз к плану">Вып.</span>'
+      + '<span class="r">План</span>'
+      + '<span class="r" title="' + (planSameMonth() ? 'прогноз к плану' : 'план на другой месяц') + '">'
+      + (planSameMonth() ? 'Вып.' : '') + '</span>'
       + '<span class="r">Δ</span><span class="r">Доля</span></div>';
     var list = document.getElementById('ctr-list');
     // колонка прогноза нужна только в незакрытом месяце — иначе её прячет CSS
@@ -494,6 +497,29 @@
       + (pt ? ' <span class="stat-pl">план <b>' + sf(pt) + '</b> · '
               + (base >= pt ? '<b class="ok">+' : '<b class="bad">') + sf(base - pt) + '</b></span>' : '');
   }
+
+  var MNOM = ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+  /* Месяц плана считаем отдельно от месяца таблицы: план на октябрь ставят
+     в сентябре, когда октябрьских продаж ещё нет и переключить таблицу
+     на него нельзя. */
+  function monthShift(mk, n) {
+    var y = +String(mk).slice(0, 4), m = +String(mk).slice(5, 7) + n;
+    y += Math.floor((m - 1) / 12); m = ((m - 1) % 12 + 12) % 12 + 1;
+    return y + '-' + (m < 10 ? '0' : '') + m;
+  }
+  function monthLabel(mk) {
+    var m = +String(mk).slice(5, 7);
+    return (MNOM[m] || mk) + ' ' + String(mk).slice(0, 4);
+  }
+  function planMonth() { return PLAN_PICK || MK; }
+  function planSameMonth() { return planMonth() === MK; }
+
+  window.planPickMonth = function (v) {
+    PLAN_PICK = v;
+    planLoad(v, function () { hero(); window.drawCtr(); planBar(); });
+  };
 
   function planLoad(mk, done) {
     PLAN_SKU = null;
@@ -595,6 +621,7 @@
     if (wfs) wfs.style.display = (mk === 'year') ? 'none' : '';
     window.drawCtr();
     // план приходит с сервера — перерисуем, когда доедет
+    PLAN_PICK = '';
     planLoad(mk, function () { hero(); window.drawCtr(); planBar(); });
     if (mk !== 'year' && window.wfInit) window.wfInit();
     drawYearByCtr();
@@ -1346,7 +1373,11 @@
   /* Быстрое заполнение: взять факт прошлого месяца и, если надо, накинуть
      процент. Это то, с чего план обычно и начинают. */
   window.planFromPrev = function (pct) {
-    var pk = prevKey(MK); if (!pk) return;
+    // база — месяц перед тем, на который ставим план: для октябрьского
+    // плана это сентябрь, даже если в таблице открыт сентябрь
+    var pk = monthShift(planMonth(), -1);
+    if (!((window.CTR || {})[pk] || []).length) pk = prevKey(MK);
+    if (!pk) { planToast('Не с чего считать: нет данных за предыдущий месяц', true); return; }
     var items = {};
     ((window.CTR || {})[pk] || []).forEach(function (c) {
       var v = Math.round(c.rev * (1 + (pct || 0) / 100));
@@ -1354,7 +1385,8 @@
     });
     planSave(items, 'replace').then(function () {
       hero(); window.drawCtr(); planBar();
-      planToast('План сохранён — ' + Object.keys(items).length + ' строк');
+      planToast('План на ' + monthLabel(planMonth()).toLowerCase() + ' сохранён — '
+        + Object.keys(items).length + ' строк');
     }).catch(function () { planToast('Не сохранилось — проверьте связь', true); });
   };
 
@@ -1378,15 +1410,28 @@
     var need = pt ? Math.max(0, pt - fact) : 0;
     var perDay = left > 0 ? need / left : 0;
     var nowDay = pi.days ? fact / pi.days : 0;
-    var h = '<span class="pl-lbl">План месяца</span>';
+    var sel = '<select class="pl-sel" onchange="planPickMonth(this.value)">';
+    for (var i = -2; i <= 3; i++) {
+      var mk2 = monthShift(MK, i);
+      sel += '<option value="' + mk2 + '"' + (mk2 === planMonth() ? ' selected' : '') + '>'
+        + monthLabel(mk2) + (i === 0 ? ' — в таблице' : '') + '</option>';
+    }
+    sel += '</select>';
+    var h = '<span class="pl-lbl">План на</span>' + sel;
+    if (!planSameMonth()) {
+      h += '<span class="pl-warn">в таблице ' + esc(monthLabel(MK))
+        + ' — процент выполнения не считаю, сравнивать не с чем</span>';
+    }
     if (!pt) {
       h += '<span class="pl-empty">не задан · впишите сумму в колонке «План» — сохранится сразу</span>';
     } else {
       var fc = pi.partial ? fact * (pi.dim / pi.days) : fact;
-      h += '<b class="pl-big">' + sf(pt) + '</b>'
-        + '<span class="pl-gap ' + (fc >= pt ? 'ok' : 'bad') + '">'
-        + (fc >= pt ? 'прогноз выше на ' : 'прогноза не хватает на ') + sf(Math.abs(fc - pt)) + '</span>';
-      if (pi.partial && left > 0) {
+      h += '<b class="pl-big">' + sf(pt) + '</b>';
+      if (planSameMonth()) {
+        h += '<span class="pl-gap ' + (fc >= pt ? 'ok' : 'bad') + '">'
+          + (fc >= pt ? 'прогноз выше на ' : 'прогноза не хватает на ') + sf(Math.abs(fc - pt)) + '</span>';
+      }
+      if (planSameMonth() && pi.partial && left > 0) {
         h += '<span class="pl-need">осталось ' + left + ' дн. · '
           + (need > 0
               ? 'надо <b>' + sf(perDay) + '</b> в день, сейчас идёт <b>' + sf(nowDay) + '</b>'
