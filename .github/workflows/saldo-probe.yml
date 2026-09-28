@@ -1,0 +1,23 @@
+name: Сальдо — разведка счетов
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: pip install -r requirements.txt
+      - run: python probe_saldo.py 2>&1 | tee saldo_probe.txt
+      - name: Сохранить
+        if: always()
+        run: |
+          git config user.name "pulse-ci"; git config user.email "ci@local"
+          git add -f saldo_probe.txt || true
+          git commit -m "Сальдо: разведка счетов [skip ci]" || echo "нет изменений"
+          git pull --rebase -X theirs origin main || git rebase --abort || true
+          git push origin HEAD:main || echo "push не удался"
