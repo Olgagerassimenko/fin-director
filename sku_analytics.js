@@ -293,11 +293,13 @@
       + '<th style="width:34px">#</th>'
       + th('n', 'Позиция') + th('cat', 'Категория')
       + th('q', 'Кол-во', 'right') + th('r', 'Выручка', 'right')
+      + (pi.partial ? '<th style="text-align:right" title="если темп месяца сохранится до конца">Прогноз</th>' : '')
       + '<th style="text-align:right">Доля</th>'
       + th('d', 'Динамика', 'right')
       + '<th style="text-align:right">Покупатели</th>'
       + '</tr></thead><tbody>';
-    if (!rows.length) h += '<tr><td colspan="8" class="ctr-empty">Ничего не найдено</td></tr>';
+    var NCOL = pi.partial ? 9 : 8;
+    if (!rows.length) h += '<tr><td colspan="' + NCOL + '" class="ctr-empty">Ничего не найдено</td></tr>';
     rows.forEach(function (s, i) {
       var open = OPEN_SKU === i;
       h += '<tr class="' + (open ? 'open' : '') + '" onclick="skuToggle(' + i + ')">'
@@ -309,11 +311,12 @@
         + '<td><span class="cat-tag"><i style="background:' + (CATC[s.cat] || '#6366f1') + '"></i>' + esc(s.cat) + '</span></td>'
         + '<td class="sku-num">' + num(s.q) + '</td>'
         + '<td class="sku-num sku-rev">' + num(s.r) + '</td>'
+        + (pi.partial ? '<td class="sku-num sku-fc">≈ ' + num(s.r * k) + '</td>' : '')
         + '<td class="sku-num" style="color:#64748b">' + (cur.total ? (s.r / cur.total * 100).toFixed(1) : 0) + '%</td>'
         + '<td class="sku-num">' + pill(s.r * k, s._prev, s._new) + '</td>'
         + '<td class="sku-num" style="color:#94a3b8">' + s.buyers.length + '</td></tr>';
       if (open) {
-        h += '<tr class="sku-det"><td colspan="8"><div class="inner" id="sku-det-inner">'
+        h += '<tr class="sku-det"><td colspan="' + NCOL + '"><div class="inner" id="sku-det-inner">'
           + '<div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start">'
           + '<div><div class="dt">Кто покупал — ' + esc(monthName(MK)) + '</div><table class="buy-tbl">'
           + s.buyers.map(function (b) {
