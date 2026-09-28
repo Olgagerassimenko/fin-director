@@ -102,7 +102,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 /* Итог под списком — той же сеткой, что строки, иначе колонки разъедутся.
    Считается по видимым строкам и пересчитывается сразу после правки плана. */
 .ctr-total{display:grid;grid-template-columns:var(--cols);align-items:center;gap:12px;
-  margin-top:10px;padding:13px 16px;border-radius:12px;
+  margin:0 0 12px;padding:13px 16px;border-radius:12px;
   background:linear-gradient(180deg,#18233d,#111a2e);border:1px solid #3a4c74;
   font-weight:800;color:#e8eef6;font-size:14px}
 .ctr-total .r{text-align:right}
@@ -145,6 +145,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 .pl-inp:focus{border-color:#fbbf24;color:#fde68a;background:#231e12;box-shadow:0 0 0 3px rgba(251,191,36,.20)}
 .pl-inp.saving{opacity:.5}
 .pl-inp.err{border-color:#f87171}
+/* План на другой месяц, чем в таблице: поле и заголовок голубые, чтобы
+   цифру не приняли за план текущего месяца. */
+.pl-inp.other{border-color:#2b6f8c;background:#0e2230;color:#7dd3fc}
+.pl-inp.other:focus{border-color:#7dd3fc;box-shadow:0 0 0 3px rgba(56,189,248,.22)}
+.ctr-hdr .r.other{color:#7dd3fc}
 .pl-inp.ok{border-color:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.22)}
 /* Всплывающее подтверждение записи: кнопки «Сохранить» нет, и без него
    непонятно, ушла цифра на сервер или нет. */

@@ -232,12 +232,18 @@
       + '</div></div>';
     /* План и прогноз — такими же крупными плашками, как сама выручка:
        это три цифры одного разговора, и мельчить их в подписи неправильно. */
-    var pt = planSameMonth() ? planTotal() : 0;
+    /* Плашка показывает план того месяца, который выбран в полосе. Раньше она
+       говорила «не задан», когда план ставили на октябрь, а в таблице был
+       сентябрь, — человек видел только что введённую сумму и надпись, что
+       плана нет. Теперь в подписи стоит месяц, а разрыв к прогнозу
+       появляется только когда сравнивать есть с чем. */
+    var pt = planTotal(), same = planSameMonth();
     html += '<div class="dyn-kpis">'
       + (pi.partial ? '<div class="dyn-kpi fc"><span>прогноз месяца</span><b>' + sf(curRate) + '</b></div>' : '')
-      + '<div class="dyn-kpi pl' + (pt ? '' : ' empty') + '"><span>план месяца</span><b>'
+      + '<div class="dyn-kpi pl' + (pt ? '' : ' empty') + '"><span>план · '
+        + esc(monthLabel(planMonth()).toLowerCase()) + '</span><b>'
         + (pt ? sf(pt) : '— не задан') + '</b></div>'
-      + (pt ? '<div class="dyn-kpi ' + (curRate >= pt ? 'ok' : 'bad') + '"><span>'
+      + (pt && same ? '<div class="dyn-kpi ' + (curRate >= pt ? 'ok' : 'bad') + '"><span>'
               + (curRate >= pt ? 'перевыполнение' : 'не хватает') + '</span><b>'
               + sf(Math.abs(curRate - pt)) + '</b></div>' : '')
       + '</div>';
@@ -486,7 +492,9 @@
       + '<span></span><span>Контрагент</span>'
       + '<span class="r">Точек</span><span class="r">Было</span><span class="r">Стало</span>'
       + '<span class="r ctr-fc">Прогноз</span>'
-      + '<span class="r">План</span>'
+      + '<span class="r' + (planSameMonth() ? '' : ' other') + '">План'
+      + (planSameMonth() ? '' : ' · ' + esc(MNOM[+String(planMonth()).slice(5, 7)].slice(0, 3).toLowerCase()))
+      + '</span>'
       + '<span class="r" title="' + (planSameMonth() ? 'прогноз к плану' : 'план на другой месяц') + '">'
       + (planSameMonth() ? 'Вып.' : '') + '</span>'
       + '<span class="r">Δ</span><span class="r">Доля</span></div>';
@@ -508,14 +516,18 @@
     var list = document.getElementById('ctr-list');
     // колонка прогноза нужна только в незакрытом месяце — иначе её прячет CSS
     list.className = pi.partial ? 'fc' : '';
-    list.innerHTML = h ? (hdr + h + tot) : '<div class="ctr-empty">Ничего не найдено</div>';
+    // итог ставим сразу под шапкой: внизу, под восемью десятками строк, до него не долистать
+    list.innerHTML = h ? (hdr + tot + h) : '<div class="ctr-empty">Ничего не найдено</div>';
     var st = document.getElementById('ctr-stat');
     var pt = planTotal();
     var base = pi.partial ? fsum : sum;
     if (st) st.innerHTML = '<b style="color:#e2e8f0">' + nc + '</b> контрагентов на <b style="color:#a78bfa">' + sf(sum) + '</b>'
       + (pi.partial ? ' <span class="stat-fc">прогноз месяца ≈ <b>' + sf(fsum) + '</b></span>' : '')
-      + (pt ? ' <span class="stat-pl">план <b>' + sf(pt) + '</b> · '
-              + (base >= pt ? '<b class="ok">+' : '<b class="bad">') + sf(base - pt) + '</b></span>' : '');
+      + (pt ? ' <span class="stat-pl">план ' + esc(monthLabel(planMonth()).toLowerCase())
+              + ' <b>' + sf(pt) + '</b>'
+              + (planSameMonth() ? ' · ' + (base >= pt ? '<b class="ok">+' : '<b class="bad">')
+                                   + sf(base - pt) + '</b>' : '')
+              + '</span>' : '');
   }
 
   var MNOM = ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
@@ -600,20 +612,29 @@
   }
 
   function planInput(num, plan) {
+    // когда план не про месяц таблицы, поле другого цвета: иначе цифра
+    // читается как план того месяца, который на экране
     return '<span class="pl-wrap" onclick="event.stopPropagation()">'
-      + '<input class="pl-inp' + (plan ? ' has' : '') + '" data-num="' + esc(String(num)) + '"'
+      + '<input class="pl-inp' + (plan ? ' has' : '') + (planSameMonth() ? '' : ' other')
+      + '" data-num="' + esc(String(num)) + '"'
+      + ' title="план на ' + esc(monthLabel(planMonth()).toLowerCase()) + '"'
       + ' inputmode="numeric" placeholder="—" value="' + (plan ? num2(plan) : '') + '"></span>';
   }
 
   function num2(v) { return Math.round(v).toLocaleString('ru'); }
 
   function planParseNum(t) {
-    t = String(t || '').replace(/[\s\u00a0\u202f]/g, '').replace(',', '.');
+    var raw = String(t || '').toLowerCase();
+    t = raw.replace(/[\s\u00a0\u202f]/g, '').replace(',', '.');
     if (!t) return 0;
     var m = t.match(/-?\d+(?:\.\d+)?/);
     if (!m) return 0;
     var v = parseFloat(m[0]);
-    // «115» в колонке с миллионами — почти наверняка миллионы, а не 115 тенге
+    // «100 млн», «100 тыс», «100 млрд» — как написали, так и поняли
+    if (/млрд|\bb\b/.test(t)) return Math.round(v * 1e9);
+    if (/млн|\bm\b/.test(t)) return Math.round(v * 1e6);
+    if (/тыс|\bk\b/.test(t)) return Math.round(v * 1e3);
+    // голое число меньше десяти тысяч в колонке с миллионами — это миллионы
     if (Math.abs(v) < 10000) v = v * 1e6;
     return Math.round(v);
   }
@@ -1285,7 +1306,11 @@
     el.classList.add('saving');
     planSave(o, 'merge').then(function () {
       el.classList.remove('saving');
-      planToast(v ? 'План сохранён' : 'План по строке убран');
+      var nm = (index(MK).ctr || []).filter(function (c) { return String(c.num) === String(num); })[0];
+      planToast(v
+        ? (nm ? shortCtr(nm.name) + ': ' : '') + num2(v) + ' ₸ на '
+          + monthLabel(planMonth()).toLowerCase()
+        : 'План по строке убран');
       hero(); window.drawCtr(); planBar();
       // подсветим строку, которую только что записали
       var again = document.querySelector('.pl-inp[data-num="' + num + '"]');
