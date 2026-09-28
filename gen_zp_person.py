@@ -55,34 +55,28 @@ for h in hits:
     log("      табельный %s | должность: %s" % (h[1], h[2]))
     log("      принят %s | удалён: %s | id %s" % (h[3], h[4], h[5]))
 
-# 2. все проводки по этому контрагенту, помесячно, по счетам и типам
-log("\nВСЕ ПРОВОДКИ ПО СЧЕТАМ (месяц × счёт × тип):")
-rows = olap({"reportType": "TRANSACTIONS", "buildSummary": "true",
-             "groupByRowFields": ["DateTime.DateTyped.Month", "Account.Name", "TransactionType"],
-             "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
-             "filters": {"DateTime.DateTyped": RNG}})
-mine = [x for x in rows]
-# фильтр по контрагенту делаем вторым запросом — с группировкой по контрагенту
-rows = olap({"reportType": "TRANSACTIONS", "buildSummary": "true",
-             "groupByRowFields": ["Counteragent.Name", "DateTime.DateTyped.Month", "Account.Name", "TransactionType"],
-             "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
-             "filters": {"DateTime.DateTyped": RNG}})
-mine = [x for x in rows if WHO.lower() in str(x.get("Counteragent.Name") or "").lower()]
-if not mine:
-    log("   проводок не найдено")
-for x in sorted(mine, key=lambda y: (str(y.get("DateTime.DateTyped.Month")), str(y.get("Account.Name")))):
-    log("   %-10s %-28s %-26s вх %12.0f  исх %12.0f" % (
-        str(x.get("DateTime.DateTyped.Month"))[:10], str(x.get("Account.Name"))[:28],
-        str(x.get("TransactionType"))[:26], x.get("Sum.Incoming") or 0, x.get("Sum.Outgoing") or 0))
+NAMES = sorted({h[0] for h in hits})
+if not NAMES: NAMES = [WHO]
+log("\nФильтрую проводки по контрагентам: %s" % ", ".join(NAMES))
 
-# 3. по дням — детально
+def pull(fields):
+    return olap({"reportType": "TRANSACTIONS", "buildSummary": "true",
+                 "groupByRowFields": fields,
+                 "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
+                 "filters": {"DateTime.DateTyped": RNG,
+                             "Counteragent.Name": {"filterType": "IncludeValues", "values": NAMES}}})
+
+log("\nСВОД ПО СЧЕТАМ И ТИПАМ ПРОВОДОК ЗА ВЕСЬ ПЕРИОД:")
+for x in sorted(pull(["Counteragent.Name", "Account.Name", "TransactionType"]),
+                key=lambda y: (str(y.get("Account.Name")), str(y.get("TransactionType")))):
+    log("   %-22s %-28s %-24s вх %12.0f  исх %12.0f" % (
+        str(x.get("Counteragent.Name"))[:22], str(x.get("Account.Name"))[:28],
+        str(x.get("TransactionType"))[:24], x.get("Sum.Incoming") or 0, x.get("Sum.Outgoing") or 0))
+
 log("\nПО ДНЯМ:")
-rows = olap({"reportType": "TRANSACTIONS", "buildSummary": "true",
-             "groupByRowFields": ["Counteragent.Name", "DateTime.DateTyped", "Account.Name", "TransactionType"],
-             "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
-             "filters": {"DateTime.DateTyped": RNG}})
-mine = [x for x in rows if WHO.lower() in str(x.get("Counteragent.Name") or "").lower()]
-for x in sorted(mine, key=lambda y: str(y.get("DateTime.DateTyped"))):
+rows = pull(["DateTime.DateTyped", "Account.Name", "TransactionType"])
+if not rows: log("   проводок нет")
+for x in sorted(rows, key=lambda y: str(y.get("DateTime.DateTyped"))):
     log("   %-12s %-28s %-24s вх %12.0f  исх %12.0f" % (
         str(x.get("DateTime.DateTyped"))[:12], str(x.get("Account.Name"))[:28],
         str(x.get("TransactionType"))[:24], x.get("Sum.Incoming") or 0, x.get("Sum.Outgoing") or 0))
