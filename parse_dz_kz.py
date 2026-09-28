@@ -149,9 +149,9 @@ def parse_kz(rows):
     kz_cols_only = [(i, lbl) for i, lbl in debt_cols
                     if re.search(r"кз\s+на", header[i], re.I | re.UNICODE)]
     top_col_i = kz_cols_only[-1][0] if kz_cols_only else last_col_i
-    # предыдущая колонка «КЗ на …» — для дельты неделя к неделе
+    # предыдущая колонка «КЗ на …» — база для дельты неделя к неделе
     prev_col_i = kz_cols_only[-2][0] if len(kz_cols_only) >= 2 else None
-    prev_lbl   = kz_cols_only[-2][1] if len(kz_cols_only) >= 2 else ""
+    prev_kz_lbl = kz_cols_only[-2][1] if len(kz_cols_only) >= 2 else ""
 
     # КЗ (кредиторка): в столбце "КЗ на ..." ОТРИЦАТЕЛЬНЫЕ значения — это наши
     # долги поставщикам. Положительные — выданные авансы/переплаты (это НЕ КЗ).
@@ -165,13 +165,129 @@ def parse_kz(rows):
             item = {"name": name, "debt": round(-v)}
             if prev_col_i is not None:
                 pv = num(row[prev_col_i]) if prev_col_i < len(row) else None
-                # долг показываем положительным; аванс/переплата = 0 долга
+                # долг показываем положительным; аванс/переплата = нулевой долг
                 item["prev"] = round(-pv) if (pv and pv < 0) else 0
             top.append(item)
     top.sort(key=lambda x: -x["debt"])
 
-    return {"total": round(latest_total), "date": last_date, "prevDate": prev_lbl,
-            "dynamics": dynamics, "top": top[:30]}
+    # ── Нестыковки по КЗ: что приняли на склад против того, что оплатили ─────
+    # Зеркало такого же разбора по ДЗ. В листе КЗ каждая неделя занимает три
+    # колонки: «Приход товара за период», «Оплата за период», «КЗ на дату».
+    # Берём последнюю неделю: приход — это новый долг перед поставщиком,
+    # оплата — его погашение. Разрыв в плюс означает, что товар взяли,
+    # а деньги не отдали.
+    # Неделя, которая заканчивается последней датой, занимает колонки между
+    # предыдущей датированной колонкой и последней: «Приход товара за период»,
+    # «Оплата за период», «КЗ на <дата>». Ищем только в этом промежутке —
+    # тогда «ПОЛЕ ОБНОВЛЕНИЯ» с такими же подписями справа от таблицы
+    # отсекается само, без догадок про «последний минус один».
+    dated_idx = sorted(i for i, _ in debt_cols)
+    prev_i = -1
+    for i in dated_idx:
+        if i < last_col_i:
+            prev_i = i
+    span = list(range(prev_i + 1, last_col_i))
+
+    def pick(pat):
+        for i in span:
+            if i < len(header) and re.search(pat, str(header[i]), re.I | re.UNICODE):
+                return i
+        return None
+
+    in_last  = pick(r"приход\s+товара")
+    pay_last = pick(r"оплата\s+за\s+период")
+
+    def kval(row, i):
+        v = num(row[i]) if (i is not None and i < len(row)) else None
+        return v or 0.0
+
+    kz_ana = []
+    for row in data_rows:
+        name = (row[0] if row else "").strip()
+        if not is_company(name): continue
+        got, paid = kval(row, in_last), kval(row, pay_last)
+        if got > 0 or paid > 0:
+            # в колонке «КЗ на дату» наш долг записан отрицательным числом,
+            # аванс поставщику — положительным. На странице удобнее наоборот:
+            # debt > 0 — мы должны, debt < 0 — у поставщика лежит наш аванс.
+            kz_ana.append({"name": name, "kc": round(got), "kd": round(paid),
+                           "debt": round(-kval(row, last_col_i))})
+
+    def two_dates(cell):
+        ds = re.findall(r"(\d{1,2}\.\d{2})", str(cell or ""))
+        return ds[0] + "–" + ds[1] if len(ds) >= 2 else None
+
+    def kz_period(col_i):
+        """Подпись недели («с 29.08.2026 по 04.09.2026») висит объединённой
+        ячейкой над тройкой колонок, и в выгрузке достаётся её середине —
+        колонке «Оплата». Смотреть влево нельзя: там подпись прошлой недели,
+        из-за чего страница месяц показывала бы чужой период."""
+        if col_i is None: return ""
+        # в старых неделях период иногда вписан прямо в заголовок колонки
+        own = two_dates(header[col_i]) if col_i < len(header) else None
+        if own: return own
+        if hi < 1: return ""
+        up = rows[hi - 1] if hi - 1 < len(rows) else []
+        for j in (col_i + 1, col_i, col_i + 2):
+            if 0 <= j < len(up):
+                d = two_dates(up[j])
+                if d: return d
+        return ""
+
+    # ── Все недели, а не только последняя ───────────────────────────────
+    # На странице нужен выбор периода: неделя, месяц, произвольный отрезок.
+    # Для этого отдаём каждую тройку колонок отдельно; страница сама решает,
+    # что сложить. Держим последние 30 недель — дальше лист всё равно пустой,
+    # а файл растёт.
+    ana_weeks = []
+    for pos, di in enumerate(dated_idx):
+        if pos == 0:
+            continue
+        sp = list(range(dated_idx[pos - 1] + 1, di))
+
+        def pick_in(pat, span_=sp):
+            for i in span_:
+                if i < len(header) and re.search(pat, str(header[i]), re.I | re.UNICODE):
+                    return i
+            return None
+
+        ci = pick_in(r"приход\s+товара")
+        cp = pick_in(r"оплата\s+за\s+период")
+        if ci is None and cp is None:
+            continue
+        wrows = []
+        for row in data_rows:
+            nm = (row[0] if row else "").strip()
+            if not is_company(nm):
+                continue
+            g, p = kval(row, ci), kval(row, cp)
+            if g > 0 or p > 0:
+                wrows.append({"n": nm, "kc": round(g), "kd": round(p),
+                              "debt": round(-kval(row, di))})
+        if not wrows:
+            continue
+        lbl = kz_period(ci if ci is not None else cp)
+        dt = ""
+        m_dt = re.search(r"(\d{1,2}\.\d{2}\.\d{2,4})", str(header[di]) if di < len(header) else "")
+        if m_dt:
+            dt = m_dt.group(1)
+        ana_weeks.append({"k": dt or lbl or f"w{pos}", "label": lbl or dt,
+                          "date": dt,
+                          "totalIn": round(sum(r["kc"] for r in wrows)),
+                          "totalPay": round(sum(r["kd"] for r in wrows)),
+                          "rows": wrows})
+    ana_weeks = ana_weeks[-30:]
+    print(f"  КЗ: недель с движением {len(ana_weeks)}"
+          + (f", последняя «{ana_weeks[-1]['label']}»" if ana_weeks else ""))
+
+    return {"total": round(latest_total), "date": last_date,
+            "prevDate": prev_kz_lbl,
+            "dynamics": dynamics, "top": top[:30],
+            "ana": kz_ana,
+            "anaWeeks": ana_weeks,
+            "anaMeta": {"period": kz_period(in_last),
+                        "totalIn":  round(sum(a["kc"] for a in kz_ana)),
+                        "totalPay": round(sum(a["kd"] for a in kz_ana))}}
 
 # ── Контрагенты, снятые с учёта как безнадёжно просроченные ──────────────
 # Решение финдиректора от 05.09.2026. По каждому из них остаток не менялся
@@ -197,11 +313,18 @@ def is_excluded_dz(name):
     return dz_code(name) in EXCLUDED_DZ_CODES
 
 
+# С 11.09.2026 недельная колонка ДЗ в таблице называется не «ДЗ на 11.09.26»,
+# а «Баланс по поставщикам и дебиторам на 11.09.26» — по смыслу это та же
+# колонка остатка на конец недели. Без этого график «Нам должны» замирал
+# на последней колонке со старым названием (04.09) и новые недели не появлялись.
+DZ_COL_PAT = (r"дз\s+на|д/з\s+на|д\.з\.\s*на|"
+              r"баланс\s+по\s+поставщикам.{0,40}?\s+на\s*\d")
+
 def parse_dz(rows):
     print("  Диагностика ДЗ (первые 5 строк):")
     debug_rows(rows, 5)
 
-    hi, header = find_header_row(rows, r"дз\s+на|д/з\s+на|д\.з\.\s+на")
+    hi, header = find_header_row(rows, DZ_COL_PAT)
     if header is None:
         hi, header = find_header_row(rows, r"дз|д/з")
     if header is None:
@@ -212,13 +335,13 @@ def parse_dz(rows):
     dz_cols = []
     for i, cell in enumerate(header):
         c = str(cell).strip()
-        if re.search(r"дз\s+на|д/з\s+на|д\.з\.\s*на", c, re.I | re.UNICODE):
+        if re.search(DZ_COL_PAT, c, re.I | re.UNICODE):
             m = re.search(r"(\d{1,2}\.\d{2}\.\d{2,4})", c)
             lbl = fmt_date(m.group(1)) if m else c[:20]
             dz_cols.append((i, lbl))
 
     if not dz_cols:
-        print(f"  [!] ДЗ: нет колонок 'ДЗ на' в строке {hi}")
+        print(f"  [!] ДЗ: нет колонок остатка (ДЗ на / Баланс … на) в строке {hi}")
         print(f"  Ячейки:", [c[:30] for c in header if c.strip()][:10])
         return None
 
@@ -282,9 +405,8 @@ def parse_dz(rows):
         latest_total -= excluded_total
 
     # топ дебиторов — реальные контрагенты (служебные строки отсеяны в is_company)
-    # предыдущая датированная колонка ДЗ — для дельты неделя к неделе
-    prev_col_i  = dz_cols[-2][0] if len(dz_cols) >= 2 else None
-    prev_dz_lbl = dz_cols[-2][1] if len(dz_cols) >= 2 else ""
+    # предыдущая датированная колонка ДЗ — база для дельты неделя к неделе
+    dz_prev_col_i = dz_cols[-2][0] if len(dz_cols) >= 2 else None
     top, excluded = [], []
     for row in data_rows:
         name = (row[0] if row else "").strip()
@@ -292,8 +414,8 @@ def parse_dz(rows):
         v = num(row[last_col_i]) if last_col_i < len(row) else None
         if v and v > 0:
             item = {"name": name, "debt": round(v)}
-            if prev_col_i is not None:
-                pv = num(row[prev_col_i]) if prev_col_i < len(row) else None
+            if dz_prev_col_i is not None:
+                pv = num(row[dz_prev_col_i]) if dz_prev_col_i < len(row) else None
                 item["prev"] = round(pv) if (pv and pv > 0) else 0
             if is_excluded_dz(name):
                 excluded.append(item)
@@ -317,6 +439,16 @@ def parse_dz(rows):
     ship_last = ship_cols[-1] if ship_cols else None
     ship_prev = ship_cols[-2] if len(ship_cols) >= 2 else None
     pay_last  = pay_cols[-1] if pay_cols else None
+    # Последние недели отгрузок — чтобы на странице можно было менять срок
+    # консигнации. Четырнадцать дней зашиты не везде: кому-то дали двадцать
+    # один день, кому-то семь. Отдаём восемь недель, страница берёт столько,
+    # сколько нужно под выставленный срок, а неполную неделю делит по дням.
+    ship_hist = ship_cols[-8:]
+    # История поступлений теми же неделями. Без неё по клиенту не видно
+    # главного в работе с просрочкой: когда он платил последний раз и платит
+    # ли вообще. Долг сам по себе ещё не проблема — проблема, когда он есть,
+    # а платежей нет.
+    pay_hist = pay_cols[-8:]
 
     def val(row, i):
         v = num(row[i]) if (i is not None and i < len(row)) else None
@@ -333,15 +465,20 @@ def parse_dz(rows):
             ana.append({"name": name, "kc": round(ship), "kd": round(pay)})
         if dzv > 0:
             consign.append({"name": name, "ship": round(ship), "shipPrev": round(shipPrev),
-                            "pay": round(pay), "dz": round(dzv)})
+                            "pay": round(pay), "dz": round(dzv),
+                            # от свежей недели к старым
+                            "ships": [round(val(row, i)) for i in reversed(ship_hist)],
+                            "pays": [round(val(row, i)) for i in reversed(pay_hist)]})
 
     def period_label(col_i):
         if col_i is None: return ""
         ds = re.findall(r"(\d{1,2}\.\d{2})", str(header[col_i]))
         return (ds[0] + "–" + ds[1]) if len(ds) >= 2 else (ds[0] if ds else "")
 
+    prev_dz_lbl = dz_cols[-2][1] if len(dz_cols) >= 2 else ""
 
-    return {"total": round(latest_total), "date": last_date, "prevDate": prev_dz_lbl,
+    return {"total": round(latest_total), "date": last_date,
+            "prevDate": prev_dz_lbl,
             "dynamics": dynamics, "top": top[:30],
             # снятые с учёта — отдаём отдельно, страница показывает их примечанием
             "excluded": excluded,
@@ -353,7 +490,10 @@ def parse_dz(rows):
                         "totalShip": round(sum(a["kc"] for a in ana)),
                         "totalPay":  round(sum(a["kd"] for a in ana))},
             "consign": consign,
-            "consignMeta": {"date": last_date, "prevDate": prev_dz_lbl}}
+            "consignMeta": {"date": last_date, "prevDate": prev_dz_lbl,
+                            # подписи недель в том же порядке, что и ships
+                            "weeks": [period_label(i) for i in reversed(ship_hist)],
+                            "payWeeks": [period_label(i) for i in reversed(pay_hist)]}}
 
 def main():
     print("=" * 50)
