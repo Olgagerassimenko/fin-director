@@ -55,7 +55,27 @@ p = os.path.join(HERE, "зп_категории.csv")
 if os.path.exists(p):
     for row in list(csv.reader(open(p, encoding="utf-8-sig"), delimiter=";"))[1:]:
         if len(row) >= 2 and row[0].strip(): KAT[nk(row[0])] = row[1].strip().upper()
-log("категорий из ШР: %d" % len(KAT))
+POS = {}
+for full, k in KAT.items():
+    tail = full.split("/")[-1].strip()
+    if tail: POS.setdefault(tail, set()).add(k)
+POS = {t: list(v)[0] for t, v in POS.items() if len(v) == 1}
+log("категорий из ШР: %d, уникальных должностей без отдела: %d" % (len(KAT), len(POS)))
+
+def kat_of(role):
+    """Категория по названию роли iiko. Сначала точное совпадение со ШР,
+    потом по самой должности без отдела — названия отделов в iiko и ШР
+    расходятся («Клининг» против «Служба клининга»)."""
+    n = nk(role)
+    if not n: return "", ""
+    if n.startswith("ю_уволенные"):
+        rest = n.replace("ю_уволенные", "").strip(" /")
+        k = KAT.get(rest) or POS.get(rest) or ("B" if "ауп" in rest else "D")
+        return k, "уволен"
+    if n in KAT: return KAT[n], "работает"
+    tail = n.split("/")[-1].strip()
+    if tail in POS: return POS[tail], "работает"
+    return "", "работает"
 
 # ── роли (должности) ────────────────────────────────────────────────────
 ROLE = {}
@@ -86,14 +106,8 @@ log("сотрудников в справочнике: %d" % len(EMP))
 ACC = {a["id"]: (a.get("name") or "") for a in
        s.get(f"{URL}/resto/api/v2/entities/accounts/list", params={"key": tok}, verify=False, timeout=120).json()}
 ZP_IDS = {i for i, n in ACC.items() if n == ZP_ACC}
-CA = {}
-try:
-    for c in s.get(f"{URL}/resto/api/v2/entities/list", params={"key": tok, "rootType": "Supplier"},
-                   verify=False, timeout=180).json():
-        CA[c.get("id")] = (c.get("name") or "").strip()
-except Exception as e:
-    log("контрагенты: %s" % e)
-log("счетов «Зарплата»: %d, контрагентов: %d" % (len(ZP_IDS), len(CA)))
+CA = {v["id"]: v["name"] for v in EMP.values() if v.get("id")}
+log("счетов «Зарплата»: %d, сотрудников-контрагентов: %d" % (len(ZP_IDS), len(CA)))
 
 def bal(d):
     js = s.get(f"{URL}/resto/api/v2/reports/balance/counteragents",
@@ -141,7 +155,7 @@ for k in keys:
     e = EMP.get(k, {})
     nm = m.get("name") or e.get("name") or k
     role = e.get("role", "")
-    kat = KAT.get(nk(role), "")
+    kat, st = kat_of(role)
     if role and not kat: noKat[role] = noKat.get(role, 0) + 1
     okl = round(m.get("EMPLOYEE_PAYMENT", 0.0))
     tar = round(m.get("TARIFF_HOUR", 0.0))
@@ -150,33 +164,33 @@ for k in keys:
     nach = okl + tar + bon
     b1, b2 = round(B1.get(k, 0.0)), round(B2.get(k, 0.0))
     vyp = round(b1 + nach - pen - b2)
-    out.append([nm, e.get("code", ""), role, kat, GRP.get(kat, ""), okl, tar, bon, nach, pen, vyp, b1, b2])
+    out.append([nm, e.get("code", ""), role, kat, GRP.get(kat, ""), st, okl, tar, bon, nach, pen, vyp, b1, b2])
 
 order = {"A": 0, "B": 1, "C": 2, "D": 3, "": 4}
-out.sort(key=lambda x: (order.get(x[3], 4), -x[8]))
-HEAD = ["Сотрудник", "Табельный номер", "Должность", "Категория", "Группа",
+out.sort(key=lambda x: (order.get(x[3], 4), -x[9]))
+HEAD = ["Сотрудник", "Табельный номер", "Должность", "Категория", "Группа", "Статус",
         "Оклад (фикс)", "Тариф (часы)", "Премия", "НАЧИСЛЕНО", "Удержано",
         "Выплачено", "Остаток на начало", "Остаток на конец"]
 with open(os.path.join(HERE, "зп_сотрудники.csv"), "w", encoding="utf-8-sig", newline="") as f:
     w = csv.writer(f, delimiter=";"); w.writerow(HEAD)
     for r0 in out: w.writerow(r0)
-    tot = ["ИТОГО", "", "", "", ""] + [sum(r0[i] for r0 in out) for i in range(5, 13)]
+    tot = ["ИТОГО", "", "", "", "", ""] + [sum(r0[i] for r0 in out) for i in range(6, 14)]
     w.writerow(tot)
-log("начислено всего: %s, удержано %s, выплачено %s" % (tot[8], tot[9], tot[10]))
+log("начислено всего: %s, удержано %s, выплачено %s" % (tot[9], tot[10], tot[11]))
 
 # ── свод по категориям ──────────────────────────────────────────────────
 with open(os.path.join(HERE, "зп_свод.csv"), "w", encoding="utf-8-sig", newline="") as f:
     w = csv.writer(f, delimiter=";")
     w.writerow(["Категория", "Группа", "Человек", "Оклад (фикс)", "Тариф (часы)", "Премия",
                 "НАЧИСЛЕНО", "Удержано", "Выплачено", "Доля в начислениях"])
-    all_n = sum(r0[8] for r0 in out) or 1
+    all_n = sum(r0[9] for r0 in out) or 1
     for k in ["A", "B", "C", "D", ""]:
         g = [r0 for r0 in out if r0[3] == k]
         if not g: continue
         w.writerow([k or "—", GRP.get(k, "без категории"), len(g)] +
-                   [sum(r0[i] for r0 in g) for i in (5, 6, 7, 8, 9, 10)] +
-                   ["%.1f%%" % (100.0 * sum(r0[8] for r0 in g) / all_n)])
-        log("   %-18s %3d чел, начислено %12d" % (GRP.get(k, "без категории"), len(g), sum(r0[8] for r0 in g)))
+                   [sum(r0[i] for r0 in g) for i in (6, 7, 8, 9, 10, 11)] +
+                   ["%.1f%%" % (100.0 * sum(r0[9] for r0 in g) / all_n)])
+        log("   %-18s %3d чел, начислено %12d" % (GRP.get(k, "без категории"), len(g), sum(r0[9] for r0 in g)))
 
 if noKat:
     log("\nДОЛЖНОСТИ БЕЗ КАТЕГОРИИ В ШР (%d):" % len(noKat))
