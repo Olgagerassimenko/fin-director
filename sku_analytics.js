@@ -318,12 +318,15 @@
       if (open) {
         h += '<tr class="sku-det"><td colspan="' + NCOL + '"><div class="inner" id="sku-det-inner">'
           + '<div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start">'
-          + '<div><div class="dt">Кто покупал — ' + esc(monthName(MK)) + '</div><table class="buy-tbl">'
+          + '<div><div class="dt">Кто покупал — ' + esc(monthName(MK))
+          + (pi.partial ? ' <span class="dt-fc">прогноз — в темпе на полный месяц</span>' : '') + '</div>'
+          + '<table class="buy-tbl">'
           + s.buyers.map(function (b) {
             return '<tr><td>' + hl(b.name, q) + '<div class="buy-bar"><i style="width:'
               + Math.max(2, Math.round(b.r / s.r * 100)) + '%"></i></div></td>'
               + '<td style="text-align:right;color:#94a3b8;white-space:nowrap">' + num(b.q) + ' шт</td>'
               + '<td style="text-align:right;font-weight:700;color:#a78bfa;white-space:nowrap">' + num(b.r) + '</td>'
+              + (pi.partial ? '<td class="sku-fc" style="text-align:right;white-space:nowrap">≈ ' + num(b.r * k) + '</td>' : '')
               + '<td style="text-align:right;color:#64748b">' + (b.r / s.r * 100).toFixed(0) + '%</td></tr>';
           }).join('')
           + '</table></div>'
@@ -426,13 +429,16 @@
         + '<div class="ctr-bar"><i style="width:' + Math.max(1, Math.round(c.rev / max * 100)) + '%"></i></div>'
         + '<div class="ctr-body"><table class="ctr-tbl"><thead><tr>'
         + '<th>Позиция</th><th style="text-align:right">Кол-во</th>'
-        + '<th style="text-align:right">Сумма</th><th style="text-align:right">Было</th>'
+        + '<th style="text-align:right">Сумма</th>'
+        + (pi.partial ? '<th style="text-align:right" title="если темп месяца сохранится до конца">Прогноз</th>' : '')
+        + '<th style="text-align:right">Было</th>'
         + '<th style="text-align:right">Динамика</th></tr></thead><tbody>'
         + items.map(function (it) {
           var pr = pit[it.n] || 0;
           return '<tr><td>' + hl(it.n, q) + (pr ? '' : '<span class="tag new">NEW</span>') + '</td>'
             + '<td style="text-align:right;color:#94a3b8">' + num(it.q) + '</td>'
             + '<td style="text-align:right;font-weight:700;color:#a78bfa">' + num(it.r) + '</td>'
+            + (pi.partial ? '<td class="sku-fc" style="text-align:right">≈ ' + num(it.r * k) + '</td>' : '')
             + '<td style="text-align:right;color:#64748b">' + (pr ? num(pr) : '—') + '</td>'
             + '<td style="text-align:right">' + pill(it.r * k, pr, !pr) + '</td></tr>';
         }).join('')
