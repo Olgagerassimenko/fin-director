@@ -504,6 +504,8 @@ export default {
     if (url.pathname === "/api/halal") {
       return handleHalal(request, env);
     }
+    if (url.pathname === "/plan") return handlePlan(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/track") return handleTrack(url, request, env, ctx);
     if (url.pathname === "/mstats") return handleStats(url, env);
     if (url.pathname === "/mlabel") return handleLabel(url, env);
@@ -1828,6 +1830,52 @@ async function handleHalal(request, env) {
   }
 
   return jsonResp({ error: "Метод не поддерживается" }, 405);
+}
+
+// ── План продаж ───────────────────────────────────────────────────────────
+// Сумму ставят по контрагенту на месяц; по позициям она раскладывается уже
+// на странице, пропорционально фактической структуре закупа этого клиента.
+// Поэтому в хранилище лежит только разрез по контрагентам:
+//   salesplan:2026-09 -> {items:{"85":115000000,...}, updated:"...", by:"..."}
+// Маршрут закрыт тем же паролем, что и весь сайт: authGate отрабатывает
+// раньше маршрутизации, так что отдельной проверки здесь не нужно.
+const PLAN_PREFIX = "salesplan:";
+
+async function handlePlan(request, env, url) {
+  const m = (url.searchParams.get("m") || "").slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(m)) return jsonResp({ error: "нужен месяц вида 2026-09" }, 400);
+  const key = PLAN_PREFIX + m;
+
+  if (request.method === "GET") {
+    const raw = await env.PLAN.get(key);
+    return jsonResp(raw ? JSON.parse(raw) : { items: {}, updated: "" });
+  }
+  if (request.method !== "POST") return jsonResp({ error: "метод не поддерживается" }, 405);
+
+  let body;
+  try { body = await request.json(); } catch (e) { return jsonResp({ error: "тело не разобралось" }, 400); }
+
+  const prev = JSON.parse((await env.PLAN.get(key)) || "null") || { items: {} };
+  // merge — правим отдельные строки, replace — вставили план целиком
+  const items = (body.mode === "replace") ? {} : Object.assign({}, prev.items || {});
+  const inc = body.items || {};
+  let n = 0;
+  for (const k of Object.keys(inc)) {
+    if (++n > 3000) break;                       // на случай кривой вставки
+    const code = String(k).slice(0, 120);
+    const v = Math.round(Number(inc[k]) || 0);
+    if (v > 0) items[code] = v; else delete items[code];
+  }
+  const d = almatyNow();
+  const pad = (x) => String(x).padStart(2, "0");
+  const rec = {
+    items,
+    updated: pad(d.getUTCDate()) + "." + pad(d.getUTCMonth() + 1) + "." + d.getUTCFullYear()
+             + " " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()),
+    by: String(body.by || "").slice(0, 40),
+  };
+  await env.PLAN.put(key, JSON.stringify(rec));
+  return jsonResp(rec);
 }
 
 function jsonResp(obj, status) {

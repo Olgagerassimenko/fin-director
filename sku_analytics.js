@@ -58,6 +58,15 @@
   var SHOW_ALL = false;          // показывать все позиции (иначе первые 150)
   var OPEN_CTR = {};             // раскрытые контрагенты
   var IDX = {};                  // кеш индексов по месяцам
+  // ── план продаж ──────────────────────────────────────────
+  // Сумму ставят по контрагенту. По позициям она не вводится, а
+  // раскладывается пропорционально тому, что этот клиент реально берёт
+  // в текущем месяце: если у него 40% закупа — сосиска в тесте, то и
+  // 40% его плана ложится на неё. Так один ввод закрывает оба разреза.
+  var PLAN = {};                 // {номер контрагента: сумма на месяц}
+  var PLAN_MK = '';              // за какой месяц загружен PLAN
+  var PLAN_UPD = '';             // когда его last правили
+  var PLAN_SKU = null;           // кеш разложенного по позициям
   var TREND = null;              // {sku: {mk: rev}}
   var CH = null;                 // график в раскрытой строке
 
@@ -289,16 +298,19 @@
     var totalRows = rows.length, LIM = 150, cut = false;
     if (!SHOW_ALL && totalRows > LIM) { rows = rows.slice(0, LIM); cut = true; }
 
+    var SP = planBySku(MK), hasPlan = planTotal() > 0;
     var h = '<div class="sku-wrap"><table class="sku-tbl"><thead><tr>'
       + '<th style="width:34px">#</th>'
       + th('n', 'Позиция') + th('cat', 'Категория')
       + th('q', 'Кол-во', 'right') + th('r', 'Выручка', 'right')
       + (pi.partial ? '<th style="text-align:right" title="если темп месяца сохранится до конца">Прогноз</th>' : '')
+      + (hasPlan ? '<th style="text-align:right" title="планы контрагентов, разложенные по их структуре закупа">План</th>'
+                 + '<th style="text-align:right" title="прогноз к плану">Вып.</th>' : '')
       + '<th style="text-align:right">Доля</th>'
       + th('d', 'Динамика', 'right')
       + '<th style="text-align:right">Покупатели</th>'
       + '</tr></thead><tbody>';
-    var NCOL = pi.partial ? 9 : 8;
+    var NCOL = 8 + (pi.partial ? 1 : 0) + (hasPlan ? 2 : 0);
     if (!rows.length) h += '<tr><td colspan="' + NCOL + '" class="ctr-empty">Ничего не найдено</td></tr>';
     rows.forEach(function (s, i) {
       var open = OPEN_SKU === i;
@@ -312,6 +324,8 @@
         + '<td class="sku-num">' + num(s.q) + '</td>'
         + '<td class="sku-num sku-rev">' + num(s.r) + '</td>'
         + (pi.partial ? '<td class="sku-num sku-fc">≈ ' + num(s.r * k) + '</td>' : '')
+        + (hasPlan ? '<td class="sku-num pl-num">' + (SP[s.n] ? num(SP[s.n]) : '—') + '</td>'
+                   + '<td class="sku-num">' + doneCell(s.r * k, SP[s.n] || 0) + '</td>' : '')
         + '<td class="sku-num" style="color:#64748b">' + (cur.total ? (s.r / cur.total * 100).toFixed(1) : 0) + '%</td>'
         + '<td class="sku-num">' + pill(s.r * k, s._prev, s._new) + '</td>'
         + '<td class="sku-num" style="color:#94a3b8">' + s.buyers.length + '</td></tr>';
@@ -424,6 +438,8 @@
         + '<span class="ctr-rev">' + sf(s2) + '</span>'
         + '<span class="ctr-fc" title="если темп месяца сохранится до конца">'
         + (fc ? '≈ ' + sf(fc) : '') + '</span>'
+        + planInput(c.num, PLAN[c.num] || 0)
+        + doneCell(pi.partial ? fc : s2, PLAN[c.num] || 0)
         + pill(c.rev * k, prevRev, !p)
         + '<span class="ctr-pct">' + c.pct + '%</span></div>'
         + '<div class="ctr-bar"><i style="width:' + Math.max(1, Math.round(c.rev / max * 100)) + '%"></i></div>'
@@ -431,6 +447,7 @@
         + '<th>Позиция</th><th style="text-align:right">Кол-во</th>'
         + '<th style="text-align:right">Сумма</th>'
         + (pi.partial ? '<th style="text-align:right" title="если темп месяца сохранится до конца">Прогноз</th>' : '')
+        + (PLAN[c.num] ? '<th style="text-align:right" title="план контрагента, разложенный по его структуре закупа">План</th>' : '')
         + '<th style="text-align:right">Было</th>'
         + '<th style="text-align:right">Динамика</th></tr></thead><tbody>'
         + items.map(function (it) {
@@ -439,6 +456,7 @@
             + '<td style="text-align:right;color:#94a3b8">' + num(it.q) + '</td>'
             + '<td style="text-align:right;font-weight:700;color:#a78bfa">' + num(it.r) + '</td>'
             + (pi.partial ? '<td class="sku-fc" style="text-align:right">≈ ' + num(it.r * k) + '</td>' : '')
+            + (PLAN[c.num] ? '<td class="pl-num" style="text-align:right">' + num(PLAN[c.num] * (it.r / (c.rev || 1))) + '</td>' : '')
             + '<td style="text-align:right;color:#64748b">' + (pr ? num(pr) : '—') + '</td>'
             + '<td style="text-align:right">' + pill(it.r * k, pr, !pr) + '</td></tr>';
         }).join('')
@@ -449,14 +467,90 @@
       + '<span></span><span>Контрагент</span>'
       + '<span class="r">Точек</span><span class="r">Было</span><span class="r">Стало</span>'
       + '<span class="r ctr-fc">Прогноз</span>'
+      + '<span class="r">План</span><span class="r" title="прогноз к плану">Вып.</span>'
       + '<span class="r">Δ</span><span class="r">Доля</span></div>';
     var list = document.getElementById('ctr-list');
     // колонка прогноза нужна только в незакрытом месяце — иначе её прячет CSS
     list.className = pi.partial ? 'fc' : '';
     list.innerHTML = h ? (hdr + h) : '<div class="ctr-empty">Ничего не найдено</div>';
     var st = document.getElementById('ctr-stat');
+    var pt = planTotal();
+    var base = pi.partial ? fsum : sum;
     if (st) st.innerHTML = '<b style="color:#e2e8f0">' + nc + '</b> контрагентов на <b style="color:#a78bfa">' + sf(sum) + '</b>'
-      + (pi.partial ? ' <span class="stat-fc">прогноз месяца ≈ <b>' + sf(fsum) + '</b></span>' : '');
+      + (pi.partial ? ' <span class="stat-fc">прогноз месяца ≈ <b>' + sf(fsum) + '</b></span>' : '')
+      + (pt ? ' <span class="stat-pl">план <b>' + sf(pt) + '</b> · '
+              + (base >= pt ? '<b class="ok">+' : '<b class="bad">') + sf(base - pt) + '</b></span>' : '');
+  }
+
+  function planLoad(mk, done) {
+    PLAN_SKU = null;
+    if (!mk || mk === 'year') { PLAN = {}; PLAN_MK = ''; PLAN_UPD = ''; return done && done(); }
+    fetch('/plan?m=' + encodeURIComponent(mk), { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : { items: {} }; })
+      .then(function (o) { PLAN = o.items || {}; PLAN_MK = mk; PLAN_UPD = o.updated || ''; })
+      .catch(function () { PLAN = {}; PLAN_MK = mk; PLAN_UPD = ''; })
+      .then(function () { done && done(); });
+  }
+
+  function planSave(items, mode) {
+    if (!PLAN_MK) return Promise.resolve();
+    return fetch('/plan?m=' + encodeURIComponent(PLAN_MK), {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ items: items, mode: mode || 'merge' })
+    }).then(function (r) { return r.json(); })
+      .then(function (o) {
+        if (o && o.items) { PLAN = o.items; PLAN_UPD = o.updated || ''; PLAN_SKU = null; }
+        return o;
+      });
+  }
+
+  /* План по позициям = сумма по контрагентам: план клиента, разложенный
+     по его же структуре закупа за этот месяц. У кого в этом месяце отгрузок
+     ещё не было, план в разрез по товарам не попадает — раскладывать не по
+     чему; в шапке это видно по расхождению итогов. */
+  function planBySku(mk) {
+    if (PLAN_SKU) return PLAN_SKU;
+    var out = {};
+    (index(mk).ctr || []).forEach(function (c) {
+      var p = PLAN[c.num];
+      if (!p || !c.rev) return;
+      (c.items || []).forEach(function (it) { out[it.n] = (out[it.n] || 0) + p * (it.r / c.rev); });
+    });
+    PLAN_SKU = out;
+    return out;
+  }
+
+  function planTotal() {
+    var t = 0; for (var k in PLAN) t += PLAN[k] || 0; return t;
+  }
+
+  /* Выполнение: прогноз к плану. Считаем от прогноза, а не от факта, —
+     вопрос «дотянем ли до конца месяца», а не «сколько прошли». */
+  function doneCell(fc, plan) {
+    if (!plan) return '<span class="pl-do none">—</span>';
+    var pc = Math.round(fc / plan * 100);
+    var cls = pc >= 100 ? 'ok' : (pc >= 90 ? 'warn' : 'bad');
+    return '<span class="pl-do ' + cls + '">' + pc + '%</span>';
+  }
+
+  function planInput(num, plan) {
+    return '<span class="pl-wrap" onclick="event.stopPropagation()">'
+      + '<input class="pl-inp' + (plan ? ' has' : '') + '" data-num="' + esc(String(num)) + '"'
+      + ' inputmode="numeric" placeholder="—" value="' + (plan ? num2(plan) : '') + '"></span>';
+  }
+
+  function num2(v) { return Math.round(v).toLocaleString('ru'); }
+
+  function planParseNum(t) {
+    t = String(t || '').replace(/[\s\u00a0\u202f]/g, '').replace(',', '.');
+    if (!t) return 0;
+    var m = t.match(/-?\d+(?:\.\d+)?/);
+    if (!m) return 0;
+    var v = parseFloat(m[0]);
+    // «115» в колонке с миллионами — почти наверняка миллионы, а не 115 тенге
+    if (Math.abs(v) < 10000) v = v * 1e6;
+    return Math.round(v);
   }
 
   // ── публичные ──────────────────────────────────────────────
@@ -481,6 +575,8 @@
     var wfs = document.getElementById('wf-section');
     if (wfs) wfs.style.display = (mk === 'year') ? 'none' : '';
     window.drawCtr();
+    // план приходит с сервера — перерисуем, когда доедет
+    planLoad(mk, function () { window.drawCtr(); planBar(); });
     if (mk !== 'year' && window.wfInit) window.wfInit();
     drawYearByCtr();
   };
@@ -1091,6 +1187,166 @@
     var el = document.getElementById('year-top-sku');
     if (el) el.innerHTML = h;
   };
+
+  /* Правка одной клетки. Сохраняем по Enter и по уходу из поля: так не
+     теряется цифра, если человек кликнул мимо. */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target && e.target.classList.contains('pl-inp')) { e.target.blur(); }
+  });
+  document.addEventListener('change', function (e) {
+    var el = e.target;
+    if (!el || !el.classList || !el.classList.contains('pl-inp')) return;
+    var num = el.getAttribute('data-num');
+    var v = planParseNum(el.value);
+    var o = {}; o[num] = v;
+    el.classList.add('saving');
+    planSave(o, 'merge').then(function () {
+      el.classList.remove('saving');
+      window.drawCtr(); planBar();
+    }).catch(function () { el.classList.remove('saving'); el.classList.add('err'); });
+  }, true);
+
+  /* Вставка плана списком. Берём две колонки как есть из Excel: слева
+     контрагент (номер или название), справа сумма. Сопоставляем по номеру
+     в начале строки, иначе по названию; что не легло — показываем, а не
+     проглатываем. */
+  window.planPaste = function () {
+    var box = document.getElementById('pl-modal');
+    if (!box) return;
+    box.style.display = 'flex';
+    document.getElementById('pl-text').value = '';
+    document.getElementById('pl-prev').innerHTML = '';
+    document.getElementById('pl-apply').disabled = true;
+    setTimeout(function () { document.getElementById('pl-text').focus(); }, 50);
+  };
+  window.planClose = function () {
+    var box = document.getElementById('pl-modal'); if (box) box.style.display = 'none';
+  };
+
+  function planMatch(text) {
+    var list = index(MK).ctr || [];
+    var byNum = {}, byName = {};
+    list.forEach(function (c) {
+      byNum[String(c.num)] = c;
+      byName[String(c.name).toLowerCase().replace(/\s+/g, ' ').trim()] = c;
+    });
+    var hit = {}, miss = [];
+    String(text).split(/\r?\n/).forEach(function (line) {
+      if (!line.trim()) return;
+      var parts = line.split(/\t|;|\s{2,}|\|/).map(function (x) { return x.trim(); }).filter(Boolean);
+      if (parts.length < 2) {
+        // «85 115000000» — номер и сумма через один пробел
+        var m2 = line.trim().match(/^(\S+)\s+(.+)$/);
+        if (!m2) { miss.push(line.trim()); return; }
+        parts = [m2[1], m2[2]];
+      }
+      var keyTxt = parts[0], sumTxt = parts[parts.length - 1];
+      var v = planParseNum(sumTxt);
+      if (!v) { miss.push(line.trim()); return; }
+      var mnum = keyTxt.match(/^\s*(\d+)/);
+      var c = mnum ? byNum[mnum[1]] : null;
+      if (!c) {
+        var kn = keyTxt.toLowerCase().replace(/\s+/g, ' ').trim();
+        c = byName[kn];
+        if (!c) {
+          var cand = list.filter(function (x) { return String(x.name).toLowerCase().indexOf(kn) >= 0; });
+          if (cand.length === 1) c = cand[0];
+        }
+      }
+      if (c) hit[c.num] = v; else miss.push(line.trim());
+    });
+    return { hit: hit, miss: miss, list: list };
+  }
+
+  window.planPreview = function () {
+    var t = document.getElementById('pl-text').value;
+    var r = planMatch(t);
+    var list = index(MK).ctr || [], nameOf = {};
+    list.forEach(function (c) { nameOf[c.num] = c.name; });
+    var keys = Object.keys(r.hit), tot = 0;
+    keys.forEach(function (k) { tot += r.hit[k]; });
+    var h = '<div class="pl-sum">Распознано <b>' + keys.length + '</b> строк на <b>' + sf(tot) + '</b>'
+      + (r.miss.length ? ' · не сопоставлено <b class="bad">' + r.miss.length + '</b>' : '') + '</div>';
+    if (keys.length) {
+      h += '<table class="pl-tbl"><tbody>' + keys.slice(0, 40).map(function (k) {
+        return '<tr><td>' + esc(nameOf[k] || k) + '</td><td class="r">' + num2(r.hit[k]) + '</td></tr>';
+      }).join('') + '</tbody></table>'
+        + (keys.length > 40 ? '<div class="pl-more">и ещё ' + (keys.length - 40) + '</div>' : '');
+    }
+    if (r.miss.length) {
+      h += '<div class="pl-miss"><b>Не нашли таких контрагентов:</b><br>'
+        + r.miss.slice(0, 12).map(esc).join('<br>')
+        + (r.miss.length > 12 ? '<br>и ещё ' + (r.miss.length - 12) : '') + '</div>';
+    }
+    document.getElementById('pl-prev').innerHTML = h;
+    document.getElementById('pl-apply').disabled = !keys.length;
+    window.__planPending = r.hit;
+  };
+
+  window.planApply = function () {
+    var items = window.__planPending || {};
+    var mode = document.getElementById('pl-replace').checked ? 'replace' : 'merge';
+    var btn = document.getElementById('pl-apply');
+    btn.disabled = true; btn.textContent = 'Сохраняю…';
+    planSave(items, mode).then(function () {
+      btn.textContent = 'Вставить';
+      window.planClose(); window.drawCtr(); planBar();
+    }).catch(function () { btn.textContent = 'Не вышло'; btn.disabled = false; });
+  };
+
+  /* Быстрое заполнение: взять факт прошлого месяца и, если надо, накинуть
+     процент. Это то, с чего план обычно и начинают. */
+  window.planFromPrev = function (pct) {
+    var pk = prevKey(MK); if (!pk) return;
+    var items = {};
+    ((window.CTR || {})[pk] || []).forEach(function (c) {
+      var v = Math.round(c.rev * (1 + (pct || 0) / 100));
+      if (v > 0) items[c.num] = v;
+    });
+    planSave(items, 'replace').then(function () { window.drawCtr(); planBar(); });
+  };
+
+  window.planClear = function () {
+    planSave({}, 'replace').then(function () { window.drawCtr(); planBar(); });
+  };
+
+  /* Строка над таблицей: план, прогноз, разрыв и сколько надо отгружать
+     в день, чтобы дотянуть. Последнее — самое полезное: видно, реально
+     ли ещё успеть. */
+  function planBar() {
+    var el = document.getElementById('pl-bar'); if (!el) return;
+    if (!MK || MK === 'year') { el.style.display = 'none'; return; }
+    el.style.display = '';
+    var pi = periodInfo(MK), cur = index(MK);
+    var fact = (cur.ctr || []).reduce(function (a, c) { return a + c.rev; }, 0);
+    var pt = planTotal();
+    var left = pi.dim - pi.days;
+    var need = pt ? Math.max(0, pt - fact) : 0;
+    var perDay = left > 0 ? need / left : 0;
+    var nowDay = pi.days ? fact / pi.days : 0;
+    var h = '<span class="pl-lbl">План месяца</span>';
+    if (!pt) {
+      h += '<span class="pl-empty">не задан</span>';
+    } else {
+      var fc = pi.partial ? fact * (pi.dim / pi.days) : fact;
+      h += '<b class="pl-big">' + sf(pt) + '</b>'
+        + '<span class="pl-gap ' + (fc >= pt ? 'ok' : 'bad') + '">'
+        + (fc >= pt ? 'прогноз выше на ' : 'прогноза не хватает на ') + sf(Math.abs(fc - pt)) + '</span>';
+      if (pi.partial && left > 0) {
+        h += '<span class="pl-need">осталось ' + left + ' дн. · надо <b>' + sf(perDay)
+          + '</b> в день, сейчас идёт <b>' + sf(nowDay) + '</b></span>';
+      }
+      if (PLAN_UPD) h += '<span class="pl-upd">правили ' + esc(PLAN_UPD) + '</span>';
+    }
+    h += '<span class="pl-acts">'
+      + '<button class="pl-btn main" onclick="planPaste()">Вставить план списком</button>'
+      + '<button class="pl-btn" onclick="planFromPrev(0)">= прошлый месяц</button>'
+      + '<button class="pl-btn" onclick="planFromPrev(10)">+10%</button>'
+      + (pt ? '<button class="pl-btn del" onclick="if(confirm(\'Убрать план на этот месяц?\'))planClear()">Очистить</button>' : '')
+      + '</span>';
+    el.innerHTML = h;
+  }
+  window.planBar = planBar;
 
   window.setCtrView = function (v) {
     VIEW = v; OPEN_SKU = -1;

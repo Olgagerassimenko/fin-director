@@ -92,8 +92,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 /* Шапка и строки — одна сетка, иначе колонки «было / стало / прогноз»
    разъезжаются: у части контрагентов нет ни точек, ни прошлого месяца.
    Колонка прогноза появляется только в незакрытом месяце (#ctr-list.fc). */
-#ctr-list{--cols:14px minmax(0,1fr) 78px 104px 118px 76px 56px}
-#ctr-list.fc{--cols:14px minmax(0,1fr) 78px 104px 118px 118px 76px 56px}
+#ctr-list{--cols:14px minmax(0,1fr) 62px 92px 112px 108px 54px 70px 50px}
+#ctr-list.fc{--cols:14px minmax(0,1fr) 62px 92px 112px 108px 108px 54px 70px 50px}
 .ctr-head,.ctr-hdr{display:grid;grid-template-columns:var(--cols);align-items:center;gap:12px}
 .ctr-hdr{padding:0 17px 8px;font-size:10.5px;font-weight:800;letter-spacing:.07em;
   text-transform:uppercase;color:#8ea3c4;
@@ -108,6 +108,62 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
    и её не надо путать с фактической выручкой. */
 .sku-fc{color:#7dd3fc!important;font-weight:700}
 .dt-fc{font-size:10.5px;font-weight:700;color:#7dd3fc;text-transform:none;letter-spacing:0;margin-left:8px}
+/* ── План ──────────────────────────────────────────────────────────────
+   Поле ввода стоит прямо в строке: план правят по одному контрагенту,
+   и открывать ради этого диалог — лишний клик. Сохранение по Enter и по
+   уходу из поля, поэтому потерять цифру нельзя. */
+.pl-wrap{display:block;text-align:right}
+.pl-inp{width:100%;background:#131f38;border:1px dashed #40527d;border-radius:8px;
+  padding:6px 8px;color:#93a6c8;font:700 13px/1 inherit;text-align:right;outline:none;
+  transition:all .15s;font-family:inherit}
+.pl-inp::placeholder{color:#4a5c80}
+.pl-inp.has{color:#fbbf24;border-style:solid;border-color:#5b4a1f;background:#1d1a10}
+.pl-inp:hover{border-color:#7c8fc0}
+.pl-inp:focus{border-color:#fbbf24;color:#fde68a;background:#231e12;box-shadow:0 0 0 3px rgba(251,191,36,.20)}
+.pl-inp.saving{opacity:.5}
+.pl-inp.err{border-color:#f87171}
+.pl-do{font-size:12.5px;font-weight:800;text-align:right;display:block}
+.pl-do.ok{color:#4ade80}.pl-do.warn{color:#fbbf24}.pl-do.bad{color:#f87171}.pl-do.none{color:#475569}
+.pl-num{color:#fbbf24!important;font-weight:700}
+#pl-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;
+  padding:11px 14px;border-radius:13px;background:linear-gradient(180deg,#2a2413,#1d1a10);
+  border:1px solid #6b5520;border-left:5px solid #fbbf24;
+  box-shadow:0 0 0 1px rgba(251,191,36,.16),0 6px 22px rgba(251,191,36,.14)}
+.pl-lbl{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#0b1120;
+  background:linear-gradient(135deg,#fcd34d,#f59e0b);border-radius:8px;padding:6px 11px}
+.pl-big{font-size:19px;font-weight:800;color:#fde68a}
+.pl-empty{font-size:13px;color:#a8924f}
+.pl-gap{font-size:13px;font-weight:700}
+.pl-gap.ok{color:#4ade80}.pl-gap.bad{color:#f87171}
+.pl-need{font-size:12.5px;color:#cbb682}
+.pl-need b{color:#fde68a}
+.pl-upd{font-size:11px;color:#8a7742}
+.pl-acts{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+.pl-btn{font:700 11.5px/1 inherit;font-family:inherit;color:#fde68a;background:#3a2f12;
+  border:1px solid #6b5520;border-radius:8px;padding:7px 11px;cursor:pointer;transition:all .15s}
+.pl-btn:hover{background:#4a3c16;border-color:#fbbf24}
+.pl-btn.main{color:#0b1120;background:linear-gradient(135deg,#fcd34d,#f59e0b);border:none}
+.pl-btn.del{color:#f87171;border-color:#5b2a2a;background:#2a1414}
+#pl-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,.78);
+  align-items:center;justify-content:center;padding:24px}
+.pl-card{width:min(760px,100%);max-height:88vh;overflow:auto;background:#0f172a;
+  border:1px solid #33456b;border-radius:16px;padding:20px 22px;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.pl-card h3{margin:0 0 6px;font-size:17px;color:#f1f5f9}
+.pl-hint{font-size:12.5px;color:#93a6c8;line-height:1.55;margin:0 0 12px}
+#pl-text{width:100%;height:170px;background:#131f38;border:1.5px solid #46598a;border-radius:10px;
+  padding:11px 13px;color:#e2e8f0;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;outline:none;resize:vertical}
+#pl-text:focus{border-color:#fbbf24}
+.pl-row{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.pl-chk{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#cbd5e1;cursor:pointer;user-select:none}
+.pl-chk input{accent-color:#fbbf24;width:15px;height:15px}
+.pl-sum{font-size:13px;color:#cbd5e1;margin:12px 0 8px}
+.pl-sum b{color:#fde68a}.pl-sum b.bad{color:#f87171}
+.pl-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.pl-tbl td{padding:5px 8px;border-bottom:1px solid #1e293b;color:#cbd5e1}
+.pl-tbl td.r{text-align:right;color:#fde68a;font-weight:700;white-space:nowrap}
+.pl-more{font-size:12px;color:#64748b;padding:6px 8px}
+.pl-miss{margin-top:10px;padding:10px 12px;border-radius:9px;background:#241d16;
+  border:1px solid #4a3a22;font-size:12px;color:#c9b189;line-height:1.6}
 .ctr-head .ctr-fc{font-size:14px;font-weight:700;color:#7dd3fc;white-space:nowrap;text-align:right}
 .stat-fc{margin-left:10px;padding:5px 11px;border-radius:8px;font-size:12.5px;font-weight:700;
   color:#0b1120;background:linear-gradient(135deg,#7dd3fc,#38bdf8);border:none;
@@ -2330,6 +2386,7 @@ details[open] .dc-caret{transform:rotate(90deg)}
     </div>
     <span class="ctr-stat" id="ctr-stat">—</span>
   </div>
+  <div id="pl-bar" style="display:none"></div>
   <div id="cat-filter" class="cat-filter"></div>
   <div id="ctr-list"></div>
 </div>
@@ -3511,5 +3568,25 @@ function showDZKZ(btn){
   document.head.appendChild(sc);
 })();
 </script>
+<div id="pl-modal" onclick="if(event.target===this)planClose()">
+  <div class="pl-card">
+    <h3>Вставить план на месяц</h3>
+    <p class="pl-hint">Скопируйте из Excel две колонки: слева контрагент (номер или название),
+      справа сумма. Номер надёжнее — названия в таблицах пишут по-разному.
+      Суммы можно в тенге («115 000 000») или в миллионах («115»).
+      План ставится только по контрагентам: по позициям он разложится сам,
+      пропорционально тому, что клиент реально берёт.</p>
+    <textarea id="pl-text" spellcheck="false" oninput="planPreview()"
+      placeholder="85&#9;115 000 000&#10;102&#9;50 000 000&#10;90-ТОО Май Март&#9;29"></textarea>
+    <div class="pl-row">
+      <label class="pl-chk"><input type="checkbox" id="pl-replace"> заменить весь план, а не дополнить</label>
+      <span style="margin-left:auto;display:flex;gap:8px">
+        <button class="pl-btn" onclick="planClose()">Отмена</button>
+        <button class="pl-btn main" id="pl-apply" onclick="planApply()" disabled>Вставить</button>
+      </span>
+    </div>
+    <div id="pl-prev"></div>
+  </div>
+</div>
 <script src="nav.js"></script>
 </html>
