@@ -99,6 +99,17 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
   text-transform:uppercase;color:#8ea3c4;
   border-bottom:1px solid #223049;padding-top:4px;margin-bottom:10px}
 .ctr-hdr .r{text-align:right}
+/* Итог под списком — той же сеткой, что строки, иначе колонки разъедутся.
+   Считается по видимым строкам и пересчитывается сразу после правки плана. */
+.ctr-total{display:grid;grid-template-columns:var(--cols);align-items:center;gap:12px;
+  margin-top:10px;padding:13px 16px;border-radius:12px;
+  background:linear-gradient(180deg,#18233d,#111a2e);border:1px solid #3a4c74;
+  font-weight:800;color:#e8eef6;font-size:14px}
+.ctr-total .r{text-align:right}
+.ctr-total .big{font-size:18px;color:#c4b5fd}
+.ctr-total .ctr-fc{display:none;font-size:14px;color:#7dd3fc}
+#ctr-list.fc .ctr-total .ctr-fc{display:block}
+.ctr-total .pl{color:#fde68a}
 .ctr-head{padding:14px 16px;cursor:pointer;transition:background .15s;user-select:none}
 .ctr-head .ctr-pts,.ctr-head .ctr-prev{text-align:right}
 .ctr-fc{display:none}
