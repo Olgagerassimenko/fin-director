@@ -6,6 +6,7 @@
 <title>Дебиторка и Кредиторка · Фуд Завод</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="dz_kz.js?v=3" onerror="window.DZ_KZ=null"></script>
+<script src="saldo.js?v=1" onerror="window.SALDO=null"></script>
 <script src="kz_ana.js?v=1" onerror="window.KZ_ANA=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -98,6 +99,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .a-card-lbl{font-size:10px;color:#9db0c9;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
 .a-card-val{font-size:18px;font-weight:800;color:#f1f5f9}
 .a-card-val.red{color:#f87171}.a-card-val.green{color:#4ade80}.a-card-val.yellow{color:#fbbf24}
+/* Баланс на дату: поле даты в тёмной теме по умолчанию белое — перекрашиваем. */
+.sal-date{background:#0f1e33;color:#e8eef6;border:1px solid #2b3d5c;border-radius:8px;
+  padding:5px 9px;font-size:12.5px;font-family:inherit;font-weight:700;color-scheme:dark}
+.sal-date:focus{outline:none;border-color:#3b82f6}
+.sal-quick{display:flex;gap:6px;flex-wrap:wrap}
+.sal-q{font-size:11px;color:#9db0c9;background:#0d1729;border:1px solid #1e2c46;
+  border-radius:7px;padding:4px 9px;cursor:pointer;transition:all .15s}
+.sal-q:hover{color:#e8eef6;border-color:#3b82f6}
 .a-table{width:100%;border-collapse:collapse;font-size:12px}
 .a-table th{padding:7px 10px;text-align:left;color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1e293b;background:#0a1424}
 .a-table th.r{text-align:right}
@@ -285,6 +294,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
       <div class="atab" onclick="showAtab('consign',this)">📅 Кто просрочил консигнацию</div>
       <div class="atab" onclick="showAtab('shares',this)">🥧 Кто держит оборот</div>
       <div class="atab" onclick="showAtab('kzana',this)">🧾 Кому уходят деньги за закуп</div>
+      <div class="atab" onclick="showAtab('saldo',this)">📆 Баланс на дату</div>
     </div>
 
     <!-- НЕСТЫКОВКИ -->
@@ -393,6 +403,28 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
     <!-- АНАЛИТИКА КРЕДИТОРСКОЙ ЗАДОЛЖЕННОСТИ -->
     <div id="atab-kzana" class="apanel">
       <div id="kzana-body"><p class="kz-note">Данные закупа не загрузились — обновите страницу после утренней сборки.</p></div>
+    </div>
+
+    <!-- БАЛАНС НА ДАТУ (из айко, счёт 3.06) -->
+    <div id="atab-saldo" class="apanel">
+      <div class="kz-per">
+        <b>Баланс на</b>
+        <input type="date" id="sal-date" class="sal-date">
+        <div class="sal-quick">
+          <span class="sal-q" data-back="0">сегодня</span>
+          <span class="sal-q" data-back="7">неделю назад</span>
+          <span class="sal-q" data-back="30">месяц назад</span>
+        </div>
+        <span id="sal-upd" style="margin-left:auto"></span>
+      </div>
+      <div class="a-cards">
+        <div class="a-card"><div class="a-card-lbl">Мы должны</div><div class="a-card-val red" id="sal-owe">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Наши переплаты</div><div class="a-card-val green" id="sal-pre">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Чистая кредиторка</div><div class="a-card-val" id="sal-net">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Поставщиков</div><div class="a-card-val yellow" id="sal-cnt">—</div></div>
+      </div>
+      <p class="a-hint" id="sal-hint">—</p>
+      <div id="sal-body"></div>
     </div>
   </div>
 </div>
@@ -1189,6 +1221,75 @@ function buildConsign(){
 
 </script>
 <script>
+/* ── Баланс на дату ────────────────────────────────────────────────────────
+   Данные из айко, счёт 3.06 «Задолженность перед поставщиками»; список
+   контрагентов — только те, кто есть в листе КЗ. В файле лежит входящий
+   остаток на 1 января и движения по дням, баланс на выбранную дату
+   складываем здесь: так файл в разы легче, чем остаток на каждый день.
+   Знак: плюс — мы должны поставщику, минус — у него наша переплата. */
+(function buildSaldo(){
+  const S=window.SALDO, body=document.getElementById('sal-body');
+  if(!body) return;
+  if(!S||!S.rows||!S.rows.length){
+    body.innerHTML='<p class="kz-note">Сальдо из айко ещё не собралось — оно обновляется каждые полчаса.</p>';
+    return;
+  }
+  const inp=document.getElementById('sal-date');
+  const P=n=>String(n).padStart(2,'0');
+  const iso=d=>d.getFullYear()+'-'+P(d.getMonth()+1)+'-'+P(d.getDate());
+  const ru =d=>P(d.getDate())+'.'+P(d.getMonth()+1)+'.'+d.getFullYear();
+  const day=864e5;
+  const base=new Date(S.base+'T00:00:00');
+  const last=new Date(base.getTime()+S.maxDay*day);
+  inp.min=iso(base); inp.max=iso(last); inp.value=iso(last);
+  const upd=document.getElementById('sal-upd');
+  if(upd) upd.textContent='обновлено '+S.updated;
+
+  // накопленные суммы считаем один раз на строку — дальше это просто поиск
+  S.rows.forEach(r=>{ let a=r.open; r.cum=r.mv.map(([i,d])=>[i,a+=d]); });
+
+  function balance(r, idx){
+    let v=r.open;
+    for(let k=0;k<r.cum.length;k++){ if(r.cum[k][0]>idx) break; v=r.cum[k][1]; }
+    return v;
+  }
+
+  function render(){
+    const d=new Date(inp.value+'T00:00:00');
+    if(isNaN(d)) return;
+    const idx=Math.round((d-base)/day);
+    const rows=S.rows.map(r=>({name:r.name, v:balance(r,idx)}))
+                     .filter(x=>Math.abs(x.v)>=1)
+                     .sort((a,b)=>b.v-a.v);
+    const owe=rows.filter(x=>x.v>0).reduce((s,x)=>s+x.v,0);
+    const pre=rows.filter(x=>x.v<0).reduce((s,x)=>s-x.v,0);
+    const set=(id,t)=>{const e=document.getElementById(id); if(e) e.textContent=t;};
+    set('sal-owe', fmt(owe));
+    set('sal-pre', fmt(pre));
+    set('sal-net', fmt(owe-pre));
+    set('sal-cnt', String(rows.length));
+    set('sal-hint','');
+    const h=document.getElementById('sal-hint');
+    if(h) h.innerHTML='Остаток на <b>'+ru(d)+'</b> по счёту «'+S.account+'» в айко, '
+      +'только контрагенты из листа КЗ. <b style="color:#f87171">Плюс</b> — мы должны, '
+      +'<b style="color:#4ade80">минус</b> — у поставщика лежит наша переплата. '
+      +'Столбцы сортируются по клику.';
+    body.innerHTML='<div class="kz-scroll"><table class="a-table"><thead><tr>'
+      +'<th>Поставщик</th><th class="r">Баланс на '+ru(d)+'</th></tr></thead><tbody>'
+      +rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td class="r" style="color:'
+        +(x.v>0?'#f87171':'#4ade80')+'">'+fmt(x.v)+'</td></tr>').join('')
+      +'</tbody><tfoot><tr><td>Итого</td><td class="r">'+fmt(owe-pre)+'</td></tr></tfoot></table></div>';
+  }
+  function esc(t){ return String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+  inp.addEventListener('change',render);
+  document.querySelectorAll('.sal-q').forEach(b=>b.addEventListener('click',()=>{
+    const d=new Date(last.getTime()-(+b.dataset.back)*day);
+    inp.value=iso(d < base ? base : d); render();
+  }));
+  render();
+})();
+
 /* a-sort — сортировка любой таблицы .a-table по клику на заголовок.
    Оформление не трогает: добавляется только стрелка и подсветка активной колонки.
    Первый клик по числовой колонке — по убыванию (крупное сверху),
