@@ -50,10 +50,24 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 .fact b{color:#f1f5f9}
 .fact b.g{color:#34d399}
 .fact b.r{color:#f87171}
-.ctr-tools{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
-.ctr-input{flex:1;min-width:260px;background:#0f172a;border:1px solid #334155;border-radius:11px;padding:12px 15px;color:#e2e8f0;font-size:14px;outline:none;transition:border-color .15s}
-.ctr-input::placeholder{color:#64748b}
-.ctr-input:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.18)}
+.ctr-tools{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;
+  background:linear-gradient(180deg,#16203a,#111a2e);border:1px solid #33456b;
+  border-left:3px solid #7c3aed;border-radius:14px;padding:12px 14px;
+  box-shadow:0 2px 14px rgba(124,58,237,.10)}
+/* Подпись у панели: без неё строка поиска читалась как заголовок, а не
+   как фильтр — люди не понимали, что в неё можно печатать. */
+.ctr-tools::before,.wf-tools::before{font-size:10.5px;font-weight:800;letter-spacing:.09em;
+  text-transform:uppercase;color:#c4b5fd;background:rgba(124,58,237,.16);
+  border:1px solid #7c3aed55;border-radius:7px;padding:5px 9px;white-space:nowrap}
+.ctr-tools::before{content:'Фильтр'}
+.wf-tools::before{content:'Параметры'}
+.ctr-input{flex:1;min-width:260px;background:#1b2743;border:1.5px solid #46598a;border-radius:11px;
+  padding:12px 15px 12px 38px;color:#f1f5f9;font-size:14px;outline:none;
+  transition:border-color .15s,background .15s,box-shadow .15s;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='2.4' stroke-linecap='round'><circle cx='11' cy='11' r='7'/><path d='M20 20l-3.6-3.6'/></svg>");
+  background-repeat:no-repeat;background-position:12px 50%;background-size:16px}
+.ctr-input::placeholder{color:#93a6c8}
+.ctr-input:focus{border-color:#a78bfa;background:#20305480;box-shadow:0 0 0 3px rgba(124,58,237,.30)}
 .ctr-stat{font-size:14px;color:#94a3b8;white-space:nowrap}
 /* ── герой-панель динамики ── */
 .dyn-hero{display:flex;align-items:center;gap:26px;flex-wrap:wrap;background:linear-gradient(135deg,#1a1040,#0f172a 60%);border:1px solid #3b2a6b;border-radius:16px;padding:18px 24px;margin-bottom:16px}
@@ -74,15 +88,33 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 /* ── аккордеон ── */
 .ctr-acc{border:1px solid #1e293b;border-radius:12px;margin-bottom:9px;background:#0f172a;overflow:hidden;transition:border-color .15s}
 .ctr-acc.open{border-color:#7c3aed88;box-shadow:0 0 0 3px rgba(124,58,237,.08)}
-.ctr-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;transition:background .15s;user-select:none}
+/* Шапка и строки — одна сетка, иначе колонки «было / стало / прогноз»
+   разъезжаются: у части контрагентов нет ни точек, ни прошлого месяца.
+   Колонка прогноза появляется только в незакрытом месяце (#ctr-list.fc). */
+#ctr-list{--cols:14px minmax(0,1fr) 78px 104px 118px 76px 56px}
+#ctr-list.fc{--cols:14px minmax(0,1fr) 78px 104px 118px 118px 76px 56px}
+.ctr-head,.ctr-hdr{display:grid;grid-template-columns:var(--cols);align-items:center;gap:12px}
+.ctr-hdr{padding:0 17px 8px;font-size:10.5px;font-weight:800;letter-spacing:.07em;
+  text-transform:uppercase;color:#8ea3c4;
+  border-bottom:1px solid #223049;padding-top:4px;margin-bottom:10px}
+.ctr-hdr .r{text-align:right}
+.ctr-head{padding:14px 16px;cursor:pointer;transition:background .15s;user-select:none}
+.ctr-head .ctr-pts,.ctr-head .ctr-prev{text-align:right}
+.ctr-fc{display:none}
+#ctr-list.fc .ctr-fc{display:block}
+.ctr-head .ctr-d{justify-self:end}
+.ctr-head .ctr-fc{font-size:14px;font-weight:700;color:#7dd3fc;white-space:nowrap;text-align:right}
+.stat-fc{margin-left:10px;padding:3px 9px;border-radius:7px;font-size:12.5px;
+  color:#7dd3fc;background:rgba(56,189,248,.10);border:1px solid rgba(56,189,248,.28)}
+.stat-fc b{color:#bae6fd}
 .ctr-head:hover{background:rgba(255,255,255,.04)}
 .ctr-arrow{color:#64748b;font-size:11px;width:11px;flex-shrink:0;transition:transform .18s}
 .ctr-acc.open .ctr-arrow{transform:rotate(90deg);color:#a78bfa}
-.ctr-head .ctr-name{font-weight:700;color:#f1f5f9;font-size:17px;flex:1;min-width:0}
+.ctr-head .ctr-name{font-weight:700;color:#f1f5f9;font-size:17px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ctr-head .ctr-pts{font-size:13px;color:#94a3b8;white-space:nowrap}
 .ctr-head .ctr-prev{font-size:13.5px;color:#94a3b8;white-space:nowrap}
-.ctr-head .ctr-rev{font-weight:800;color:#c4b5fd;font-size:20px;white-space:nowrap}
-.ctr-head .ctr-pct{font-size:14px;color:#94a3b8;width:58px;text-align:right;flex-shrink:0;font-weight:600}
+.ctr-head .ctr-rev{font-weight:800;color:#c4b5fd;font-size:20px;white-space:nowrap;text-align:right}
+.ctr-head .ctr-pct{font-size:14px;color:#94a3b8;text-align:right;font-weight:600}
 .ctr-d{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:800;padding:4px 10px;border-radius:8px;white-space:nowrap;min-width:86px;justify-content:center}
 .ctr-d.up{background:rgba(16,185,129,.15);color:#34d399}
 .ctr-d.down{background:rgba(239,68,68,.15);color:#f87171}
@@ -101,12 +133,15 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 .tag.new{background:#1d4ed8;color:#dbeafe}
 .tag.gone{background:#334155;color:#cbd5e1}
 .ctr-hl{background:rgba(124,58,237,.5);color:#fff;border-radius:3px;padding:0 2px}
-.wf-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.wf-sel{background:#0f172a;border:1px solid #334155;color:#e2e8f0;font-size:13px;font-weight:600;padding:9px 12px;border-radius:10px;outline:none;cursor:pointer;font-family:inherit}
-.wf-sel:focus{border-color:#7c3aed}
-.wf-chk{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#94a3b8;cursor:pointer;user-select:none}
+.wf-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;
+  background:linear-gradient(180deg,#16203a,#111a2e);border:1px solid #33456b;
+  border-left:3px solid #7c3aed;border-radius:14px;padding:12px 14px;
+  box-shadow:0 2px 14px rgba(124,58,237,.10)}
+.wf-sel{background:#1b2743;border:1.5px solid #46598a;color:#f1f5f9;font-size:13px;font-weight:600;padding:9px 12px;border-radius:10px;outline:none;cursor:pointer;font-family:inherit}
+.wf-sel:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(124,58,237,.25)}
+.wf-chk{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#cbd5e1;cursor:pointer;user-select:none}
 .wf-chk input{accent-color:#7c3aed;width:15px;height:15px;cursor:pointer}
-.wf-rng{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#94a3b8;user-select:none}
+.wf-rng{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cbd5e1;user-select:none}
 .wf-rng b{color:#c4b5fd;font-size:14px;min-width:18px;text-align:center}
 .wf-rng input[type=range]{accent-color:#7c3aed;width:130px;cursor:pointer}
 .wf-note{margin-top:12px;background:#0f172a;border-left:3px solid #7c3aed;border-radius:9px;padding:13px 16px;font-size:13.5px;line-height:1.6;color:#cbd5e1}
@@ -115,7 +150,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 .wf-down{color:#f87171;font-weight:700}
 .ctr-empty{color:#64748b;font-size:13px;padding:16px;text-align:center}
 /* ── переключатель вида ── */
-.vsw{display:flex;background:#0f172a;border:1px solid #334155;border-radius:11px;padding:3px;gap:3px}
+.vsw{display:flex;background:#101a2f;border:1.5px solid #46598a;border-radius:11px;padding:3px;gap:3px}
 .vbtn{background:transparent;border:none;color:#94a3b8;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;transition:.15s;font-family:inherit}
 .vbtn:hover{color:#e2e8f0}
 .vbtn.active{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff}

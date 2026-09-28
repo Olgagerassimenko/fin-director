@@ -391,7 +391,7 @@
     if (pk) ((window.CTR || {})[pk] || []).forEach(function (c) { pmap[c.num] = c; });
     var pi = periodInfo(MK), k = pi.partial ? pi.dim / pi.days : 1;
     var data = cur.ctr, max = data.length ? data[0].rev : 1;
-    var h = '', nc = 0, sum = 0;
+    var h = '', nc = 0, sum = 0, fsum = 0;
     data.forEach(function (c, i) {
       var items = c.items, nameHit = c.name.toLowerCase().indexOf(q) >= 0;
       if (q) {
@@ -405,13 +405,19 @@
       var open = q ? true : !!OPEN_CTR[i];
       var pit = {};
       if (p) p.items.forEach(function (it) { pit[it.n] = it.r; });
+      // прогноз на полный месяц: сколько выйдет, если темп сохранится.
+      // Только для незакрытого месяца — в закрытом прогнозировать нечего.
+      var fc = pi.partial ? s2 * k : 0;
+      fsum += fc;
       h += '<div class="ctr-acc' + (open ? ' open' : '') + '">'
         + '<div class="ctr-head" onclick="ctrToggle(' + i + ')">'
         + '<span class="ctr-arrow">▶</span>'
         + '<span class="ctr-name" title="' + esc(c.name) + '">' + hl(shortCtr(c.name), q) + '</span>'
-        + (c.points > 1 ? '<span class="ctr-pts">' + c.points + ' точек</span>' : '')
-        + (prevRev ? '<span class="ctr-prev">было ' + sf(prevRev) + '</span>' : '')
+        + '<span class="ctr-pts">' + (c.points > 1 ? c.points + ' точек' : '') + '</span>'
+        + '<span class="ctr-prev">' + (prevRev ? sf(prevRev) : '—') + '</span>'
         + '<span class="ctr-rev">' + sf(s2) + '</span>'
+        + '<span class="ctr-fc" title="если темп месяца сохранится до конца">'
+        + (fc ? '≈ ' + sf(fc) : '') + '</span>'
         + pill(c.rev * k, prevRev, !p)
         + '<span class="ctr-pct">' + c.pct + '%</span></div>'
         + '<div class="ctr-bar"><i style="width:' + Math.max(1, Math.round(c.rev / max * 100)) + '%"></i></div>'
@@ -429,9 +435,19 @@
         }).join('')
         + '</tbody></table></div></div>';
     });
-    document.getElementById('ctr-list').innerHTML = h || '<div class="ctr-empty">Ничего не найдено</div>';
+    // шапка столбцов: без неё непонятно, что «было», что «стало» и что прогноз
+    var hdr = '<div class="ctr-hdr">'
+      + '<span></span><span>Контрагент</span>'
+      + '<span class="r">Точек</span><span class="r">Было</span><span class="r">Стало</span>'
+      + '<span class="r ctr-fc">Прогноз</span>'
+      + '<span class="r">Δ</span><span class="r">Доля</span></div>';
+    var list = document.getElementById('ctr-list');
+    // колонка прогноза нужна только в незакрытом месяце — иначе её прячет CSS
+    list.className = pi.partial ? 'fc' : '';
+    list.innerHTML = h ? (hdr + h) : '<div class="ctr-empty">Ничего не найдено</div>';
     var st = document.getElementById('ctr-stat');
-    if (st) st.innerHTML = '<b style="color:#e2e8f0">' + nc + '</b> контрагентов на <b style="color:#a78bfa">' + sf(sum) + '</b>';
+    if (st) st.innerHTML = '<b style="color:#e2e8f0">' + nc + '</b> контрагентов на <b style="color:#a78bfa">' + sf(sum) + '</b>'
+      + (pi.partial ? ' <span class="stat-fc">прогноз месяца ≈ <b>' + sf(fsum) + '</b></span>' : '');
   }
 
   // ── публичные ──────────────────────────────────────────────
@@ -469,7 +485,7 @@
     var box = document.getElementById('ctr-search');
     var q = ((box && box.value) || '').trim().toLowerCase();
     hero(); catFilter(); renderFacts();
-    if (VIEW === 'sku') drawSkuView(q); else drawCtrView(q);
+    if (VIEW === 'sku') { list.className = ''; drawSkuView(q); } else drawCtrView(q);
   };
 
   // ── ИНТЕРЕСНЫЕ ФАКТЫ ───────────────────────────────────────
