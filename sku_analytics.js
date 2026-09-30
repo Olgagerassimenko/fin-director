@@ -1487,7 +1487,6 @@
         + ' · правки записываются сразу, кнопки «сохранить» нет</span>';
     }
     h += '<span class="pl-acts">'
-      + '<a class="pl-btn go" href="/план.html">Страница «План-факт» →</a>'
       + '<button class="pl-btn main" onclick="planPaste()">Вставить план списком</button>'
       + '<button class="pl-btn" onclick="planFromPrev(0)">= прошлый месяц</button>'
       + '<button class="pl-btn" onclick="planFromPrev(10)">+10%</button>'
@@ -1515,7 +1514,8 @@
       + '<span class="pl-caret">▸</span>'
       + '<span class="pl-lbl">Планирование продаж</span>'
       + '<span class="pl-brief">' + brief + '</span>'
-      + '<span class="pl-more">' + (PLAN_OPEN ? 'свернуть' : 'развернуть') + '</span>'
+      + '<a class="pl-go" href="/план.html" onclick="event.stopPropagation()">Страница «План-факт» →</a>'
+      + (PLAN_OPEN ? '' : '<span class="pl-more">Развернуть</span>')
       + '</div>'
       + '<div class="pl-body">' + h + '</div>';
   }
