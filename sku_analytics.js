@@ -1462,7 +1462,7 @@
         + monthLabel(mk2) + (i === 0 ? ' — в таблице' : '') + '</option>';
     }
     sel += '</select>';
-    var h = '<span class="pl-lbl">План на</span>' + sel;
+    var h = '<span class="pl-sel-lbl">План на</span>' + sel;
     if (!planSameMonth()) {
       h += '<span class="pl-warn">в таблице ' + esc(monthLabel(MK))
         + ' — процент выполнения не считаю, сравнивать не с чем</span>';
@@ -1498,9 +1498,36 @@
     h += '<span class="pl-note">План выстраиваем <b>по контрагенту</b>: впишите сумму в колонке «План» '
       + 'напротив клиента — она сохранится сразу. По товарам план вводить не нужно, он разложится сам, '
       + 'пропорционально тому, что этот клиент реально берёт.</span>';
-    el.innerHTML = h;
+
+    /* Плашка сворачивается: в свёрнутом виде видно только заголовок и короткий
+       итог, чтобы блок управления не занимал экран, когда план уже поставлен.
+       Состояние помним в браузере, иначе оно сбрасывалось бы на каждый клик
+       по месяцу. */
+    var brief = pt
+      ? sf(pt) + ' · ' + esc(monthLabel(planMonth()).toLowerCase())
+        + (planSameMonth()
+            ? ' · выполнение ' + Math.round((pi.partial ? fact * (pi.dim / pi.days) : fact) / pt * 100) + '%'
+            : '')
+      : 'план на ' + esc(monthLabel(planMonth()).toLowerCase()) + ' не задан';
+    el.className = PLAN_OPEN ? 'open' : '';
+    el.innerHTML =
+      '<div class="pl-top" onclick="planToggle()">'
+      + '<span class="pl-caret">▸</span>'
+      + '<span class="pl-lbl">Планирование продаж</span>'
+      + '<span class="pl-brief">' + brief + '</span>'
+      + '<span class="pl-more">' + (PLAN_OPEN ? 'свернуть' : 'развернуть') + '</span>'
+      + '</div>'
+      + '<div class="pl-body">' + h + '</div>';
   }
   window.planBar = planBar;
+
+  var PLAN_OPEN = false;
+  try { PLAN_OPEN = localStorage.getItem('pulse_plan_open') === '1'; } catch (e) {}
+  window.planToggle = function () {
+    PLAN_OPEN = !PLAN_OPEN;
+    try { localStorage.setItem('pulse_plan_open', PLAN_OPEN ? '1' : '0'); } catch (e) {}
+    planBar();
+  };
 
   window.setCtrView = function (v) {
     VIEW = v; OPEN_SKU = -1;
