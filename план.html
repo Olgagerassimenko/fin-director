@@ -95,6 +95,11 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
   opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #toast.bad{color:#fff;background:linear-gradient(135deg,#f87171,#dc2626)}
+#toast{display:flex;align-items:center;gap:14px;pointer-events:none}
+#toast.show{pointer-events:auto}
+.t-undo{font:800 12px/1 inherit;font-family:inherit;color:#0b1120;background:#0b112020;
+  border:1.5px solid #0b112055;border-radius:8px;padding:7px 12px;cursor:pointer}
+.t-undo:hover{background:#0b112035}
 .hint{font-size:12px;color:#7e91b3;line-height:1.6;margin-top:10px}
 /* Матрица «контрагенты × месяцы». Первая колонка и шапка липкие: без них
    на двенадцати месяцах непонятно, чья это строка и какой это месяц. */
@@ -167,7 +172,7 @@ tr.rest:hover td{background:#1b2742;color:#e2e8f0}
       <button class="btn" onclick="fromPrev(10)">+10%</button>
       <button class="btn" onclick="copyFrom()">Скопировать план другого месяца</button>
       <button class="btn" onclick="fillRest()">Заполнить остаток года этим планом</button>
-      <button class="btn del" id="btn-clear" onclick="clearMonth()">Очистить месяц</button>
+      <button class="btn del" id="btn-clear" onclick="clearMonth()">Очистить только этот месяц</button>
     </span>
     <span class="bar-note">План ставим <b>по контрагенту</b> — цифра сохраняется сразу, кнопки «сохранить» нет.
       План копится помесячно: ниже виден год целиком и накопленный итог, а водопад показывает,
@@ -321,10 +326,23 @@ function save(mk, items, mode){
   }).then(function(r){ return r.json(); })
     .then(function(o){ if(o&&o.items) PLANS[mk]=o; return o; });
 }
-function toast(t,bad){
+/* Подтверждение с возможностью откатить. Кнопка «Очистить» стирает план
+   за месяц целиком, и одного окошка «вы уверены» мало: промахнуться легко,
+   а восстановить было неоткуда. Теперь снимок лежит в памяти страницы и
+   возвращается одним нажатием. */
+function toast(t,bad,undo){
   var e=document.getElementById('toast');
-  e.textContent=t; e.className='show'+(bad?' bad':'');
-  clearTimeout(toast._t); toast._t=setTimeout(function(){ e.className=''; },2600);
+  e.innerHTML='<span></span>';
+  e.firstChild.textContent=t;
+  if(undo){
+    var b=document.createElement('button');
+    b.className='t-undo'; b.textContent='Вернуть';
+    b.onclick=function(){ e.className=''; undo(); };
+    e.appendChild(b);
+  }
+  e.className='show'+(bad?' bad':'');
+  clearTimeout(toast._t);
+  toast._t=setTimeout(function(){ e.className=''; }, undo? 12000 : 2600);
 }
 function parseSum(t){
   var s=String(t||'').toLowerCase().replace(/[\s  ]/g,'').replace(',','.');
@@ -895,20 +913,32 @@ window.fromPrev=function(pct){
   if(!list.length){ toast('Нет факта за '+mLabel(pk).toLowerCase(), true); return; }
   var items={};
   list.forEach(function(c){ var v=Math.round(c.rev*(1+(pct||0)/100)); if(v>0) items[c.num]=v; });
-  save(MK, items, 'replace').then(function(){
-    redraw(); toast('План на '+mLabel(MK).toLowerCase()+' — '+Object.keys(items).length+' строк');
+  var mk=MK, snap=JSON.parse(JSON.stringify(plan(mk)));
+  save(mk, items, 'replace').then(function(){
+    redraw();
+    toast('План на '+mLabel(mk).toLowerCase()+' — '+Object.keys(items).length+' строк',
+      false, Object.keys(snap).length? function(){
+        save(mk, snap, 'replace').then(function(){ redraw(); toast('Вернул как было'); });
+      } : null);
   }).catch(function(){ toast('Не сохранилось', true); });
 };
 
 /* Очистка — только по выбранному месяцу и только с подтверждением:
    стереть план на весь месяц одним кликом слишком легко. */
 window.clearMonth=function(){
-  var ps=planSum(MK);
-  if(!ps){ toast('На '+mLabel(MK).toLowerCase()+' плана и так нет', true); return; }
-  if(!confirm('Убрать план на '+mLabel(MK).toLowerCase()+'? Это '+sf(ps)
-      +' по '+Object.keys(plan(MK)).length+' контрагентам.')) return;
-  save(MK, {}, 'replace').then(function(){
-    redraw(); toast('План на '+mLabel(MK).toLowerCase()+' убран');
+  var ps=planSum(MK), mk=MK;
+  if(!ps){ toast('На '+mLabel(mk).toLowerCase()+' плана и так нет', true); return; }
+  var snap=JSON.parse(JSON.stringify(plan(mk)));   // снимок до очистки
+  if(!confirm('Убрать план ТОЛЬКО на '+mLabel(mk).toLowerCase()+'?\n'
+      + sf(ps)+' по '+Object.keys(snap).length+' контрагентам.\n'
+      + 'Другие месяцы не тронутся, и это можно будет вернуть.')) return;
+  save(mk, {}, 'replace').then(function(){
+    redraw();
+    toast('План на '+mLabel(mk).toLowerCase()+' убран', false, function(){
+      save(mk, snap, 'replace').then(function(){
+        redraw(); toast('План на '+mLabel(mk).toLowerCase()+' возвращён');
+      });
+    });
   }).catch(function(){ toast('Не сохранилось', true); });
 };
 
@@ -917,8 +947,13 @@ window.copyFrom=function(){
   if(!have.length){ toast('Других планов пока нет', true); return; }
   var from=prompt('Из какого месяца скопировать план? Есть: '+have.join(', '), have[have.length-1]);
   if(!from || !PLANS[from]) return;
-  save(MK, PLANS[from].items, 'replace').then(function(){
-    redraw(); toast('Скопирован план из ' + mLabel(from).toLowerCase());
+  var mk=MK, snap=JSON.parse(JSON.stringify(plan(mk)));
+  save(mk, PLANS[from].items, 'replace').then(function(){
+    redraw();
+    toast('Скопирован план из ' + mLabel(from).toLowerCase(), false,
+      Object.keys(snap).length? function(){
+        save(mk, snap, 'replace').then(function(){ redraw(); toast('Вернул как было'); });
+      } : null);
   }).catch(function(){ toast('Не сохранилось', true); });
 };
 

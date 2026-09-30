@@ -1283,17 +1283,24 @@
   /* Кнопки «Сохранить» нет: план пишется на сервер сразу. Чтобы это не
      приходилось принимать на веру, показываем, что запись прошла, —
      иначе человек не знает, можно ли закрывать вкладку. */
-  function planToast(text, bad) {
+  function planToast(text, bad, undo) {
     var t = document.getElementById('pl-toast');
     if (!t) {
       t = document.createElement('div');
       t.id = 'pl-toast';
       document.body.appendChild(t);
     }
-    t.textContent = text;
+    t.innerHTML = '<span></span>';
+    t.firstChild.textContent = text;
+    if (undo) {
+      var b = document.createElement('button');
+      b.className = 'pl-undo'; b.textContent = 'Вернуть';
+      b.onclick = function () { t.className = ''; undo(); };
+      t.appendChild(b);
+    }
     t.className = 'show' + (bad ? ' bad' : '');
     clearTimeout(planToast._t);
-    planToast._t = setTimeout(function () { t.className = ''; }, 2600);
+    planToast._t = setTimeout(function () { t.className = ''; }, undo ? 12000 : 2600);
   }
   window.planToast = planToast;
 
@@ -1435,9 +1442,30 @@
     }).catch(function () { planToast('Не сохранилось — проверьте связь', true); });
   };
 
+  /* Очистка стирает план за месяц целиком, поэтому держим снимок: вернуть
+     можно кнопкой во всплывашке, а не восстанавливать цифры по одной. */
+  window.planAskClear = function () {
+    var pt = planTotal();
+    if (!pt) return;
+    if (confirm('Убрать план ТОЛЬКО на ' + monthLabel(PLAN_MK).toLowerCase() + '?\n'
+        + sf(pt) + ' по ' + Object.keys(PLAN).length + ' контрагентам.\n'
+        + 'Другие месяцы не тронутся, и это можно будет вернуть.')) window.planClear();
+  };
+
   window.planClear = function () {
+    var mk = PLAN_MK, snap = JSON.parse(JSON.stringify(PLAN));
     planSave({}, 'replace').then(function () {
-      hero(); window.drawCtr(); planBar(); planToast('План на месяц убран');
+      hero(); window.drawCtr(); planBar();
+      planToast('План на ' + monthLabel(mk).toLowerCase() + ' убран', false, function () {
+        fetch('/api/salesplan?m=' + encodeURIComponent(mk), {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ items: snap, mode: 'replace' })
+        }).then(function (r) { return r.json(); }).then(function (o) {
+          if (o && o.items && mk === PLAN_MK) { PLAN = o.items; PLAN_UPD = o.updated || ''; PLAN_SKU = null; }
+          hero(); window.drawCtr(); planBar(); planToast('Вернул как было');
+        });
+      });
     }).catch(function () { planToast('Не сохранилось — проверьте связь', true); });
   };
 
@@ -1491,7 +1519,7 @@
       + '<button class="pl-btn main" onclick="planPaste()">Вставить план списком</button>'
       + '<button class="pl-btn" onclick="planFromPrev(0)">= прошлый месяц</button>'
       + '<button class="pl-btn" onclick="planFromPrev(10)">+10%</button>'
-      + (pt ? '<button class="pl-btn del" onclick="if(confirm(\'Убрать план на этот месяц?\'))planClear()">Очистить</button>' : '')
+      + (pt ? '<button class="pl-btn del" onclick="planAskClear()">Очистить только этот месяц</button>' : '')
       + '</span>';
     /* Главное правило работы с планом — одной строкой, чтобы не объяснять
        его каждому новому человеку на словах. */
