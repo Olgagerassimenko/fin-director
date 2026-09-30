@@ -90,6 +90,18 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #toast.bad{color:#fff;background:linear-gradient(135deg,#f87171,#dc2626)}
 .hint{font-size:12px;color:#7e91b3;line-height:1.6;margin-top:10px}
+/* Полоска месяцев до конца года: сразу видно, где плана ещё нет. */
+.months{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.mchip{display:flex;flex-direction:column;gap:2px;padding:9px 13px;border-radius:11px;
+  background:#131f38;border:1px solid #33456b;cursor:pointer;transition:all .15s;min-width:104px}
+.mchip:hover{border-color:#7f93cf}
+.mchip.on{border-color:#fbbf24;background:#231e12}
+.mchip.none{border-style:dashed;border-color:#4a5c80}
+.mchip u{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  color:#93a6c8;text-decoration:none}
+.mchip b{font-size:14px;font-weight:800;color:#fde68a}
+.mchip.none b{color:#5a6c8f;font-weight:700}
+.mchip i{font-size:10.5px;font-style:normal;color:#7e91b3}
 @media(max-width:760px){.wrap{padding:16px}.header{padding:14px 16px}}
 </style>
 </head>
@@ -110,6 +122,7 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
       <button class="btn main" onclick="fromPrev(0)">= факт прошлого месяца</button>
       <button class="btn" onclick="fromPrev(10)">+10%</button>
       <button class="btn" onclick="copyFrom()">Скопировать план другого месяца</button>
+      <button class="btn" onclick="fillRest()">Заполнить остаток года этим планом</button>
     </span>
     <span class="bar-note">План ставим <b>по контрагенту</b> — цифра сохраняется сразу, кнопки «сохранить» нет.
       План копится помесячно: ниже виден год целиком и накопленный итог, а водопад показывает,
@@ -117,6 +130,7 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
   </div>
 
   <div class="kpis" id="kpis"></div>
+  <div class="months" id="months"></div>
 
   <div class="sec">
     <div class="sec-t">Из чего сложился разрыв с планом — <span id="wf-m">—</span></div>
@@ -173,8 +187,21 @@ function allMonths(){
   Object.keys(PLANS).forEach(function(k){ if(/^\d{4}-\d{2}$/.test(k)) set[k]=1; });
   var list = Object.keys(set).sort();
   var last = list[list.length-1] || '2026-01';
-  for(var i=1;i<=3;i++){ var n=shift(last,i); if(!set[n]){ list.push(n); set[n]=1; } }
+  // горизонт — до декабря того же года: планируют год, а не «три месяца вперёд»
+  var y = last.slice(0,4);
+  for(var m=1;m<=12;m++){
+    var mk = y + '-' + (m<10?'0':'') + m;
+    if(!set[mk]){ list.push(mk); set[mk]=1; }
+  }
   return list.sort();
+}
+/* Месяцы, на которые план ещё имеет смысл ставить: с текущего до декабря. */
+function restOfYear(){
+  var withFact=Object.keys(CTR).filter(function(k){return /^\d{4}-\d{2}$/.test(k);}).sort();
+  var cur = withFact[withFact.length-1] || MK;
+  var y = cur.slice(0,4), out=[];
+  for(var m=+cur.slice(5,7); m<=12; m++) out.push(y+'-'+(m<10?'0':'')+m);
+  return out;
 }
 function shift(mk,n){
   var y=+mk.slice(0,4), m=+mk.slice(5,7)+n;
@@ -435,7 +462,39 @@ function drawCtr(){
 }
 
 /* ── действия ─────────────────────────────────────────────────────────── */
-function redraw(){ drawKpis(); drawWf(); drawYear(); drawCtr(); state(); }
+function drawMonths(){
+  var rest=restOfYear(), el=document.getElementById('months');
+  var h='';
+  rest.forEach(function(mk){
+    var p=planSum(mk), f=factSum(mk), pi=periodK(mk);
+    var fe=pi.partial? f*pi.k : f;
+    h+='<div class="mchip'+(mk===MK?' on':'')+(p?'':' none')+'" onclick="pickMonth(\''+mk+'\')">'
+      + '<u>'+esc(mLabel(mk).replace(' '+mk.slice(0,4),''))+'</u>'
+      + '<b>'+(p? sf(p) : 'нет плана')+'</b>'
+      + '<i>'+(p&&fe? Math.round(fe/p*100)+'% · факт '+sf(fe) : (f? 'факт '+sf(fe) : 'продаж нет'))+'</i></div>';
+  });
+  el.innerHTML=h;
+}
+function redraw(){ drawKpis(); drawMonths(); drawWf(); drawYear(); drawCtr(); state();
+  var sel=document.getElementById('m-sel'); if(sel) sel.value=MK; }
+
+/* Один и тот же план на все оставшиеся месяцы года — обычная отправная
+   точка: дальше отдельные месяцы правят руками. */
+window.fillRest=function(){
+  var src=plan(MK);
+  if(!planSum(MK)){ toast('Сначала поставьте план на '+mLabel(MK).toLowerCase(), true); return; }
+  var rest=restOfYear().filter(function(mk){ return mk>MK; });
+  if(!rest.length){ toast('Дальше в этом году месяцев нет', true); return; }
+  var busy=rest.filter(function(mk){ return planSum(mk)>0; });
+  if(busy.length && !confirm('План уже стоит на: '+busy.map(mLabel).join(', ')
+      +'.\nПерезаписать его планом '+mLabel(MK).toLowerCase()+'?')) return;
+  var left=rest.length;
+  rest.forEach(function(mk){
+    save(mk, src, 'replace').then(function(){
+      if(--left===0){ redraw(); toast('План разложен на '+rest.length+' мес. до декабря'); }
+    }).catch(function(){ toast('Не сохранилось', true); });
+  });
+};
 function state(){
   var ps=planSum(MK);
   document.getElementById('m-state').textContent = ps

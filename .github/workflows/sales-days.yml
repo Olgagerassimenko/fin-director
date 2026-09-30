@@ -1,0 +1,64 @@
+name: Продажи по дням (для план-факта)
+
+# Выручка по дням нужна странице «План-факт»: по ней видно, в какой именно
+# день мы отстали от плана. Помесячные итоги для этого слишком грубые.
+# Гоняем четыре раза в день — отгрузки идут с утра, к обеду картина дня
+# уже показательная.
+
+on:
+  schedule:
+    - cron: "35 3,7,11,15 * * *"     # 08:35, 12:35, 16:35, 20:35 по Алматы
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pulse-daily
+  cancel-in-progress: false
+
+jobs:
+  days:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: pip install -r requirements.txt
+
+      - name: Выручка по дням из айко
+        timeout-minutes: 12
+        run: python gen_sales_days.py
+
+      - uses: actions/setup-node@v4
+        with: {node-version: "20"}
+
+      - name: Публикация (Cloudflare Workers)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@3 deploy
+
+      - name: Сохранить в репозиторий
+        if: always()
+        run: |
+          git config user.name "pulse-ci"; git config user.email "ci@local"
+          git add -f sales_days.js || true
+          git commit -m "Продажи по дням: свежие данные [skip ci]" || echo "нет изменений"
+          git pull --rebase -X theirs origin main || { git rebase --abort || true; }
+          git push origin HEAD:main || echo "push не удался"
+
+      - name: "Проверка: дни собрались"
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, re, sys
+          txt = open("sales_days.js", encoding="utf-8").read()
+          m = re.search(r"=\s*(\{.*\});?\s*$", txt, re.S)
+          if not m: sys.exit("sales_days.js не разобрался")
+          d = json.loads(m.group(1))
+          if not d: sys.exit("пусто")
+          ks = sorted(d)
+          print("дней:", len(d), "| с", ks[0], "по", ks[-1],
+                "| итого %s" % f"{sum(d.values()):,}".replace(",", " "))
+          PY
