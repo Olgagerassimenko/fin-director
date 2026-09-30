@@ -475,24 +475,32 @@ function drawDays(){
   }
   // после последнего дня с выручкой линию факта не тянем
   var fCumCut=fCum.map(function(v,i){ return (i+1)<=last? v : null; });
-  var fDayCut=fDay.map(function(v,i){ return (i+1)<=last? v : null; });
 
   if(CH_DD) CH_DD.destroy();
   CH_DD=new Chart(document.getElementById('dd'),{
+    /* Столбики выручки за день убраны: они лезли в глаза и мешали читать
+       главное — расхождение двух линий нарастающим итогом. Цифры по дням
+       остались в таблице ниже. */
     data:{labels:labels,datasets:[
-      {type:'bar',label:'Выручка за день',data:fDayCut,backgroundColor:'#7c3aed',
-       borderRadius:3,barPercentage:.85,yAxisID:'y'},
-      {type:'line',label:'План нарастающим',data:pCum,borderColor:'#fbbf24',borderDash:[5,4],
-       pointRadius:0,borderWidth:2,yAxisID:'y2',tension:0},
+      {type:'line',label:'План нарастающим',data:pCum,borderColor:'#fbbf24',borderDash:[6,4],
+       pointRadius:0,borderWidth:2,tension:0},
       {type:'line',label:'Факт нарастающим',data:fCumCut,borderColor:'#a78bfa',
-       pointRadius:0,borderWidth:2.5,yAxisID:'y2',tension:.2,spanGaps:false}]},
+       pointRadius:0,borderWidth:2.8,tension:.2,spanGaps:false,
+       fill:{target:0, above:'rgba(248,113,113,.12)', below:'rgba(74,222,128,.12)'}}]},
     options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
       plugins:{legend:{labels:{color:'#93a6c8',boxWidth:12,font:{size:11}}},
-        tooltip:{callbacks:{label:function(c){ return c.dataset.label+': '+sf(c.raw); }}}},
+        tooltip:{callbacks:{
+          label:function(c){ return c.dataset.label+': '+sf(c.raw); },
+          afterBody:function(items){
+            var i=items[0].dataIndex;
+            if(pCum[i]==null||fCumCut[i]==null) return '';
+            var g=fCumCut[i]-pCum[i];
+            return (g>=0?'опережение ':'отставание ')+sf(Math.abs(g));
+          }}}},
       scales:{x:{ticks:{color:'#93a6c8',font:{size:10}},grid:{display:false}},
-        y:{ticks:{color:'#64748b',font:{size:10},callback:function(v){return sf(v);}},grid:{color:'#ffffff08'}},
-        y2:{position:'right',ticks:{color:'#8a7742',font:{size:10},callback:function(v){return sf(v);}},
-            grid:{display:false}}}}
+        y:{ticks:{color:'#64748b',font:{size:10},callback:function(v){return sf(v);}},
+           grid:{color:'#ffffff08'}}}}
   });
 
   if(!ps){
