@@ -7,6 +7,7 @@
 <!-- Страница не заведена в nav.js: в меню её нет, открывается только по прямой
      ссылке /план. Пароль сайта на ней такой же, как на всём остальном. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="contractor_items.js" onerror="window.CTR={}"></script>
 <script src="sales_meta.js" onerror="window.SALES_META=null"></script>
 <script src="sales_days.js" onerror="window.SALES_DAYS=null"></script>
@@ -116,6 +117,8 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
 #t-grid tr.rest td.c1{background:#141d33}
 #t-grid tr.rest:hover td,#t-grid tr.rest:hover td.c1{background:#1b2742;color:#e2e8f0}
 #t-grid tr.small td,#t-grid tr.small td.c1{background:#0e1729}
+tr.rest td{background:#141d33;color:#93a6c8;cursor:pointer;font-weight:700}
+tr.rest:hover td{background:#1b2742;color:#e2e8f0}
 #t-grid tr.tot td.c1{background:#18233d;z-index:3}
 #t-grid th.now,#t-grid td.now{background:rgba(251,191,36,.07)}
 .gin{width:98px;background:#1d1a10;border:1px solid #5b4a1f;border-radius:7px;padding:5px 7px;
@@ -169,7 +172,7 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
   <div class="months" id="months"></div>
 
   <div class="sec" id="sec-grid">
-    <div class="sec-t">Контрагенты по месяцам
+    <div class="sec-t">План и факт по каждому клиенту
       <span class="modes">
         <button class="mode on" data-mode="plan" onclick="setMode('plan')">План</button>
         <button class="mode" data-mode="fact" onclick="setMode('fact')">Факт</button>
@@ -181,26 +184,26 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
   </div>
 
   <div class="sec">
-    <div class="sec-t">День за днём — <span id="d-m">—</span></div>
+    <div class="sec-t">Как шёл месяц, день за днём — <span id="d-m">—</span></div>
     <div class="card"><div style="height:250px"><canvas id="dd"></canvas></div>
       <div class="hint" id="d-note"></div>
       <div class="scroll" style="margin-top:14px"><table id="t-day"></table></div></div>
   </div>
 
   <div class="sec">
-    <div class="sec-t">Из чего сложился разрыв с планом — <span id="wf-m">—</span></div>
+    <div class="sec-t">Кто увёл факт от плана — <span id="wf-m">—</span></div>
     <div class="card"><div style="height:250px"><canvas id="wf"></canvas></div>
       <div class="hint" id="wf-note"></div></div>
   </div>
 
   <div class="sec">
-    <div class="sec-t">Год: план, факт и накопленный итог</div>
+    <div class="sec-t">Весь год: план против факта</div>
     <div class="card"><div style="height:250px"><canvas id="yr"></canvas></div>
       <div class="scroll" style="margin-top:14px"><table id="t-year"></table></div></div>
   </div>
 
   <div class="sec">
-    <div class="sec-t">По контрагентам за месяц — <span id="c-m">—</span></div>
+    <div class="sec-t">Один месяц крупно — <span id="c-m">—</span></div>
     <div class="card scroll"><table id="t-ctr"></table></div>
   </div>
 </div>
@@ -358,10 +361,16 @@ function drawKpis(){
    То, ради чего всё затевалось: одна таблица, где видно каждого клиента по
    всем месяцам. Три режима — план (ячейки редактируются), факт и план-факт.
    Считаем по прогнозу для незакрытого месяца, чтобы сравнение было честным. */
-var GMODE = 'plan', GREST = false;
+var GMODE = 'plan', GREST = false, CREST = false;
+window.toggleCrest=function(){
+  CREST=!CREST;
+  try{ localStorage.setItem('pulse_crest', CREST?'1':'0'); }catch(e){}
+  drawCtr();
+};
 try {
   GMODE = localStorage.getItem('pulse_gmode') || 'plan';
   GREST = localStorage.getItem('pulse_grest') === '1';
+  CREST = localStorage.getItem('pulse_crest') === '1';
 } catch(e){}
 
 window.toggleRest=function(){
@@ -484,8 +493,10 @@ function drawGrid(){
 function pfCell(p,f){
   if(!p && !f) return '<span class="mut">—</span>';
   if(!p) return '<div class="pf"><u>—</u><s>'+num(f)+'</s></div>';
+  // месяц ещё не начался: план есть, факта нет — процент не выдумываем
+  if(!f) return '<div class="pf"><u>'+num(p)+'</u><s class="mut">впереди</s></div>';
   var pc=Math.round(f/p*100);
-  return '<div class="pf"><u>'+num(p)+'</u><s>'+(f?num(f):'0')+'</s>'
+  return '<div class="pf"><u>'+num(p)+'</u><s>'+num(f)+'</s>'
     + '<em class="'+(pc>=100?'g-ok':(pc>=90?'':'g-bad'))+'">'+pc+'%</em></div>';
 }
 
@@ -606,40 +617,88 @@ function drawWf(){
   var steps=top.slice();
   if(rest.length) steps.push({n:'Прочие ('+rest.length+')', d:restSum, p:0});
 
-  var labels=['План'], data=[[0,ps]], colors=['#f59e0b'], run=ps;
+  /* Имя без номера и без хвоста в скобках: «96-ТОО DSF (дистрибьютор)» на
+     оси не читается, а «DSF» читается. */
+  function shortName(n){
+    var t=String(n).replace(/^\s*\d+\s*[-–—]\s*/,'').replace(/\s*\(.*$/,'').trim();
+    t=t.replace(/^(ТОО|ИП|АО)\s+/i,'').replace(/\s+(ТОО|ИП|АО)$/i,'');
+    return t.length>16? t.slice(0,15)+'…' : t;
+  }
+  var labels=['ПЛАН'], data=[[0,ps]], colors=['#f59e0b'], run=ps, deltas=[null];
   steps.forEach(function(s){
-    labels.push(s.n.length>24? s.n.slice(0,22)+'…' : s.n);
+    labels.push(shortName(s.n));
     data.push([run, run+s.d]);
     colors.push(s.d>=0? '#22c55e' : '#ef4444');
+    deltas.push(s.d);
     run+=s.d;
   });
-  labels.push(pi.partial?'Прогноз':'Факт'); data.push([0,run]); colors.push('#38bdf8');
+  labels.push(pi.partial?'ПРОГНОЗ':'ФАКТ'); data.push([0,run]); colors.push('#38bdf8'); deltas.push(null);
+
+  /* Шкалу не тянем от нуля: столбики отклонений на фоне трёхсот миллионов
+     превращались в ниточки. Берём коридор, в котором реально гуляет линия,
+     и оставляем поля сверху и снизу под подписи. */
+  var lo=Math.min(ps,run), hi=Math.max(ps,run);
+  data.forEach(function(d){ lo=Math.min(lo,d[0],d[1]); hi=Math.max(hi,d[0],d[1]); });
+  var padv=Math.max((hi-lo)*0.22, (hi||1)*0.02);
 
   if(CH_WF) CH_WF.destroy();
   CH_WF=new Chart(document.getElementById('wf'),{
     type:'bar',
-    data:{labels:labels,datasets:[{data:data,backgroundColor:colors,borderRadius:4,
-      borderSkipped:false,barPercentage:.72}]},
+    plugins:[ChartDataLabels],
+    data:{labels:labels,datasets:[{data:data,backgroundColor:colors,borderRadius:5,
+      borderSkipped:false,barPercentage:.74,
+      hoverBackgroundColor:colors.map(function(c){ return c==='#ef4444'?'#f87171'
+        : c==='#22c55e'?'#4ade80' : c==='#f59e0b'?'#fbbf24' : '#7dd3fc'; })}]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){
-        var v=c.raw, last=labels.length-1;
-        if(c.dataIndex===0||c.dataIndex===last) return sf(v[1]);
-        var s=steps[c.dataIndex-1];
-        return sgn(v[1]-v[0]) + (s.p? '  · в плане было '+sf(s.p) : '  · плана не было');
-      }}}},
-      scales:{x:{ticks:{color:'#93a6c8',font:{size:10},maxRotation:42},grid:{display:false}},
-              y:{ticks:{color:'#64748b',font:{size:10},callback:function(v){return sf(v);}},
-                 grid:{color:'#ffffff08'}}}}
+      animation:{duration:900,easing:'easeOutQuart',
+        delay:function(c){ return c.type==='data'? c.dataIndex*45 : 0; }},
+      layout:{padding:{top:22}},
+      plugins:{
+        legend:{display:false},
+        datalabels:{
+          anchor:function(c){ var d=deltas[c.dataIndex]; return (d==null||d>=0)?'end':'start'; },
+          align:'top', offset:3, clamp:true,
+          color:function(c){
+            var i=c.dataIndex;
+            if(i===0) return '#fbbf24';
+            if(i===labels.length-1) return '#7dd3fc';
+            return deltas[i]>=0? '#4ade80' : '#f87171';
+          },
+          font:{size:11,weight:'700'},
+          formatter:function(v,c){
+            var i=c.dataIndex;
+            if(i===0||i===labels.length-1) return sf(v[1]);
+            return sgn(deltas[i]);
+          }},
+        tooltip:{callbacks:{
+          title:function(it){ return it[0].dataIndex===0? 'План месяца'
+            : (it[0].dataIndex===labels.length-1? (pi.partial?'Прогноз месяца':'Факт месяца')
+               : steps[it[0].dataIndex-1].n); },
+          label:function(c){
+            var v=c.raw, last=labels.length-1;
+            if(c.dataIndex===0||c.dataIndex===last) return sf(v[1]);
+            var st=steps[c.dataIndex-1];
+            return [ (st.d>=0?'сверх плана ':'недобор ')+sf(Math.abs(st.d)),
+                     st.p? 'план '+sf(st.p)+' · факт '+sf(st.f||0) : 'плана не было' ];
+          }}}},
+      scales:{
+        x:{ticks:{color:'#cbd5e1',font:{size:10,weight:'600'},maxRotation:34,minRotation:0,
+           autoSkip:false},grid:{display:false},border:{color:'#2a3a5c'}},
+        y:{min:Math.max(0,lo-padv), max:hi+padv,
+           ticks:{color:'#64748b',font:{size:10},callback:function(v){return sf(v);}},
+           grid:{color:'#ffffff08'},border:{display:false}}}}
   });
   var gap=run-ps;
   var down=rows.filter(function(x){return x.d<0;}).slice(0,3)
     .map(function(x){ return '<b>'+esc(x.n)+'</b> '+sgn(x.d); }).join(', ');
   var up=rows.filter(function(x){return x.d>0;}).sort(function(a,b){return b.d-a.d;}).slice(0,3)
     .map(function(x){ return '<b>'+esc(x.n)+'</b> '+sgn(x.d); }).join(', ');
-  note.innerHTML = 'От плана <b>'+sf(ps)+'</b> к '+(pi.partial?'прогнозу':'факту')+' <b>'+sf(run)+'</b>: '
-    + (gap>=0? 'сверх плана ' : 'недобор ') + '<b>'+sf(Math.abs(gap))+'</b>.'
-    + (down? '<br>Больше всего недодали: '+down+'.' : '')
-    + (up? '<br>Компенсировали: '+up+'.' : '');
+  note.innerHTML = 'Слева план месяца <b>'+sf(ps)+'</b>, справа '+(pi.partial?'прогноз':'факт')
+    + ' <b>'+sf(run)+'</b>. Между ними — каждый клиент: '
+    + '<span class="g-bad">красным</span> кто недодал, <span class="g-ok">зелёным</span> кто дал сверх плана.'
+    + '<br><b>Итог: '+(gap>=0? 'сверх плана ' : 'не хватило ')+sf(Math.abs(gap))+'.</b>'
+    + (down? ' Больше всего недодали: '+down+'.' : '')
+    + (up? ' Компенсировали: '+up+'.' : '');
 }
 
 /* ── год: план, факт, накопленный итог ────────────────────────────────── */
@@ -647,13 +706,19 @@ function drawYear(){
   /* Накопленный итог. Факт копим по всем месяцам — он самоценен, а вот
      выполнение нарастающим считаем только по тем месяцам, где план есть:
      иначе годовой факт делился бы на план одного сентября и давал 688%. */
-  var ms=allMonths(), pl=[], fa=[], cpl=[], cfa=[], cfp=[], cp=0, cf=0, cfplan=0;
+  var ms=allMonths(), pl=[], fa=[], cpl=[], cfa=[], cfp=[], cp=0, cf=0, cfplan=0, cpDone=0;
   ms.forEach(function(mk){
     var pi=periodK(mk), p=planSum(mk), f=factSum(mk);
     var fe = pi.partial? f*pi.k : f;
     pl.push(p); fa.push(f);
-    cp+=p; cf+=fe; if(p) cfplan+=fe;
-    cpl.push(cp? cp : null); cfa.push(cf? cf : null); cfp.push(cp? cfplan : null);
+    /* Месяц, который ещё не начался, в сравнение не берём: план на декабрь
+       не «не выполнен», он просто впереди. Иначе годовой итог показывал 20%
+       и минус миллиард, как только план разложили до конца года. */
+    var started = f > 0;
+    cp += p; cf += fe;
+    if(p && started){ cfplan += fe; cpDone += p; }
+    cpl.push(cp? cp : null); cfa.push(cf? cf : null);
+    cfp.push(cpDone? cfplan/cpDone : null);
   });
   if(CH_YR) CH_YR.destroy();
   CH_YR=new Chart(document.getElementById('yr'),{
@@ -676,29 +741,33 @@ function drawYear(){
   var h='<thead><tr><th>Месяц</th><th class="r">План</th><th class="r">Факт</th>'
     + '<th class="r">Выполнение</th><th class="r">Отклонение</th>'
     + '<th class="r">План нараст.</th><th class="r">Факт нараст.</th><th class="r">Итого вып.</th></tr></thead><tbody>';
-  var tp=0,tf=0,tfp=0;
+  var tp=0,tf=0,tfp=0,tpDone=0;
   ms.forEach(function(mk,i){
     var pi=periodK(mk), p=pl[i], f=fa[i], fe=pi.partial? f*pi.k : f;
-    tp+=p; tf+=fe; if(p) tfp+=fe;
-    var d=fe-p, pc=p? fe/p*100 : null;
+    tp+=p; tf+=fe;
+    if(p && f){ tfp+=fe; tpDone+=p; }
+    var d = (p && f)? fe-p : null;
+    var pc = (p && f)? fe/p*100 : null;
     h+='<tr'+(mk===MK?' class="now"':'')+'><td><b>'+esc(mLabel(mk))+'</b>'
       + (pi.partial? ' <span class="mut">1–'+pi.days+'</span>' : '') + '</td>'
       + '<td class="r '+(p?'pl-v':'mut')+'">'+(p?num(p):'—')+'</td>'
       + '<td class="r '+(f?'f-v':'mut')+'">'+(f?num(f):'—')
       + (pi.partial&&f? ' <span class="fc-v">≈'+num(fe)+'</span>' : '')+'</td>'
       + '<td class="r '+(pc==null?'mut':(pc>=100?'g-ok':'g-bad'))+'">'+(pc==null?'—':pc.toFixed(0)+'%')+'</td>'
-      + '<td class="r '+(p? (d>=0?'g-ok':'g-bad') : 'mut')+'">'+(p? sgn(d) : '—')+'</td>'
+      + '<td class="r '+(d==null?'mut':(d>=0?'g-ok':'g-bad'))+'">'+(d==null?'—':sgn(d))+'</td>'
       + '<td class="r mut">'+(cpl[i]?num(cpl[i]):'—')+'</td>'
       + '<td class="r mut">'+(cfa[i]?num(cfa[i]):'—')+'</td>'
-      + '<td class="r '+(cpl[i]? (cfp[i]>=cpl[i]?'g-ok':'g-bad') : 'mut')
-      + '" title="по месяцам, на которые план поставлен">'
-      + (cpl[i]? (cfp[i]/cpl[i]*100).toFixed(0)+'%' : '—')+'</td></tr>';
+      + '<td class="r '+(cfp[i]==null?'mut':(cfp[i]>=1?'g-ok':'g-bad'))
+      + '" title="по месяцам, которые уже прошли и на которые был план">'
+      + (cfp[i]==null? '—' : (cfp[i]*100).toFixed(0)+'%')+'</td></tr>';
   });
   h+='</tbody><tfoot><tr><td>Итого за год</td><td class="r pl-v">'+(tp?num(tp):'—')+'</td>'
     + '<td class="r f-v">'+num(tf)+'</td>'
-    + '<td class="r '+(tp? (tfp>=tp?'g-ok':'g-bad') : 'mut')
-    + '" title="по месяцам, на которые план поставлен">'+(tp?(tfp/tp*100).toFixed(0)+'%':'—')+'</td>'
-    + '<td class="r '+(tp? (tfp-tp>=0?'g-ok':'g-bad') : 'mut')+'">'+(tp?sgn(tfp-tp):'—')+'</td>'
+    + '<td class="r '+(tpDone? (tfp>=tpDone?'g-ok':'g-bad') : 'mut')
+    + '" title="по прошедшим месяцам, на которые был план">'
+    + (tpDone?(tfp/tpDone*100).toFixed(0)+'%':'—')+'</td>'
+    + '<td class="r '+(tpDone? (tfp-tpDone>=0?'g-ok':'g-bad') : 'mut')+'">'
+    + (tpDone?sgn(tfp-tpDone):'—')+'</td>'
     + '<td colspan="3"></td></tr></tfoot>';
   document.getElementById('t-year').innerHTML=h;
 }
@@ -712,18 +781,28 @@ function drawCtr(){
   Object.keys(P).forEach(function(k){keys[k]=1;});
   Object.keys(F).forEach(function(k){keys[k]=1;});
   Object.keys(FP).forEach(function(k){keys[k]=1;});
-  var rows=Object.keys(keys).map(function(k){
+  var allR=Object.keys(keys).map(function(k){
     var f=F[k]||0;
     return {k:k,n:NM[k]||k,p:P[k]||0,f:f,fe:pi.partial? f*pi.k : f,pr:FP[k]||0};
   }).sort(function(a,b){ return (b.fe||b.p)-(a.fe||a.p); });
+
+  /* Тот же принцип, что в матрице: физлица и разовые покупки на десять
+     тысяч не должны занимать половину таблицы. Порог — десятая процента
+     от месяца, но первые двадцать пять строк показываем всегда. */
+  var mTot=allR.reduce(function(a,x){ return a+Math.max(x.fe,x.p); },0) || 1;
+  var bigR=allR.filter(function(x,i){ return i<25 || Math.max(x.fe,x.p)/mTot >= 0.001; });
+  var smallR=allR.slice(bigR.length);
+  var rows = CREST ? allR : bigR;
 
   var h='<thead><tr><th>Контрагент</th><th class="r">Факт '+esc(mShort(prev))+'</th>'
     + '<th class="r">Факт</th>'+(pi.partial?'<th class="r">Прогноз</th>':'')
     + '<th class="r">План</th><th class="r">Выполнение</th><th class="r">Отклонение</th></tr></thead><tbody>';
   var sp=0,sfact=0,sfe=0,spr=0,fplan=0;
-  rows.forEach(function(r){
+  allR.forEach(function(r){
     sp+=r.p; sfact+=r.f; sfe+=r.fe; spr+=r.pr;
     if(r.p) fplan+=r.fe;
+  });
+  rows.forEach(function(r){
     var pc=r.p? r.fe/r.p*100 : null, d=r.p? r.fe-r.p : null;
     h+='<tr><td class="name">'+esc(r.n)+'</td>'
       + '<td class="r mut">'+(r.pr?num(r.pr):'—')+'</td>'
@@ -734,7 +813,20 @@ function drawCtr(){
       + '<td class="r '+(pc==null?'mut':(pc>=100?'g-ok':(pc>=90?'':'g-bad')))+'">'+(pc==null?'—':pc.toFixed(0)+'%')+'</td>'
       + '<td class="r '+(d==null?'mut':(d>=0?'g-ok':'g-bad'))+'">'+(d==null?'—':sgn(d))+'</td></tr>';
   });
-  h+='</tbody><tfoot><tr><td>Итого · '+rows.length+'</td><td class="r mut">'+(spr?num(spr):'—')+'</td>'
+  if(smallR.length && !CREST){
+    var sp2=0,sf2=0,sfe2=0,spr2=0;
+    smallR.forEach(function(r){ sp2+=r.p; sf2+=r.f; sfe2+=r.fe; spr2+=r.pr; });
+    h+='<tr class="rest" onclick="toggleCrest()"><td class="name">▸ Прочие · '+smallR.length
+      + ' контрагентов</td>'
+      + '<td class="r mut">'+(spr2?num(spr2):'—')+'</td>'
+      + '<td class="r">'+(sf2?num(sf2):'—')+'</td>'
+      + (pi.partial? '<td class="r">'+(sfe2?'≈'+num(sfe2):'—')+'</td>' : '')
+      + '<td class="r">'+(sp2?num(sp2):'—')+'</td><td class="r mut">—</td><td class="r mut">—</td></tr>';
+  } else if(smallR.length && CREST){
+    h+='<tr class="rest" onclick="toggleCrest()"><td class="name">▾ Свернуть мелких ('
+      + smallR.length+')</td><td colspan="'+(pi.partial?6:5)+'"></td></tr>';
+  }
+  h+='</tbody><tfoot><tr><td>Итого · '+allR.length+'</td><td class="r mut">'+(spr?num(spr):'—')+'</td>'
     + '<td class="r f-v">'+(sfact?num(sfact):'—')+'</td>'
     + (pi.partial?'<td class="r fc-v">'+(sfe?'≈'+num(sfe):'—')+'</td>':'')
     + '<td class="r pl-v">'+(sp?num(sp):'—')+'</td>'
