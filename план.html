@@ -191,6 +191,8 @@ function periodK(mk){
   var d=+p.slice(0,2), mo=+p.slice(3,5), y=+p.slice(6,10);
   if(mk !== y+'-'+(mo<10?'0':'')+mo) return {partial:false,k:1,days:0,dim:0};
   var dim = new Date(y,mo,0).getDate();
+  // последний день месяца уже отработан — прогнозировать нечего
+  if(d >= dim) return {partial:false,k:1,days:dim,dim:dim};
   return {partial:true, k:dim/d, days:d, dim:dim};
 }
 
@@ -332,12 +334,16 @@ function drawWf(){
 
 /* ── год: план, факт, накопленный итог ────────────────────────────────── */
 function drawYear(){
-  var ms=allMonths(), pl=[], fa=[], cpl=[], cfa=[], cp=0, cf=0;
+  /* Накопленный итог. Факт копим по всем месяцам — он самоценен, а вот
+     выполнение нарастающим считаем только по тем месяцам, где план есть:
+     иначе годовой факт делился бы на план одного сентября и давал 688%. */
+  var ms=allMonths(), pl=[], fa=[], cpl=[], cfa=[], cfp=[], cp=0, cf=0, cfplan=0;
   ms.forEach(function(mk){
     var pi=periodK(mk), p=planSum(mk), f=factSum(mk);
     var fe = pi.partial? f*pi.k : f;
     pl.push(p); fa.push(f);
-    cp+=p; cf+=fe; cpl.push(cp); cfa.push(cf);
+    cp+=p; cf+=fe; if(p) cfplan+=fe;
+    cpl.push(cp? cp : null); cfa.push(cf? cf : null); cfp.push(cp? cfplan : null);
   });
   if(CH_YR) CH_YR.destroy();
   CH_YR=new Chart(document.getElementById('yr'),{
@@ -345,9 +351,9 @@ function drawYear(){
       {type:'bar',label:'План',data:pl,backgroundColor:'#f59e0b',borderRadius:4,barPercentage:.82},
       {type:'bar',label:'Факт',data:fa,backgroundColor:'#7c3aed',borderRadius:4,barPercentage:.82},
       {type:'line',label:'План нарастающим',data:cpl,borderColor:'#fbbf24',borderDash:[5,4],
-       pointRadius:0,borderWidth:2,yAxisID:'y2',tension:.25},
+       pointRadius:0,borderWidth:2,yAxisID:'y2',tension:.25,spanGaps:false},
       {type:'line',label:'Факт нарастающим',data:cfa,borderColor:'#a78bfa',
-       pointRadius:0,borderWidth:2,yAxisID:'y2',tension:.25}]},
+       pointRadius:0,borderWidth:2,yAxisID:'y2',tension:.25,spanGaps:false}]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{labels:{color:'#93a6c8',boxWidth:12,font:{size:11}}},
         tooltip:{callbacks:{label:function(c){ return c.dataset.label+': '+sf(c.raw); }}}},
@@ -360,10 +366,10 @@ function drawYear(){
   var h='<thead><tr><th>Месяц</th><th class="r">План</th><th class="r">Факт</th>'
     + '<th class="r">Выполнение</th><th class="r">Отклонение</th>'
     + '<th class="r">План нараст.</th><th class="r">Факт нараст.</th><th class="r">Итого вып.</th></tr></thead><tbody>';
-  var tp=0,tf=0;
+  var tp=0,tf=0,tfp=0;
   ms.forEach(function(mk,i){
     var pi=periodK(mk), p=pl[i], f=fa[i], fe=pi.partial? f*pi.k : f;
-    tp+=p; tf+=fe;
+    tp+=p; tf+=fe; if(p) tfp+=fe;
     var d=fe-p, pc=p? fe/p*100 : null;
     h+='<tr'+(mk===MK?' class="now"':'')+'><td><b>'+esc(mLabel(mk))+'</b>'
       + (pi.partial? ' <span class="mut">1–'+pi.days+'</span>' : '') + '</td>'
@@ -374,13 +380,15 @@ function drawYear(){
       + '<td class="r '+(p? (d>=0?'g-ok':'g-bad') : 'mut')+'">'+(p? sgn(d) : '—')+'</td>'
       + '<td class="r mut">'+(cpl[i]?num(cpl[i]):'—')+'</td>'
       + '<td class="r mut">'+(cfa[i]?num(cfa[i]):'—')+'</td>'
-      + '<td class="r '+(cpl[i]? (cfa[i]>=cpl[i]?'g-ok':'g-bad') : 'mut')+'">'
-      + (cpl[i]? (cfa[i]/cpl[i]*100).toFixed(0)+'%' : '—')+'</td></tr>';
+      + '<td class="r '+(cpl[i]? (cfp[i]>=cpl[i]?'g-ok':'g-bad') : 'mut')
+      + '" title="по месяцам, на которые план поставлен">'
+      + (cpl[i]? (cfp[i]/cpl[i]*100).toFixed(0)+'%' : '—')+'</td></tr>';
   });
   h+='</tbody><tfoot><tr><td>Итого за год</td><td class="r pl-v">'+(tp?num(tp):'—')+'</td>'
     + '<td class="r f-v">'+num(tf)+'</td>'
-    + '<td class="r '+(tp? (tf>=tp?'g-ok':'g-bad') : 'mut')+'">'+(tp?(tf/tp*100).toFixed(0)+'%':'—')+'</td>'
-    + '<td class="r '+(tp? (tf-tp>=0?'g-ok':'g-bad') : 'mut')+'">'+(tp?sgn(tf-tp):'—')+'</td>'
+    + '<td class="r '+(tp? (tfp>=tp?'g-ok':'g-bad') : 'mut')
+    + '" title="по месяцам, на которые план поставлен">'+(tp?(tfp/tp*100).toFixed(0)+'%':'—')+'</td>'
+    + '<td class="r '+(tp? (tfp-tp>=0?'g-ok':'g-bad') : 'mut')+'">'+(tp?sgn(tfp-tp):'—')+'</td>'
     + '<td colspan="3"></td></tr></tfoot>';
   document.getElementById('t-year').innerHTML=h;
 }
