@@ -1487,6 +1487,7 @@
         + ' · правки записываются сразу, кнопки «сохранить» нет</span>';
     }
     h += '<span class="pl-acts">'
+      + '<a class="pl-btn go" href="/план.html">Страница «План-факт» →</a>'
       + '<button class="pl-btn main" onclick="planPaste()">Вставить план списком</button>'
       + '<button class="pl-btn" onclick="planFromPrev(0)">= прошлый месяц</button>'
       + '<button class="pl-btn" onclick="planFromPrev(10)">+10%</button>'

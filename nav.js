@@ -1,52 +1,14 @@
 (function(){
-  /* Счётчик просмотров для вкладки «Метрики».
-     Живёт именно здесь, а не в воркере: Cloudflare отдаёт статику (в том
-     числе HTML) в обход скрипта воркера, поэтому вставка счётчика через
-     HTMLRewriter до страницы не доезжает — nav.js подключён на каждом
-     дашборде и делает это надёжно.
-     Кроме адреса страницы отправляем паспорт устройства: экран, ядра,
-     память, язык, часовой пояс — чтобы в метриках было видно не только
-     «сколько открытий», но и какое устройство что смотрело. Постоянный
-     номер устройства случайный, лежит в localStorage этого браузера и
-     нужен только чтобы телефон не считался новым каждый раз, когда
-     оператор выдаёт другой адрес. */
-  try{
-    var K='pulse_did', d='';
-    try{
-      d = localStorage.getItem(K) || '';
-      if(!d){
-        d = (self.crypto && crypto.randomUUID) ? crypto.randomUUID()
-            : (Date.now().toString(36) + Math.random().toString(36).slice(2));
-        localStorage.setItem(K, d);
-      }
-    }catch(e){}
-    var n = navigator, sc = screen, tzo = {};
-    try{ tzo = Intl.DateTimeFormat().resolvedOptions(); }catch(e){}
-    var q = 'p=' + encodeURIComponent(location.pathname)
-      + '&d='  + encodeURIComponent(String(d).slice(0,40))
-      + '&sw=' + (sc.width||0)  + '&sh=' + (sc.height||0)
-      + '&vw=' + (window.innerWidth||0) + '&vh=' + (window.innerHeight||0)
-      + '&dpr='+ (window.devicePixelRatio||1) + '&cd=' + (sc.colorDepth||0)
-      + '&cc=' + (n.hardwareConcurrency||0) + '&dm=' + (n.deviceMemory||0)
-      + '&tp=' + (n.maxTouchPoints||0)
-      + '&pf=' + encodeURIComponent(n.platform||'')
-      + '&lg=' + encodeURIComponent(n.language||'')
-      + '&tz=' + encodeURIComponent(tzo.timeZone||'')
-      + '&rf=' + encodeURIComponent((document.referrer||'').slice(0,120));
-    fetch('/track?' + q, {method:'GET', keepalive:true});
-  }catch(e){}
+  // счётчик просмотров для вкладки «Метрики»
+  try{ fetch("/track?p="+encodeURIComponent(location.pathname),{method:"GET",keepalive:true}); }catch(e){}
   var pages=[
     {href:'index.html',icon:'🏠',label:'Главная'},
     {href:'дашборд_ддс_прямой.html',icon:'💸',label:'ДДС 2026'},
     {href:'дашборд_гугл_live.html',icon:'🗓️',label:'План оплат'},
     {href:'дашборд_ддс.html',icon:'🏦',label:'Про деньги'},
     {href:'дз_кз.html',icon:'⚖️',label:'ДЗ / КЗ'},
-    {href:'просрочка.html',icon:'📞',label:'Работа с просрочкой'},
     {href:'продажи_2026.html',icon:'🛒',label:'Продажи'},
-    {href:'повышение_цен.html',icon:'💹',label:'Повышение цен'},
-    {href:'развитие_ассортимента.html',icon:'🧬',label:'Развитие ассортимента'},
     {href:'закуп.html',icon:'📦',label:'Закуп'},
-    {href:'упаковка.html',icon:'🧻',label:'Упаковка'},
     {href:'производство.html',icon:'🏭',label:'Производство'},
     {href:'sku360.html',icon:'🧩',label:'SKU 360'},
     {href:'себестоимость_маржа.html',icon:'👥',label:'Кто приносит прибыль'},
@@ -55,9 +17,6 @@
     {href:'опиу_2026.html',icon:'📊',label:'ОПиУ 2026'},
     {href:'опиу_аудит.html',icon:'🔎',label:'Аудит ОПиУ'}
   ];
-  // Список страниц публикуем наружу: путеводитель берёт из него число
-  // отчётов, чтобы оно не устаревало при каждом новом листе.
-  try{ window.PULSE_PAGES = pages; }catch(e){}
   var cur=location.pathname.split('/').pop()||'index.html';
   var s=document.createElement('style');
   s.textContent=
@@ -135,13 +94,10 @@
   // ── Подпись / автор внизу страницы (на всех дашбордах) ──
   function addSig(){
     if(document.getElementById('psig'))return;
-    // 10.09.2026: nav.js подставлял подвал на каждую страницу, даже туда,
-    // где свой подвал уже свёрстан (главная, продажи) — получалось два
-    // подвала подряд. Если подвал на странице есть, второй не нужен.
-    if(document.querySelector('footer'))return;
     var f=document.createElement('footer');f.id='psig';
     f.style.cssText='text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22px 16px 34px;border-top:1px solid #1e293b;margin-top:22px;font-family:Inter,-apple-system,sans-serif';
-    f.innerHTML='Система «Пульс» · Фуд Завод<br>данные из iiko, обновляются ежедневно<br><a href="/metrics.html" style="color:#a78bfa;text-decoration:none;font-weight:600">🔒 Аналитика посещений</a>';
+    f.innerHTML='Система «Пульс» · Фуд Завод<br><b style="color:#94a3b8">Ольга Герасименко</b> · финансовый директор · данные из iiko, обновляются ежедневно<br><a href="/metrics.html" style="color:#a78bfa;text-decoration:none;font-weight:600">🔒 Аналитика посещений</a>'
+      + ' &nbsp;·&nbsp; <a href="/план.html" style="color:#fbbf24;text-decoration:none;font-weight:600">🎯 План-факт</a>';
     document.body.appendChild(f);
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',addSig);}else{addSig();}
