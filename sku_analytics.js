@@ -316,7 +316,10 @@
     var totalRows = rows.length, LIM = 150, cut = false;
     if (!SHOW_ALL && totalRows > LIM) { rows = rows.slice(0, LIM); cut = true; }
 
-    var SP = planBySku(MK), hasPlan = planSameMonth() && planTotal() > 0;
+    /* Колонки «План» и «Вып.» показываем всегда, когда план про этот месяц,
+       даже если он пустой: после очистки графа должна остаться на месте,
+       чтобы было куда вписывать заново. */
+    var SP = planBySku(MK), hasPlan = planSameMonth();
     var h = '<div class="sku-wrap"><table class="sku-tbl"><thead><tr>'
       + '<th style="width:34px">#</th>'
       + th('n', 'Позиция') + th('cat', 'Категория')
@@ -472,7 +475,7 @@
         + '<th>Позиция</th><th style="text-align:right">Кол-во</th>'
         + '<th style="text-align:right">Сумма</th>'
         + (pi.partial ? '<th style="text-align:right" title="если темп месяца сохранится до конца">Прогноз</th>' : '')
-        + (planSameMonth() && PLAN[c.num] ? '<th style="text-align:right" title="план контрагента, разложенный по его структуре закупа">План</th>' : '')
+        + (planSameMonth() ? '<th style="text-align:right" title="план контрагента, разложенный по его структуре закупа">План</th>' : '')
         + '<th style="text-align:right">Было</th>'
         + '<th style="text-align:right">Динамика</th></tr></thead><tbody>'
         + items.map(function (it) {
@@ -481,7 +484,9 @@
             + '<td style="text-align:right;color:#94a3b8">' + num(it.q) + '</td>'
             + '<td style="text-align:right;font-weight:700;color:#a78bfa">' + num(it.r) + '</td>'
             + (pi.partial ? '<td class="sku-fc" style="text-align:right">≈ ' + num(it.r * k) + '</td>' : '')
-            + (planSameMonth() && PLAN[c.num] ? '<td class="pl-num" style="text-align:right">' + num(PLAN[c.num] * (it.r / (c.rev || 1))) + '</td>' : '')
+            + (planSameMonth() ? '<td class="pl-num" style="text-align:right">'
+                 + (PLAN[c.num] ? num(PLAN[c.num] * (it.r / (c.rev || 1))) : '<span class="mut">—</span>')
+                 + '</td>' : '')
             + '<td style="text-align:right;color:#64748b">' + (pr ? num(pr) : '—') + '</td>'
             + '<td style="text-align:right">' + pill(it.r * k, pr, !pr) + '</td></tr>';
         }).join('')
@@ -1519,7 +1524,8 @@
       + '<button class="pl-btn main" onclick="planPaste()">Вставить план списком</button>'
       + '<button class="pl-btn" onclick="planFromPrev(0)">= прошлый месяц</button>'
       + '<button class="pl-btn" onclick="planFromPrev(10)">+10%</button>'
-      + (pt ? '<button class="pl-btn del" onclick="planAskClear()">Очистить только этот месяц</button>' : '')
+      + '<button class="pl-btn del" onclick="planAskClear()"' + (pt ? '' : ' disabled')
+        + '>Очистить суммы за месяц</button>'
       + '</span>';
     /* Главное правило работы с планом — одной строкой, чтобы не объяснять
        его каждому новому человеку на словах. */
