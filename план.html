@@ -91,6 +91,34 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #toast.bad{color:#fff;background:linear-gradient(135deg,#f87171,#dc2626)}
 .hint{font-size:12px;color:#7e91b3;line-height:1.6;margin-top:10px}
+/* Матрица «контрагенты × месяцы». Первая колонка и шапка липкие: без них
+   на двенадцати месяцах непонятно, чья это строка и какой это месяц. */
+.modes{display:inline-flex;gap:4px;margin-left:14px;vertical-align:middle;
+  background:#101a2f;border:1.5px solid #46598a;border-radius:10px;padding:3px}
+.mode{font:800 11px/1 inherit;font-family:inherit;color:#93a6c8;background:transparent;
+  border:none;border-radius:7px;padding:7px 13px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
+.mode:hover{color:#e2e8f0}
+.mode.on{color:#0b1120;background:linear-gradient(135deg,#fcd34d,#f59e0b)}
+.gwrap{overflow:auto;max-height:70vh}
+#t-grid th,#t-grid td{white-space:nowrap}
+#t-grid thead th{position:sticky;top:0;z-index:3;background:#111a2e}
+#t-grid th.c1,#t-grid td.c1{position:sticky;left:0;z-index:2;background:#111a2e;
+  min-width:210px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#t-grid thead th.c1{z-index:4}
+#t-grid tbody tr:hover td{background:#16213a}
+#t-grid tbody tr:hover td.c1{background:#1b2742}
+#t-grid tr.tot td{background:#18233d;font-weight:800;color:#e8eef6;
+  border-bottom:1px solid #3a4c74;position:sticky;top:34px;z-index:2}
+#t-grid tr.tot td.c1{background:#18233d;z-index:3}
+#t-grid th.now,#t-grid td.now{background:rgba(251,191,36,.07)}
+.gin{width:98px;background:#1d1a10;border:1px solid #5b4a1f;border-radius:7px;padding:5px 7px;
+  color:#fbbf24;font:700 12px/1 inherit;font-family:inherit;text-align:right;outline:none}
+.gin.empty{color:#4a5c80;border-style:dashed;border-color:#40527d;background:#131f38}
+.gin:focus{border-color:#fbbf24;background:#231e12;box-shadow:0 0 0 2px rgba(251,191,36,.25)}
+.pf{display:flex;flex-direction:column;gap:1px;align-items:flex-end;line-height:1.25}
+.pf u{text-decoration:none;font-size:11px;color:#a8924f}
+.pf s{text-decoration:none;font-size:12.5px;font-weight:700;color:#c4b5fd}
+.pf em{font-style:normal;font-size:11px;font-weight:800}
 /* Полоска месяцев до конца года: сразу видно, где плана ещё нет. */
 .months{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .mchip{display:flex;flex-direction:column;gap:2px;padding:9px 13px;border-radius:11px;
@@ -133,6 +161,8 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
   <div class="kpis" id="kpis"></div>
   <div class="months" id="months"></div>
 
+  <div id="grid-slot"></div>
+
   <div class="sec">
     <div class="sec-t">День за днём — <span id="d-m">—</span></div>
     <div class="card"><div style="height:250px"><canvas id="dd"></canvas></div>
@@ -152,8 +182,20 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
       <div class="scroll" style="margin-top:14px"><table id="t-year"></table></div></div>
   </div>
 
+  <div class="sec" id="sec-grid">
+    <div class="sec-t">Контрагенты по месяцам
+      <span class="modes">
+        <button class="mode on" data-mode="plan" onclick="setMode('plan')">План</button>
+        <button class="mode" data-mode="fact" onclick="setMode('fact')">Факт</button>
+        <button class="mode" data-mode="pf" onclick="setMode('pf')">План-факт</button>
+      </span>
+    </div>
+    <div class="card"><div class="gwrap"><table id="t-grid"></table></div>
+      <div class="hint" id="g-note"></div></div>
+  </div>
+
   <div class="sec">
-    <div class="sec-t">По контрагентам — <span id="c-m">—</span></div>
+    <div class="sec-t">По контрагентам за месяц — <span id="c-m">—</span></div>
     <div class="card scroll"><table id="t-ctr"></table></div>
   </div>
 </div>
@@ -305,6 +347,103 @@ function drawKpis(){
     }
   }
   document.getElementById('kpis').innerHTML=h;
+}
+
+/* ── матрица «контрагенты × месяцы» ───────────────────────────────────────
+   То, ради чего всё затевалось: одна таблица, где видно каждого клиента по
+   всем месяцам. Три режима — план (ячейки редактируются), факт и план-факт.
+   Считаем по прогнозу для незакрытого месяца, чтобы сравнение было честным. */
+var GMODE = 'plan';
+try { GMODE = localStorage.getItem('pulse_gmode') || 'plan'; } catch(e){}
+
+window.setMode=function(m){
+  GMODE=m;
+  try{ localStorage.setItem('pulse_gmode',m); }catch(e){}
+  [].forEach.call(document.querySelectorAll('.mode'),function(b){
+    b.classList.toggle('on', b.getAttribute('data-mode')===m);
+  });
+  drawGrid();
+};
+
+function drawGrid(){
+  var ms=allMonths(), NM=names();
+  var F={}, P={};
+  ms.forEach(function(mk){ F[mk]=fact(mk); P[mk]=plan(mk); });
+
+  // строки: все, кто хоть раз был в факте или в плане
+  var keys={};
+  ms.forEach(function(mk){
+    Object.keys(F[mk]).forEach(function(k){keys[k]=1;});
+    Object.keys(P[mk]).forEach(function(k){keys[k]=1;});
+  });
+  var rows=Object.keys(keys).map(function(k){
+    var tot=0; ms.forEach(function(mk){ tot+=(F[mk][k]||0)+(P[mk][k]||0); });
+    return {k:k, n:NM[k]||k, tot:tot};
+  }).sort(function(a,b){ return b.tot-a.tot; });
+
+  function fe(mk,k){ var pi=periodK(mk); return (F[mk][k]||0)*(pi.partial?pi.k:1); }
+
+  var h='<thead><tr><th class="c1">Контрагент</th>';
+  ms.forEach(function(mk){
+    h+='<th class="r'+(mk===MK?' now':'')+'">'+esc(mShort(mk))
+      + (mk.slice(0,4)!==ms[0].slice(0,4)? ' '+mk.slice(2,4) : '')+'</th>';
+  });
+  h+='<th class="r">Итого</th></tr></thead><tbody>';
+
+  // строка итогов сразу под шапкой
+  h+='<tr class="tot"><td class="c1">Итого</td>';
+  var gt=0;
+  ms.forEach(function(mk){
+    var p=planSum(mk), f=0; Object.keys(F[mk]).forEach(function(k){ f+=fe(mk,k); });
+    var v = GMODE==='plan'? p : (GMODE==='fact'? f : null);
+    gt += GMODE==='plan'? p : f;
+    if(GMODE==='pf'){
+      h+='<td class="r'+(mk===MK?' now':'')+'">'+pfCell(p,f)+'</td>';
+    } else {
+      h+='<td class="r'+(mk===MK?' now':'')+'">'+(v? sf(v) : '—')+'</td>';
+    }
+  });
+  h+='<td class="r">'+(gt? sf(gt) : '—')+'</td></tr>';
+
+  rows.forEach(function(r){
+    h+='<tr><td class="c1" title="'+esc(r.n)+'">'+esc(r.n)+'</td>';
+    var rt=0;
+    ms.forEach(function(mk){
+      var p=P[mk][r.k]||0, f=fe(mk,r.k);
+      var cls='r'+(mk===MK?' now':'');
+      if(GMODE==='plan'){
+        rt+=p;
+        h+='<td class="'+cls+'"><input class="gin'+(p?'':' empty')+'" data-m="'+mk+'" data-k="'
+          + esc(r.k)+'" inputmode="numeric" placeholder="—" value="'+(p?num(p):'')+'"></td>';
+      } else if(GMODE==='fact'){
+        rt+=f;
+        h+='<td class="'+cls+'">'+(f? num(f) : '<span class="mut">—</span>')+'</td>';
+      } else {
+        rt+=f;
+        h+='<td class="'+cls+'">'+pfCell(p,f)+'</td>';
+      }
+    });
+    h+='<td class="r">'+(rt? sf(rt) : '—')+'</td></tr>';
+  });
+  h+='</tbody>';
+  document.getElementById('t-grid').innerHTML=h;
+
+  document.getElementById('g-note').innerHTML = GMODE==='plan'
+    ? 'Впишите сумму в любую ячейку — сохранится сразу, в тот месяц, над которым стоит колонка. '
+      + 'Пустая ячейка значит, что плана нет.'
+    : (GMODE==='fact'
+       ? 'Факт из iiko. По незакрытому месяцу показан прогноз в темпе на полный месяц.'
+       : 'В ячейке: сверху план, ниже факт, справа процент. '
+         + '<span class="g-ok">Зелёный</span> — план выполнен, '
+         + '<span class="g-bad">красный</span> — нет. Пусто там, где плана не ставили.');
+}
+
+function pfCell(p,f){
+  if(!p && !f) return '<span class="mut">—</span>';
+  if(!p) return '<div class="pf"><u>—</u><s>'+num(f)+'</s></div>';
+  var pc=Math.round(f/p*100);
+  return '<div class="pf"><u>'+num(p)+'</u><s>'+(f?num(f):'0')+'</s>'
+    + '<em class="'+(pc>=100?'g-ok':(pc>=90?'':'g-bad'))+'">'+pc+'%</em></div>';
 }
 
 /* ── день за днём ─────────────────────────────────────────────────────────
@@ -568,7 +707,7 @@ function drawMonths(){
   });
   el.innerHTML=h;
 }
-function redraw(){ drawKpis(); drawMonths(); drawDays(); drawWf(); drawYear(); drawCtr(); state();
+function redraw(){ drawKpis(); drawMonths(); drawGrid(); drawDays(); drawWf(); drawYear(); drawCtr(); state();
   var sel=document.getElementById('m-sel'); if(sel) sel.value=MK; }
 
 /* Один и тот же план на все оставшиеся месяцы года — обычная отправная
@@ -619,6 +758,22 @@ window.copyFrom=function(){
 document.addEventListener('keydown',function(e){
   if(e.key==='Enter' && e.target && e.target.classList.contains('pin')) e.target.blur();
 });
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter' && e.target && e.target.classList.contains('gin')) e.target.blur();
+});
+/* Правка в матрице: месяц берём из колонки, а не из выбранного сверху. */
+document.addEventListener('change',function(e){
+  var el=e.target;
+  if(!el||!el.classList||!el.classList.contains('gin')) return;
+  var mk=el.getAttribute('data-m'), k=el.getAttribute('data-k'), v=parseSum(el.value), o={};
+  o[k]=v;
+  save(mk,o,'merge').then(function(){
+    var NM=names();
+    toast(v? (NM[k]||k)+': '+num(v)+' ₸ на '+mLabel(mk).toLowerCase() : 'План по строке убран');
+    redraw();
+  }).catch(function(){ toast('Не сохранилось — проверьте связь', true); });
+},true);
+
 document.addEventListener('change',function(e){
   var el=e.target;
   if(!el||!el.classList||!el.classList.contains('pin')) return;
@@ -643,6 +798,9 @@ document.addEventListener('change',function(e){
       return '<option value="'+mk+'"'+(mk===MK?' selected':'')+'>'+mLabel(mk)
         + (CTR[mk]?'':' · плановый')+'</option>';
     }).join('');
+    [].forEach.call(document.querySelectorAll('.mode'),function(b){
+      b.classList.toggle('on', b.getAttribute('data-mode')===GMODE);
+    });
     redraw();
   });
 })();
