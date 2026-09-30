@@ -805,6 +805,46 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
         </section>
 
         <section class="stage">
+          <div class="stagehead"><span class="stepno">§</span><h2>Регламент: кто отвечает и в какие сроки</h2>
+            <span class="hintline">Утверждённый порядок работы с обращениями по качеству</span></div>
+          <div class="rules">
+            <div class="rule">
+              <h4>Ответственные</h4>
+              <p>Директор по качеству · Специалист контроля качества · Директор по производству.<br>
+              Специалист контроля качества принимает обращение, фиксирует информацию, проводит первичный разбор, инициирует расследование на производстве и при необходимости выезжает на объект или точку.</p>
+            </div>
+            <div class="rule">
+              <h4>Первичное реагирование — 30 минут</h4>
+              <p>С момента поступления до перевода в работу. Пока запись висит в «Поступила» дольше получаса, она подсвечивается красным на доске и в журнале и попадает в «Требует внимания».</p>
+            </div>
+            <div class="rule">
+              <h4>Разбор — от 2 до 24 часов</h4>
+              <p>Срок предоставления результатов расследования. Срок устранения задаёт светофор: красный — 1 день, жёлтый — 3, зелёный — 7.</p>
+            </div>
+            <div class="rule">
+              <h4>По итогам расследования</h4>
+              <p>Причина возникновения · корректирующие действия · ответственные лица · сроки устранения. Всё это поля карточки — «Коренная причина», «Что сделали», «Чтобы не повторилось», «Ответственный», «Срок».</p>
+            </div>
+            <div class="rule">
+              <h4>Где фиксируется</h4>
+              <p>В рабочем чате и здесь, в журнале рекламаций. Каждое изменение пишется в историю карточки с автором и временем — отдельный протокол вести не нужно.</p>
+            </div>
+            <div class="rule">
+              <h4>Контроль закрытия</h4>
+              <p>Специалист и директор по качеству контролируют исполнение корректирующих мероприятий до полного закрытия обращения. Директор по производству — принятие решений и исполнение мер по устранению нарушений. Кто контролирует конкретную запись, указывается в карточке.</p>
+            </div>
+            <div class="rule">
+              <h4>Обратная связь клиенту</h4>
+              <p>После разбора колл-центр формирует ответ клиенту по утверждённым скриптам: какие меры приняты и как решён вопрос. Задача — оперативно урегулировать ситуацию, закрыть потребность клиента и сохранить лояльность. Пока поле «Ответ клиенту» пустое, завершить рекламацию нельзя.</p>
+            </div>
+            <div class="rule">
+              <h4>Не по качеству</h4>
+              <p>Трудоустройство и обращения по сотрудничеству или продажам колл-центр фиксирует и передаёт напрямую ответственным сотрудникам — в этот журнал они не попадают, чтобы не искажать статистику по качеству.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="stage">
           <div class="stagehead"><span class="stepno">!</span><h2>Что к какому уровню относить на Фуд Заводе</h2>
             <span class="hintline">Эти же формулировки лежат в списке «Типовая ситуация» при заведении рекламации</span></div>
           <div class="lvlgrid" id="sevGuide"></div>
@@ -948,6 +988,8 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     sources: ["Олив Битрикс","WhatsApp Фуд Завод","Чат Яндекс (Телеграм)","Дистрибьюторы",
       "Чат ФЗ КАЧЕСТВО","Чат ФЗ Качество Олив","Чат WhatsApp RP","Яндекс","Точка реализации","Сотрудник"],
     units: ["Цех ГП","Цех салатов","Цех кондитерский","Фасовка","Маркировка","Склад ГП","Логистика"],
+    roles: ["Директор по качеству","Специалист контроля качества","Директор по производству",
+      "Начальник цеха","Технолог","Колл-центр"],
     routes: {
       "Органолептика: вкус, запах, вид":"Цех ГП",
       "Состав и рецептура":"Цех ГП",
@@ -964,7 +1006,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   };
   var DICT = {culprits:DEFAULTS.culprits.slice(), cats:DEFAULTS.cats.slice(),
               sources:DEFAULTS.sources.slice(), units:DEFAULTS.units.slice(),
-              routes:JSON.parse(JSON.stringify(DEFAULTS.routes))};
+              roles:DEFAULTS.roles.slice(), routes:JSON.parse(JSON.stringify(DEFAULTS.routes))};
   function routeFor(cat){ return (DICT.routes && DICT.routes[cat]) || ""; }
   var CULPRITS = DICT.culprits, CATS = DICT.cats, SOURCES = DICT.sources;
   /* виновником может быть и звено, и конкретный цех: подмешиваем подразделения */
@@ -1006,6 +1048,23 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   }
   function today0(){ var d = new Date(); d.setHours(0,0,0,0); return +d; }
   function dueFrom(dateMs, sev){ return dateMs ? dateMs + sevMeta(sev).sla*86400000 : 0; }
+  /* первичное реагирование: 30 минут по регламенту */
+  var ACK_MIN = 30;
+  function ackStart(c){ return c.createdAt || c.date || 0; }
+  function ackWaiting(c){ return c.status === "Поступила" && !c.ackAt; }
+  function ackLate(c){ return ackWaiting(c) && (Date.now() - ackStart(c)) > ACK_MIN*60000; }
+  function minsText(m){
+    if(m < 60) return m + " " + plural(m,"минуту","минуты","минут");
+    var h = Math.round(m/60);
+    if(h < 24) return h + " " + plural(h,"час","часа","часов");
+    var d = Math.round(h/24);
+    return d + " " + plural(d,"день","дня","дней");
+  }
+  function ackText(c){
+    if(!ackWaiting(c)) return "";
+    var m = Math.max(0, Math.round((Date.now() - ackStart(c))/60000));
+    return m > ACK_MIN ? ("без реакции " + minsText(m)) : ("на реакцию " + (ACK_MIN - m) + " мин");
+  }
   function isOverdue(c){ return !DONE[c.status] && c.due && c.due < today0(); }
   function newId(){ return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
   function plural(n,a,b,c){
@@ -1176,7 +1235,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
       unit: seed.unit||"", text: seed.text||"", src: seed.src||"",
       status:"Поступила", owner:"", ownerText:"",
       culprit:"Не определён", batch:"", supplier:"",
-      cause:"", action:"", prevention:"",
+      cause:"", action:"", prevention:"", reply:"", control:"", ackAt:0,
       due: dueFrom(d, sevKey(seed.sev||"Жёлтый")), cost:0,
       createdAt: Date.now(), updatedAt: Date.now(), closedAt:0,
       log:[{ts:Date.now(), by:meId||"", t:"Рекламация заведена"}]
@@ -1195,6 +1254,12 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     var body = {};
     Object.keys(patch).forEach(function(k){ body[k] = patch[k]; });
     body.updatedAt = Date.now();
+    /* первичное реагирование: фиксируем момент, когда запись сдвинули с «Поступила» или назначили ответственного */
+    if(!c.ackAt && !body.ackAt){
+      var moved = body.status && body.status !== "Поступила";
+      var took  = body.owner || body.ownerText;
+      if(moved || took) body.ackAt = Date.now();
+    }
     if(logText){
       var log = (c.log||[]).slice();
       log.push({ts:Date.now(), by:meId||"", t:logText});
@@ -1580,6 +1645,9 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
       if(DONE[c.status]){
         termHtml = '<span class="left">завершена</span>'+
                    '<span class="leftsub">'+esc(dstr(c.closedAt))+'</span>';
+      } else if(ackWaiting(c)){
+        termHtml = '<span class="left '+(ackLate(c)?"over":"soon")+'">'+esc(ackText(c))+'</span>'+
+                   '<span class="leftsub">срок разбора '+dstr(c.due)+'</span>';
       } else {
         var left = days(c.due - now);
         var cls = left < 0 ? "over" : (left <= 1 ? "soon" : "");
@@ -1691,7 +1759,9 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
             ? (fmt(open.filter(function(c){ return !c.owner && !c.ownerText; }).length) + " без ответственного") : "все назначены",
        go: function(){ goJournal(function(){ statusFilter = "Принята в работу"; }); }},
       {k:"t-new", cap:"Поступили", n:fresh.length, big:false,
-       sub: fresh.length ? "ждут разбора" : "разобрано всё",
+       sub: fresh.filter(ackLate).length
+            ? (fmt(fresh.filter(ackLate).length) + " без реакции больше 30 минут")
+            : (fresh.length ? "реакция в норме" : "разобрано всё"),
        go: function(){ goJournal(function(){ statusFilter = "Поступила"; }); }},
       {k:"t-money", cap:"Потери в работе", n:null, txt: cost ? money(cost) : "—", big:true,
        sub: cost ? "по открытым записям" : "сумма не проставлена",
@@ -1729,9 +1799,9 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     renderStats();
 
     var att = el("sumAttention"); att.innerHTML = "";
-    var attList = cases.filter(function(c){ return !DONE[c.status] && (isOverdue(c) || (!c.owner && !c.ownerText)); })
+    var attList = cases.filter(function(c){ return !DONE[c.status] && (isOverdue(c) || ackLate(c) || (!c.owner && !c.ownerText)); })
       .sort(function(a,b){
-        var ao=isOverdue(a)?1:0, bo=isOverdue(b)?1:0;
+        var ao=(isOverdue(a)||ackLate(a))?1:0, bo=(isOverdue(b)||ackLate(b))?1:0;
         if(ao!==bo) return bo-ao;
         return a.due - b.due;
       }).slice(0,6);
@@ -1793,8 +1863,10 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
         var left = days(c.due - now);
         var lc = DONE[c.status] ? "" : (left < 0 ? "over" : (left <= 1 ? "soon" : ""));
         var lt = DONE[c.status] ? ("завершена " + dstr(c.closedAt || c.date))
+               : ackWaiting(c) ? ackText(c)
                : (left < 0 ? ("просрочено на " + Math.abs(left) + " " + plural(Math.abs(left),"день","дня","дней"))
                : (left === 0 ? "срок сегодня" : ("осталось " + left + " " + plural(left,"день","дня","дней"))));
+        if(ackWaiting(c)) lc = ackLate(c) ? "over" : "soon";
         var ix = ST_IX[c.status], nxt = STATUS[ix+1];
         k.innerHTML =
           '<div class="kt">'+esc(c.cat)+(c.no ? ' · №'+esc(c.no) : '')+'</div>'+
@@ -1849,6 +1921,11 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   }
   function moveCase(c, status){
     if(c.status === status) return;
+    if(DONE[status] && !(c.reply||"").trim()){
+      showError("Чтобы завершить рекламацию №"+(c.no||"")+", заполните «Ответ клиенту» в карточке.");
+      openPanel(c.id);
+      return;
+    }
     saveCase(c.id, {status:status, closedAt: DONE[status] ? Date.now() : 0}, "Этап: " + status);
   }
 
@@ -1963,6 +2040,13 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
           '<textarea id="pAction" placeholder="Партия снята, клиенту возмещено, оборудование настроено"'+(ro?" disabled":"")+'>'+esc(c.action||"")+'</textarea></div>'+
         '<div class="grp"><label for="pPrev">Чтобы не повторилось</label>'+
           '<textarea id="pPrev" placeholder="Изменение в техкарте, инструктаж, входной контроль"'+(ro?" disabled":"")+'>'+esc(c.prevention||"")+'</textarea></div>'+
+        '<div class="grp"><label for="pReply">Ответ клиенту</label>'+
+          '<textarea id="pReply" placeholder="Что сообщили клиенту: какие меры приняты и как решён вопрос"'+(ro?" disabled":"")+'>'+esc(c.reply||"")+'</textarea>'+
+          '<div class="hintline">Без ответа клиенту рекламация не завершается: по регламенту колл-центр даёт обратную связь по скриптам, задача — закрыть потребность клиента и сохранить лояльность.</div></div>'+
+        '<div class="grp"><label for="pControl">Контролирует закрытие</label>'+
+          '<input type="text" id="pControl" list="roleList" value="'+esc(c.control||"")+'" placeholder="Директор по качеству"'+(ro?" disabled":"")+'>'+
+          '<datalist id="roleList">'+(DICT.roles||[]).map(function(r){ return '<option value="'+esc(r)+'">'; }).join("")+'</datalist>'+
+          '<div class="hintline">Контролирует исполнение мер до полного закрытия обращения.</div></div>'+
         '<div class="grp"><span class="gl">История · видна всем</span>'+
           '<div class="log">'+ (c.log||[]).slice().reverse().map(function(l){
               var d = new Date(l.ts);
@@ -1987,6 +2071,16 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
       b.disabled = ro;
       b.addEventListener("click", function(){
         if(s.key === c.status) return;
+        if(DONE[s.key]){
+          var rp = panelEl.querySelector("#pReply");
+          if(!(rp.value||"").trim()){
+            var nh = panelEl.querySelector(".nexthint");
+            if(nh){ nh.style.borderLeftColor = "var(--crit)"; nh.style.color = "var(--crit)";
+              nh.textContent = "Заполните «Ответ клиенту» — без обратной связи рекламацию нельзя завершить."; }
+            rp.focus();
+            return;
+          }
+        }
         var patch = {status:s.key};
         patch.closedAt = DONE[s.key] ? Date.now() : 0;
         saveCase(c.id, patch, "Статус: " + s.key);
@@ -2034,6 +2128,8 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
         cause: panelEl.querySelector("#pCause").value.trim(),
         action: panelEl.querySelector("#pAction").value.trim(),
         prevention: panelEl.querySelector("#pPrev").value.trim(),
+        reply: panelEl.querySelector("#pReply").value.trim(),
+        control: panelEl.querySelector("#pControl").value.trim(),
         ownerText: panelEl.querySelector("#pOwnerText").value.trim()
       }, "Карточка обновлена");
     });
@@ -2270,16 +2366,17 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     {key:"cats",     name:"Категории",     hint:"Причины обращений"},
     {key:"culprits", name:"Виновники",     hint:"Звенья, где может возникнуть проблема"},
     {key:"units",    name:"Подразделения", hint:"Цеха, склады, службы"},
+    {key:"roles",    name:"Роли",          hint:"Кто разбирает и кто контролирует закрытие по регламенту"},
     {key:"routes",   name:"Маршруты",      hint:"Куда уходит разбор: категория обращения → подразделение"}
   ];
 
   async function saveDict(){
     if(!db) return;
-    try{ await db.doc("meta/dict").set({sources:DICT.sources, cats:DICT.cats, culprits:DICT.culprits, units:DICT.units, routes:DICT.routes, updatedAt:Date.now()}); }
+    try{ await db.doc("meta/dict").set({sources:DICT.sources, cats:DICT.cats, culprits:DICT.culprits, units:DICT.units, roles:DICT.roles, routes:DICT.routes, updatedAt:Date.now()}); }
     catch(e){ showError("Справочник не сохранился: " + (e && e.code === "invalid_argument" ? "нет прав на запись." : "проверьте связь.")); }
   }
   function applyDict(b){
-    ["sources","cats","culprits","units"].forEach(function(k){
+    ["sources","cats","culprits","units","roles"].forEach(function(k){
       if(Array.isArray(b[k]) && b[k].length) DICT[k] = b[k].slice();
     });
     if(b.routes && typeof b.routes === "object") DICT.routes = b.routes;
@@ -2841,7 +2938,8 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
           unit:b.unit||"", text:b.text||"", src:b.src||"", status:stKey(b.status),
           owner:b.owner||"", ownerText:b.ownerText||"", culprit:culKey(b.culprit),
           batch:b.batch||"", supplier:b.supplier||"", cause:b.cause||"", action:b.action||"",
-          prevention:b.prevention||"", due:b.due||dueFrom(b.date||0,sevKey(b.sev)),
+          prevention:b.prevention||"", reply:b.reply||"", control:b.control||"", ackAt:Number(b.ackAt)||0,
+          due:b.due||dueFrom(b.date||0,sevKey(b.sev)),
           cost:Number(b.cost)||0, createdAt:b.createdAt||0, updatedAt:b.updatedAt||0,
           closedAt:b.closedAt||0, demo:!!b.demo, log:Array.isArray(b.log)?b.log:[]};
       });
@@ -2866,6 +2964,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
           status:stKey(b.status), owner:b.owner||"", ownerText:b.ownerText||"",
           culprit:culKey(b.culprit), batch:b.batch||"", supplier:b.supplier||"",
           cause:b.cause||"", action:b.action||"", prevention:b.prevention||"",
+          reply:b.reply||"", control:b.control||"", ackAt:Number(b.ackAt)||0,
           due:b.due || dueFrom(b.date||0, sevKey(b.sev)),
           cost:Number(b.cost)||0,
           createdAt:b.createdAt||0, updatedAt:b.updatedAt||0, closedAt:b.closedAt||0,
