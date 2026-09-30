@@ -168,6 +168,29 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .lvlcard .ds{font-size:12px;color:var(--ink-2);margin:3px 0 9px;line-height:1.45}
 .lvlcard ul{margin:0;padding-left:16px}
 .lvlcard li{font-size:12.5px;color:var(--ink-2);line-height:1.45;margin-bottom:5px}
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:start}
+@media (max-width:1040px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.board{grid-template-columns:1fr}}
+.col{background:var(--plane);border:1px solid var(--ring);border-radius:11px;padding:10px 10px 4px;min-height:110px}
+.col.over{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.colhd{display:flex;align-items:center;gap:8px;padding:2px 3px 9px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.colhd .cd{width:9px;height:9px;border-radius:50%;flex:none}
+.colhd .nm{font-family:var(--disp);font-size:11px;letter-spacing:.11em;text-transform:uppercase;font-weight:500;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.colhd .n{font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;font-family:var(--disp)}
+.colsub{font-size:11px;color:var(--ink-3);margin:-4px 3px 9px}
+.kcard{background:var(--surface);border:1px solid var(--ring);border-left:3px solid var(--sv);border-radius:9px;padding:9px 11px 8px;margin-bottom:8px;cursor:pointer}
+.kcard:hover{border-color:var(--axis)}
+.kcard.drag{opacity:.4}
+.kcard .kt{font-size:12.5px;font-weight:600;line-height:1.3;word-break:break-word}
+.kcard .kx{font-size:11.5px;color:var(--ink-2);line-height:1.4;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kcard .km{font-size:11px;color:var(--ink-3);margin-top:5px;display:flex;flex-wrap:wrap;gap:1px 10px}
+.kcard .kb{display:flex;align-items:center;gap:8px;margin-top:7px}
+.kcard .kl{font-family:var(--mono);font-size:11px;flex:1 1 auto;font-variant-numeric:tabular-nums}
+.kcard .kl.over{color:var(--crit);font-weight:500}
+.kcard .kl.soon{color:var(--serious)}
+.knext{font:inherit;font-size:11.5px;border:1px solid var(--ring);background:var(--plane);color:var(--ink-2);border-radius:6px;padding:2px 9px;cursor:pointer;flex:none}
+.knext:hover{border-color:var(--accent);color:var(--accent)}
+.kempty{font-size:11.5px;color:var(--ink-3);text-align:center;padding:12px 4px 16px;line-height:1.5}
 .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:12px}
 .strow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left;font:inherit;color:var(--ink)}
 .strow:first-of-type{border-top:0}
@@ -539,6 +562,8 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     <nav class="side" id="side" aria-label="Разделы">
       <button class="navi" type="button" data-pane="summary" aria-current="true">
         <span class="ic">◈</span><span class="lb">Сводка</span></button>
+      <button class="navi" type="button" data-pane="board">
+        <span class="ic">▥</span><span class="lb">Воронка</span><span class="bd" id="navBoard"></span></button>
       <button class="navi" type="button" data-pane="journal">
         <span class="ic">▤</span><span class="lb">Журнал</span><span class="bd" id="navJournal"></span></button>
       <button class="navi" type="button" data-act="inbox">
@@ -596,6 +621,11 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
           <div class="sumcard"><h3>Каналы</h3><p class="cap">Откуда пришло обращение</p>
             <div id="statSrc"></div><button class="linkbtn" type="button" data-more="src">показать все</button></div>
         </div>
+      </div>
+
+      <div class="pane" id="pane-board" hidden>
+        <p class="hintline" id="boardHint" style="margin-bottom:12px"></p>
+        <div class="board" id="board"></div>
       </div>
 
       <div class="pane" id="pane-journal" hidden>
@@ -712,60 +742,41 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
           <div class="flow">
 
             <div class="fs">
-              <span class="no" style="background:var(--ink-3)">0</span>
-              <div class="bd">
-                <div class="ttl">Поступила <em>клиент, сеть, чат, звонок, точка продаж</em></div>
-                <div class="wh">Кто: любой сотрудник, кто принял обращение</div>
-                <div class="do">Обращение попадает во «Входящие» (из чатов и файлов) или заводится вручную кнопкой «+ Рекламация». Пока оно не заведено — его не существует: устная жалоба теряется, запись в журнале нет.</div>
-                <div class="out"><span>Фиксируем: дата, номер заказа, канал, дословный текст клиента</span></div>
-              </div>
-            </div>
-
-            <div class="fs">
               <span class="no" style="background:var(--st-new)">1</span>
               <div class="bd">
-                <div class="ttl">Новая <em>принята, ещё не разобрана</em></div>
+                <div class="ttl">Поступила <em>обращение зафиксировано</em></div>
                 <div class="wh">Кто: дежурный по качеству</div>
-                <div class="do">Смотрит обращение и ставит <b>категорию</b> и <b>критичность</b>. Это два решения, которые дальше ведут рекламацию сами: категория задаёт подразделение (по маршруту), критичность — срок разбора.</div>
-                <div class="out"><span>Категория → подразделение</span><span>Критичность → срок</span></div>
+                <div class="do">Обращение приходит из чата, звонка, сети или с точки: попадает во «Входящие» или заводится кнопкой «+ Рекламация». Дежурный выбирает <b>типовую ситуацию</b> — от неё сразу проставляются категория, цвет светофора, срок и подразделение. Пока обращение не заведено, его не существует: устная жалоба теряется.</div>
+                <div class="out"><span>Фиксируем: дата, номер заказа, канал, дословный текст клиента</span><span>Красный · Жёлтый · Зелёный</span></div>
               </div>
             </div>
 
             <div class="fs">
-              <span class="no" style="background:var(--st-check)">2</span>
+              <span class="no" style="background:var(--st-work)">2</span>
               <div class="bd">
-                <div class="ttl">Разбор <em>подтверждаем факт</em></div>
-                <div class="wh">Кто: технолог или контроль качества подразделения из маршрута</div>
-                <div class="do">Поднимает партию, журналы смены, остатки. Отвечает на два вопроса: было ли это на самом деле и <b>где именно</b> возникло — сырьё, цех, фасовка, склад, доставка или точка продаж. Результат записывает в поле «Виновник».</div>
-                <div class="out"><span>Факт не подтвердился → Отклонена</span><span>Подтвердился → назначаем ответственного</span></div>
+                <div class="ttl">Принята в работу <em>разбираемся и устраняем</em></div>
+                <div class="wh">Кто: ответственный от подразделения из маршрута</div>
+                <div class="do">Кто взял рекламацию — тот и ответственный, она попадает к нему в счётчик «На вас». Он поднимает партию, журналы смены и остатки, подтверждает факт и записывает <b>виновное звено</b>: сырьё, цех, фасовка, склад, доставка или точка продаж. Затем устраняет причину, а не последствие: не «переделали заказ клиенту», а «изменили норму закладки», «переобучили смену», «сменили поставщика плёнки».</div>
+                <div class="out"><span>Виновник обязателен</span><span>Коренная причина и мера</span></div>
               </div>
             </div>
 
             <div class="fs">
-              <span class="no" style="background:var(--st-work)">3</span>
+              <span class="no" style="background:var(--st-fixed)">3</span>
               <div class="bd">
-                <div class="ttl">В работе <em>устраняем</em></div>
-                <div class="wh">Кто: ответственный от виновного подразделения</div>
-                <div class="do">Кто взял рекламацию в работу — тот и становится ответственным, она попадает к нему в счётчик «На вас». Он устраняет причину, а не последствие: не «переделали заказ клиенту», а «изменили норму закладки», «переобучили смену», «сменили поставщика плёнки».</div>
-                <div class="out"><span>Пишем: что сделали и что изменили, чтобы не повторилось</span></div>
-              </div>
-            </div>
-
-            <div class="fs">
-              <span class="no" style="background:var(--st-fixed)">4</span>
-              <div class="bd">
-                <div class="ttl">Меры приняты <em>ждёт проверки</em></div>
+                <div class="ttl">Решение <em>меры выполнены, ждёт проверки</em></div>
                 <div class="wh">Кто: ответственный передаёт, проверяющий принимает</div>
                 <div class="do">Исполнитель закончил и снял с себя работу. Рекламация ещё открыта: пока никто не проверил результат, она считается незакрытой и продолжает считаться в сроке.</div>
+                <div class="out"><span>Описано: что сделали и что изменили, чтобы не повторилось</span></div>
               </div>
             </div>
 
             <div class="fs">
-              <span class="no" style="background:var(--st-closed)">5</span>
+              <span class="no" style="background:var(--st-closed)">4</span>
               <div class="bd">
-                <div class="ttl">Закрыта или Отклонена <em>исход</em></div>
+                <div class="ttl">Завершена <em>исход</em></div>
                 <div class="wh">Кто: тот, кто проверил — не тот, кто устранял</div>
-                <div class="do">Закрывает проверяющий, убедившись в результате. «Отклонена» — когда факт не подтвердился; это тоже нормальный исход, его тоже надо зафиксировать, иначе статистика врёт.</div>
+                <div class="do">Завершает проверяющий, убедившись в результате. Если разбор показал, что факта не было, — ставим виновника «Не подтвердилось» и тоже завершаем: это нормальный исход, его тоже надо зафиксировать, иначе статистика врёт.</div>
                 <div class="out"><span>Всё попадает в аналитику: причины, виновники, сроки, потери</span></div>
               </div>
             </div>
@@ -814,12 +825,12 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
       <div>
         <h4>Маршрут</h4>
         <ol>
-          <li><b>Новая</b> — принята, не разобрана.</li>
-          <li><b>Разбор</b> — проверяем партию и журналы, подтверждаем факт.</li>
-          <li><b>В работе</b> — назначен ответственный, определён виновник.</li>
-          <li><b>Меры приняты</b> — ждёт проверки.</li>
+          <li><b>Поступила</b> — зафиксирована, не разобрана.</li>
+          <li><b>Принята в работу</b> — есть ответственный, определён виновник, идёт устранение.</li>
+          <li><b>Решение</b> — меры выполнены, ждёт проверки.</li>
+          <li><b>Завершена</b> — проверено и закрыто.</li>
         </ol>
-        <p style="margin:7px 0 0">Исход — <b>Закрыта</b> или <b>Отклонена</b>.</p>
+        <p style="margin:7px 0 0">Карточку можно двигать по этапам мышью на доске «Воронка».</p>
       </div>
       <div>
         <h4>Срок разбора</h4>
@@ -881,6 +892,8 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
      desc:"Опасно для здоровья, вся партия под вопросом или претензия сети"}
   ];
   var SEV_OLD = {"Критичная":"Красный","Высокая":"Красный","Средняя":"Жёлтый","Низкая":"Зелёный"};
+  var CUL_OLD = {"Производство (цех)":"Цех ГП","Склад и хранение":"Склад ГП","Доставка и холодовая цепь":"Логистика"};
+  function culKey(v){ return CUL_OLD[v] || v || "Не определён"; }
   function sevKey(v){ return SEV_OLD[v] || (SEV_IX[v] !== undefined ? v : "Жёлтый"); }
 
   /* типовые ситуации Фуд Завода: подставляют категорию и критичность */
@@ -912,23 +925,24 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   var SEV_IX = {}; SEV.forEach(function(s,i){ SEV_IX[s.key] = i; });
 
   var STATUS = [
-    {key:"Новая",        color:"var(--st-new)",    hint:"Поступила, ещё не разобрана",
-     next:"Проверьте факт и переведите в «Разбор», либо возьмите сразу в работу."},
-    {key:"Разбор",       color:"var(--st-check)",  hint:"Проверяем партию, журналы, подтверждаем факт",
-     next:"Определите виновника и коренную причину, затем назначьте ответственного."},
-    {key:"В работе",     color:"var(--st-work)",   hint:"Назначен ответственный, идёт устранение",
-     next:"Опишите, что сделали, и переведите в «Меры приняты»."},
-    {key:"Меры приняты", color:"var(--st-fixed)",  hint:"Действие выполнено, ждёт проверки",
-     next:"Проверяющий убеждается в результате и закрывает."},
-    {key:"Закрыта",      color:"var(--st-closed)", hint:"Проверено и закрыто", next:"Работа завершена."},
-    {key:"Отклонена",    color:"var(--st-drop)",   hint:"Факт не подтвердился", next:"Разбор закончен, меры не требуются."}
+    {key:"Поступила",        color:"var(--st-new)",   hint:"Зафиксирована, ещё не разобрана",
+     next:"Проверьте факт, поставьте категорию и цвет светофора — затем примите в работу и назначьте ответственного."},
+    {key:"Принята в работу", color:"var(--st-work)",  hint:"Назначен ответственный, идёт разбор и устранение",
+     next:"Поднимите партию и журналы смены, определите виновника и коренную причину, выполните меры — и переведите в «Решение»."},
+    {key:"Решение",          color:"var(--st-fixed)", hint:"Меры выполнены, ждёт проверки",
+     next:"Проверяющий убеждается в результате и завершает. Если факт не подтвердился — поставьте виновника «Не подтвердилось» и тоже завершайте."},
+    {key:"Завершена",        color:"var(--st-closed)",hint:"Разбор закончен, результат проверен",
+     next:"Работа завершена. Запись остаётся в аналитике."}
   ];
   var ST_IX = {}; STATUS.forEach(function(s,i){ ST_IX[s.key] = i; });
-  var DONE = {"Закрыта":1,"Отклонена":1};
+  var DONE = {"Завершена":1};
+  var ST_OLD = {"Новая":"Поступила","Разбор":"Принята в работу","В работе":"Принята в работу",
+                "Меры приняты":"Решение","Закрыта":"Завершена","Отклонена":"Завершена"};
+  function stKey(v){ return ST_OLD[v] || (ST_IX[v] !== undefined ? v : "Поступила"); }
 
   var DEFAULTS = {
-    culprits: ["Не определён","Сырьё (поставщик)","Рецептура и технология","Производство (цех)",
-      "Фасовка","Маркировка","Склад и хранение","Доставка и холодовая цепь","Точка продаж","Не подтвердилось"],
+    culprits: ["Не определён","Сырьё (поставщик)","Рецептура и технология",
+      "Точка продаж","Не подтвердилось"],
     cats: ["Рецептура и пропорции","Внешний вид","Упаковка","Маркировка","Посторонний предмет",
       "Свежесть и срок годности","Недовес","Температура и холодовая цепь","Комплектация заказа","Другое"],
     sources: ["Битрикс","WhatsApp","Звонок","Яндекс Лавка","Kaspi","Instagram","Точка продаж","Сотрудник"],
@@ -951,9 +965,17 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
               routes:JSON.parse(JSON.stringify(DEFAULTS.routes))};
   function routeFor(cat){ return (DICT.routes && DICT.routes[cat]) || ""; }
   var CULPRITS = DICT.culprits, CATS = DICT.cats, SOURCES = DICT.sources;
+  /* виновником может быть и звено, и конкретный цех: подмешиваем подразделения */
+  function culpritList(){
+    var out = [], seen = {};
+    DICT.culprits.concat(DICT.units).forEach(function(v){
+      if(v && !seen[v]){ seen[v] = 1; out.push(v); }
+    });
+    return out;
+  }
 
   function sevMeta(k){ var i = SEV_IX[SEV_OLD[k] || k]; return SEV[i === undefined ? 1 : i]; }
-  function stMeta(k){ return STATUS[ST_IX[k]] || STATUS[0]; }
+  function stMeta(k){ var i = ST_IX[ST_OLD[k] || k]; return STATUS[i === undefined ? 0 : i]; }
 
   /* ================= утилиты ================= */
   var el = function(id){ return document.getElementById(id); };
@@ -1150,7 +1172,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     return {
       no: seed.no||"", date: d, cat: seed.cat||"Другое", sev: sevKey(seed.sev||"Жёлтый"),
       unit: seed.unit||"", text: seed.text||"", src: seed.src||"",
-      status:"Новая", owner:"", ownerText:"",
+      status:"Поступила", owner:"", ownerText:"",
       culprit:"Не определён", batch:"", supplier:"",
       cause:"", action:"", prevention:"",
       due: dueFrom(d, sevKey(seed.sev||"Жёлтый")), cost:0,
@@ -1215,7 +1237,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   function buildOptions(){
     fillSelect(el("fCat"), uniq(DICT.cats.concat(cases.map(function(c){return c.cat}))).sort(function(a,b){return a.localeCompare(b,"ru")}));
     fillSelect(el("fSev"), SEV.slice().reverse().map(function(s){return s.key}));
-    fillSelect(el("fCul"), uniq(DICT.culprits.concat(cases.map(function(c){return c.culprit}))).sort(function(a,b){return a.localeCompare(b,"ru")}));
+    fillSelect(el("fCul"), uniq(culpritList().concat(cases.map(function(c){return c.culprit}))).sort(function(a,b){return a.localeCompare(b,"ru")}));
     renderRoutes();
     renderSevGuide();
   }
@@ -1554,7 +1576,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
       var sm = sevMeta(c.sev), stm = stMeta(c.status), own = ownerLabel(c);
       var termHtml;
       if(DONE[c.status]){
-        termHtml = '<span class="left">'+esc(c.status === "Закрыта" ? "закрыта" : "отклонена")+'</span>'+
+        termHtml = '<span class="left">завершена</span>'+
                    '<span class="leftsub">'+esc(dstr(c.closedAt))+'</span>';
       } else {
         var left = days(c.due - now);
@@ -1607,6 +1629,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     if(sf) sf.innerHTML = 'Всего записей: <b>'+fmt(cases.length)+'</b><br>Открыто: <b>'+fmt(openN)+'</b><br>Просрочено: <b style="color:var(--crit)">'+fmt(cases.filter(isOverdue).length)+'</b>';
 
     renderSummary();
+    renderBoard(data);
 
     var demoN = cases.filter(function(c){ return c.demo; }).length;
     el("wipeDemo").hidden = !(demoN && canWrite);
@@ -1652,7 +1675,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     var now = today0();
     var open = cases.filter(function(c){ return !DONE[c.status]; });
     var over = cases.filter(isOverdue);
-    var fresh = cases.filter(function(c){ return c.status === "Новая"; });
+    var fresh = cases.filter(function(c){ return c.status === "Поступила"; });
     var cost = cases.filter(function(c){ return !DONE[c.status]; }).reduce(function(s,c){ return s + (Number(c.cost)||0); }, 0);
 
     var tiles = el("sumTiles"); if(!tiles) return;
@@ -1664,10 +1687,10 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
       {k:"t-work", cap:"В работе", n:open.length, big:false,
        sub: open.filter(function(c){ return !c.owner && !c.ownerText; }).length
             ? (fmt(open.filter(function(c){ return !c.owner && !c.ownerText; }).length) + " без ответственного") : "все назначены",
-       go: function(){ goJournal(function(){ statusFilter = "В работе"; }); }},
-      {k:"t-new", cap:"Новые", n:fresh.length, big:false,
+       go: function(){ goJournal(function(){ statusFilter = "Принята в работу"; }); }},
+      {k:"t-new", cap:"Поступили", n:fresh.length, big:false,
        sub: fresh.length ? "ждут разбора" : "разобрано всё",
-       go: function(){ goJournal(function(){ statusFilter = "Новая"; }); }},
+       go: function(){ goJournal(function(){ statusFilter = "Поступила"; }); }},
       {k:"t-money", cap:"Потери в работе", n:null, txt: cost ? money(cost) : "—", big:true,
        sub: cost ? "по открытым записям" : "сумма не проставлена",
        go: function(){ goJournal(); }}
@@ -1720,6 +1743,113 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   }
 
   var statMore = {cats:false, cul:false, src:false};
+  /* ================= воронка (доска) ================= */
+  var dragId = null;
+  function renderBoard(data){
+    var box = el("board"); if(!box) return;
+    var now = today0(), ro = !canWrite;
+    var hint = el("boardHint");
+    if(hint) hint.innerHTML = ro
+      ? 'Доска показывает, на каком этапе стоит каждая рекламация. Чтобы двигать карточки, нужен доступ на запись.'
+      : 'Перетащите карточку мышью на другой этап или нажмите <b>→</b>, чтобы отправить её дальше. Клик по карточке открывает разбор. Показаны записи по текущим фильтрам журнала.';
+    box.innerHTML = "";
+    var nb = el("navBoard");
+    if(nb){ var openN = cases.filter(function(c){ return !DONE[c.status]; }).length; nb.textContent = fmt(openN); nb.hidden = !openN; }
+
+    STATUS.forEach(function(st){
+      var col = document.createElement("div");
+      col.className = "col";
+      var list = data.filter(function(c){ return c.status === st.key; })
+        .sort(function(a,b){
+          var ao = isOverdue(a)?0:1, bo = isOverdue(b)?0:1;
+          if(ao!==bo) return ao-bo;
+          if(DONE[st.key]) return (b.closedAt||b.date) - (a.closedAt||a.date);
+          return a.due - b.due;
+        });
+      var shown = DONE[st.key] ? list.slice(0,12) : list;
+      var lost = list.reduce(function(a,c){ return a + (Number(c.cost)||0); }, 0);
+      var ovN = list.filter(isOverdue).length;
+
+      var hd = document.createElement("div");
+      hd.className = "colhd";
+      hd.innerHTML = '<span class="cd" style="background:'+st.color+'"></span>'+
+        '<span class="nm">'+esc(st.key)+'</span><span class="n">'+fmt(list.length)+'</span>';
+      col.appendChild(hd);
+
+      var sub = document.createElement("div");
+      sub.className = "colsub";
+      sub.innerHTML = (ovN ? '<b style="color:var(--crit)">просрочено '+fmt(ovN)+'</b>' : (DONE[st.key] ? 'разбор закончен' : 'в срок')) +
+        (lost ? ' · ' + esc(money(lost)) : '');
+      col.appendChild(sub);
+
+      shown.forEach(function(c){
+        var sm = sevMeta(c.sev);
+        var k = document.createElement("div");
+        k.className = "kcard";
+        k.style.setProperty("--sv", sm.color);
+        k.draggable = !ro;
+        var left = days(c.due - now);
+        var lc = DONE[c.status] ? "" : (left < 0 ? "over" : (left <= 1 ? "soon" : ""));
+        var lt = DONE[c.status] ? ("завершена " + dstr(c.closedAt || c.date))
+               : (left < 0 ? ("просрочено на " + Math.abs(left) + " " + plural(Math.abs(left),"день","дня","дней"))
+               : (left === 0 ? "срок сегодня" : ("осталось " + left + " " + plural(left,"день","дня","дней"))));
+        var ix = ST_IX[c.status], nxt = STATUS[ix+1];
+        k.innerHTML =
+          '<div class="kt">'+esc(c.cat)+(c.no ? ' · №'+esc(c.no) : '')+'</div>'+
+          (c.text ? '<div class="kx">'+esc(c.text)+'</div>' : '')+
+          '<div class="km"><span>'+esc(ownerLabel(c) || "без ответственного")+'</span>'+
+            (c.unit ? '<span>'+esc(c.unit)+'</span>' : '')+
+            (c.src ? '<span>'+esc(c.src)+'</span>' : '')+'</div>'+
+          '<div class="kb"><span class="kl '+lc+'">'+esc(lt)+'</span></div>';
+        if(nxt && !ro){
+          var nb2 = document.createElement("button");
+          nb2.type = "button"; nb2.className = "knext"; nb2.textContent = "→";
+          nb2.title = "Перевести в «" + nxt.key + "»";
+          nb2.addEventListener("click", function(ev){
+            ev.stopPropagation();
+            moveCase(c, nxt.key);
+          });
+          k.querySelector(".kb").appendChild(nb2);
+        }
+        k.addEventListener("click", function(){ openPanel(c.id); });
+        k.addEventListener("dragstart", function(ev){
+          dragId = c.id; k.classList.add("drag");
+          try{ ev.dataTransfer.setData("text/plain", c.id); ev.dataTransfer.effectAllowed = "move"; }catch(e){}
+        });
+        k.addEventListener("dragend", function(){ dragId = null; k.classList.remove("drag"); });
+        col.appendChild(k);
+      });
+
+      if(!shown.length){
+        var e = document.createElement("div");
+        e.className = "kempty";
+        e.textContent = DONE[st.key] ? "Пока ничего не завершено" : "Пусто";
+        col.appendChild(e);
+      } else if(list.length > shown.length){
+        var m = document.createElement("div");
+        m.className = "kempty";
+        m.textContent = "и ещё " + fmt(list.length - shown.length) + " — смотрите в журнале";
+        col.appendChild(m);
+      }
+
+      if(!ro){
+        col.addEventListener("dragover", function(ev){ ev.preventDefault(); col.classList.add("over"); });
+        col.addEventListener("dragleave", function(){ col.classList.remove("over"); });
+        col.addEventListener("drop", function(ev){
+          ev.preventDefault(); col.classList.remove("over");
+          var id = dragId || (ev.dataTransfer && ev.dataTransfer.getData("text/plain"));
+          var c = cases.filter(function(x){ return x.id === id; })[0];
+          if(c) moveCase(c, st.key);
+        });
+      }
+      box.appendChild(col);
+    });
+  }
+  function moveCase(c, status){
+    if(c.status === status) return;
+    saveCase(c.id, {status:status, closedAt: DONE[status] ? Date.now() : 0}, "Этап: " + status);
+  }
+
   function renderStats(){
     var defs = [
       {id:"statCats", key:"cats", pick:function(c){ return c.cat; },  go:function(v){ goJournal(function(){ el("fCat").value = v; }); }},
@@ -1781,7 +1911,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     if(DONE[c.status]){
       var took = c.closedAt && c.date ? days(c.closedAt - c.date) : null;
       slaHtml = ringSvg(1, "var(--st-closed)") +
-        '<div class="sb"><div class="st1">'+(c.status==="Закрыта"?"Закрыта":"Отклонена")+'</div>'+
+        '<div class="sb"><div class="st1">Завершена</div>'+
         '<div class="st2">'+(took!==null ? ("разбор занял "+took+" "+plural(took,"день","дня","дней")) : "разбор завершён")+'</div></div>';
     } else {
       var total = sevMeta(c.sev).sla, left = days(c.due - now);
@@ -1817,7 +1947,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
           '<input type="text" id="pOwnerText" placeholder="или впишите фамилию" value="'+esc(c.ownerText||"")+'"'+(ro?" disabled":"")+'></div>'+
         '<div class="two">'+
           '<div class="grp"><label for="pCulprit">Виновник</label><select id="pCulprit"'+(ro?" disabled":"")+'>'+
-            DICT.culprits.concat(DICT.culprits.indexOf(c.culprit)===-1&&c.culprit?[c.culprit]:[]).map(function(k){ return '<option'+(k===c.culprit?' selected':'')+'>'+esc(k)+'</option>'; }).join("")+'</select></div>'+
+            culpritList().concat(culpritList().indexOf(c.culprit)===-1&&c.culprit?[c.culprit]:[]).map(function(k){ return '<option'+(k===c.culprit?' selected':'')+'>'+esc(k)+'</option>'; }).join("")+'</select></div>'+
           '<div class="grp"><label for="pSupplier">Поставщик или смена</label>'+
             '<input type="text" id="pSupplier" value="'+esc(c.supplier||"")+'" placeholder="напр. смена 2"'+(ro?" disabled":"")+'></div>'+
         '</div>'+
@@ -1879,7 +2009,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
           saveCase(c.id, {
             owner: take ? p.id : "",
             ownerText: take ? "" : c.ownerText,
-            status: (take && c.status === "Новая") ? "В работе" : c.status
+            status: (take && c.status === "Поступила") ? "Принята в работу" : c.status
           }, take ? ("Назначен ответственный: " + (p.name||"специалист")) : "Ответственный снят");
         });
         pp.appendChild(b);
@@ -2592,11 +2722,11 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   });
 
   /* ================= разделы ================= */
-  var PANE_TITLES = {summary:"Сводка", journal:"Журнал", analytics:"Аналитика", help:"Как работать"};
+  var PANE_TITLES = {summary:"Сводка", board:"Воронка", journal:"Журнал", analytics:"Аналитика", help:"Как работать"};
   var pane = "summary";
   function showPane(p){
     pane = p;
-    ["summary","journal","analytics","help"].forEach(function(k){
+    ["summary","board","journal","analytics","help"].forEach(function(k){
       var e = el("pane-"+k); if(e) e.hidden = (k !== p);
     });
     Array.prototype.forEach.call(document.querySelectorAll(".navi"), function(b){
@@ -2706,8 +2836,8 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     if(!db){
       cases = SNAPSHOT.map(function(b){
         return {id:b.id, no:b.no||"", date:b.date||0, cat:b.cat||"Другое", sev:sevKey(b.sev),
-          unit:b.unit||"", text:b.text||"", src:b.src||"", status:b.status||"Новая",
-          owner:b.owner||"", ownerText:b.ownerText||"", culprit:b.culprit||"Не определён",
+          unit:b.unit||"", text:b.text||"", src:b.src||"", status:stKey(b.status),
+          owner:b.owner||"", ownerText:b.ownerText||"", culprit:culKey(b.culprit),
           batch:b.batch||"", supplier:b.supplier||"", cause:b.cause||"", action:b.action||"",
           prevention:b.prevention||"", due:b.due||dueFrom(b.date||0,sevKey(b.sev)),
           cost:Number(b.cost)||0, createdAt:b.createdAt||0, updatedAt:b.updatedAt||0,
@@ -2731,8 +2861,8 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
         next.push({
           id:d.id, no:b.no||"", date:b.date||0, cat:b.cat||"Другое", sev:sevKey(b.sev),
           unit:b.unit||"", text:b.text||"", src:b.src||"",
-          status:b.status||"Новая", owner:b.owner||"", ownerText:b.ownerText||"",
-          culprit:b.culprit||"Не определён", batch:b.batch||"", supplier:b.supplier||"",
+          status:stKey(b.status), owner:b.owner||"", ownerText:b.ownerText||"",
+          culprit:culKey(b.culprit), batch:b.batch||"", supplier:b.supplier||"",
           cause:b.cause||"", action:b.action||"", prevention:b.prevention||"",
           due:b.due || dueFrom(b.date||0, sevKey(b.sev)),
           cost:Number(b.cost)||0,
