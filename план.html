@@ -99,16 +99,23 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
   border:none;border-radius:7px;padding:7px 13px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
 .mode:hover{color:#e2e8f0}
 .mode.on{color:#0b1120;background:linear-gradient(135deg,#fcd34d,#f59e0b)}
-.gwrap{overflow:auto;max-height:70vh}
+/* Без внутренней прокрутки: таблица растёт вниз вместе со страницей,
+   иначе приходится крутить два скролла сразу. */
+.gwrap{overflow-x:auto}
 #t-grid th,#t-grid td{white-space:nowrap}
 #t-grid thead th{position:sticky;top:0;z-index:3;background:#111a2e}
+#t-grid tbody td{background:#111a2e}
 #t-grid th.c1,#t-grid td.c1{position:sticky;left:0;z-index:2;background:#111a2e;
   min-width:210px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #t-grid thead th.c1{z-index:4}
 #t-grid tbody tr:hover td{background:#16213a}
 #t-grid tbody tr:hover td.c1{background:#1b2742}
 #t-grid tr.tot td{background:#18233d;font-weight:800;color:#e8eef6;
-  border-bottom:1px solid #3a4c74;position:sticky;top:34px;z-index:2}
+  border-bottom:1px solid #3a4c74;position:sticky;top:33px;z-index:2}
+#t-grid tr.rest td{color:#93a6c8;background:#141d33;cursor:pointer}
+#t-grid tr.rest td.c1{background:#141d33}
+#t-grid tr.rest:hover td,#t-grid tr.rest:hover td.c1{background:#1b2742;color:#e2e8f0}
+#t-grid tr.small td,#t-grid tr.small td.c1{background:#0e1729}
 #t-grid tr.tot td.c1{background:#18233d;z-index:3}
 #t-grid th.now,#t-grid td.now{background:rgba(251,191,36,.07)}
 .gin{width:98px;background:#1d1a10;border:1px solid #5b4a1f;border-radius:7px;padding:5px 7px;
@@ -161,7 +168,17 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
   <div class="kpis" id="kpis"></div>
   <div class="months" id="months"></div>
 
-  <div id="grid-slot"></div>
+  <div class="sec" id="sec-grid">
+    <div class="sec-t">Контрагенты по месяцам
+      <span class="modes">
+        <button class="mode on" data-mode="plan" onclick="setMode('plan')">План</button>
+        <button class="mode" data-mode="fact" onclick="setMode('fact')">Факт</button>
+        <button class="mode" data-mode="pf" onclick="setMode('pf')">План-факт</button>
+      </span>
+    </div>
+    <div class="card"><div class="gwrap"><table id="t-grid"></table></div>
+      <div class="hint" id="g-note"></div></div>
+  </div>
 
   <div class="sec">
     <div class="sec-t">День за днём — <span id="d-m">—</span></div>
@@ -180,18 +197,6 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
     <div class="sec-t">Год: план, факт и накопленный итог</div>
     <div class="card"><div style="height:250px"><canvas id="yr"></canvas></div>
       <div class="scroll" style="margin-top:14px"><table id="t-year"></table></div></div>
-  </div>
-
-  <div class="sec" id="sec-grid">
-    <div class="sec-t">Контрагенты по месяцам
-      <span class="modes">
-        <button class="mode on" data-mode="plan" onclick="setMode('plan')">План</button>
-        <button class="mode" data-mode="fact" onclick="setMode('fact')">Факт</button>
-        <button class="mode" data-mode="pf" onclick="setMode('pf')">План-факт</button>
-      </span>
-    </div>
-    <div class="card"><div class="gwrap"><table id="t-grid"></table></div>
-      <div class="hint" id="g-note"></div></div>
   </div>
 
   <div class="sec">
@@ -353,8 +358,17 @@ function drawKpis(){
    То, ради чего всё затевалось: одна таблица, где видно каждого клиента по
    всем месяцам. Три режима — план (ячейки редактируются), факт и план-факт.
    Считаем по прогнозу для незакрытого месяца, чтобы сравнение было честным. */
-var GMODE = 'plan';
-try { GMODE = localStorage.getItem('pulse_gmode') || 'plan'; } catch(e){}
+var GMODE = 'plan', GREST = false;
+try {
+  GMODE = localStorage.getItem('pulse_gmode') || 'plan';
+  GREST = localStorage.getItem('pulse_grest') === '1';
+} catch(e){}
+
+window.toggleRest=function(){
+  GREST=!GREST;
+  try{ localStorage.setItem('pulse_grest', GREST?'1':'0'); }catch(e){}
+  drawGrid();
+};
 
 window.setMode=function(m){
   GMODE=m;
@@ -376,10 +390,18 @@ function drawGrid(){
     Object.keys(F[mk]).forEach(function(k){keys[k]=1;});
     Object.keys(P[mk]).forEach(function(k){keys[k]=1;});
   });
-  var rows=Object.keys(keys).map(function(k){
+  var all=Object.keys(keys).map(function(k){
     var tot=0; ms.forEach(function(mk){ tot+=(F[mk][k]||0)+(P[mk][k]||0); });
     return {k:k, n:NM[k]||k, tot:tot};
   }).sort(function(a,b){ return b.tot-a.tot; });
+
+  /* Крупных показываем поимённо, остальных сворачиваем в «Прочие»: на сотне
+     строк таблица нечитаема, а хвост — доли процента оборота. Порог — полпроцента
+     от года, но не меньше двадцати строк. */
+  var grand=all.reduce(function(s2,x){ return s2+x.tot; },0) || 1;
+  var big=all.filter(function(x,i){ return i<20 || x.tot/grand >= 0.005; });
+  var small=all.slice(big.length);
+  var rows = GREST ? all : big;
 
   function fe(mk,k){ var pi=periodK(mk); return (F[mk][k]||0)*(pi.partial?pi.k:1); }
 
@@ -405,8 +427,9 @@ function drawGrid(){
   });
   h+='<td class="r">'+(gt? sf(gt) : '—')+'</td></tr>';
 
-  rows.forEach(function(r){
-    h+='<tr><td class="c1" title="'+esc(r.n)+'">'+esc(r.n)+'</td>';
+  rows.forEach(function(r,ri){
+    h+='<tr'+(GREST && ri>=big.length? ' class="small"':'')
+      + '><td class="c1" title="'+esc(r.n)+'">'+esc(r.n)+'</td>';
     var rt=0;
     ms.forEach(function(mk){
       var p=P[mk][r.k]||0, f=fe(mk,r.k);
@@ -425,12 +448,32 @@ function drawGrid(){
     });
     h+='<td class="r">'+(rt? sf(rt) : '—')+'</td></tr>';
   });
+
+  // свёрнутый хвост — одной строкой, с суммами по каждому месяцу
+  if(small.length && !GREST){
+    h+='<tr class="rest" onclick="toggleRest()"><td class="c1">▸ Прочие · '+small.length
+      + ' контрагентов</td>';
+    var st=0;
+    ms.forEach(function(mk){
+      var p=0,f=0;
+      small.forEach(function(r){ p+=P[mk][r.k]||0; f+=fe(mk,r.k); });
+      st += GMODE==='plan'? p : f;
+      var v = GMODE==='plan'? p : f;
+      h+='<td class="r'+(mk===MK?' now':'')+'">'
+        + (GMODE==='pf'? pfCell(p,f) : (v? num(v) : '—')) + '</td>';
+    });
+    h+='<td class="r">'+(st? sf(st) : '—')+'</td></tr>';
+  } else if(small.length && GREST){
+    h+='<tr class="rest" onclick="toggleRest()"><td class="c1">▾ Свернуть мелких ('
+      + small.length+')</td><td colspan="'+(ms.length+1)+'"></td></tr>';
+  }
   h+='</tbody>';
   document.getElementById('t-grid').innerHTML=h;
 
   document.getElementById('g-note').innerHTML = GMODE==='plan'
     ? 'Впишите сумму в любую ячейку — сохранится сразу, в тот месяц, над которым стоит колонка. '
-      + 'Пустая ячейка значит, что плана нет.'
+      + 'Пустая ячейка значит, что плана нет. Мелкие свёрнуты в «Прочие» — '
+      + 'нажмите на эту строку, чтобы раскрыть и поставить план каждому.'
     : (GMODE==='fact'
        ? 'Факт из iiko. По незакрытому месяцу показан прогноз в темпе на полный месяц.'
        : 'В ячейке: сверху план, ниже факт, справа процент. '
