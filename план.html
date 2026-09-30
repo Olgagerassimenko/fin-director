@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="contractor_items.js" onerror="window.CTR={}"></script>
 <script src="sales_meta.js" onerror="window.SALES_META=null"></script>
+<script src="sales_days.js" onerror="window.SALES_DAYS=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh}
@@ -133,6 +134,13 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
   <div class="months" id="months"></div>
 
   <div class="sec">
+    <div class="sec-t">День за днём — <span id="d-m">—</span></div>
+    <div class="card"><div style="height:250px"><canvas id="dd"></canvas></div>
+      <div class="hint" id="d-note"></div>
+      <div class="scroll" style="margin-top:14px"><table id="t-day"></table></div></div>
+  </div>
+
+  <div class="sec">
     <div class="sec-t">Из чего сложился разрыв с планом — <span id="wf-m">—</span></div>
     <div class="card"><div style="height:250px"><canvas id="wf"></canvas></div>
       <div class="hint" id="wf-note"></div></div>
@@ -159,7 +167,8 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
 var CTR = window.CTR || {};
 var PLANS = {};                 // {'2026-09': {items:{num:сумма}, updated}}
 var MK = '';                    // выбранный месяц
-var CH_WF = null, CH_YR = null;
+var CH_WF = null, CH_YR = null, CH_DD = null;
+var DAYS = window.SALES_DAYS || null;   // {'2026-09-01': выручка}
 
 var MN = ['','Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август',
           'Сентябрь','Октябрь','Ноябрь','Декабрь'];
@@ -296,6 +305,90 @@ function drawKpis(){
     }
   }
   document.getElementById('kpis').innerHTML=h;
+}
+
+/* ── день за днём ─────────────────────────────────────────────────────────
+   План на месяц раскладываем ровно по календарным дням: у завода отгрузки
+   идут почти каждый день, и дневной ориентир «план ÷ дни» — то, чем меряют
+   на месте. Сравниваем накопленным итогом: важно не «сегодня меньше», а
+   «насколько мы отстали с начала месяца». */
+function drawDays(){
+  var box=document.getElementById('d-note'), tbl=document.getElementById('t-day');
+  document.getElementById('d-m').textContent = mLabel(MK);
+  if(!DAYS){
+    if(CH_DD){ CH_DD.destroy(); CH_DD=null; }
+    tbl.innerHTML='';
+    box.textContent='Выручка по дням ещё не собралась — файл sales_days.js обновляется четыре раза в день.';
+    return;
+  }
+  var y=+MK.slice(0,4), mo=+MK.slice(5,7), dim=new Date(y,mo,0).getDate();
+  var ps=planSum(MK), perDay= ps? ps/dim : 0;
+  var labels=[], fDay=[], fCum=[], pCum=[], cum=0, last=0;
+  for(var d=1; d<=dim; d++){
+    var key=MK+'-'+(d<10?'0':'')+d, v=DAYS[key];
+    labels.push(String(d));
+    if(v==null && cum===0 && !v){ /* день без движения в начале — всё равно рисуем 0 */ }
+    var val=v||0;
+    fDay.push(val);
+    if(val) last=d;
+    cum+=val; fCum.push(cum);
+    pCum.push(perDay? perDay*d : null);
+  }
+  // после последнего дня с выручкой линию факта не тянем
+  var fCumCut=fCum.map(function(v,i){ return (i+1)<=last? v : null; });
+  var fDayCut=fDay.map(function(v,i){ return (i+1)<=last? v : null; });
+
+  if(CH_DD) CH_DD.destroy();
+  CH_DD=new Chart(document.getElementById('dd'),{
+    data:{labels:labels,datasets:[
+      {type:'bar',label:'Выручка за день',data:fDayCut,backgroundColor:'#7c3aed',
+       borderRadius:3,barPercentage:.85,yAxisID:'y'},
+      {type:'line',label:'План нарастающим',data:pCum,borderColor:'#fbbf24',borderDash:[5,4],
+       pointRadius:0,borderWidth:2,yAxisID:'y2',tension:0},
+      {type:'line',label:'Факт нарастающим',data:fCumCut,borderColor:'#a78bfa',
+       pointRadius:0,borderWidth:2.5,yAxisID:'y2',tension:.2,spanGaps:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#93a6c8',boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:function(c){ return c.dataset.label+': '+sf(c.raw); }}}},
+      scales:{x:{ticks:{color:'#93a6c8',font:{size:10}},grid:{display:false}},
+        y:{ticks:{color:'#64748b',font:{size:10},callback:function(v){return sf(v);}},grid:{color:'#ffffff08'}},
+        y2:{position:'right',ticks:{color:'#8a7742',font:{size:10},callback:function(v){return sf(v);}},
+            grid:{display:false}}}}
+  });
+
+  if(!ps){
+    box.textContent='План на этот месяц не задан — дневной ориентир считать не от чего.';
+    tbl.innerHTML=''; return;
+  }
+  var gap = fCum[last-1] - perDay*last;
+  var leftDays = dim-last, needLeft = Math.max(0, ps - fCum[last-1]);
+  box.innerHTML = 'Дневной ориентир <b>'+sf(perDay)+'</b> (план ÷ '+dim+' дн.). '
+    + 'На конец '+last+'-го числа накоплено <b>'+sf(fCum[last-1])+'</b> против плановых <b>'
+    + sf(perDay*last)+'</b> — '
+    + (gap>=0? '<span class="g-ok">опережение '+sf(gap)+'</span>' : '<span class="g-bad">отставание '+sf(-gap)+'</span>')
+    + '.' + (leftDays>0
+        ? ' Осталось '+leftDays+' дн., чтобы закрыть план надо '+ (needLeft? '<b>'+sf(needLeft/leftDays)+'</b> в день' : 'уже ничего')+'.'
+        : ' Месяц закрыт.');
+
+  // последние две недели — по дням
+  var from=Math.max(1,last-13);
+  var h='<thead><tr><th>День</th><th class="r">План/день</th><th class="r">Факт</th>'
+    + '<th class="r">За день</th><th class="r">План нараст.</th><th class="r">Факт нараст.</th>'
+    + '<th class="r">Разрыв нараст.</th></tr></thead><tbody>';
+  for(var i=from;i<=last;i++){
+    var v=fDay[i-1], pc=perDay, dd=v-pc, g=fCum[i-1]-perDay*i;
+    var dow=new Date(y,mo-1,i).getDay();
+    h+='<tr'+(i===last?' class="now"':'')+'><td><b>'+i+'</b> <span class="mut">'
+      + ['вс','пн','вт','ср','чт','пт','сб'][dow]+'</span></td>'
+      + '<td class="r mut">'+num(pc)+'</td>'
+      + '<td class="r f-v">'+(v?num(v):'—')+'</td>'
+      + '<td class="r '+(dd>=0?'g-ok':'g-bad')+'">'+sgn(dd)+'</td>'
+      + '<td class="r mut">'+num(perDay*i)+'</td>'
+      + '<td class="r">'+num(fCum[i-1])+'</td>'
+      + '<td class="r '+(g>=0?'g-ok':'g-bad')+'">'+sgn(g)+'</td></tr>';
+  }
+  h+='</tbody>';
+  tbl.innerHTML=h;
 }
 
 /* ── водопад: от плана к факту, по контрагентам ───────────────────────── */
@@ -475,7 +568,7 @@ function drawMonths(){
   });
   el.innerHTML=h;
 }
-function redraw(){ drawKpis(); drawMonths(); drawWf(); drawYear(); drawCtr(); state();
+function redraw(){ drawKpis(); drawMonths(); drawDays(); drawWf(); drawYear(); drawCtr(); state();
   var sel=document.getElementById('m-sel'); if(sel) sel.value=MK; }
 
 /* Один и тот же план на все оставшиеся месяцы года — обычная отправная
