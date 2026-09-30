@@ -160,6 +160,33 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .mini .mr.over{color:var(--crit);font-weight:500}
 .sumempty{padding:20px 0 24px;text-align:center;color:var(--ink-3);font-size:12.5px}
 
+.lvlgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:4px}
+.lvlcard{border:1px solid var(--ring);border-radius:11px;background:var(--surface);padding:13px 15px 12px;border-top:3px solid var(--sv)}
+.lvlcard .hd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.lvlcard .nm{font-family:var(--disp);font-weight:600;font-size:15px;letter-spacing:.04em;color:var(--sv)}
+.lvlcard .sl{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-left:auto;white-space:nowrap}
+.lvlcard .ds{font-size:12px;color:var(--ink-2);margin:3px 0 9px;line-height:1.45}
+.lvlcard ul{margin:0;padding-left:16px}
+.lvlcard li{font-size:12.5px;color:var(--ink-2);line-height:1.45;margin-bottom:5px}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:12px}
+.strow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left;font:inherit;color:var(--ink)}
+.strow:first-of-type{border-top:0}
+.strow:hover .nm{color:var(--accent)}
+.strow .nm{font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.strow .n{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.strow .tr{grid-column:1 / -1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.strow .fl{display:block;height:100%;border-radius:3px;background:var(--accent)}
+.sevhead{margin:22px 0 9px}
+.sevhead h3{margin:0;font-family:var(--disp);font-weight:500;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase}
+.sevhead .cap{font-size:11.5px;color:var(--ink-3)}
+.bigtile.t-sev .big{color:var(--sv)}
+.bigtile.t-sev .cap2{display:flex;align-items:center;gap:8px}
+.tl{width:11px;height:11px;border-radius:50%;background:var(--sv);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--sv) 20%,transparent)}
+.lvlcard .hd .tl{margin-right:1px}
+.bigtile .act{font-size:11.5px;font-weight:500;color:var(--sv);margin-top:4px}
+.bigtile.t-sev .bar{background:var(--sv)}
+.bigtile .lvl{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.35}
+
 /* ---------- каркас программы ---------- */
 .shell{display:grid;grid-template-columns:212px minmax(0,1fr);gap:0;min-height:calc(100vh - 120px);margin-top:14px;border:1px solid var(--ring);border-radius:12px;background:var(--surface);overflow:hidden}
 .side{border-right:1px solid var(--line);background:var(--plane);padding:10px 8px;display:flex;flex-direction:column;gap:2px}
@@ -539,6 +566,11 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
 
       <div class="pane" id="pane-summary">
         <div class="bigtiles" id="sumTiles"></div>
+        <div class="sevhead">
+          <h3>По уровню критичности</h3>
+          <span class="cap">Открытые записи. Уровень задаёт срок разбора — нажмите, чтобы посмотреть список</span>
+        </div>
+        <div class="bigtiles" id="sevTiles"></div>
         <div class="sumgrid">
           <div class="sumcard">
             <h3>Требует внимания</h3>
@@ -550,6 +582,19 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
             <p class="cap">Что пришло за последнее время</p>
             <div id="sumRecent"></div>
           </div>
+        </div>
+
+        <div class="sevhead">
+          <h3>Статистика</h3>
+          <span class="cap">Нажмите строку — откроется список именно этих рекламаций</span>
+        </div>
+        <div class="statgrid">
+          <div class="sumcard"><h3>Причины</h3><p class="cap">Категория обращения</p>
+            <div id="statCats"></div><button class="linkbtn" type="button" data-more="cats">показать все</button></div>
+          <div class="sumcard"><h3>Виновники</h3><p class="cap">Где возникла проблема</p>
+            <div id="statCul"></div><button class="linkbtn" type="button" data-more="cul">показать все</button></div>
+          <div class="sumcard"><h3>Каналы</h3><p class="cap">Откуда пришло обращение</p>
+            <div id="statSrc"></div><button class="linkbtn" type="button" data-more="src">показать все</button></div>
         </div>
       </div>
 
@@ -742,10 +787,16 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
             </div>
             <div class="rule">
               <h4>3. Срок — по критичности</h4>
-              <p>Критичная — 1 день, высокая — 3, средняя — 7, низкая — 14. Отсчёт от даты поступления. За сутки до срока отметка желтеет, после — краснеет, и запись встаёт первой в журнале.</p>
+              <p>Светофор задаёт срок: <b>красный</b> — 1 день, <b>жёлтый</b> — 3 дня, <b>зелёный</b> — 7 дней. Отсчёт от даты поступления. За сутки до срока отметка желтеет, после — краснеет, и запись встаёт первой в журнале.</p>
             </div>
           </div>
           <div class="rtable" id="routeTable"></div>
+        </section>
+
+        <section class="stage">
+          <div class="stagehead"><span class="stepno">!</span><h2>Что к какому уровню относить на Фуд Заводе</h2>
+            <span class="hintline">Эти же формулировки лежат в списке «Типовая ситуация» при заведении рекламации</span></div>
+          <div class="lvlgrid" id="sevGuide"></div>
         </section>
 
         <section class="stage">
@@ -822,10 +873,41 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
 
   /* ================= справочники ================= */
   var SEV = [
-    {key:"Низкая",    color:"var(--good)",    sla:14},
-    {key:"Средняя",   color:"var(--warn)",    sla:7},
-    {key:"Высокая",   color:"var(--serious)", sla:3},
-    {key:"Критичная", color:"var(--crit)",    sla:1}
+    {key:"Зелёный", color:"var(--good)", sla:7, act:"Учесть",
+     desc:"Замечание без потери продукта: вид упаковки, сервис, пожелание клиента"},
+    {key:"Жёлтый",  color:"var(--warn)", sla:3, act:"Разобрать",
+     desc:"Единичный брак: продукт вышел не таким, как должен быть"},
+    {key:"Красный", color:"var(--crit)", sla:1, act:"Стоп — решаем сегодня",
+     desc:"Опасно для здоровья, вся партия под вопросом или претензия сети"}
+  ];
+  var SEV_OLD = {"Критичная":"Красный","Высокая":"Красный","Средняя":"Жёлтый","Низкая":"Зелёный"};
+  function sevKey(v){ return SEV_OLD[v] || (SEV_IX[v] !== undefined ? v : "Жёлтый"); }
+
+  /* типовые ситуации Фуд Завода: подставляют категорию и критичность */
+  var PRESETS = [
+    {sev:"Красный", cat:"Посторонний предмет",            t:"Посторонний предмет в продукте: металл, стекло, пластик, волос"},
+    {sev:"Красный", cat:"Свежесть и срок годности",       t:"Признаки порчи: плесень, кислый запах, вздутая упаковка"},
+    {sev:"Красный", cat:"Свежесть и срок годности",       t:"Обращение по здоровью: клиенту стало плохо после продукта"},
+    {sev:"Красный", cat:"Маркировка",                     t:"Аллерген не указан на этикетке"},
+    {sev:"Красный", cat:"Свежесть и срок годности",       t:"Продукт с истёкшим сроком найден на полке"},
+    {sev:"Красный", cat:"Температура и холодовая цепь",   t:"Нарушена холодовая цепь: партия ехала вне режима"},
+
+    {sev:"Красный",   cat:"Внешний вид",                    t:"Массовый брак партии: претензия от торговой сети"},
+    {sev:"Красный",   cat:"Маркировка",                     t:"Ошибка в маркировке: состав, срок, вес, дата"},
+    {sev:"Жёлтый",   cat:"Упаковка",                       t:"Разгерметизация или течь упаковки по партии"},
+    {sev:"Жёлтый",   cat:"Недовес",                        t:"Систематический недовес по позиции"},
+    {sev:"Жёлтый",   cat:"Комплектация заказа",            t:"Возврат партии с точки или из сети"},
+
+    {sev:"Жёлтый",   cat:"Рецептура и пропорции",          t:"Нарушена рецептура: мало начинки, не та пропорция"},
+    {sev:"Жёлтый",   cat:"Рецептура и пропорции",          t:"Вкус не соответствует: пересол, недосол, кислит"},
+    {sev:"Жёлтый",   cat:"Внешний вид",                    t:"Внешний вид продукта: подгорело, деформация, неровная нарезка"},
+    {sev:"Жёлтый",   cat:"Комплектация заказа",            t:"Недовложение: в заказе не хватает позиции"},
+    {sev:"Жёлтый",   cat:"Недовес",                        t:"Единичный недовес в одной упаковке"},
+
+    {sev:"Зелёный",    cat:"Упаковка",                       t:"Вид упаковки: помятая коробка, криво наклеена этикетка"},
+    {sev:"Зелёный",    cat:"Другое",                         t:"Замечание по доставке или сервису: опоздание, грубость"},
+    {sev:"Зелёный",    cat:"Другое",                         t:"Пожелание клиента по вкусу или ассортименту"},
+    {sev:"Зелёный",    cat:"Другое",                         t:"Неточность в документах или чеке"}
   ];
   var SEV_IX = {}; SEV.forEach(function(s,i){ SEV_IX[s.key] = i; });
 
@@ -870,7 +952,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   function routeFor(cat){ return (DICT.routes && DICT.routes[cat]) || ""; }
   var CULPRITS = DICT.culprits, CATS = DICT.cats, SOURCES = DICT.sources;
 
-  function sevMeta(k){ return SEV[SEV_IX[k]] || SEV[1]; }
+  function sevMeta(k){ var i = SEV_IX[SEV_OLD[k] || k]; return SEV[i === undefined ? 1 : i]; }
   function stMeta(k){ return STATUS[ST_IX[k]] || STATUS[0]; }
 
   /* ================= утилиты ================= */
@@ -961,11 +1043,10 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   }
   function normSev(v){
     var s = norm(v);
-    if(!s) return "Средняя";
-    if(/критич|critical|блокир/.test(s)) return "Критичная";
-    if(/высок|high|серьез/.test(s)) return "Высокая";
-    if(/низк|low|незнач/.test(s)) return "Низкая";
-    return "Средняя";
+    if(!s) return "Жёлтый";
+    if(/красн|red|критич|critical|блокир|высок|high|серьез/.test(s)) return "Красный";
+    if(/зел[её]н|green|низк|low|незнач/.test(s)) return "Зелёный";
+    return "Жёлтый";
   }
   function readWorkbook(buf){
     var wb = XLSX.read(buf, {type:"array", cellDates:true});
@@ -1067,12 +1148,12 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   function blank(seed){
     var d = seed.date || today0();
     return {
-      no: seed.no||"", date: d, cat: seed.cat||"Другое", sev: seed.sev||"Средняя",
+      no: seed.no||"", date: d, cat: seed.cat||"Другое", sev: sevKey(seed.sev||"Жёлтый"),
       unit: seed.unit||"", text: seed.text||"", src: seed.src||"",
       status:"Новая", owner:"", ownerText:"",
       culprit:"Не определён", batch:"", supplier:"",
       cause:"", action:"", prevention:"",
-      due: dueFrom(d, seed.sev||"Средняя"), cost:0,
+      due: dueFrom(d, sevKey(seed.sev||"Жёлтый")), cost:0,
       createdAt: Date.now(), updatedAt: Date.now(), closedAt:0,
       log:[{ts:Date.now(), by:meId||"", t:"Рекламация заведена"}]
     };
@@ -1132,10 +1213,11 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     sel.value = values.indexOf(cur) > -1 ? cur : "";
   }
   function buildOptions(){
-    fillSelect(el("fCat"), uniq(cases.map(function(c){return c.cat})).sort(function(a,b){return a.localeCompare(b,"ru")}));
-    fillSelect(el("fSev"), SEV.map(function(s){return s.key}).filter(function(k){ return cases.some(function(c){return c.sev===k}); }));
-    fillSelect(el("fCul"), uniq(cases.map(function(c){return c.culprit})).sort(function(a,b){return a.localeCompare(b,"ru")}));
+    fillSelect(el("fCat"), uniq(DICT.cats.concat(cases.map(function(c){return c.cat}))).sort(function(a,b){return a.localeCompare(b,"ru")}));
+    fillSelect(el("fSev"), SEV.slice().reverse().map(function(s){return s.key}));
+    fillSelect(el("fCul"), uniq(DICT.culprits.concat(cases.map(function(c){return c.culprit}))).sort(function(a,b){return a.localeCompare(b,"ru")}));
     renderRoutes();
+    renderSevGuide();
   }
   function filtered(){
     var p = el("fPeriod").value, cat = el("fCat").value, sev = el("fSev").value,
@@ -1599,6 +1681,28 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
       tiles.appendChild(b);
     });
 
+    var sevT = el("sevTiles");
+    if(sevT){
+      sevT.innerHTML = "";
+      SEV.slice().reverse().forEach(function(sv){
+        var mine = open.filter(function(c){ return c.sev === sv.key; });
+        var ov = mine.filter(isOverdue).length;
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "bigtile t-sev";
+        b.style.setProperty("--sv", sv.color);
+        b.innerHTML = '<span class="bar"></span><div class="cap2"><span class="tl"></span>'+esc(sv.key)+'</div>'+
+          '<div class="big">'+fmt(mine.length)+'</div>'+
+          '<div class="act">'+esc(sv.act)+'</div>'+
+          '<div class="sub">'+(ov ? ('<b style="color:var(--crit)">просрочено '+fmt(ov)+'</b> · ') : '')+
+            'срок '+sv.sla+' '+plural(sv.sla,"день","дня","дней")+'</div>'+
+          '<div class="lvl">'+esc(sv.desc)+'</div>';
+        b.addEventListener("click", function(){ goJournal(function(){ el("fSev").value = sv.key; }); });
+        sevT.appendChild(b);
+      });
+    }
+
+    renderStats();
+
     var att = el("sumAttention"); att.innerHTML = "";
     var attList = cases.filter(function(c){ return !DONE[c.status] && (isOverdue(c) || (!c.owner && !c.ownerText)); })
       .sort(function(a,b){
@@ -1614,6 +1718,43 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     recList.forEach(function(c){ rec.appendChild(miniRow(c)); });
     if(!recList.length) rec.innerHTML = '<div class="sumempty">Записей пока нет.</div>';
   }
+
+  var statMore = {cats:false, cul:false, src:false};
+  function renderStats(){
+    var defs = [
+      {id:"statCats", key:"cats", pick:function(c){ return c.cat; },  go:function(v){ goJournal(function(){ el("fCat").value = v; }); }},
+      {id:"statCul",  key:"cul",  pick:function(c){ return c.culprit || "Не определён"; }, go:function(v){ goJournal(function(){ el("fCul").value = v; }); }},
+      {id:"statSrc",  key:"src",  pick:function(c){ return c.src || "—"; }, go:function(v){ goJournal(function(){ srcFilter = v; }); }}
+    ];
+    defs.forEach(function(d){
+      var box = el(d.id); if(!box) return;
+      box.innerHTML = "";
+      var rows = countBy(cases, d.pick);
+      var max = rows.length ? rows[0].n : 1;
+      var shown = statMore[d.key] ? rows : rows.slice(0,5);
+      shown.forEach(function(r){
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "strow";
+        b.innerHTML = '<span class="nm">'+esc(r.k)+'</span><span class="n">'+fmt(r.n)+'</span>'+
+          '<span class="tr"><i class="fl" style="width:'+Math.max(3,Math.round(r.n/max*100))+'%"></i></span>';
+        b.addEventListener("click", function(){ d.go(r.k); });
+        box.appendChild(b);
+      });
+      if(!rows.length) box.innerHTML = '<div class="sumempty">Пока нет данных.</div>';
+      var btn = document.querySelector('[data-more="'+d.key+'"]');
+      if(btn){
+        btn.hidden = rows.length <= 5;
+        btn.textContent = statMore[d.key] ? "свернуть" : ("показать все · " + rows.length);
+      }
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-more]"), function(b){
+    b.addEventListener("click", function(){
+      var k = b.getAttribute("data-more");
+      statMore[k] = !statMore[k];
+      renderStats();
+    });
+  });
 
   /* ================= карточка разбора ================= */
   var panelEl = null;
@@ -1785,13 +1926,23 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
         '<div class="meta">срок разбора проставится по критичности</div></div>'+
         '<button class="x" type="button" id="mClose" aria-label="Закрыть">×</button></div>'+
       '<div class="pbody">'+
+        '<div class="grp"><label for="nPreset">Типовая ситуация</label>'+
+          '<select id="nPreset"><option value="">— выбрать из списка, категория и срочность проставятся сами —</option>'+
+          SEV.slice().reverse().map(function(sv){
+            var items = PRESETS.filter(function(x){ return x.sev === sv.key; });
+            if(!items.length) return "";
+            return '<optgroup label="'+esc(sv.key+" · срок "+sv.sla+" дн.")+'">'+
+              items.map(function(x,i){ return '<option value="'+esc(sv.key+"|"+x.cat)+'">'+esc(x.t)+'</option>'; }).join("")+
+            '</optgroup>';
+          }).join("")+'</select>'+
+          '<div class="hintline" id="nPresetHint">Выберите ситуацию — или заполните поля ниже вручную.</div></div>'+
         '<div class="two">'+
           '<div class="grp"><label for="nDate">Дата поступления</label><input type="date" id="nDate" value="'+isoDate(today0())+'"></div>'+
           '<div class="grp"><label for="nNo">Номер заказа или чека</label><input type="text" id="nNo" placeholder="1429"></div>'+
         '</div>'+
         '<div class="two">'+
           '<div class="grp"><label for="nCat">Категория</label><select id="nCat">'+DICT.cats.map(function(k){return '<option>'+esc(k)+'</option>'}).join("")+'</select></div>'+
-          '<div class="grp"><label for="nSev">Критичность</label><select id="nSev">'+SEV.map(function(s){return '<option'+(s.key==="Средняя"?' selected':'')+'>'+esc(s.key)+'</option>'}).join("")+'</select></div>'+
+          '<div class="grp"><label for="nSev">Критичность</label><select id="nSev">'+SEV.slice().reverse().map(function(s){return '<option'+(s.key==="Жёлтый"?' selected':'')+'>'+esc(s.key)+'</option>'}).join("")+'</select></div>'+
         '</div>'+
         '<div class="two">'+
           '<div class="grp"><label for="nUnit">Подразделение</label><select id="nUnit"><option value="">— по маршруту —</option>'+DICT.units.map(function(k){return '<option>'+esc(k)+'</option>'}).join("")+'</select></div>'+
@@ -1806,10 +1957,23 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     document.body.appendChild(m);
     m.querySelector("#mClose").addEventListener("click", function(){ m.remove(); });
     m.querySelector("#mCancel").addEventListener("click", function(){ m.remove(); });
-    var nCat = m.querySelector("#nCat"), nUnit = m.querySelector("#nUnit");
+    var nCat = m.querySelector("#nCat"), nUnit = m.querySelector("#nUnit"),
+        nSev = m.querySelector("#nSev"), nPre = m.querySelector("#nPreset"),
+        nPreH = m.querySelector("#nPresetHint");
     function pickUnit(){ var u = routeFor(nCat.value); if(u) nUnit.value = u; }
     pickUnit();
     nCat.addEventListener("change", pickUnit);
+    nPre.addEventListener("change", function(){
+      if(!nPre.value){ nPreH.textContent = "Выберите ситуацию — или заполните поля ниже вручную."; return; }
+      var parts = nPre.value.split("|"), sv = parts[0], ct = parts[1];
+      nSev.value = sv;
+      if(DICT.cats.indexOf(ct) > -1) nCat.value = ct;
+      pickUnit();
+      var meta = sevMeta(sv);
+      nPreH.textContent = "Категория: " + nCat.value + " · критичность: " + sv +
+        " · срок " + meta.sla + " " + plural(meta.sla,"день","дня","дней") +
+        (nUnit.value ? (" · разбирает: " + nUnit.value) : "");
+    });
     setTimeout(function(){ var t = m.querySelector("#nNo"); if(t) t.focus(); }, 40);
     m.querySelector("#mSave").addEventListener("click", async function(){
       var dv = m.querySelector("#nDate").value;
@@ -1870,13 +2034,11 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
         p:"Самая старая висит "+dd+" "+plural(dd,"день","дня","дней")+" сверх срока. "+
           (over.filter(function(c){ return !c.owner && !c.ownerText; }).length ? "Часть из них вообще без ответственного." : "Ответственные назначены.")});
     }
-    var hard = data.filter(function(c){ return c.sev === "Критичная" || c.sev === "Высокая"; });
+    var hard = data.filter(function(c){ return c.sev === "Красный"; });
     if(hard.length){
       var share = Math.round(hard.length/data.length*100);
-      out.push({tone: share >= 30 ? "hot" : "warm", h:"Доля высоких и критичных — "+share+"%",
-        p: fmt(hard.length)+" из "+fmt(data.length)+". Критичных: "+
-           fmt(data.filter(function(c){ return c.sev==="Критичная"; }).length)+
-           " — это посторонние предметы, срок годности и всё, что касается безопасности."});
+      out.push({tone: share >= 20 ? "hot" : "warm", h:"Красных — "+share+"% потока",
+        p: fmt(hard.length)+" из "+fmt(data.length)+". Красный — это посторонние предметы, порча, срок годности, маркировка и всё, что касается безопасности и партии целиком."});
     }
     var undef = data.filter(function(c){ return (!c.culprit || c.culprit === "Не определён") && !DONE[c.status]; });
     if(undef.length >= Math.max(3, data.length*0.3)){
@@ -2089,6 +2251,21 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     if(!DICT[dictTab].length) list.innerHTML = '<div class="hintline">Список пуст — добавьте первое значение.</div>';
   }
 
+  function renderSevGuide(){
+    var box = el("sevGuide"); if(!box) return;
+    box.innerHTML = "";
+    SEV.slice().reverse().forEach(function(sv){
+      var d = document.createElement("div");
+      d.className = "lvlcard"; d.style.setProperty("--sv", sv.color);
+      d.innerHTML = '<div class="hd"><span class="tl"></span><span class="nm">'+esc(sv.key)+'</span>'+
+          '<span class="sl">срок '+sv.sla+' '+plural(sv.sla,"день","дня","дней")+'</span></div>'+
+        '<div class="ds">'+esc(sv.desc)+'</div><ul>'+
+        PRESETS.filter(function(x){ return x.sev === sv.key; })
+          .map(function(x){ return '<li>'+esc(x.t)+'</li>'; }).join("")+'</ul>';
+      box.appendChild(d);
+    });
+  }
+
   function renderRoutes(){
     var box = el("routeTable"); if(!box) return;
     box.innerHTML = "";
@@ -2151,7 +2328,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
         "\n\nНе считай рекламацией: благодарности, вопросы о наличии и цене, заказы, служебную переписку, обсуждение графиков и оплат.\n" +
         "Одна жалоба — один объект, даже если она растянута на несколько сообщений: объедини их.\n" +
         "Категория строго одна из: " + DICT.cats.join("; ") + ".\n" +
-        "Критичность строго одна из: Низкая; Средняя; Высокая; Критичная. Критичная — посторонний предмет, признаки порчи, нарушение срока годности, всё, что угрожает здоровью. Высокая — массовый брак, недовес, нарушение холодовой цепи. Низкая — замечание по внешнему виду без ущерба.\n" +
+        "Критичность строго одна из: Зелёный; Жёлтый; Красный. Красный — посторонний предмет, признаки порчи, нарушение срока годности, ошибка маркировки, нарушение холодовой цепи, массовый брак партии, претензия сети — всё, что угрожает здоровью или ставит под вопрос всю партию. Жёлтый — единичный брак: рецептура, вкус, внешний вид продукта, недовес, недовложение. Зелёный — замечание без потери продукта: вид упаковки, сервис, пожелание.\n" +
         "Верни JSON: {\"items\":[{\"i\":номер сообщения, \"date\":\"ДД.ММ.ГГГГ или пусто\", \"no\":\"номер заказа или чека, если назван, иначе пусто\", \"cat\":\"категория\", \"sev\":\"критичность\", \"text\":\"суть жалобы одной-двумя фразами, своими словами\", \"quote\":\"дословная цитата из сообщений\", \"conf\":0.0-1.0, \"why\":\"почему это рекламация и почему такая критичность, одна фраза\"}]}\n" +
         "Если жалоб нет — верни {\"items\":[]}. Ничего не выдумывай.";
       var r = await sampleCap.json(prompt, {modelTier:"default"});
@@ -2164,7 +2341,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
           date: parseDate(it.date) || src.date || today0(),
           no: String(it.no||"").trim(),
           cat: DICT.cats.indexOf(it.cat) > -1 ? it.cat : "Другое",
-          sev: ["Низкая","Средняя","Высокая","Критичная"].indexOf(it.sev) > -1 ? it.sev : "Средняя",
+          sev: ["Зелёный","Жёлтый","Красный"].indexOf(it.sev) > -1 ? it.sev : normSev(it.sev),
           text: String(it.text||"").trim(),
           quote: String(it.quote||"").trim() || (src.t||"").slice(0,400),
           conf: Math.max(0, Math.min(1, Number(it.conf)||0.5)),
@@ -2528,11 +2705,11 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
 
     if(!db){
       cases = SNAPSHOT.map(function(b){
-        return {id:b.id, no:b.no||"", date:b.date||0, cat:b.cat||"Другое", sev:b.sev||"Средняя",
+        return {id:b.id, no:b.no||"", date:b.date||0, cat:b.cat||"Другое", sev:sevKey(b.sev),
           unit:b.unit||"", text:b.text||"", src:b.src||"", status:b.status||"Новая",
           owner:b.owner||"", ownerText:b.ownerText||"", culprit:b.culprit||"Не определён",
           batch:b.batch||"", supplier:b.supplier||"", cause:b.cause||"", action:b.action||"",
-          prevention:b.prevention||"", due:b.due||dueFrom(b.date||0,b.sev||"Средняя"),
+          prevention:b.prevention||"", due:b.due||dueFrom(b.date||0,sevKey(b.sev)),
           cost:Number(b.cost)||0, createdAt:b.createdAt||0, updatedAt:b.updatedAt||0,
           closedAt:b.closedAt||0, demo:!!b.demo, log:Array.isArray(b.log)?b.log:[]};
       });
@@ -2552,12 +2729,12 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
       snap.docs.forEach(function(d){
         var b = d.data() || {};
         next.push({
-          id:d.id, no:b.no||"", date:b.date||0, cat:b.cat||"Другое", sev:b.sev||"Средняя",
+          id:d.id, no:b.no||"", date:b.date||0, cat:b.cat||"Другое", sev:sevKey(b.sev),
           unit:b.unit||"", text:b.text||"", src:b.src||"",
           status:b.status||"Новая", owner:b.owner||"", ownerText:b.ownerText||"",
           culprit:b.culprit||"Не определён", batch:b.batch||"", supplier:b.supplier||"",
           cause:b.cause||"", action:b.action||"", prevention:b.prevention||"",
-          due:b.due || dueFrom(b.date||0, b.sev||"Средняя"),
+          due:b.due || dueFrom(b.date||0, sevKey(b.sev)),
           cost:Number(b.cost)||0,
           createdAt:b.createdAt||0, updatedAt:b.updatedAt||0, closedAt:b.closedAt||0,
           demo:!!b.demo, log:Array.isArray(b.log) ? b.log : []
@@ -2587,7 +2764,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
         var b = d.data() || {};
         return {
           id:d.id, channel:b.channel||"Источник", chat:b.chat||"",
-          date:b.date||today0(), no:b.no||"", cat:b.cat||"Другое", sev:b.sev||"Средняя",
+          date:b.date||today0(), no:b.no||"", cat:b.cat||"Другое", sev:sevKey(b.sev),
           text:b.text||"", quote:b.quote||"", conf:Number(b.conf)||0.5, why:b.why||"", who:b.who||""
         };
       });
