@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>План-факт · Фуд Завод</title>
+<!-- Страница не заведена в nav.js: в меню её нет, открывается только по прямой
+     ссылке /план. Пароль сайта на ней такой же, как на всём остальном. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="contractor_items.js" onerror="window.CTR={}"></script>
+<script src="sales_meta.js" onerror="window.SALES_META=null"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e293b,#0f172a);border-bottom:1px solid #334155;
+  padding:18px 32px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-size:19px;font-weight:800;background:linear-gradient(135deg,#fcd34d,#f59e0b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{font-size:12.5px;color:#93a6c8}
+.hidden-tag{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:#0b1120;background:#64748b;border-radius:7px;padding:5px 9px}
+.back{margin-left:auto;font-size:12.5px;color:#9db0c9;text-decoration:none;padding:6px 12px;
+  border:1px solid #334155;border-radius:9px}
+.back:hover{color:#e2e8f0;border-color:#64748b}
+.wrap{padding:22px 32px 60px;max-width:1500px}
+.sec{margin-bottom:22px}
+.sec-t{font-size:13px;font-weight:800;color:#aebdd0;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.card{background:#111a2e;border:1px solid #2a3a5c;border-radius:14px;padding:18px 20px}
+
+/* Панель управления */
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;
+  padding:13px 15px;border-radius:14px;background:linear-gradient(180deg,#2a2413,#1d1a10);
+  border:1px solid #6b5520;border-left:5px solid #fbbf24;
+  box-shadow:0 0 0 1px rgba(251,191,36,.16),0 6px 22px rgba(251,191,36,.14)}
+.bar-lbl{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#0b1120;
+  background:linear-gradient(135deg,#fcd34d,#f59e0b);border-radius:8px;padding:6px 11px}
+.sel{background:#3a2f12;border:1.5px solid #8a6d22;color:#fde68a;font:800 13px/1 inherit;
+  font-family:inherit;padding:8px 11px;border-radius:9px;cursor:pointer;outline:none}
+.sel:focus{border-color:#fbbf24}
+.btn{font:700 11.5px/1 inherit;font-family:inherit;color:#fde68a;background:#3a2f12;
+  border:1px solid #6b5520;border-radius:8px;padding:8px 12px;cursor:pointer}
+.btn:hover{background:#4a3c16;border-color:#fbbf24}
+.btn.main{color:#0b1120;background:linear-gradient(135deg,#fcd34d,#f59e0b);border:none}
+.bar-acts{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+.bar-note{flex-basis:100%;padding-top:9px;border-top:1px solid #4a3c16;font-size:12.5px;
+  line-height:1.55;color:#cbb682}
+.bar-note b{color:#fde68a}
+
+/* Плашки свода */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:12px;margin-bottom:18px}
+.kpi{padding:14px 17px;border-radius:13px;background:#131f38;border:1px solid #33456b}
+.kpi span{display:block;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#93a6c8}
+.kpi b{display:block;margin-top:5px;font-size:23px;font-weight:800;color:#e2e8f0}
+.kpi i{display:block;margin-top:4px;font-size:11.5px;font-style:normal;color:#7e91b3}
+.kpi.pl{border-color:#6b5520;background:#231e12}.kpi.pl b{color:#fde68a}
+.kpi.fc{border-color:#2b6f8c;background:#0e2230}.kpi.fc b{color:#7dd3fc}
+.kpi.ok{border-color:#1f6b45;background:#0d2419}.kpi.ok b{color:#4ade80}
+.kpi.bad{border-color:#6b2424;background:#2a1414}.kpi.bad b{color:#f87171}
+
+/* Таблицы */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:9px 10px;text-align:left;color:#93a6c8;font-size:10.5px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #2a3a5c;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #1b2742;color:#cbd5e1;white-space:nowrap}
+th.r,td.r{text-align:right}
+tbody tr:hover{background:#ffffff05}
+tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#e8eef6;padding-top:11px}
+.name{white-space:normal;min-width:220px}
+.mut{color:#64748b}
+.pl-v{color:#fde68a;font-weight:700}
+.fc-v{color:#7dd3fc;font-weight:700}
+.f-v{color:#c4b5fd;font-weight:800}
+.g-ok{color:#4ade80;font-weight:700}
+.g-bad{color:#f87171;font-weight:700}
+.now td{background:rgba(251,191,36,.07)}
+.scroll{overflow-x:auto}
+
+/* Ввод плана */
+.pin{width:116px;background:#1d1a10;border:1px solid #5b4a1f;border-radius:8px;padding:6px 8px;
+  color:#fbbf24;font:700 13px/1 inherit;font-family:inherit;text-align:right;outline:none}
+.pin:hover{border-color:#8a6d22}
+.pin:focus{border-color:#fbbf24;background:#231e12;box-shadow:0 0 0 3px rgba(251,191,36,.2)}
+.pin.empty{color:#4a5c80;border-style:dashed;border-color:#40527d;background:#131f38}
+.pin.save{opacity:.5}
+
+#toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);z-index:99;
+  padding:11px 18px;border-radius:11px;font:700 13px/1 inherit;font-family:inherit;color:#0b1120;
+  background:linear-gradient(135deg,#86efac,#4ade80);box-shadow:0 10px 30px rgba(0,0,0,.45);
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.bad{color:#fff;background:linear-gradient(135deg,#f87171,#dc2626)}
+.hint{font-size:12px;color:#7e91b3;line-height:1.6;margin-top:10px}
+@media(max-width:760px){.wrap{padding:16px}.header{padding:14px 16px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="logo">План-факт</span>
+  <span class="hidden-tag">скрытая страница</span>
+  <span class="sub" id="upd"></span>
+  <a class="back" href="продажи_2026.html">← Продажи</a>
+</div>
+
+<div class="wrap">
+  <div class="bar">
+    <span class="bar-lbl">Месяц</span>
+    <select class="sel" id="m-sel" onchange="pickMonth(this.value)"></select>
+    <span class="sub" id="m-state">—</span>
+    <span class="bar-acts">
+      <button class="btn main" onclick="fromPrev(0)">= факт прошлого месяца</button>
+      <button class="btn" onclick="fromPrev(10)">+10%</button>
+      <button class="btn" onclick="copyFrom()">Скопировать план другого месяца</button>
+    </span>
+    <span class="bar-note">План ставим <b>по контрагенту</b> — цифра сохраняется сразу, кнопки «сохранить» нет.
+      План копится помесячно: ниже виден год целиком и накопленный итог, а водопад показывает,
+      кто именно увёл факт от плана.</span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="sec">
+    <div class="sec-t">Из чего сложился разрыв с планом — <span id="wf-m">—</span></div>
+    <div class="card"><div style="height:250px"><canvas id="wf"></canvas></div>
+      <div class="hint" id="wf-note"></div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">Год: план, факт и накопленный итог</div>
+    <div class="card"><div style="height:250px"><canvas id="yr"></canvas></div>
+      <div class="scroll" style="margin-top:14px"><table id="t-year"></table></div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">По контрагентам — <span id="c-m">—</span></div>
+    <div class="card scroll"><table id="t-ctr"></table></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script src="nav.js"></script>
+<script>
+/* ── данные ───────────────────────────────────────────────────────────────
+   Факт берём из contractor_items.js — того же файла, что кормит «Продажи»,
+   чтобы цифры на двух страницах не разъезжались. Планы — из хранилища
+   воркера, все месяцы одним запросом. */
+var CTR = window.CTR || {};
+var PLANS = {};                 // {'2026-09': {items:{num:сумма}, updated}}
+var MK = '';                    // выбранный месяц
+var CH_WF = null, CH_YR = null;
+
+var MN = ['','Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август',
+          'Сентябрь','Октябрь','Ноябрь','Декабрь'];
+var MSHORT = ['','янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+function mLabel(mk){ return MN[+mk.slice(5,7)] + ' ' + mk.slice(0,4); }
+function mShort(mk){ return MSHORT[+mk.slice(5,7)]; }
+function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function num(v){ return Math.round(v||0).toLocaleString('ru'); }
+function sf(v){
+  var a=Math.abs(v||0);
+  if(a>=1e9) return (v/1e9).toFixed(2)+' млрд';
+  if(a>=1e6) return (v/1e6).toFixed(1)+' млн';
+  if(a>=1e3) return Math.round(v/1e3)+' тыс';
+  return num(v);
+}
+function sgn(v){ return (v>=0?'+':'−') + sf(Math.abs(v)); }
+
+/* Месяцы: те, по которым есть факт или план, плюс три вперёд —
+   план ставят заранее, когда продаж ещё нет. */
+function allMonths(){
+  var set = {};
+  Object.keys(CTR).forEach(function(k){ if(/^\d{4}-\d{2}$/.test(k)) set[k]=1; });
+  Object.keys(PLANS).forEach(function(k){ if(/^\d{4}-\d{2}$/.test(k)) set[k]=1; });
+  var list = Object.keys(set).sort();
+  var last = list[list.length-1] || '2026-01';
+  for(var i=1;i<=3;i++){ var n=shift(last,i); if(!set[n]){ list.push(n); set[n]=1; } }
+  return list.sort();
+}
+function shift(mk,n){
+  var y=+mk.slice(0,4), m=+mk.slice(5,7)+n;
+  y+=Math.floor((m-1)/12); m=((m-1)%12+12)%12+1;
+  return y+'-'+(m<10?'0':'')+m;
+}
+
+/* Неполный месяц: последний отработанный день берём из sales_meta,
+   коэффициент — на полное число дней. Та же логика, что в «Продажах». */
+function periodK(mk){
+  var meta = window.SALES_META || {};
+  var p = meta.partial || '';                   // «28.09.2026»
+  if(!p) return {partial:false,k:1,days:0,dim:0};
+  var d=+p.slice(0,2), mo=+p.slice(3,5), y=+p.slice(6,10);
+  if(mk !== y+'-'+(mo<10?'0':'')+mo) return {partial:false,k:1,days:0,dim:0};
+  var dim = new Date(y,mo,0).getDate();
+  return {partial:true, k:dim/d, days:d, dim:dim};
+}
+
+function fact(mk){
+  var out={}, list=CTR[mk]||[];
+  list.forEach(function(c){ out[c.num]=(out[c.num]||0)+c.rev; });
+  return out;
+}
+function names(){
+  var out={};
+  Object.keys(CTR).forEach(function(mk){
+    if(!/^\d{4}-\d{2}$/.test(mk)) return;
+    (CTR[mk]||[]).forEach(function(c){ out[c.num]=c.name; });
+  });
+  return out;
+}
+function plan(mk){ return (PLANS[mk]&&PLANS[mk].items)||{}; }
+function planSum(mk){ var p=plan(mk),t=0; for(var k in p) t+=p[k]||0; return t; }
+function factSum(mk){ var f=fact(mk),t=0; for(var k in f) t+=f[k]||0; return t; }
+
+/* ── загрузка и сохранение ───────────────────────────────────────────── */
+function loadAll(done){
+  fetch('/api/salesplan?all=1',{credentials:'same-origin'})
+    .then(function(r){ return r.ok?r.json():{months:{}}; })
+    .then(function(o){ PLANS=o.months||{}; })
+    .catch(function(){ PLANS={}; })
+    .then(done);
+}
+function save(mk, items, mode){
+  return fetch('/api/salesplan?m='+encodeURIComponent(mk),{
+    method:'POST', credentials:'same-origin',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({items:items, mode:mode||'merge'})
+  }).then(function(r){ return r.json(); })
+    .then(function(o){ if(o&&o.items) PLANS[mk]=o; return o; });
+}
+function toast(t,bad){
+  var e=document.getElementById('toast');
+  e.textContent=t; e.className='show'+(bad?' bad':'');
+  clearTimeout(toast._t); toast._t=setTimeout(function(){ e.className=''; },2600);
+}
+function parseSum(t){
+  var s=String(t||'').toLowerCase().replace(/[\s  ]/g,'').replace(',','.');
+  if(!s) return 0;
+  var m=s.match(/-?\d+(?:\.\d+)?/); if(!m) return 0;
+  var v=parseFloat(m[0]);
+  if(/млрд/.test(s)) return Math.round(v*1e9);
+  if(/млн/.test(s))  return Math.round(v*1e6);
+  if(/тыс/.test(s))  return Math.round(v*1e3);
+  if(Math.abs(v)<10000) v*=1e6;      // «115» в колонке с миллионами — это миллионы
+  return Math.round(v);
+}
+
+/* ── свод ─────────────────────────────────────────────────────────────── */
+function drawKpis(){
+  var pi=periodK(MK), ps=planSum(MK), fs=factSum(MK), fc=pi.partial? fs*pi.k : fs;
+  var has=ps>0, done=has? fc/ps*100 : 0;
+  var h='<div class="kpi pl"><span>План · '+esc(mLabel(MK).toLowerCase())+'</span><b>'
+      + (has? sf(ps) : '— не задан') + '</b><i>'
+      + (PLANS[MK]&&PLANS[MK].updated ? 'сохранён '+esc(PLANS[MK].updated) : 'ещё не ставили') + '</i></div>';
+  h+='<div class="kpi"><span>Факт</span><b>'+sf(fs)+'</b><i>'
+      + (pi.partial? 'за 1–'+pi.days+' из '+pi.dim+' дней' : (fs? 'месяц закрыт' : 'продаж пока нет')) + '</i></div>';
+  if(pi.partial) h+='<div class="kpi fc"><span>Прогноз месяца</span><b>'+sf(fc)
+      +'</b><i>в темпе на полный месяц</i></div>';
+  if(has){
+    var gap=fc-ps;
+    h+='<div class="kpi '+(gap>=0?'ok':'bad')+'"><span>'+(gap>=0?'Перевыполнение':'Не хватает')
+      +'</span><b>'+sf(Math.abs(gap))+'</b><i>выполнение '+done.toFixed(0)+'%</i></div>';
+    if(pi.partial && pi.dim>pi.days){
+      var need=Math.max(0,ps-fs), left=pi.dim-pi.days;
+      h+='<div class="kpi"><span>Надо в день</span><b>'+(need? sf(need/left) : '—')
+        +'</b><i>'+(need? 'осталось '+left+' дн., сейчас '+sf(fs/pi.days)+'/день'
+                        : 'план уже перекрыт')+'</i></div>';
+    }
+  }
+  document.getElementById('kpis').innerHTML=h;
+}
+
+/* ── водопад: от плана к факту, по контрагентам ───────────────────────── */
+function drawWf(){
+  var pi=periodK(MK), P=plan(MK), F=fact(MK), NM=names();
+  var ps=planSum(MK);
+  document.getElementById('wf-m').textContent = mLabel(MK);
+  var note=document.getElementById('wf-note');
+  if(!ps){
+    if(CH_WF){ CH_WF.destroy(); CH_WF=null; }
+    note.textContent='План на этот месяц не задан — сравнивать не с чем. Впишите суммы в таблице ниже.';
+    return;
+  }
+  var rows=[], keys={};
+  Object.keys(P).forEach(function(k){keys[k]=1;});
+  Object.keys(F).forEach(function(k){keys[k]=1;});
+  Object.keys(keys).forEach(function(k){
+    var p=P[k]||0, f=(F[k]||0)*(pi.partial?pi.k:1);
+    if(!p && !f) return;
+    rows.push({k:k, n:NM[k]||k, d:f-p, p:p, f:f});
+  });
+  rows.sort(function(a,b){ return Math.abs(b.d)-Math.abs(a.d); });
+  var TOP=9, top=rows.slice(0,TOP), rest=rows.slice(TOP);
+  var restSum=rest.reduce(function(s,x){ return s+x.d; },0);
+  var steps=top.slice();
+  if(rest.length) steps.push({n:'Прочие ('+rest.length+')', d:restSum, p:0});
+
+  var labels=['План'], data=[[0,ps]], colors=['#f59e0b'], run=ps;
+  steps.forEach(function(s){
+    labels.push(s.n.length>24? s.n.slice(0,22)+'…' : s.n);
+    data.push([run, run+s.d]);
+    colors.push(s.d>=0? '#22c55e' : '#ef4444');
+    run+=s.d;
+  });
+  labels.push(pi.partial?'Прогноз':'Факт'); data.push([0,run]); colors.push('#38bdf8');
+
+  if(CH_WF) CH_WF.destroy();
+  CH_WF=new Chart(document.getElementById('wf'),{
+    type:'bar',
+    data:{labels:labels,datasets:[{data:data,backgroundColor:colors,borderRadius:4,
+      borderSkipped:false,barPercentage:.72}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){
+        var v=c.raw, last=labels.length-1;
+        if(c.dataIndex===0||c.dataIndex===last) return sf(v[1]);
+        var s=steps[c.dataIndex-1];
+        return sgn(v[1]-v[0]) + (s.p? '  · в плане было '+sf(s.p) : '  · плана не было');
+      }}}},
+      scales:{x:{ticks:{color:'#93a6c8',font:{size:10},maxRotation:42},grid:{display:false}},
+              y:{ticks:{color:'#64748b',font:{size:10},callback:function(v){return sf(v);}},
+                 grid:{color:'#ffffff08'}}}}
+  });
+  var gap=run-ps;
+  var down=rows.filter(function(x){return x.d<0;}).slice(0,3)
+    .map(function(x){ return '<b>'+esc(x.n)+'</b> '+sgn(x.d); }).join(', ');
+  var up=rows.filter(function(x){return x.d>0;}).sort(function(a,b){return b.d-a.d;}).slice(0,3)
+    .map(function(x){ return '<b>'+esc(x.n)+'</b> '+sgn(x.d); }).join(', ');
+  note.innerHTML = 'От плана <b>'+sf(ps)+'</b> к '+(pi.partial?'прогнозу':'факту')+' <b>'+sf(run)+'</b>: '
+    + (gap>=0? 'сверх плана ' : 'недобор ') + '<b>'+sf(Math.abs(gap))+'</b>.'
+    + (down? '<br>Больше всего недодали: '+down+'.' : '')
+    + (up? '<br>Компенсировали: '+up+'.' : '');
+}
+
+/* ── год: план, факт, накопленный итог ────────────────────────────────── */
+function drawYear(){
+  var ms=allMonths(), pl=[], fa=[], cpl=[], cfa=[], cp=0, cf=0;
+  ms.forEach(function(mk){
+    var pi=periodK(mk), p=planSum(mk), f=factSum(mk);
+    var fe = pi.partial? f*pi.k : f;
+    pl.push(p); fa.push(f);
+    cp+=p; cf+=fe; cpl.push(cp); cfa.push(cf);
+  });
+  if(CH_YR) CH_YR.destroy();
+  CH_YR=new Chart(document.getElementById('yr'),{
+    data:{labels:ms.map(mShort),datasets:[
+      {type:'bar',label:'План',data:pl,backgroundColor:'#f59e0b',borderRadius:4,barPercentage:.82},
+      {type:'bar',label:'Факт',data:fa,backgroundColor:'#7c3aed',borderRadius:4,barPercentage:.82},
+      {type:'line',label:'План нарастающим',data:cpl,borderColor:'#fbbf24',borderDash:[5,4],
+       pointRadius:0,borderWidth:2,yAxisID:'y2',tension:.25},
+      {type:'line',label:'Факт нарастающим',data:cfa,borderColor:'#a78bfa',
+       pointRadius:0,borderWidth:2,yAxisID:'y2',tension:.25}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#93a6c8',boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:function(c){ return c.dataset.label+': '+sf(c.raw); }}}},
+      scales:{x:{ticks:{color:'#93a6c8',font:{size:10}},grid:{display:false}},
+        y:{ticks:{color:'#64748b',font:{size:10},callback:function(v){return sf(v);}},grid:{color:'#ffffff08'}},
+        y2:{position:'right',ticks:{color:'#8a7742',font:{size:10},callback:function(v){return sf(v);}},
+            grid:{display:false}}}}
+  });
+
+  var h='<thead><tr><th>Месяц</th><th class="r">План</th><th class="r">Факт</th>'
+    + '<th class="r">Выполнение</th><th class="r">Отклонение</th>'
+    + '<th class="r">План нараст.</th><th class="r">Факт нараст.</th><th class="r">Итого вып.</th></tr></thead><tbody>';
+  var tp=0,tf=0;
+  ms.forEach(function(mk,i){
+    var pi=periodK(mk), p=pl[i], f=fa[i], fe=pi.partial? f*pi.k : f;
+    tp+=p; tf+=fe;
+    var d=fe-p, pc=p? fe/p*100 : null;
+    h+='<tr'+(mk===MK?' class="now"':'')+'><td><b>'+esc(mLabel(mk))+'</b>'
+      + (pi.partial? ' <span class="mut">1–'+pi.days+'</span>' : '') + '</td>'
+      + '<td class="r '+(p?'pl-v':'mut')+'">'+(p?num(p):'—')+'</td>'
+      + '<td class="r '+(f?'f-v':'mut')+'">'+(f?num(f):'—')
+      + (pi.partial&&f? ' <span class="fc-v">≈'+num(fe)+'</span>' : '')+'</td>'
+      + '<td class="r '+(pc==null?'mut':(pc>=100?'g-ok':'g-bad'))+'">'+(pc==null?'—':pc.toFixed(0)+'%')+'</td>'
+      + '<td class="r '+(p? (d>=0?'g-ok':'g-bad') : 'mut')+'">'+(p? sgn(d) : '—')+'</td>'
+      + '<td class="r mut">'+(cpl[i]?num(cpl[i]):'—')+'</td>'
+      + '<td class="r mut">'+(cfa[i]?num(cfa[i]):'—')+'</td>'
+      + '<td class="r '+(cpl[i]? (cfa[i]>=cpl[i]?'g-ok':'g-bad') : 'mut')+'">'
+      + (cpl[i]? (cfa[i]/cpl[i]*100).toFixed(0)+'%' : '—')+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr><td>Итого за год</td><td class="r pl-v">'+(tp?num(tp):'—')+'</td>'
+    + '<td class="r f-v">'+num(tf)+'</td>'
+    + '<td class="r '+(tp? (tf>=tp?'g-ok':'g-bad') : 'mut')+'">'+(tp?(tf/tp*100).toFixed(0)+'%':'—')+'</td>'
+    + '<td class="r '+(tp? (tf-tp>=0?'g-ok':'g-bad') : 'mut')+'">'+(tp?sgn(tf-tp):'—')+'</td>'
+    + '<td colspan="3"></td></tr></tfoot>';
+  document.getElementById('t-year').innerHTML=h;
+}
+
+/* ── таблица по контрагентам с вводом плана ───────────────────────────── */
+function drawCtr(){
+  var pi=periodK(MK), P=plan(MK), F=fact(MK), NM=names();
+  var prev=shift(MK,-1), FP=fact(prev);
+  document.getElementById('c-m').textContent=mLabel(MK);
+  var keys={};
+  Object.keys(P).forEach(function(k){keys[k]=1;});
+  Object.keys(F).forEach(function(k){keys[k]=1;});
+  Object.keys(FP).forEach(function(k){keys[k]=1;});
+  var rows=Object.keys(keys).map(function(k){
+    var f=F[k]||0;
+    return {k:k,n:NM[k]||k,p:P[k]||0,f:f,fe:pi.partial? f*pi.k : f,pr:FP[k]||0};
+  }).sort(function(a,b){ return (b.fe||b.p)-(a.fe||a.p); });
+
+  var h='<thead><tr><th>Контрагент</th><th class="r">Факт '+esc(mShort(prev))+'</th>'
+    + '<th class="r">Факт</th>'+(pi.partial?'<th class="r">Прогноз</th>':'')
+    + '<th class="r">План</th><th class="r">Выполнение</th><th class="r">Отклонение</th></tr></thead><tbody>';
+  var sp=0,sfact=0,sfe=0,spr=0,fplan=0;
+  rows.forEach(function(r){
+    sp+=r.p; sfact+=r.f; sfe+=r.fe; spr+=r.pr;
+    if(r.p) fplan+=r.fe;
+    var pc=r.p? r.fe/r.p*100 : null, d=r.p? r.fe-r.p : null;
+    h+='<tr><td class="name">'+esc(r.n)+'</td>'
+      + '<td class="r mut">'+(r.pr?num(r.pr):'—')+'</td>'
+      + '<td class="r f-v">'+(r.f?num(r.f):'—')+'</td>'
+      + (pi.partial? '<td class="r fc-v">'+(r.fe?'≈'+num(r.fe):'—')+'</td>' : '')
+      + '<td class="r"><input class="pin'+(r.p?'':' empty')+'" data-k="'+esc(r.k)+'" inputmode="numeric"'
+      + ' placeholder="—" value="'+(r.p?num(r.p):'')+'"></td>'
+      + '<td class="r '+(pc==null?'mut':(pc>=100?'g-ok':(pc>=90?'':'g-bad')))+'">'+(pc==null?'—':pc.toFixed(0)+'%')+'</td>'
+      + '<td class="r '+(d==null?'mut':(d>=0?'g-ok':'g-bad'))+'">'+(d==null?'—':sgn(d))+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr><td>Итого · '+rows.length+'</td><td class="r mut">'+(spr?num(spr):'—')+'</td>'
+    + '<td class="r f-v">'+(sfact?num(sfact):'—')+'</td>'
+    + (pi.partial?'<td class="r fc-v">'+(sfe?'≈'+num(sfe):'—')+'</td>':'')
+    + '<td class="r pl-v">'+(sp?num(sp):'—')+'</td>'
+    + '<td class="r '+(sp? (fplan>=sp?'g-ok':'g-bad') : 'mut')+'" title="по контрагентам, которым план задан">'
+    + (sp? (fplan/sp*100).toFixed(0)+'%' : '—')+'</td>'
+    + '<td class="r '+(sp? (fplan-sp>=0?'g-ok':'g-bad') : 'mut')+'">'+(sp? sgn(fplan-sp) : '—')+'</td></tr></tfoot>';
+  document.getElementById('t-ctr').innerHTML=h;
+}
+
+/* ── действия ─────────────────────────────────────────────────────────── */
+function redraw(){ drawKpis(); drawWf(); drawYear(); drawCtr(); state(); }
+function state(){
+  var ps=planSum(MK);
+  document.getElementById('m-state').textContent = ps
+    ? 'план ' + sf(ps) + (PLANS[MK]&&PLANS[MK].updated? ' · сохранён '+PLANS[MK].updated : '')
+    : 'план не задан';
+}
+window.pickMonth=function(v){ MK=v; redraw(); };
+
+window.fromPrev=function(pct){
+  var pk=shift(MK,-1), list=CTR[pk]||[];
+  if(!list.length){ toast('Нет факта за '+mLabel(pk).toLowerCase(), true); return; }
+  var items={};
+  list.forEach(function(c){ var v=Math.round(c.rev*(1+(pct||0)/100)); if(v>0) items[c.num]=v; });
+  save(MK, items, 'replace').then(function(){
+    redraw(); toast('План на '+mLabel(MK).toLowerCase()+' — '+Object.keys(items).length+' строк');
+  }).catch(function(){ toast('Не сохранилось', true); });
+};
+
+window.copyFrom=function(){
+  var have=Object.keys(PLANS).filter(function(k){ return planSum(k)>0 && k!==MK; }).sort();
+  if(!have.length){ toast('Других планов пока нет', true); return; }
+  var from=prompt('Из какого месяца скопировать план? Есть: '+have.join(', '), have[have.length-1]);
+  if(!from || !PLANS[from]) return;
+  save(MK, PLANS[from].items, 'replace').then(function(){
+    redraw(); toast('Скопирован план из ' + mLabel(from).toLowerCase());
+  }).catch(function(){ toast('Не сохранилось', true); });
+};
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter' && e.target && e.target.classList.contains('pin')) e.target.blur();
+});
+document.addEventListener('change',function(e){
+  var el=e.target;
+  if(!el||!el.classList||!el.classList.contains('pin')) return;
+  var k=el.getAttribute('data-k'), v=parseSum(el.value), o={}; o[k]=v;
+  el.classList.add('save');
+  save(MK,o,'merge').then(function(){
+    var NM=names();
+    toast(v? (NM[k]||k)+': '+num(v)+' ₸ на '+mLabel(MK).toLowerCase() : 'План по строке убран');
+    redraw();
+  }).catch(function(){ el.classList.remove('save'); toast('Не сохранилось — проверьте связь', true); });
+},true);
+
+/* ── старт ────────────────────────────────────────────────────────────── */
+(function init(){
+  var meta=window.SALES_META||{};
+  document.getElementById('upd').textContent = meta.pulled? 'факт из iiko · '+meta.pulled : '';
+  loadAll(function(){
+    var withFact=Object.keys(CTR).filter(function(k){return /^\d{4}-\d{2}$/.test(k);}).sort();
+    var ms=allMonths();
+    MK = withFact[withFact.length-1] || ms[0];
+    document.getElementById('m-sel').innerHTML = ms.map(function(mk){
+      return '<option value="'+mk+'"'+(mk===MK?' selected':'')+'>'+mLabel(mk)
+        + (CTR[mk]?'':' · плановый')+'</option>';
+    }).join('');
+    redraw();
+  });
+})();
+</script>
+</body>
+</html>

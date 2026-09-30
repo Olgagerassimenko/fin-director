@@ -1842,6 +1842,24 @@ async function handleHalal(request, env) {
 const SALESPLAN_PREFIX = "salesplan:";
 
 async function handleSalesPlan(request, env, url) {
+  // ?all=1 — все месяцы разом: страница «План-факт» строит по ним год
+  // целиком и накопленный итог, дёргать двенадцать запросов незачем.
+  if (url.searchParams.get("all") === "1") {
+    const out = {};
+    let cursor;
+    do {
+      const r = await env.PLAN.list({ prefix: SALESPLAN_PREFIX, cursor, limit: 1000 });
+      for (const k of r.keys) {
+        const mk = k.name.slice(SALESPLAN_PREFIX.length);
+        if (!/^\d{4}-\d{2}$/.test(mk)) continue;
+        try { out[mk] = JSON.parse((await env.PLAN.get(k.name)) || "null") || { items: {} }; }
+        catch (e) { out[mk] = { items: {} }; }
+      }
+      cursor = r.list_complete ? null : r.cursor;
+    } while (cursor);
+    return jsonResp({ months: out });
+  }
+
   const m = (url.searchParams.get("m") || "").slice(0, 7);
   if (!/^\d{4}-\d{2}$/.test(m)) return jsonResp({ error: "нужен месяц вида 2026-09" }, 400);
   const key = SALESPLAN_PREFIX + m;
