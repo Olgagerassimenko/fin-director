@@ -106,8 +106,9 @@ tfoot td{border-top:1px solid #2a3a5c;border-bottom:none;font-weight:800;color:#
 #t-grid th,#t-grid td{white-space:nowrap}
 #t-grid thead th{position:sticky;top:0;z-index:3;background:#111a2e}
 #t-grid tbody td{background:#111a2e}
+#t-grid th,#t-grid td{padding:7px 8px;font-size:12.5px}
 #t-grid th.c1,#t-grid td.c1{position:sticky;left:0;z-index:2;background:#111a2e;
-  min-width:210px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  min-width:176px;max-width:196px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #t-grid thead th.c1{z-index:4}
 #t-grid tbody tr:hover td{background:#16213a}
 #t-grid tbody tr:hover td.c1{background:#1b2742}
@@ -121,14 +122,14 @@ tr.rest td{background:#141d33;color:#93a6c8;cursor:pointer;font-weight:700}
 tr.rest:hover td{background:#1b2742;color:#e2e8f0}
 #t-grid tr.tot td.c1{background:#18233d;z-index:3}
 #t-grid th.now,#t-grid td.now{background:rgba(251,191,36,.07)}
-.gin{width:98px;background:#1d1a10;border:1px solid #5b4a1f;border-radius:7px;padding:5px 7px;
-  color:#fbbf24;font:700 12px/1 inherit;font-family:inherit;text-align:right;outline:none}
+.gin{width:84px;background:#1d1a10;border:1px solid #5b4a1f;border-radius:7px;padding:4px 6px;
+  color:#fbbf24;font:700 11.5px/1 inherit;font-family:inherit;text-align:right;outline:none}
 .gin.empty{color:#4a5c80;border-style:dashed;border-color:#40527d;background:#131f38}
 .gin:focus{border-color:#fbbf24;background:#231e12;box-shadow:0 0 0 2px rgba(251,191,36,.25)}
 .pf{display:flex;flex-direction:column;gap:1px;align-items:flex-end;line-height:1.25}
-.pf u{text-decoration:none;font-size:11px;color:#a8924f}
-.pf s{text-decoration:none;font-size:12.5px;font-weight:700;color:#c4b5fd}
-.pf em{font-style:normal;font-size:11px;font-weight:800}
+.pf u{text-decoration:none;font-size:10.5px;color:#a8924f}
+.pf s{text-decoration:none;font-size:12px;font-weight:700;color:#c4b5fd}
+.pf em{font-style:normal;font-size:10.5px;font-weight:800}
 /* Полоска месяцев до конца года: сразу видно, где плана ещё нет. */
 .months{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .mchip{display:flex;flex-direction:column;gap:2px;padding:9px 13px;border-radius:11px;
@@ -328,6 +329,7 @@ function parseSum(t){
   if(/млрд/.test(s)) return Math.round(v*1e9);
   if(/млн/.test(s))  return Math.round(v*1e6);
   if(/тыс/.test(s))  return Math.round(v*1e3);
+  // в ячейке лежит короткая запись вроде «130.0» — она же и означает миллионы
   if(Math.abs(v)<10000) v*=1e6;      // «115» в колонке с миллионами — это миллионы
   return Math.round(v);
 }
@@ -446,10 +448,12 @@ function drawGrid(){
       if(GMODE==='plan'){
         rt+=p;
         h+='<td class="'+cls+'"><input class="gin'+(p?'':' empty')+'" data-m="'+mk+'" data-k="'
-          + esc(r.k)+'" inputmode="numeric" placeholder="—" value="'+(p?num(p):'')+'"></td>';
+          + esc(r.k)+'" inputmode="numeric" placeholder="—" title="'+(p?num(p)+' ₸':'плана нет')
+          + '" value="'+(p? sf(p) : '')+'"></td>';
       } else if(GMODE==='fact'){
         rt+=f;
-        h+='<td class="'+cls+'">'+(f? num(f) : '<span class="mut">—</span>')+'</td>';
+        h+='<td class="'+cls+'" title="'+(f?num(f):'')+'">'
+          + (f? sf(f) : '<span class="mut">—</span>')+'</td>';
       } else {
         rt+=f;
         h+='<td class="'+cls+'">'+pfCell(p,f)+'</td>';
@@ -468,8 +472,8 @@ function drawGrid(){
       small.forEach(function(r){ p+=P[mk][r.k]||0; f+=fe(mk,r.k); });
       st += GMODE==='plan'? p : f;
       var v = GMODE==='plan'? p : f;
-      h+='<td class="r'+(mk===MK?' now':'')+'">'
-        + (GMODE==='pf'? pfCell(p,f) : (v? num(v) : '—')) + '</td>';
+      h+='<td class="r'+(mk===MK?' now':'')+'" title="'+(v?num(v):'')+'">'
+        + (GMODE==='pf'? pfCell(p,f) : (v? sf(v) : '—')) + '</td>';
     });
     h+='<td class="r">'+(st? sf(st) : '—')+'</td></tr>';
   } else if(small.length && GREST){
@@ -490,13 +494,15 @@ function drawGrid(){
          + '<span class="g-bad">красный</span> — нет. Пусто там, где плана не ставили.');
 }
 
+/* Короткие суммы: «91.2 млн» вместо «91 227 631». Двенадцать колонок с
+   девятизначными числами не помещались, и таблицу приходилось листать
+   вбок. Точная цифра — в подсказке при наведении. */
 function pfCell(p,f){
   if(!p && !f) return '<span class="mut">—</span>';
-  if(!p) return '<div class="pf"><u>—</u><s>'+num(f)+'</s></div>';
-  // месяц ещё не начался: план есть, факта нет — процент не выдумываем
-  if(!f) return '<div class="pf"><u>'+num(p)+'</u><s class="mut">впереди</s></div>';
+  if(!p) return '<div class="pf" title="факт '+num(f)+'"><u>—</u><s>'+sf(f)+'</s></div>';
+  if(!f) return '<div class="pf" title="план '+num(p)+'"><u>'+sf(p)+'</u><s class="mut">впереди</s></div>';
   var pc=Math.round(f/p*100);
-  return '<div class="pf"><u>'+num(p)+'</u><s>'+num(f)+'</s>'
+  return '<div class="pf" title="план '+num(p)+' · факт '+num(f)+'"><u>'+sf(p)+'</u><s>'+sf(f)+'</s>'
     + '<em class="'+(pc>=100?'g-ok':(pc>=90?'':'g-bad'))+'">'+pc+'%</em></div>';
 }
 
