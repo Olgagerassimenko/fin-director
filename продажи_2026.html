@@ -184,7 +184,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
   color:#0b1120;background:linear-gradient(135deg,#7dd3fc,#38bdf8);border-radius:9px;
   padding:8px 14px;white-space:nowrap;box-shadow:0 2px 12px rgba(56,189,248,.38)}
 .pl-go:hover{box-shadow:0 2px 18px rgba(56,189,248,.6)}
-#pl-bar.open .pl-go{margin-left:auto}
+/* В ряду кнопок ссылка стоит вровень с ними, а не прижата к краю. */
+.pl-acts .pl-go{margin-left:0;align-self:center}
 .pl-body{display:none;align-items:center;gap:12px;flex-wrap:wrap;
   margin-top:12px;padding-top:12px;border-top:1px solid #4a3c16}
 #pl-bar.open .pl-body{display:flex}
