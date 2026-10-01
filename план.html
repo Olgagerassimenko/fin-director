@@ -360,15 +360,23 @@ function parseSum(t){
 /* ── свод ─────────────────────────────────────────────────────────────── */
 function drawKpis(){
   var pi=periodK(MK), ps=planSum(MK), fs=factSum(MK), fc=pi.partial? fs*pi.k : fs;
+  // в первые дни месяца прогноз «в темпе» врёт в разы — один день × 31
+  var early = pi.partial && pi.days < 5;
   var has=ps>0, done=has? fc/ps*100 : 0;
   var h='<div class="kpi pl"><span>План · '+esc(mLabel(MK).toLowerCase())+'</span><b>'
       + (has? sf(ps) : '— не задан') + '</b><i>'
       + (PLANS[MK]&&PLANS[MK].updated ? 'сохранён '+esc(PLANS[MK].updated) : 'ещё не ставили') + '</i></div>';
   h+='<div class="kpi"><span>Факт</span><b>'+sf(fs)+'</b><i>'
       + (pi.partial? 'за 1–'+pi.days+' из '+pi.dim+' дней' : (fs? 'месяц закрыт' : 'продаж пока нет')) + '</i></div>';
-  if(pi.partial) h+='<div class="kpi fc"><span>Прогноз месяца</span><b>'+sf(fc)
-      +'</b><i>в темпе на полный месяц</i></div>';
-  if(has){
+  if(pi.partial) h+='<div class="kpi fc"><span>Прогноз месяца</span><b>'
+      + (early? '—' : sf(fc))
+      + '</b><i>'+(early? 'прошло '+pi.days+' дн. из '+pi.dim+' — рано' : 'в темпе на полный месяц')
+      + '</i></div>';
+  if(has && early){
+    h+='<div class="kpi"><span>Выполнение</span><b>—</b><i>месяц только начался, '
+      + 'судить рано</i></div>';
+  }
+  if(has && !early){
     var gap=fc-ps;
     /* Закрытый месяц описываем в прошедшем времени: «не хватает» про сентябрь
        первого октября читается так, будто его ещё можно догнать. */

@@ -1506,15 +1506,23 @@
       h += '<span class="pl-empty">не задан</span>';
     } else {
       var fc = pi.partial ? fact * (pi.dim / pi.days) : fact;
+      /* В первые дни месяца прогноз «в темпе» врёт в разы: один день,
+         умноженный на тридцать один, давал 181% выполнения второго числа.
+         Пока не набралось пяти рабочих дней, процент не показываем. */
+      var tooEarly = pi.partial && pi.days < 5;
       h += '<b class="pl-big">' + sf(pt) + '</b>';
-      if (planSameMonth()) {
+      if (planSameMonth() && tooEarly) {
+        h += '<span class="pl-need">прошло ' + pi.days + ' дн. из ' + pi.dim
+          + ' — для прогноза рано, факт пока ' + sf(fact) + '</span>';
+      }
+      if (planSameMonth() && !tooEarly) {
         h += '<span class="pl-gap ' + (fc >= pt ? 'ok' : 'bad') + '">'
           + (pi.partial
               ? (fc >= pt ? 'прогноз выше плана на ' : 'прогноза не хватает на ')
               : (fc >= pt ? 'факт выше плана на '    : 'факт ниже плана на '))
           + sf(Math.abs(fc - pt)) + '</span>';
       }
-      if (planSameMonth() && pi.partial && left > 0) {
+      if (planSameMonth() && !tooEarly && pi.partial && left > 0) {
         h += '<span class="pl-need">осталось ' + left + ' дн. · '
           + (need > 0
               ? 'надо <b>' + sf(perDay) + '</b> в день, сейчас идёт <b>' + sf(nowDay) + '</b>'
@@ -1542,10 +1550,13 @@
        итог, чтобы блок управления не занимал экран, когда план уже поставлен.
        Состояние помним в браузере, иначе оно сбрасывалось бы на каждый клик
        по месяцу. */
+    var earlyB = pi.partial && pi.days < 5;
     var brief = pt
       ? sf(pt) + ' · ' + esc(monthLabel(planMonth()).toLowerCase())
         + (planSameMonth()
-            ? ' · выполнение ' + Math.round((pi.partial ? fact * (pi.dim / pi.days) : fact) / pt * 100) + '%'
+            ? (earlyB
+                ? ' · месяц только начался'
+                : ' · выполнение ' + Math.round((pi.partial ? fact * (pi.dim / pi.days) : fact) / pt * 100) + '%')
             : '')
       : 'план на ' + esc(monthLabel(planMonth()).toLowerCase()) + ' не задан';
     el.className = PLAN_OPEN ? 'open' : '';
