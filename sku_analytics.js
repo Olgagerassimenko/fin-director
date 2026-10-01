@@ -95,6 +95,8 @@
     var m = lbl.match(/\((\d+)\s*[–-]\s*(\d+)\)/);
     var y = +mk.slice(0, 4), mo = +mk.slice(5, 7);
     var dim = new Date(y, mo, 0).getDate();
+    // последний день месяца уже отработан — это закрытый месяц, а не неполный
+    if (m && +m[2] >= dim) return { partial: false, days: dim, dim: dim };
     return m ? { partial: true, days: +m[2], dim: dim } : { partial: false, days: dim, dim: dim };
   }
 
@@ -1507,7 +1509,10 @@
       h += '<b class="pl-big">' + sf(pt) + '</b>';
       if (planSameMonth()) {
         h += '<span class="pl-gap ' + (fc >= pt ? 'ok' : 'bad') + '">'
-          + (fc >= pt ? 'прогноз выше на ' : 'прогноза не хватает на ') + sf(Math.abs(fc - pt)) + '</span>';
+          + (pi.partial
+              ? (fc >= pt ? 'прогноз выше плана на ' : 'прогноза не хватает на ')
+              : (fc >= pt ? 'факт выше плана на '    : 'факт ниже плана на '))
+          + sf(Math.abs(fc - pt)) + '</span>';
       }
       if (planSameMonth() && pi.partial && left > 0) {
         h += '<span class="pl-need">осталось ' + left + ' дн. · '

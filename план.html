@@ -370,7 +370,11 @@ function drawKpis(){
       +'</b><i>в темпе на полный месяц</i></div>';
   if(has){
     var gap=fc-ps;
-    h+='<div class="kpi '+(gap>=0?'ok':'bad')+'"><span>'+(gap>=0?'Перевыполнение':'Не хватает')
+    /* Закрытый месяц описываем в прошедшем времени: «не хватает» про сентябрь
+       первого октября читается так, будто его ещё можно догнать. */
+    var lbl = pi.partial ? (gap>=0?'Перевыполнение':'Не хватает')
+                         : (gap>=0?'Перевыполнили':'Не хватило');
+    h+='<div class="kpi '+(gap>=0?'ok':'bad')+'"><span>'+lbl
       +'</span><b>'+sf(Math.abs(gap))+'</b><i>выполнение '+done.toFixed(0)+'%</i></div>';
     if(pi.partial && pi.dim>pi.days){
       var need=Math.max(0,ps-fs), left=pi.dim-pi.days;
