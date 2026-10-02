@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Реализация в 1С — Пульс · Фуд Завод</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>:root{--ink:#0b1220;--ink2:#1e293b;--mut:#64748b;--line:#e9eef4;--line2:#f0f4f9;--bg:#f4f7fb;--card:#fff;--ok:#0f9d6a;--okbg:#e7f7ef;--no:#e11d48;--nobg:#fdecef;--warn:#d97706;--warnbg:#fff7ea;--shsm:0 1px 2px rgba(15,23,42,.05);--sh:0 14px 34px -20px rgba(15,23,42,.30);--r:16px;--r2:12px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Inter",-apple-system,Segoe UI,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:18px 14px 64px}
+.hdr{position:relative;overflow:hidden;background:linear-gradient(135deg,#b45309 0%,#c2410c 46%,#9a3412 100%);color:#fff;border-radius:var(--r);padding:20px 24px;box-shadow:0 20px 46px -26px rgba(154,52,18,.6)}
+.hdr::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 70%)}
+.hdr h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.hdr .sub{color:#ffe9d5;font-size:12.5px;margin-top:7px;line-height:1.6;max-width:980px}
+.asof{display:inline-block;margin-top:11px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.34);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600}
+.grid{display:grid;gap:12px;margin-top:14px}
+.k4{grid-template-columns:repeat(4,1fr)}@media(max-width:720px){.k4{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:15px 16px;box-shadow:var(--shsm)}
+.card .lab{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.card .big{font-size:24px;font-weight:800;margin-top:4px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.card .small{font-size:11.5px;color:var(--mut);margin-top:3px;line-height:1.45}
+.big.ok{color:var(--ok)}.big.no{color:var(--no)}.big.warn{color:var(--warn)}
+h2{font-size:15px;font-weight:800;color:var(--ink2);margin:24px 4px 9px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shsm)}
+.tbl{margin-top:11px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff;box-shadow:var(--shsm)}@media(max-width:760px){.tbl{overflow-x:auto}}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f8fafc;color:#475569;text-align:left;padding:11px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;border-bottom:1px solid var(--line)}
+th.r,td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td{padding:11px 12px;border-top:1px solid var(--line2);color:var(--ink2)}
+tbody tr:hover{background:#fff8f2}
+tr.tot td{background:#f8fafc;font-weight:800;color:var(--ink)}
+tr.cur td{background:#fff7ea}
+.nm{font-weight:700;color:var(--ink)}
+.pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700}
+.p-ok{background:var(--okbg);color:var(--ok)}.p-no{background:var(--nobg);color:var(--no)}.p-w{background:var(--warnbg);color:var(--warn)}
+.bars{display:grid;gap:9px;margin-top:6px}
+.brow{display:grid;grid-template-columns:92px 1fr 148px;gap:11px;align-items:center;font-size:12.5px}
+.brow .bn{font-weight:700;color:var(--ink2)}
+.btrack{position:relative;height:26px;background:#eef2f7;border-radius:8px;overflow:hidden}
+.btrack .b1c{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#f59e0b,#d97706);border-radius:8px}
+.btrack .bii{position:absolute;top:0;bottom:0;width:2px;background:#0f766e}
+.bv{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.bv i{font-style:normal;color:var(--mut);font-weight:500;font-size:11.5px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin:4px 2px 10px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.note{font-size:12px;color:var(--mut);line-height:1.6;margin-top:12px}
+</style></head><body>
+<div class="wrap">
+  <div class="hdr">
+    <h1>📑 Реализация в 1С</h1>
+    <div class="sub">Сколько дохода уже внесено в бухгалтерскую базу, помесячно, и сколько ещё не внесено по сравнению с айко.
+      Пока месяц не внесён целиком, любой отчёт из 1С — налоги, баланс, ОПиУ для банка — показывает заниженный доход.</div>
+    <span class="asof">Данные 1С на __ASOF__</span>
+  </div>
+
+  <div class="grid k4" id="kpi"></div>
+
+  <h2>Последние 6 месяцев</h2>
+  <div class="panel">
+    <div class="legend"><span><i style="background:linear-gradient(90deg,#f59e0b,#d97706)"></i>внесено в 1С</span>
+      <span><i style="background:#0f766e;width:3px;border-radius:0"></i>выручка по айко</span></div>
+    <div class="bars" id="bars"></div>
+  </div>
+
+  <h2>Все месяцы года</h2>
+  <div class="tbl"><table><thead><tr>
+    <th>Месяц</th><th class="r">Внесено в 1С</th><th class="r">Выручка по айко</th>
+    <th class="r">Не внесено</th><th class="r">Внесено, %</th><th>Статус</th>
+  </tr></thead><tbody id="tb"></tbody></table></div>
+
+  <h2>Из каких счетов сложилось</h2>
+  <div class="tbl"><table><thead><tr><th>Счёт</th><th>Название</th><th class="r">Оборот Кт</th><th class="r">Оборот Дт</th><th>В расчёт</th></tr></thead><tbody id="acc"></tbody></table></div>
+
+  <div class="note" id="note"></div>
+</div>
+<script src="nav.js"></script>
+<script>
+var D = __DATA__;
+var MN = ['','январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+function f(x){ return (x===null||x===undefined) ? '—' : Math.round(x).toLocaleString('ru-RU').replace(/,/g,' '); }
+function pct(x){ return (x===null||x===undefined) ? '—' : (x*100).toFixed(1).replace('.',',')+'%'; }
+
+var tot1c = D.months.reduce(function(a,b){return a+(b.v1c||0);},0);
+var totii = D.months.reduce(function(a,b){return a+(b.iiko||0);},0);
+var cur = D.months[D.months.length-1] || {};
+var notEntered = D.months.reduce(function(a,b){return a + ((b.diff!==null&&b.diff<0)? -b.diff : 0);},0);
+
+function kcard(lab,val,cls,small){
+  return '<div class="card"><div class="lab">'+lab+'</div><div class="big '+(cls||'')+'">'+val+'</div><div class="small">'+(small||'')+'</div></div>';
+}
+document.getElementById('kpi').innerHTML =
+  kcard('Внесено за '+MN[cur.m]+', ₸', f(cur.v1c), 'warn', 'текущий месяц, по данным 1С') +
+  kcard('По айко за '+MN[cur.m]+', ₸', f(cur.iiko), '', 'отгружено фактически') +
+  kcard('Не внесено за год, ₸', f(notEntered), notEntered>0?'no':'ok', 'сумма недобора по всем месяцам') +
+  kcard('Внесено за год', totii? pct(tot1c/totii):'—', (totii && tot1c/totii>0.98)?'ok':'warn', f(tot1c)+' из '+f(totii));
+
+var last6 = D.months.slice(-6);
+var mx = Math.max.apply(null, last6.map(function(x){return Math.max(x.v1c||0, x.iiko||0);}).concat([1]));
+document.getElementById('bars').innerHTML = last6.map(function(x){
+  var w1 = Math.max(0,(x.v1c||0)/mx*100), wi = (x.iiko||0)/mx*100;
+  var p = x.pct===null||x.pct===undefined ? '' : ' <i>'+pct(x.pct)+'</i>';
+  return '<div class="brow"><div class="bn">'+MN[x.m]+'</div>'+
+    '<div class="btrack"><span class="b1c" style="width:'+w1.toFixed(1)+'%"></span>'+
+    (x.iiko? '<span class="bii" style="left:'+wi.toFixed(1)+'%"></span>':'')+'</div>'+
+    '<div class="bv">'+f(x.v1c)+p+'</div></div>';
+}).join('');
+
+document.getElementById('tb').innerHTML = D.months.map(function(x){
+  var st, cls;
+  if(x.pct===null||x.pct===undefined){ st='<span class="pill p-w">нет данных айко</span>'; }
+  else if(x.pct>=0.98){ st='<span class="pill p-ok">внесено</span>'; }
+  else if(x.pct>=0.5){ st='<span class="pill p-w">внесено частично</span>'; }
+  else { st='<span class="pill p-no">почти не внесено</span>'; }
+  return '<tr class="'+(x.m===D.curMonth?'cur':'')+'"><td class="nm">'+MN[x.m]+'</td>'+
+    '<td class="r">'+f(x.v1c)+'</td><td class="r">'+f(x.iiko)+'</td>'+
+    '<td class="r">'+((x.diff!==null&&x.diff<0)? f(-x.diff) : '—')+'</td>'+
+    '<td class="r">'+pct(x.pct)+'</td><td>'+st+'</td></tr>';
+}).join('') +
+  '<tr class="tot"><td>Итого за год</td><td class="r">'+f(tot1c)+'</td><td class="r">'+f(totii)+
+  '</td><td class="r">'+f(notEntered)+'</td><td class="r">'+(totii?pct(tot1c/totii):'—')+'</td><td></td></tr>';
+
+document.getElementById('acc').innerHTML = (D.accounts||[]).map(function(a){
+  var cr=a.months.reduce(function(s,m){return s+m.cr;},0), dr=a.months.reduce(function(s,m){return s+m.dr;},0);
+  return '<tr><td class="nm">'+a.code+'</td><td>'+a.name+'</td><td class="r">'+f(cr)+'</td><td class="r">'+f(dr)+
+    '</td><td>'+(a.sign>0?'плюс оборот Кт':'минус оборот Дт')+'</td></tr>';
+}).join('');
+
+document.getElementById('note').innerHTML =
+  'Внесено = кредитовый оборот счёта 6010 минус дебетовые обороты 6020 (возвраты) и 6030 (скидки). ' +
+  'Эталон — выручка по айко из того же источника, что и ОПиУ. Расхождение в пределах процента — это обычно курсовые копейки и округления; ' +
+  'всё, что больше, значит, что часть отгрузок ещё не проведена в бухгалтерии. Организация: '+D.org+', БИН '+D.bin+'.';
+</script></body></html>

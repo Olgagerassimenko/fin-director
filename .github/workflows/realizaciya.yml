@@ -1,0 +1,56 @@
+name: Реализация — 1С (каждый час)
+
+# Сколько дохода внесено в бухгалтерскую базу. Отгрузка идёт в айко день в день,
+# а в 1С реализация попадает позже — эта сборка показывает разрыв.
+# Берёт обороты по счетам 6010/6020/6030 и сверяет с opiu_iiko.js,
+# который к этому моменту уже обновил ночной прогон.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "40 * * * *"
+  push:
+    branches: [main]
+    paths:
+      - "realizaciya_report.py"
+      - "realizaciya_template.html"
+      - ".github/workflows/realizaciya.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: realizaciya-1c
+  cancel-in-progress: true
+
+jobs:
+  realizaciya:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+
+      - name: Реализация из 1С
+        env:
+          ODATA_USER: ${{ secrets.ODATA_USER }}
+          ODATA_PASS: ${{ secrets.ODATA_PASS }}
+        run: python realizaciya_report.py
+
+      - uses: actions/setup-node@v4
+        with: {node-version: "20"}
+
+      - name: Публикация (Cloudflare Workers)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@3 deploy
+
+      - name: Сохранить в репозиторий
+        if: always()
+        run: |
+          git config user.name "pulse-ci"; git config user.email "ci@local"
+          git add -f realizaciya.js "реализация.html" || true
+          git commit -m "Реализация: обновление из 1С [skip ci]" || echo "нет изменений"
+          git pull --rebase -X theirs origin main || { git rebase --abort || true; }
+          git push origin HEAD:main || echo "push не удался"
