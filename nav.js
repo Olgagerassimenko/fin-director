@@ -15,7 +15,8 @@
     {href:'дашборд_себестоимость_2025-2026.html',icon:'🧱',label:'Полная себестоимость'},
     {href:'рычаги.html',icon:'⚙️',label:'Рычаги прибыли'},
     {href:'опиу_2026.html',icon:'📊',label:'ОПиУ 2026'},
-    {href:'опиу_аудит.html',icon:'🔎',label:'Аудит ОПиУ'}
+    {href:'опиу_аудит.html',icon:'🔎',label:'Аудит ОПиУ'},
+{href:'nalogi_%D0%BE%D1%82%D1%87%D1%91%D1%82.html',icon:'🧾',label:'Налоги'}
   ];
   var cur=location.pathname.split('/').pop()||'index.html';
   var s=document.createElement('style');
