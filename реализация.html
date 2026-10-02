@@ -42,22 +42,56 @@ tr.cur td{background:#fff7ea}
 .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin:4px 2px 10px}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .note{font-size:12px;color:var(--mut);line-height:1.6;margin-top:12px}
+
+.viz-root{color-scheme:light;--surface-1:#fff;--text-primary:#0b1220;--text-secondary:#52514e;--text-muted:#94a3b8;
+  --grid:#e9eef4;--s1:#2a78d6;--s2:#eb6834;--ref:#64748b}
+@media (prefers-color-scheme: dark){:root:where(:not([data-theme="light"])) .viz-root{color-scheme:dark;
+  --surface-1:#1a1a19;--text-primary:#fff;--text-secondary:#c3c2b7;--text-muted:#8b8b84;--grid:#33332f;
+  --s1:#3987e5;--s2:#d95926;--ref:#9a9a92}}
+:root[data-theme="dark"] .viz-root{color-scheme:dark;--surface-1:#1a1a19;--text-primary:#fff;--text-secondary:#c3c2b7;
+  --text-muted:#8b8b84;--grid:#33332f;--s1:#3987e5;--s2:#d95926;--ref:#9a9a92}
+.viz-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.seg{display:inline-flex;background:#f1f5f9;border-radius:999px;padding:3px;gap:2px}
+.seg button{font:inherit;font-size:12.5px;font-weight:600;border:0;background:transparent;color:#475569;padding:6px 13px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--text-primary);box-shadow:0 1px 3px rgba(15,23,42,.14);font-weight:700}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--text-secondary);margin-left:auto}
+.lg span{display:inline-flex;align-items:center;gap:6px}
+.lg i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.vizwrap{position:relative}
+.viztip{position:absolute;pointer-events:none;opacity:0;transition:opacity .12s;background:rgba(11,18,32,.95);color:#fff;
+  border-radius:10px;padding:9px 11px;font-size:12px;line-height:1.55;box-shadow:0 12px 28px -12px rgba(0,0,0,.6);z-index:5;min-width:188px}
+.viztip b{font-size:12.5px}
+.viztip .r{display:flex;justify-content:space-between;gap:14px;font-variant-numeric:tabular-nums}
+.viztip .r i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:6px}
+.viztip .muted{color:#cbd5e1}
 </style></head><body>
 <div class="wrap">
   <div class="hdr">
     <h1>📑 Реализация в 1С</h1>
     <div class="sub">Сколько дохода уже внесено в бухгалтерскую базу, помесячно, и сколько ещё не внесено по сравнению с айко.
       Пока месяц не внесён целиком, любой отчёт из 1С — налоги, баланс, ОПиУ для банка — показывает заниженный доход.</div>
-    <span class="asof">Данные 1С на 02.10.2026 09:27</span>
+    <span class="asof">Данные 1С на 02.10.2026 09:40</span>
   </div>
 
   <div class="grid k4" id="kpi"></div>
 
-  <h2>Последние 6 месяцев</h2>
-  <div class="panel">
-    <div class="legend"><span><i style="background:linear-gradient(90deg,#f59e0b,#d97706)"></i>внесено в 1С</span>
-      <span><i style="background:#0f766e;width:3px;border-radius:0"></i>выручка по айко</span></div>
-    <div class="bars" id="bars"></div>
+  <h2>Внесено в 1С против отгрузки по айко</h2>
+  <div class="panel viz-root">
+    <div class="viz-bar">
+      <div class="seg" role="group" aria-label="Период">
+        <button type="button" id="b6" aria-pressed="true">6 месяцев</button>
+        <button type="button" id="b12" aria-pressed="false">Весь год</button>
+      </div>
+      <div class="lg">
+        <span><i style="background:var(--s1)"></i>внесено в 1С</span>
+        <span><i style="background:var(--s2)"></i>отгрузка по айко</span>
+      </div>
+    </div>
+    <div class="vizwrap" id="vw"><svg id="ch1" role="img" aria-label="Внесено в 1С и отгрузка по айко по месяцам"></svg>
+      <div class="viztip" id="tip"></div></div>
+    <div style="height:10px"></div>
+    <div style="font-size:12.5px;font-weight:700;color:var(--text-secondary);margin:6px 2px 2px">Доля внесённого, % к отгрузке</div>
+    <svg id="ch2" role="img" aria-label="Доля внесённого в 1С по месяцам"></svg>
   </div>
 
   <h2>Все месяцы года</h2>
@@ -76,7 +110,7 @@ tr.cur td{background:#fff7ea}
 </div>
 <script src="nav.js"></script>
 <script>
-var D = {"org": "группа Фуд Завод", "bin": "210340021859", "year": 2026, "asof": "02.10.2026 09:27", "curMonth": 10, "months": [{"m": 1, "v1c": 172184537, "iiko": 235916383, "diff": -63731846, "pct": 0.7298540898704775}, {"m": 2, "v1c": 202966145, "iiko": 225642794, "diff": -22676649, "pct": 0.8995020022664673}, {"m": 3, "v1c": 233532781, "iiko": 256543034, "diff": -23010253, "pct": 0.91030645953926}, {"m": 4, "v1c": 235879376, "iiko": 260973976, "diff": -25094600, "pct": 0.9038425195315261}, {"m": 5, "v1c": 234620957, "iiko": 257983221, "diff": -23362264, "pct": 0.9094426997637959}, {"m": 6, "v1c": 234504975, "iiko": 268439715, "diff": -33934740, "pct": 0.8735852479950666}, {"m": 7, "v1c": 239267500, "iiko": 268172167, "diff": -28904667, "pct": 0.8922160068908269}, {"m": 8, "v1c": 270957508, "iiko": 301270776, "diff": -30313268, "pct": 0.8993819832030439}, {"m": 9, "v1c": 226777655, "iiko": 281032798, "diff": -54255143, "pct": 0.8069437325959371}, {"m": 10, "v1c": 0, "iiko": 13535000, "diff": -13535000, "pct": 0.0}], "accounts": [{"code": "6010", "name": "Доход от реализации продукции и оказания услуг", "sign": 1, "months": [{"m": 1, "dr": 175361221, "cr": 175398531}, {"m": 2, "dr": 175531190, "cr": 207247863}, {"m": 3, "dr": 204495881, "cr": 238028909}, {"m": 4, "dr": 208320169, "cr": 240722809}, {"m": 5, "dr": 0, "cr": 238810402}, {"m": 6, "dr": 0, "cr": 241693177}, {"m": 7, "dr": 0, "cr": 245124592}, {"m": 8, "dr": 0, "cr": 277654025}, {"m": 9, "dr": 0, "cr": 232025413}, {"m": 10, "dr": 0, "cr": 0}]}, {"code": "6020", "name": "Возврат проданной продукции", "sign": -1, "months": [{"m": 1, "dr": 3213994, "cr": 3213994}, {"m": 2, "dr": 4281718, "cr": 4281718}, {"m": 3, "dr": 4496128, "cr": 4475128}, {"m": 4, "dr": 4843433, "cr": 4843433}, {"m": 5, "dr": 4189445, "cr": 0}, {"m": 6, "dr": 7188202, "cr": 0}, {"m": 7, "dr": 5857092, "cr": 0}, {"m": 8, "dr": 6696517, "cr": 0}, {"m": 9, "dr": 5247758, "cr": 0}, {"m": 10, "dr": 0, "cr": 0}]}, {"code": "6030", "name": "Скидки с цены и продаж", "sign": -1, "months": [{"m": 1, "dr": 0, "cr": 0}, {"m": 2, "dr": 0, "cr": 0}, {"m": 3, "dr": 0, "cr": 0}, {"m": 4, "dr": 0, "cr": 0}, {"m": 5, "dr": 0, "cr": 0}, {"m": 6, "dr": 0, "cr": 0}, {"m": 7, "dr": 0, "cr": 0}, {"m": 8, "dr": 0, "cr": 0}, {"m": 9, "dr": 0, "cr": 0}, {"m": 10, "dr": 0, "cr": 0}]}], "orgs": [{"name": "ТОО Фудзавод", "months": [172184537, 171249472, 200020753, 203476736, 207950808, 208802242, 214065432, 233979848, 193011139, 0], "total": 1804740967}, {"name": "ИП Айдана", "months": [0, 31716673, 33512028, 32402640, 26670149, 25702733, 25202068, 36977660, 33766516, 0], "total": 245950467}]};
+var D = {"org": "группа Фуд Завод", "bin": "210340021859", "year": 2026, "asof": "02.10.2026 09:40", "curMonth": 10, "months": [{"m": 1, "v1c": 172184537, "iiko": 235916383, "diff": -63731846, "pct": 0.7298540898704775}, {"m": 2, "v1c": 202966145, "iiko": 225642794, "diff": -22676649, "pct": 0.8995020022664673}, {"m": 3, "v1c": 233532781, "iiko": 256543034, "diff": -23010253, "pct": 0.91030645953926}, {"m": 4, "v1c": 235879376, "iiko": 260973976, "diff": -25094600, "pct": 0.9038425195315261}, {"m": 5, "v1c": 234620957, "iiko": 257983221, "diff": -23362264, "pct": 0.9094426997637959}, {"m": 6, "v1c": 234504975, "iiko": 268439715, "diff": -33934740, "pct": 0.8735852479950666}, {"m": 7, "v1c": 239267500, "iiko": 268172167, "diff": -28904667, "pct": 0.8922160068908269}, {"m": 8, "v1c": 270957508, "iiko": 301270776, "diff": -30313268, "pct": 0.8993819832030439}, {"m": 9, "v1c": 226867696, "iiko": 281032798, "diff": -54165102, "pct": 0.8072641258049887}, {"m": 10, "v1c": 0, "iiko": 13535000, "diff": -13535000, "pct": 0.0}], "accounts": [{"code": "6010", "name": "Доход от реализации продукции и оказания услуг", "sign": 1, "months": [{"m": 1, "dr": 175361221, "cr": 175398531}, {"m": 2, "dr": 175531190, "cr": 207247863}, {"m": 3, "dr": 204495881, "cr": 238028909}, {"m": 4, "dr": 208320169, "cr": 240722809}, {"m": 5, "dr": 0, "cr": 238810402}, {"m": 6, "dr": 0, "cr": 241693177}, {"m": 7, "dr": 0, "cr": 245124592}, {"m": 8, "dr": 0, "cr": 277654025}, {"m": 9, "dr": 0, "cr": 232115454}, {"m": 10, "dr": 0, "cr": 0}]}, {"code": "6020", "name": "Возврат проданной продукции", "sign": -1, "months": [{"m": 1, "dr": 3213994, "cr": 3213994}, {"m": 2, "dr": 4281718, "cr": 4281718}, {"m": 3, "dr": 4496128, "cr": 4475128}, {"m": 4, "dr": 4843433, "cr": 4843433}, {"m": 5, "dr": 4189445, "cr": 0}, {"m": 6, "dr": 7188202, "cr": 0}, {"m": 7, "dr": 5857092, "cr": 0}, {"m": 8, "dr": 6696517, "cr": 0}, {"m": 9, "dr": 5247758, "cr": 0}, {"m": 10, "dr": 0, "cr": 0}]}, {"code": "6030", "name": "Скидки с цены и продаж", "sign": -1, "months": [{"m": 1, "dr": 0, "cr": 0}, {"m": 2, "dr": 0, "cr": 0}, {"m": 3, "dr": 0, "cr": 0}, {"m": 4, "dr": 0, "cr": 0}, {"m": 5, "dr": 0, "cr": 0}, {"m": 6, "dr": 0, "cr": 0}, {"m": 7, "dr": 0, "cr": 0}, {"m": 8, "dr": 0, "cr": 0}, {"m": 9, "dr": 0, "cr": 0}, {"m": 10, "dr": 0, "cr": 0}]}], "orgs": [{"name": "ТОО Фудзавод", "months": [172184537, 171249472, 200020753, 203476736, 207950808, 208802242, 214065432, 233979848, 193101180, 0], "total": 1804831008}, {"name": "ИП Айдана", "months": [0, 31716673, 33512028, 32402640, 26670149, 25702733, 25202068, 36977660, 33766516, 0], "total": 245950467}]};
 var MN = ['','январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
 function f(x){ return (x===null||x===undefined) ? '—' : Math.round(x).toLocaleString('ru-RU').replace(/,/g,' '); }
 function pct(x){ return (x===null||x===undefined) ? '—' : (x*100).toFixed(1).replace('.',',')+'%'; }
@@ -92,28 +126,125 @@ function kcard(lab,val,cls,small){
 document.getElementById('kpi').innerHTML =
   kcard('Внесено за '+MN[cur.m]+', ₸', f(cur.v1c), 'warn', 'текущий месяц, по данным 1С') +
   kcard('По айко за '+MN[cur.m]+', ₸', f(cur.iiko), '', 'отгружено фактически') +
-  kcard('Не внесено за год, ₸', f(notEntered), notEntered>0?'no':'ok', 'сумма недобора по всем месяцам') +
+  kcard('Разрыв с айко за год, ₸', f(notEntered), notEntered>0?'no':'ok', 'часть разрыва структурная — не вся отгрузка идёт через эту базу') +
   kcard('Внесено за год', totii? pct(tot1c/totii):'—', 'warn', f(tot1c)+' из '+f(totii)+' по айко');
 
-var last6 = D.months.slice(-6);
-var mx = Math.max.apply(null, last6.map(function(x){return Math.max(x.v1c||0, x.iiko||0);}).concat([1]));
-document.getElementById('bars').innerHTML = last6.map(function(x){
-  var w1 = Math.max(0,(x.v1c||0)/mx*100), wi = (x.iiko||0)/mx*100;
-  var p = x.pct===null||x.pct===undefined ? '' : ' <i>'+pct(x.pct)+'</i>';
-  return '<div class="brow"><div class="bn">'+MN[x.m]+'</div>'+
-    '<div class="btrack"><span class="b1c" style="width:'+w1.toFixed(1)+'%"></span>'+
-    (x.iiko? '<span class="bii" style="left:'+wi.toFixed(1)+'%"></span>':'')+'</div>'+
-    '<div class="bv">'+f(x.v1c)+p+'</div></div>';
-}).join('');
+var NORM0 = (function(){
+  var d=D.months.filter(function(x){return x.m<D.curMonth && x.pct;}).map(function(x){return x.pct;}).sort(function(a,b){return a-b;});
+  return d.length? d[Math.floor(d.length/2)] : null;
+})();
+var RANGE = 6;
+var SVGNS='http://www.w3.org/2000/svg';
+function el(n,a){ var e=document.createElementNS(SVGNS,n); for(var k in a) e.setAttribute(k,a[k]); return e; }
+function css(v){ return getComputedStyle(document.querySelector('.viz-root')).getPropertyValue(v).trim(); }
+function mln(x){ return (x/1e6).toFixed(x>=1e8?0:1).replace('.',',')+' млн'; }
 
-var done = D.months.filter(function(x){return x.m<D.curMonth && x.pct;}).map(function(x){return x.pct;}).sort(function(a,b){return a-b;});
-var NORM = done.length ? done[Math.floor(done.length/2)] : null;
+function draw(){
+  var data = D.months.slice(-RANGE);
+  var W=980, H=300, L=58, R=14, T=16, B=38;
+  var iw=W-L-R, ih=H-T-B;
+  var mx=Math.max.apply(null, data.map(function(x){return Math.max(x.v1c||0, x.iiko||0);}).concat([1]));
+  var step=Math.pow(10, Math.floor(Math.log10(mx))) / 2, top=Math.ceil(mx/step)*step;
+  var sv=document.getElementById('ch1');
+  sv.setAttribute('viewBox','0 0 '+W+' '+H); sv.setAttribute('width','100%'); sv.style.height='300px';
+  sv.innerHTML='';
+  var y=function(v){ return T+ih-(v/top)*ih; };
+  // сетка — приглушённая, 4 линии
+  for(var g=0; g<=4; g++){
+    var v=top*g/4;
+    sv.appendChild(el('line',{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:css('--grid'),'stroke-width':1}));
+    var t=el('text',{x:L-9,y:y(v)+4,'text-anchor':'end','font-size':11,fill:css('--text-muted')});
+    t.textContent = g? mln(v) : '0'; sv.appendChild(t);
+  }
+  var bw=iw/data.length, pad=Math.min(26,bw*0.22), inner=bw-pad*2, half=(inner-2)/2;
+  data.forEach(function(d,k){
+    var x0=L+bw*k+pad;
+    [[d.v1c||0,'--s1',0],[d.iiko||0,'--s2',half+2]].forEach(function(p){
+      var h=Math.max(0,(p[0]/top)*ih);
+      if(h<=0) return;
+      sv.appendChild(el('rect',{x:x0+p[2],y:y(p[0]),width:half,height:h,rx:4,fill:css(p[1])}));
+    });
+    var lb=el('text',{x:x0+inner/2,y:H-14,'text-anchor':'middle','font-size':11.5,fill:css('--text-secondary')});
+    lb.textContent=MN[d.m].slice(0,3); sv.appendChild(lb);
+    // прямая подпись только у последнего месяца — не на каждом столбце
+    if(k===data.length-1 && d.v1c){
+      var dl=el('text',{x:x0+half/2,y:y(d.v1c)-7,'text-anchor':'middle','font-size':11.5,'font-weight':700,fill:css('--text-primary')});
+      dl.textContent=mln(d.v1c); sv.appendChild(dl);
+    }
+    var hit=el('rect',{x:L+bw*k,y:T,width:bw,height:ih,fill:'transparent'});
+    hit.style.cursor='pointer';
+    hit.addEventListener('mousemove',function(e){ tip(e,d); });
+    hit.addEventListener('mouseleave',hide);
+    sv.appendChild(hit);
+  });
+
+  // доля — отдельный график, своя шкала, без второй оси на первом
+  var W2=W,H2=132,T2=12,B2=30,ih2=H2-T2-B2;
+  var s2=document.getElementById('ch2');
+  s2.setAttribute('viewBox','0 0 '+W2+' '+H2); s2.setAttribute('width','100%'); s2.style.height='132px'; s2.innerHTML='';
+  var lo=0.4, hi=1.0;
+  var yy=function(v){ return T2+ih2-((Math.max(lo,Math.min(hi,v))-lo)/(hi-lo))*ih2; };
+  [0.5,0.75,1.0].forEach(function(v){
+    s2.appendChild(el('line',{x1:L,x2:W-R,y1:yy(v),y2:yy(v),stroke:css('--grid'),'stroke-width':1}));
+    var t=el('text',{x:L-9,y:yy(v)+4,'text-anchor':'end','font-size':11,fill:css('--text-muted')});
+    t.textContent=Math.round(v*100)+'%'; s2.appendChild(t);
+  });
+  if(NORM0){
+    s2.appendChild(el('line',{x1:L,x2:W-R,y1:yy(NORM0),y2:yy(NORM0),stroke:css('--ref'),'stroke-width':1.5,'stroke-dasharray':'5 4'}));
+    var nt=el('text',{x:L+4,y:yy(NORM0)-6,'text-anchor':'start','font-size':11,'font-weight':600,fill:css('--ref')});
+    nt.textContent='обычная доля '+Math.round(NORM0*100)+'%'; s2.appendChild(nt);
+  }
+  var pts=data.map(function(d,k){ return d.pct? [L+bw*k+bw/2, yy(d.pct), d] : null; }).filter(Boolean);
+  if(pts.length>1){
+    s2.appendChild(el('polyline',{points:pts.map(function(p){return p[0]+','+p[1];}).join(' '),
+      fill:'none',stroke:css('--s1'),'stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round'}));
+  }
+  pts.forEach(function(p){
+    var low = NORM0 && p[2].pct < NORM0-0.05;
+    s2.appendChild(el('circle',{cx:p[0],cy:p[1],r:5,fill:low?'#e34948':css('--s1'),stroke:css('--surface-1'),'stroke-width':2}));
+    var near = NORM0 && Math.abs(p[1]-yy(NORM0))<15;
+    var t=el('text',{x:p[0],y:p[1]+(near?19:-12),'text-anchor':'middle','font-size':11,'font-weight':700,
+      fill: low? '#e34948' : css('--text-secondary')});
+    t.textContent=Math.round(p[2].pct*100)+'%'; s2.appendChild(t);
+  });
+  data.forEach(function(d,k){
+    var lb=el('text',{x:L+bw*k+bw/2,y:H2-10,'text-anchor':'middle','font-size':11.5,fill:css('--text-secondary')});
+    lb.textContent=MN[d.m].slice(0,3); s2.appendChild(lb);
+  });
+}
+var TIP=document.getElementById('tip'), VW=document.getElementById('vw');
+function tip(e,d){
+  var diff=(d.iiko!==null&&d.iiko!==undefined)? (d.v1c-d.iiko) : null;
+  var low = NORM0 && d.pct && d.pct < NORM0-0.05;
+  TIP.innerHTML='<b>'+MN[d.m]+'</b>'
+    +'<div class="r"><span><i style="background:'+css('--s1')+'"></i>внесено в 1С</span><span>'+f(d.v1c)+'</span></div>'
+    +'<div class="r"><span><i style="background:'+css('--s2')+'"></i>отгрузка по айко</span><span>'+f(d.iiko)+'</span></div>'
+    +(diff!==null? '<div class="r muted"><span>не внесено</span><span>'+f(-diff)+'</span></div>':'')
+    +(d.pct? '<div class="r"><span>доля</span><span style="font-weight:700;color:'+(low?'#fca5a5':'#fff')+'">'+pct(d.pct)+'</span></div>':'')
+    +(low? '<div class="muted" style="margin-top:4px">ниже обычного уровня</div>':'');
+  var r=VW.getBoundingClientRect();
+  var x=e.clientX-r.left+14, y=e.clientY-r.top-10;
+  if(x>r.width-210) x=e.clientX-r.left-206;
+  TIP.style.left=x+'px'; TIP.style.top=Math.max(0,y)+'px'; TIP.style.opacity=1;
+}
+function hide(){ TIP.style.opacity=0; }
+function setRange(n){
+  RANGE=n;
+  document.getElementById('b6').setAttribute('aria-pressed', n===6?'true':'false');
+  document.getElementById('b12').setAttribute('aria-pressed', n===6?'false':'true');
+  draw();
+}
+document.getElementById('b6').onclick=function(){ setRange(6); };
+document.getElementById('b12').onclick=function(){ setRange(D.months.length); };
+draw();
+window.addEventListener('resize', draw);
+
 document.getElementById('tb').innerHTML = D.months.map(function(x){
   var st;
   if(x.pct===null||x.pct===undefined){ st='<span class="pill p-w">нет данных айко</span>'; }
-  else if(!NORM){ st=''; }
-  else if(x.pct>=NORM-0.02){ st='<span class="pill p-ok">как обычно</span>'; }
-  else if(x.pct>=NORM-0.10){ st='<span class="pill p-w">ниже обычного</span>'; }
+  else if(!NORM0){ st=''; }
+  else if(x.pct>=NORM0-0.02){ st='<span class="pill p-ok">как обычно</span>'; }
+  else if(x.pct>=NORM0-0.10){ st='<span class="pill p-w">ниже обычного</span>'; }
   else { st='<span class="pill p-no">внесено не всё</span>'; }
   return '<tr class="'+(x.m===D.curMonth?'cur':'')+'"><td class="nm">'+MN[x.m]+'</td>'+
     '<td class="r">'+f(x.v1c)+'</td><td class="r">'+f(x.iiko)+'</td>'+
@@ -138,7 +269,7 @@ document.getElementById('note').innerHTML =
   'Внесено = кредитовый оборот счёта 6010 минус дебетовые обороты 6020 (возвраты) и 6030 (скидки), по всем организациям базы. ' +
   'Эталон — выручка по айко из того же источника, что и ОПиУ.<br><br>' +
   '<b>Как читать.</b> Доля 1С к айко из месяца в месяц держится примерно на одном уровне' +
-  (NORM? ' (обычно около '+pct(NORM)+')':'') + ' — это структурная разница: не вся отгрузка проходит через эту базу. ' +
+  (NORM0? ' (обычно около '+pct(NORM0)+')':'') + ' — это структурная разница: не вся отгрузка проходит через эту базу. ' +
   'Смотреть надо не на отрыв от 100%, а на отклонение от обычной доли: месяц, который заметно ниже привычного уровня, ' +
   'ещё не внесён целиком. Текущий месяц всегда ниже — он заполняется по ходу.';
 </script></body></html>
