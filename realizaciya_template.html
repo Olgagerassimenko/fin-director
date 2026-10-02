@@ -144,7 +144,15 @@ function draw(){
   var W=980, H=300, L=58, R=14, T=16, B=38;
   var iw=W-L-R, ih=H-T-B;
   var mx=Math.max.apply(null, data.map(function(x){return Math.max(x.v1c||0, x.iiko||0);}).concat([1]));
-  var step=Math.pow(10, Math.floor(Math.log10(mx))) / 2, top=Math.ceil(mx/step)*step;
+  /* Шкала с «круглым» шагом: при делении максимума на четыре получались
+     подписи вроде «263 млн», которые нечего не говорят. Берём шаг из ряда
+     1-2-2,5-5-10 нужного порядка, чтобы линии падали на 100/200/300 млн. */
+  var top=(function(v){
+    var e=Math.pow(10, Math.floor(Math.log10(v/4)));
+    var cands=[1,2,2.5,5,10].map(function(m){ return m*e; });
+    for(var i=0;i<cands.length;i++){ if(cands[i]*4>=v) return cands[i]*4; }
+    return Math.ceil(v/e)*e;
+  })(mx);
   var sv=document.getElementById('ch1');
   sv.setAttribute('viewBox','0 0 '+W+' '+H); sv.setAttribute('width','100%'); sv.style.height='300px';
   sv.innerHTML='';
@@ -166,9 +174,12 @@ function draw(){
     });
     var lb=el('text',{x:x0+inner/2,y:H-14,'text-anchor':'middle','font-size':11.5,fill:css('--text-secondary')});
     lb.textContent=MN[d.m].slice(0,3); sv.appendChild(lb);
-    // прямая подпись только у последнего месяца — не на каждом столбце
-    if(k===data.length-1 && d.v1c){
-      var dl=el('text',{x:x0+half/2,y:y(d.v1c)-7,'text-anchor':'middle','font-size':11.5,'font-weight':700,fill:css('--text-primary')});
+    /* Подписываем каждый столбец 1С — это то, ради чего страницу открывают.
+       Вторую серию не подписываем: две цифры над каждой парой превращают
+       график обратно в таблицу, а айко читается по высоте и по подсказке. */
+    if(d.v1c){
+      var dl=el('text',{x:x0+half/2,y:y(d.v1c)-7,'text-anchor':'middle',
+        'font-size': data.length>8 ? 10 : 11.5,'font-weight':700,fill:css('--s1')});
       dl.textContent=mln(d.v1c); sv.appendChild(dl);
     }
     var hit=el('rect',{x:L+bw*k,y:T,width:bw,height:ih,fill:'transparent'});
