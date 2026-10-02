@@ -61,12 +61,19 @@ def get(path, params):
 val = lambda d: (d or {}).get("value") or []
 dt = lambda y, m, d=1: "%04d-%02d-%02dT00:00:00" % (y, m, d)
 
-def resolve_org():
+def all_orgs():
+    """Все организации базы. Выручка группы разнесена по нескольким юрлицам
+    (ТОО и ИП), и по одному ТОО сумма всегда будет меньше айко — поэтому
+    считаем по каждой и показываем разрез."""
     rows = val(get("Catalog_Организации", [
-        ("$format", "json"), ("$select", "Ref_Key,ИдентификационныйНомер,Description"),
-        ("$filter", "ИдентификационныйНомер eq '%s'" % ORG_BIN)]))
-    if not rows: raise RuntimeError("Организация с БИН %s не найдена" % ORG_BIN)
-    return rows[0]["Ref_Key"], rows[0].get("Description", "ТОО Фудзавод")
+        ("$format", "json"),
+        ("$select", "Ref_Key,ИдентификационныйНомер,Description,DeletionMark")]))
+    out = []
+    for r in rows:
+        if r.get("DeletionMark"): continue
+        out.append({"key": r["Ref_Key"], "bin": r.get("ИдентификационныйНомер") or "",
+                    "name": (r.get("Description") or "").strip() or "без названия"})
+    return out
 
 def accounts():
     out = {}
@@ -74,14 +81,19 @@ def accounts():
         out[str(a.get("Code"))] = (a["Ref_Key"], a.get("Description") or "")
     return out
 
-def turnovers(org, acc, start, end):
+def turnovers_by_org(acc, start, end):
+    """Один запрос на счёт и месяц, с разрезом по организациям."""
     path = "%s/Turnovers(StartPeriod=datetime'%s',EndPeriod=datetime'%s')" % (REG, start, end)
-    d = get(path, [("$format", "json"), ("$select", "СуммаTurnoverDr,СуммаTurnoverCr"),
-                   ("$filter", "Account_Key eq guid'%s' and Организация_Key eq guid'%s'" % (acc, org))])
-    dr = cr = 0.0
+    d = get(path, [("$format", "json"),
+                   ("$select", "Организация_Key,СуммаTurnoverDr,СуммаTurnoverCr"),
+                   ("$filter", "Account_Key eq guid'%s'" % acc)])
+    out = {}
     for x in val(d):
-        dr += float(x.get("СуммаTurnoverDr") or 0); cr += float(x.get("СуммаTurnoverCr") or 0)
-    return dr, cr
+        k = x.get("Организация_Key") or "-"
+        a, b = out.get(k, (0.0, 0.0))
+        out[k] = (a + float(x.get("СуммаTurnoverDr") or 0),
+                  b + float(x.get("СуммаTurnoverCr") or 0))
+    return out
 
 def iiko_months():
     """Помесячная выручка из айко — эталон, с чем сверяем 1С."""
@@ -104,9 +116,11 @@ def main():
     year, cur_m = now.year, now.month
     end_bound = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%dT00:00:00")
 
-    org, org_name = resolve_org()
+    orgs = all_orgs()
+    onames = {o["key"]: o["name"] for o in orgs}
     accs = accounts()
-    print("Организация: %s" % org_name)
+    print("Организаций в базе: %d" % len(orgs))
+    for o in orgs: print("   %-40s БИН %s" % (o["name"][:40], o["bin"]))
 
     # что вообще есть на 60-х счетах — чтобы не гадать о плане счетов
     print("Счета доходов в плане счетов:")
@@ -114,6 +128,7 @@ def main():
         print("   %-6s %s" % (code, accs[code][1][:60]))
 
     rows = {}
+    byorg = {}                       # org_key -> [по месяцам]
     for code, (label, sign) in REVENUE.items():
         if code not in accs:
             print("  счёт %s не найден — пропуск" % code); continue
@@ -122,8 +137,12 @@ def main():
         for m in range(1, cur_m + 1):
             start = dt(year, m, 1)
             end = end_bound if m == cur_m else (dt(year, m + 1, 1) if m < 12 else dt(year + 1, 1, 1))
-            dr, cr = turnovers(org, key, start, end)
+            t = turnovers_by_org(key, start, end)
+            dr = sum(v[0] for v in t.values()); cr = sum(v[1] for v in t.values())
             per.append({"m": m, "dr": round(dr), "cr": round(cr)})
+            for ok, (d_, c_) in t.items():
+                arr = byorg.setdefault(ok, [0] * cur_m)
+                arr[m - 1] += round(c_ if sign > 0 else -d_)
         rows[code] = {"code": code, "name": accs[code][1] or label, "sign": sign, "months": per}
         print("  %-6s %-40s Кт %15s  Дт %15s" % (
             code, (accs[code][1] or label)[:40],
@@ -143,9 +162,19 @@ def main():
                        "diff": (round(v1c) - ii) if ii is not None else None,
                        "pct": (round(v1c) / ii) if ii else None})
 
-    D = {"org": org_name, "bin": ORG_BIN, "year": year,
+    orgrows = []
+    for k, arr in byorg.items():
+        tot = sum(arr)
+        if not tot: continue
+        orgrows.append({"name": onames.get(k, "неизвестная организация"), "months": arr, "total": tot})
+    orgrows.sort(key=lambda x: -x["total"])
+    print("\nПо организациям за год:")
+    for o in orgrows:
+        print("   %-44s %18s" % (o["name"][:44], "{:,}".format(o["total"]).replace(",", " ")))
+
+    D = {"org": "группа Фуд Завод", "bin": ORG_BIN, "year": year,
          "asof": now.strftime("%d.%m.%Y %H:%M"), "curMonth": cur_m,
-         "months": months, "accounts": list(rows.values())}
+         "months": months, "accounts": list(rows.values()), "orgs": orgrows}
     with open(os.path.join(HERE, "realizaciya.js"), "w", encoding="utf-8") as f:
         f.write("window.REALIZACIYA = " + json.dumps(D, ensure_ascii=False, separators=(",", ":")) + ";\n")
 

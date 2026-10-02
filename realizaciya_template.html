@@ -66,6 +66,9 @@ tr.cur td{background:#fff7ea}
     <th class="r">Не внесено</th><th class="r">Внесено, %</th><th>Статус</th>
   </tr></thead><tbody id="tb"></tbody></table></div>
 
+  <h2>По юридическим лицам</h2>
+  <div class="tbl"><table><thead><tr><th>Организация</th><th class="r">Внесено за год, ₸</th><th class="r">Доля</th></tr></thead><tbody id="orgs"></tbody></table></div>
+
   <h2>Из каких счетов сложилось</h2>
   <div class="tbl"><table><thead><tr><th>Счёт</th><th>Название</th><th class="r">Оборот Кт</th><th class="r">Оборот Дт</th><th>В расчёт</th></tr></thead><tbody id="acc"></tbody></table></div>
 
@@ -90,7 +93,7 @@ document.getElementById('kpi').innerHTML =
   kcard('Внесено за '+MN[cur.m]+', ₸', f(cur.v1c), 'warn', 'текущий месяц, по данным 1С') +
   kcard('По айко за '+MN[cur.m]+', ₸', f(cur.iiko), '', 'отгружено фактически') +
   kcard('Не внесено за год, ₸', f(notEntered), notEntered>0?'no':'ok', 'сумма недобора по всем месяцам') +
-  kcard('Внесено за год', totii? pct(tot1c/totii):'—', (totii && tot1c/totii>0.98)?'ok':'warn', f(tot1c)+' из '+f(totii));
+  kcard('Внесено за год', totii? pct(tot1c/totii):'—', 'warn', f(tot1c)+' из '+f(totii)+' по айко');
 
 var last6 = D.months.slice(-6);
 var mx = Math.max.apply(null, last6.map(function(x){return Math.max(x.v1c||0, x.iiko||0);}).concat([1]));
@@ -103,12 +106,15 @@ document.getElementById('bars').innerHTML = last6.map(function(x){
     '<div class="bv">'+f(x.v1c)+p+'</div></div>';
 }).join('');
 
+var done = D.months.filter(function(x){return x.m<D.curMonth && x.pct;}).map(function(x){return x.pct;}).sort(function(a,b){return a-b;});
+var NORM = done.length ? done[Math.floor(done.length/2)] : null;
 document.getElementById('tb').innerHTML = D.months.map(function(x){
-  var st, cls;
+  var st;
   if(x.pct===null||x.pct===undefined){ st='<span class="pill p-w">нет данных айко</span>'; }
-  else if(x.pct>=0.98){ st='<span class="pill p-ok">внесено</span>'; }
-  else if(x.pct>=0.5){ st='<span class="pill p-w">внесено частично</span>'; }
-  else { st='<span class="pill p-no">почти не внесено</span>'; }
+  else if(!NORM){ st=''; }
+  else if(x.pct>=NORM-0.02){ st='<span class="pill p-ok">как обычно</span>'; }
+  else if(x.pct>=NORM-0.10){ st='<span class="pill p-w">ниже обычного</span>'; }
+  else { st='<span class="pill p-no">внесено не всё</span>'; }
   return '<tr class="'+(x.m===D.curMonth?'cur':'')+'"><td class="nm">'+MN[x.m]+'</td>'+
     '<td class="r">'+f(x.v1c)+'</td><td class="r">'+f(x.iiko)+'</td>'+
     '<td class="r">'+((x.diff!==null&&x.diff<0)? f(-x.diff) : '—')+'</td>'+
@@ -117,6 +123,11 @@ document.getElementById('tb').innerHTML = D.months.map(function(x){
   '<tr class="tot"><td>Итого за год</td><td class="r">'+f(tot1c)+'</td><td class="r">'+f(totii)+
   '</td><td class="r">'+f(notEntered)+'</td><td class="r">'+(totii?pct(tot1c/totii):'—')+'</td><td></td></tr>';
 
+var og = D.orgs||[], ogt = og.reduce(function(a,b){return a+b.total;},0);
+document.getElementById('orgs').innerHTML = og.map(function(o){
+  return '<tr><td class="nm">'+o.name+'</td><td class="r">'+f(o.total)+'</td><td class="r">'+(ogt?pct(o.total/ogt):'—')+'</td></tr>';
+}).join('') + '<tr class="tot"><td>Итого по базе</td><td class="r">'+f(ogt)+'</td><td class="r">100,0%</td></tr>';
+
 document.getElementById('acc').innerHTML = (D.accounts||[]).map(function(a){
   var cr=a.months.reduce(function(s,m){return s+m.cr;},0), dr=a.months.reduce(function(s,m){return s+m.dr;},0);
   return '<tr><td class="nm">'+a.code+'</td><td>'+a.name+'</td><td class="r">'+f(cr)+'</td><td class="r">'+f(dr)+
@@ -124,7 +135,10 @@ document.getElementById('acc').innerHTML = (D.accounts||[]).map(function(a){
 }).join('');
 
 document.getElementById('note').innerHTML =
-  'Внесено = кредитовый оборот счёта 6010 минус дебетовые обороты 6020 (возвраты) и 6030 (скидки). ' +
-  'Эталон — выручка по айко из того же источника, что и ОПиУ. Расхождение в пределах процента — это обычно курсовые копейки и округления; ' +
-  'всё, что больше, значит, что часть отгрузок ещё не проведена в бухгалтерии. Организация: '+D.org+', БИН '+D.bin+'.';
+  'Внесено = кредитовый оборот счёта 6010 минус дебетовые обороты 6020 (возвраты) и 6030 (скидки), по всем организациям базы. ' +
+  'Эталон — выручка по айко из того же источника, что и ОПиУ.<br><br>' +
+  '<b>Как читать.</b> Доля 1С к айко из месяца в месяц держится примерно на одном уровне' +
+  (NORM? ' (обычно около '+pct(NORM)+')':'') + ' — это структурная разница: не вся отгрузка проходит через эту базу. ' +
+  'Смотреть надо не на отрыв от 100%, а на отклонение от обычной доли: месяц, который заметно ниже привычного уровня, ' +
+  'ещё не внесён целиком. Текущий месяц всегда ниже — он заполняется по ходу.';
 </script></body></html>
