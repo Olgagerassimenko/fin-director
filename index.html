@@ -1386,8 +1386,18 @@ a.card.key .card-title{padding-right:100px;}
       };
       set('p-fresh', fline(F[0],true)+fline(F[1],false), 'неделя '+Z.label);
       var eF=document.getElementById('p-fresh');
-      if(eF) eF.title=F.map(function(x){ return '• '+x.n+' — '+num(x.sum)+' ₸ ('+num(x.qty)+' '+(x.u||'')+', '+x.sup+'), '
-          +(x.first?'впервые в этом году':('в прошлый раз '+x.lastSeen)); }).join('\n');
+      /* Было одной строкой: название, сумма, количество, поставщик и дата
+         подряд через запятые — в такой ленте ничего не найти. Теперь на
+         каждую позицию маленькая карточка с подписанными полями. */
+      if(eF) eF.title = 'ВЗЯЛИ ВПЕРВЫЕ · неделя ' + Z.label + '\n\n'
+        + F.map(function(x){
+            return x.n + '\n'
+              + '   сумма:  ' + num(x.sum) + ' ₸\n'
+              + '   количество:  ' + num(x.qty) + ' ' + (x.u||'') + '\n'
+              + '   поставщик:  ' + x.sup + '\n'
+              + '   ' + (x.first ? 'раньше в этом году не брали'
+                                 : 'прошлый раз брали:  ' + x.lastSeen);
+          }).join('\n\n');
     }
   });
 
@@ -1460,8 +1470,19 @@ a.card.key .card-title{padding-right:100px;}
     if(el&&C.acc){
       var parts=[];
       (C.nalAcc||[]).forEach(function(k){ if(C.acc[k]!=null) parts.push(k+' — '+num(C.acc[k])); });
-      el.title='Наличные ' + num(C.nal) + ' ₸: ' + parts.join('; ')
-        + '. Остальные счета — безнал, ' + num(C.beznal) + ' ₸.';
+      /* Подсказка в одну строку не читалась: счета, суммы и пояснение
+         сливались в ленту текста. Разносим по строкам — глаз находит нужный
+         счёт сразу, а внизу итог. */
+      var lines = ['НАЛИЧНЫЕ В КАССАХ'];
+      (C.nalAcc||[]).forEach(function(k){
+        if(C.acc[k]!=null) lines.push('   ' + k + ':  ' + num(C.acc[k]) + ' ₸');
+      });
+      lines.push('   ─────');
+      lines.push('   итого наличными:  ' + num(C.nal) + ' ₸');
+      lines.push('');
+      lines.push('Безналичные счета:  ' + num(C.beznal) + ' ₸');
+      lines.push('Всего на счетах:  ' + num(C.nal + C.beznal) + ' ₸');
+      el.title = lines.join('\n');
     }
   });
 
