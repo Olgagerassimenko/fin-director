@@ -169,6 +169,17 @@ const FAIL_MAX   = 12;              // попыток в час с одного 
 
 const AUTH_OPEN = new Set(["/track", "/favicon.ico", "/robots.txt"]);
 
+// Раздел «1С» открыт без пароля — решение владельца от 02.10.2026: страницы
+// налогов и реализации показываем бухгалтерии и банку, не заводя им вход на
+// сайт. Сравниваем по декодированному пути: в адресе кириллица приходит
+// в процентах. nav.js намеренно оставлен под паролем — посторонний видит
+// только саму страницу, без меню остального Пульса.
+const AUTH_OPEN_1C = new Set([
+  "/nalogi_отчёт.html",
+  "/реализация.html",
+  "/realizaciya.js",
+]);
+
 function authRnd() {
   return [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -374,6 +385,7 @@ async function authGate(request, env, url) {
   if (svcOk(url.searchParams, env)) return null;
   // Галерея «Мальдивы» закрыта собственным кодом — её не трогаем.
   let dec = p; try { dec = decodeURIComponent(p); } catch (e) {}
+  if (AUTH_OPEN_1C.has(dec) || AUTH_OPEN_1C.has(p)) return null;
   if (p.indexOf("/api/gal") === 0 || dec.indexOf("мальдив") >= 0) return null;
   const rec = await authGet(env);
   const next = p + (url.search || "");
