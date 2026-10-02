@@ -521,6 +521,8 @@ export default {
     if (url.pathname === "/api/halal") {
       return handleHalal(request, env);
     }
+    if (url.pathname === "/api/suppliers") return handleSuppliers(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/salesplan") return handleSalesPlan(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/track") return handleTrack(url, request, env, ctx);
@@ -1856,6 +1858,49 @@ async function handleHalal(request, env) {
 //   salesplan:2026-09 -> {items:{"85":115000000,...}, updated:"...", by:"..."}
 // Маршрут закрыт тем же паролем, что и весь сайт: authGate отрабатывает
 // раньше маршрутизации, так что отдельной проверки здесь не нужно.
+/* ── Поставщики: карточки контактов ──────────────────────────────────────
+   Список поставщиков приходит из iiko, а телефоны, почта, менеджер и
+   условия оплаты нигде не живут: они в головах и в переписке. Храним их
+   рядом с сайтом, в том же KV, что и план продаж, одним ключом —
+   справочник маленький (сотни строк), дробить по ключам незачем.
+   Запись — тем же паролем, что и весь сайт: authGate отрабатывает раньше. */
+const SUPPLIERS_KEY = "suppliers:v1";
+const SUP_FIELDS = ["contact", "phone", "email", "terms", "dogovor", "note"];
+
+async function handleSuppliers(request, env, url) {
+  if (request.method === "GET") {
+    const raw = await env.PLAN.get(SUPPLIERS_KEY);
+    return jsonResp(raw ? JSON.parse(raw) : { items: {}, updated: "" });
+  }
+  if (request.method !== "POST") return jsonResp({ error: "метод не поддерживается" }, 405);
+
+  let body;
+  try { body = await request.json(); } catch (e) { return jsonResp({ error: "тело не разобралось" }, 400); }
+
+  const prev = JSON.parse((await env.PLAN.get(SUPPLIERS_KEY)) || "null") || { items: {} };
+  // merge — правим по одной карточке, replace — загрузили файл целиком
+  const items = (body.mode === "replace") ? {} : Object.assign({}, prev.items || {});
+  const inc = body.items || {};
+  let n = 0;
+  for (const name of Object.keys(inc)) {
+    if (++n > 4000) break;
+    const key = String(name).slice(0, 200).trim();
+    if (!key) continue;
+    const src = inc[name] || {};
+    const row = {};
+    let any = false;
+    for (const f of SUP_FIELDS) {
+      const v = String(src[f] == null ? "" : src[f]).slice(0, 400).trim();
+      if (v) { row[f] = v; any = true; }
+    }
+    if (any) items[key] = row; else delete items[key];
+  }
+  const rec = { items, updated: new Date().toISOString().slice(0, 16).replace("T", " "),
+                by: String(body.by || "").slice(0, 60) };
+  await env.PLAN.put(SUPPLIERS_KEY, JSON.stringify(rec));
+  return jsonResp({ ok: true, count: Object.keys(items).length, updated: rec.updated });
+}
+
 const SALESPLAN_PREFIX = "salesplan:";
 
 async function handleSalesPlan(request, env, url) {
