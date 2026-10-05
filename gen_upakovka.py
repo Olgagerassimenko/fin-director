@@ -173,9 +173,17 @@ def buys(d1, d2):
 buy = {}            # позиция -> поставщик -> [сумма, кол-во]
 buy_m = {}          # месяц -> позиция -> сумма
 unit = {}
+# Цена за единицу в последнем закупе. Средняя за год врёт тем сильнее, чем
+# дольше позицию берут: по ленте для принтера она давала 4 686 ₸ за штуку,
+# хотя последняя накладная была по другой цене. Закупщику нужна та цена,
+# по которой позиция стоит сейчас, — её и запоминаем вместе с месяцем и
+# поставщиком последней поставки.  МЕСЯЦЫ ИДУТ ПО ВОЗРАСТАНИЮ, поэтому
+# последняя запись перетирает предыдущие.
+last_buy = {}       # позиция -> [цена, месяц, поставщик, кол-во]
 for k in MONTHS:
     d1, d2 = m_bounds(k)
     if d1 >= d2: continue
+    cur = {}        # позиция -> [сумма, кол-во, {поставщик: кол-во}]
     for r in buys(d1, d2):
         nm = r.get("Product.Name") or ""
         if not is_pack(nm): continue
@@ -185,9 +193,15 @@ for k in MONTHS:
         a = buy.setdefault(nm, {}).setdefault(sup, [0.0, 0.0])
         a[0] += sm; a[1] += q
         buy_m.setdefault(k, {})[nm] = buy_m.setdefault(k, {}).get(nm, 0) + sm
+        c = cur.setdefault(nm, [0.0, 0.0, {}])
+        c[0] += sm; c[1] += q; c[2][sup] = c[2].get(sup, 0) + q
         u = (r.get("Product.MeasureUnit") or "").strip()
         if u: unit[nm] = u
+    for nm, (sm, q, sups) in cur.items():
+        if q > 0 and sm > 0:
+            last_buy[nm] = [round(sm / q, 2), k, max(sups, key=sups.get), round(q, 2)]
 log("   позиций в закупе:", len(buy))
+log("   с ценой последнего закупа:", len(last_buy))
 
 # ── 5. сборка ──────────────────────────────────────────────────
 names = sorted(set(list(stock.keys()) + list(buy.keys())
@@ -204,6 +218,8 @@ for nm in names:
         "mv": {k: {s2: [round(v[0], 2), round(v[1], 2)] for s2, v in (mv.get(k, {}).get(nm) or {}).items()}
                for k in MONTHS if mv.get(k, {}).get(nm)},
         "sup": {k: [round(v[0]), round(v[1], 2)] for k, v in (buy.get(nm) or {}).items()},
+        # [цена за единицу, месяц закупа, поставщик, сколько взяли]
+        "last": last_buy.get(nm),
     })
 
 out = {
