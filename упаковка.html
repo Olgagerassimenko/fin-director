@@ -609,6 +609,12 @@ thead th.nm{text-align:left}
       /* Срочность: кончится раньше, чем придёт поставка — «срочно». */
       it.minMoney = it.min * it.price;
       it.stockMoney = it.stock * it.price;
+      /* Зона запаса нужна не только в отчёте: по ней фильтруют на любой
+         вкладке, поэтому считаем её здесь, вместе со всем остальным. */
+      it.devQty = it.stock - it.min;
+      it.devSum = it.devQty * it.price;
+      it.zone = it.perD <= 0 ? '' : it.stock < it.min ? 'ниже неснижаемого'
+              : (P.over && it.stock > it.over) ? 'избыток' : 'норма';
       it.urg = (it.stop || it.perD <= 0) ? ''
              : it.days < it.lead ? 'срочно'
              : it.days < it.lead + P.safe ? 'скоро'
@@ -739,6 +745,7 @@ thead th.nm{text-align:left}
     document.getElementById('live').textContent = 'остатки на ' + SAT;
     document.getElementById('sub').textContent =
       IT.length + ' позиций · ' + STORES.length + ' складов · обновлено ' + (D.updated||'');
+    fcount();
     document.getElementById('t-buy').textContent = h.length ? '· ' + h.length : '';
     var _urg = h.filter(function(i){ return i.urg==='срочно'; }).length;
     /* На вкладке показываем то, о чём она: сколько позиций ниже
@@ -786,13 +793,16 @@ thead th.nm{text-align:left}
       if (F.sup === '—') { if (it.sups.length) return false; }
       else if (it.sups.indexOf(F.sup) < 0) return false;
     }
-    if (F.store && !it.st[F.store]) return false;
+    /* По складу отбираем не только по остатку: позиция может лежать на
+       одном складе, а расходоваться на другом — её тоже надо показать. */
+    if (F.store && !it.st[F.store] && !(it.byStore && it.byStore[F.store])) return false;
     if (F.stop === 'yes' && !it.stop) return false;
     if (F.stop === 'no' && it.stop) return false;
     if (!light) {
       if (F.urg && it.urg !== F.urg) return false;
       if (F.price === 'no' && !it.noPrice) return false;
       if (F.price === 'yes' && it.noPrice) return false;
+      if (F.zone && it.zone !== F.zone) return false;
     }
     return true;
   }
@@ -814,11 +824,14 @@ thead th.nm{text-align:left}
   }
   function filtersOn(){ return !!(F.urg || F.sup || F.store || F.price || F.stop || F.zone
     || (document.getElementById('q').value||'').trim()); }
-  function fcount(shown, total) {
+  function fcount() {
     var el = document.getElementById('f-count');
-    el.innerHTML = filtersOn()
-      ? 'Фильтр: показано <b>' + shown + '</b> из ' + total + ' ' + plw(total,'позиции','позиций','позиций') + ' к заказу'
-      : '';
+    if (!filtersOn()) { el.innerHTML = ''; return; }
+    var shown = IT.filter(function(i){ return qmatch(i); }).length;
+    var ord   = hot().filter(function(i){ return qmatch(i); }).length;
+    el.innerHTML = 'Фильтр: <b>' + shown + '</b> из ' + IT.length + ' '
+      + plw(IT.length,'позиции','позиций','позиций')
+      + (ord ? ', к заказу <b>' + ord + '</b>' : ', к заказу нет');
   }
 
   /* ── ФОТО ПОЗИЦИЙ ──────────────────────────────────────────────────
@@ -1024,7 +1037,6 @@ thead th.nm{text-align:left}
     var urgent = h.filter(function(i){ return i.urg==='срочно'; });
     var urgentSum = urgent.reduce(function(s,i){ return s+i.orderSum; }, 0);
     var negs = IT.filter(function(i){ return i.neg; });
-    fcount(h.length, hot().length);
 
     var html = '';
 
@@ -1179,19 +1191,11 @@ thead th.nm{text-align:left}
     /* Считаем только ту упаковку, которой реально пользуются: есть расход
        за три последних месяца и она не в стопе. Позиции без движения —
        отдельный разговор, они на вкладке «не используется». */
-    IT.forEach(function (i) {
-      i.devQty = i.stock - i.min;
-      i.devSum = i.devQty * i.price;
-      i.zone = i.perD <= 0 ? '' : i.stock < i.min ? 'ниже неснижаемого'
-             : (P.over && i.stock > i.over) ? 'избыток' : 'норма';
-    });
     /* Позиции в стопе из отчёта не выкидываем: их должно быть видно
        везде, просто с пометкой — чтобы не выяснять потом, почему дыра
        в неснижаемом есть, а в заявке позиции нет. В сумму «не хватает»
        они не идут: это решение, а не недостача. */
-    var a = IT.filter(function (i) {
-      return qmatch(i) && i.perD > 0 && (!F.zone || i.zone === F.zone);
-    });
+    var a = IT.filter(function (i) { return qmatch(i) && i.perD > 0; });
     if (REP_SORT.k) a.sort(cmpBy(REP_SORT));
     else a.sort(function (x, y) { return (x.devSum - y.devSum) || (x.devQty - y.devQty); });
 
@@ -2184,7 +2188,7 @@ thead th.nm{text-align:left}
       redraw();
     };
   });
-  function redrawSecs(){ secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); }
+  function redrawSecs(){ fcount(); secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); }
   document.getElementById('q').oninput = redrawSecs;
   fillFilters();
   ['f-urg','f-sup','f-store','f-price','f-stop','f-zone'].forEach(function (id) {
