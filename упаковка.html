@@ -523,7 +523,11 @@ thead th.nm{text-align:left}
     var main = sup[0] || '';
     var qty = sup.reduce(function (s2, k) { return s2 + (r.sup[k][1] || 0); }, 0);
     var sum = sup.reduce(function (s2, k) { return s2 + (r.sup[k][0] || 0); }, 0);
-    return { n:r.n, key:nkey(r.n), u:r.u||'', st:st,
+    /* iiko отдаёт единицу измерения не названием, а идентификатором вида
+       cd19b5ea-1b32-… Такую «единицу» не показываем вовсе. */
+    var uu = String(r.u || '');
+    if (GUID_RE.test(uu)) uu = '';
+    return { n:r.n, key:nkey(r.n), u:uu, st:st,
              /* В формулу заказа идёт только неотрицательный остаток: минус —
                 это ошибка учёта, а не «надо докупить ещё и на минус». */
              stRaw:stRaw, stock:Math.max(0, stRaw), neg:stRaw < 0,
