@@ -306,6 +306,20 @@ jobs:
                     ("упаковка", "upak_data.js", date_meta)]
 
           # 1) собранные файлы — главная проверка (упал iiko => красный прогон)
+          # Сводку пишем прямо в итог прогона. 03–05.10.2026 прогон восемь раз
+          # подряд был красным из-за одного источника (ДЗ/КЗ), и чтобы понять,
+          # какого именно, приходилось открывать лог. Теперь видно сразу.
+          import os as _o
+          SUM = _o.environ.get("GITHUB_STEP_SUMMARY")
+          def smd(t):
+              if not SUM: return
+              try:
+                  with open(SUM, "a", encoding="utf-8") as f: f.write(t + "\n")
+              except Exception: pass
+          smd("## Свежесть данных — %s" % today)
+          smd("")
+          smd("| источник | дата данных | ок | файл |")
+          smd("|---|---|---|---|")
           stale = []
           for title, path, fn in checks:
               try:
@@ -313,6 +327,7 @@ jobs:
               except Exception as e:
                   d = "ошибка: %s" % e
               print("%-12s собрано: %s" % (title, d))
+              smd("| %s | %s | %s | `%s` |" % (title, d, "да" if d in OK_DAYS else "**НЕТ**", path))
               if d not in OK_DAYS:
                   stale.append("%s: данные за %s вместо %s" % (title, d, " или ".join(sorted(OK_DAYS))))
 
@@ -330,19 +345,23 @@ jobs:
               except Exception as e:
                   print("%-12s на сайте: проверить не удалось (%s)" % (title, e))
 
+          smd("")
           if rolled:
+              smd("**Сайт отдаёт несвежее:** " + "; ".join(rolled))
               print("")
               print("ВНИМАНИЕ — сайт откатился:")
               for r in rolled: print("  -", r)
               print("Обычная причина: локальный npx wrangler deploy из папки ФД")
               print("перезаписал сайт старой копией.")
           if stale:
+              smd("**Не собралось:** " + "; ".join(stale))
               print("")
               print("ПРОБЛЕМА — данные не собрались:")
               for s in stale: print("  -", s)
               sys.exit(1)
           if rolled:
               sys.exit(1)
+          smd("Все источники собраны за " + today + ".")
           print("")
           print("ОК: данные и сайт за сегодня")
           PY
