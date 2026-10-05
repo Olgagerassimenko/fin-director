@@ -246,6 +246,11 @@ thead th.ph{width:64px;min-width:64px;text-align:center}
 tbody td.nm{text-align:left;white-space:normal;min-width:240px}
 thead th.nm{text-align:left}
 #s-buy table{min-width:880px;font-size:13px}
+/* Колонок немного, а ширина таблицы — вся карточка: браузер растягивал
+   числовые столбцы, и между «расходом» и «неснижаемым» зияла дыра.
+   Числам даём ширину по содержимому, остаток ширины забирает название. */
+#s-rep th, #s-rep td, #s-buy th, #s-buy td{width:1%}
+#s-rep th.nm, #s-rep td.nm, #s-buy th.nm, #s-buy td.nm{width:auto}
 #s-rep table{min-width:1020px;font-size:12.5px}
 #s-rep tbody td{padding:8px 9px}
 #s-rep tbody td.nm{min-width:200px}
