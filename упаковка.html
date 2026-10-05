@@ -1818,10 +1818,15 @@ thead th.nm{text-align:left}
         if (c == null || ((c.v === '' || c.v === null || c.v === undefined) && !c.f))
           return '<c r="' + colName(ci) + (ri + 1) + '" s="' + (c && c.s != null ? c.s : 0) + '"/>';
         var ref = colName(ci) + (ri + 1), st = c.s != null ? c.s : 0;
-        /* Формула вместо значения: файл должен пересчитываться сам, когда
-           в нём меняют недели, цену или ставят «стоп». */
+        /* Формула И посчитанное значение. Только формулы мало: Excel
+           открывает такой файл с пустыми столбцами, пока не нажмёшь
+           «пересчитать». С кэшированным значением цифры видны сразу, а
+           формула остаётся — поменяли недели или цену, всё пересчиталось. */
         if (c.f)
-          return '<c r="' + ref + '" s="' + st + '"><f>' + xesc(c.f) + '</f></c>';
+          return '<c r="' + ref + '" s="' + st + '"><f>' + xesc(c.f) + '</f>'
+            + (c.v == null || c.v === '' ? '' :
+               (typeof c.v === 'number' ? '<v>' + c.v + '</v>'
+                                        : '<v>' + xesc(c.v) + '</v>')) + '</c>';
         if (typeof c.v === 'number')
           return '<c r="' + ref + '" s="' + st + '"><v>' + c.v + '</v></c>';
         return '<c r="' + ref + '" s="' + st + '" t="inlineStr"><is><t xml:space="preserve">'
@@ -1904,12 +1909,13 @@ thead th.nm{text-align:left}
         {v:i.n,s:2},{v:i.u,s:2},{v:i.main||'поставщик не указан',s:9},
         {v:+i.perD.toFixed(2),s:3},
         {v:i.weeks,s:3},
-        {f:'ROUND(D'+r+'*E'+r+'*7,0)',s:3},
+        {f:'ROUND(D'+r+'*E'+r+'*7,0)', v:Math.round(i.min), s:3},
         {v:+i.stock.toFixed(2),s:3},
-        {f:'IF(D'+r+'>0,ROUND(G'+r+'/D'+r+',1),"")',s:(i.days!=null&&i.days<i.lead)?10:3},
-        {f:'IF(L'+r+'="стоп",0,ROUNDUP(MAX(0,F'+r+'-G'+r+'),0))',s:10},
+        {f:'IF(D'+r+'>0,ROUND(G'+r+'/D'+r+',1),"")',
+         v:(i.days==null?'':Math.round(i.days*10)/10), s:(i.days!=null&&i.days<i.lead)?10:3},
+        {f:'IF(L'+r+'="стоп",0,ROUNDUP(MAX(0,F'+r+'-G'+r+'),0))', v:Math.round(i.order), s:10},
         {v:i.price?Math.round(i.price*100)/100:'',s:3},
-        {f:'ROUND(I'+r+'*J'+r+',0)',s:10},
+        {f:'ROUND(I'+r+'*J'+r+',0)', v:Math.round(i.orderSum), s:10},
         {v:i.stop?'стоп':'',s:2},
         {v:i.urg||'',s:2},
         {v:Object.keys(i.st).map(function(s2){return s2+' — '+f1(i.st[s2][0]);}).join('; '),s:9}
@@ -1917,7 +1923,10 @@ thead th.nm{text-align:left}
     });
     var last = list.length + 1;
     rows.push([{v:'Итого',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
-      {f:'SUM(I2:I'+last+')',s:7},{v:'',s:6},{f:'SUM(K2:K'+last+')',s:7},{v:'',s:6},{v:'',s:6},{v:'',s:6}]);
+      {f:'SUM(I2:I'+last+')', v:Math.round(list.reduce(function(s2,i){return s2+i.order;},0)), s:7},
+      {v:'',s:6},
+      {f:'SUM(K2:K'+last+')', v:Math.round(list.reduce(function(s2,i){return s2+i.orderSum;},0)), s:7},
+      {v:'',s:6},{v:'',s:6},{v:'',s:6}]);
     return rows;
   }
 
@@ -1931,19 +1940,23 @@ thead th.nm{text-align:left}
         {v:i.n,s:2},{v:i.u,s:2},{v:i.main||'поставщик не указан',s:9},
         {v:+i.perD.toFixed(2),s:3},
         {v:i.weeks,s:3},
-        {f:'ROUND(D'+r+'*E'+r+'*7,0)',s:3},
+        {f:'ROUND(D'+r+'*E'+r+'*7,0)', v:Math.round(i.min), s:3},
         {v:+i.stock.toFixed(2),s:3},
-        {f:'IF(D'+r+'>0,ROUND(G'+r+'/D'+r+',1),"")',s:(i.days!=null&&i.days<i.lead)?10:3},
-        {f:'ROUND(G'+r+'-F'+r+',0)',s:i.devQty<0?10:3},
+        {f:'IF(D'+r+'>0,ROUND(G'+r+'/D'+r+',1),"")',
+         v:(i.days==null?'':Math.round(i.days*10)/10), s:(i.days!=null&&i.days<i.lead)?10:3},
+        {f:'ROUND(G'+r+'-F'+r+',0)', v:Math.round(i.devQty), s:i.devQty<0?10:3},
         {v:i.price?Math.round(i.price*100)/100:'',s:3},
-        {f:'ROUND(I'+r+'*J'+r+',0)',s:i.devSum<0?10:3},
+        {f:'ROUND(I'+r+'*J'+r+',0)', v:Math.round(i.devSum), s:i.devSum<0?10:3},
         {v:i.zone,s:2}
       ]);
     });
     var last = list.length + 1;
     rows.push([{v:'Итого',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
-      {f:'ROUND(SUMPRODUCT(F2:F'+last+',J2:J'+last+'),0)',s:7},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
-      {f:'SUM(K2:K'+last+')',s:7},{v:'',s:6}]);
+      {f:'ROUND(SUMPRODUCT(F2:F'+last+',J2:J'+last+'),0)',
+       v:Math.round(list.reduce(function(s2,i){return s2+i.min*i.price;},0)), s:7},
+      {v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
+      {f:'SUM(K2:K'+last+')',
+       v:Math.round(list.reduce(function(s2,i){return s2+i.devSum;},0)), s:7},{v:'',s:6}]);
     return rows;
   }
   function xlsxRep(list) {
