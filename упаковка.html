@@ -70,6 +70,8 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .fcount{margin-left:auto;padding-bottom:10px;font-size:11.5px;color:var(--mut)}
 .fcount b{color:#fcd34d}
 td.stc,th.stc{width:54px;min-width:54px;text-align:center}
+td.prc{min-width:98px}
+.pin{width:84px}
 .stbox{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:4px}
 .stbox input{appearance:none;-webkit-appearance:none;width:18px;height:18px;border:1.5px solid #3a4a68;
   border-radius:5px;background:#0a1222;cursor:pointer;position:relative;transition:.15s;margin:0}
@@ -371,6 +373,7 @@ thead th.nm{text-align:left}
   function plw(n,a,b,c){ var m=n%100; if(m>=11&&m<=14) return c; m=n%10;
     return m===1?a:(m>=2&&m<=4)?b:c; }
   function dmy(s){ return /^\d{4}-\d{2}-\d{2}$/.test(s||'') ? s.split('-').reverse().join('.') : (s||'—'); }
+  function mmy(s){ return /^\d{4}-\d{2}$/.test(s||'') ? s.slice(5) + '.' + s.slice(2,4) : (s||''); }
   /* момент, на который сняты остатки: с 05.10.2026 сборщик пишет его со
      временем, старые файлы отдают только дату */
   var SAT = D.stockAt || dmy(TH);
@@ -441,6 +444,9 @@ thead th.nm{text-align:left}
              stRaw:stRaw, stock:Math.max(0, stRaw), neg:stRaw < 0,
              stSum:stSum, sup:r.sup||{}, sups:sup, main:main,
              priceBuy: qty ? sum/qty : 0, buySum:sum, buyQty:qty,
+             /* цена последнего закупа: [цена, месяц, поставщик, кол-во] */
+             priceLast: (r.last && r.last[0]) || 0, lastMon: (r.last && r.last[1]) || '',
+             lastSup: (r.last && r.last[2]) || '', lastQty: (r.last && r.last[3]) || 0,
              m3:m3, out3:out3, in3:in3, outAll:outAll, last:lastMove, curMv:curMv, byStore:byStore,
              stores:Object.keys(st) };
   });
@@ -472,8 +478,14 @@ thead th.nm{text-align:left}
       var rt = rateOf(it);
       it.perM = rt.m; it.why = rt.why;
       it.perD = rt.m / 30.4;
-      it.price = PRICE_MAN[it.key] || it.priceBuy || 0;
-      it.manual = !it.priceBuy && !!PRICE_MAN[it.key];
+      /* Цена за единицу: сначала вписанная руками, потом цена последнего
+         закупа (она и есть «сколько стоит одна сейчас»), и только если
+         закупа не было ни разу — средняя за год. */
+      it.price = PRICE_MAN[it.key] || it.priceLast || it.priceBuy || 0;
+      it.priceSrc = PRICE_MAN[it.key] ? 'вписана вручную'
+                  : it.priceLast ? 'закуп ' + mmy(it.lastMon)
+                  : it.priceBuy ? 'средняя за год' : '';
+      it.manual = !!PRICE_MAN[it.key];
       it.noPrice = !it.price;
       it.days = it.perD > 0 ? it.stock / it.perD : null;
       it.min = it.perD * covDays();                 /* минимальный остаток */
@@ -693,6 +705,46 @@ thead th.nm{text-align:left}
   }
   function lbClose(){ document.getElementById('lb').classList.remove('on'); }
 
+  /* Цена всегда в поле ввода: раньше вписать её можно было только в
+     таблице «цена неизвестна», и после сохранения строка уезжала в основную
+     таблицу — поле буквально пропадало из-под курсора, а ошибочную цену
+     (кто-то вписал 0,01) исправить было уже негде. Теперь поле стоит в
+     каждой строке: пусто — берём цену из iiko, вписано — ваша. */
+  function priceCell(i){
+    return '<td class="prc"><input class="pin" type="number" min="0" step="0.01" placeholder="цена"'
+      + (i.price ? ' value="' + (Math.round(i.price * 100) / 100) + '"' : '')
+      + ' data-pr="' + esc(i.key) + '">'
+      + '<div class="sub2">' + esc(i.priceSrc || 'цены нет') + '</div></td>';
+  }
+  function bindPrice(el){
+    el.querySelectorAll('[data-pr]').forEach(function (inp) {
+      inp.onchange = function () {
+        var k = inp.getAttribute('data-pr');
+        var raw = String(inp.value || '').trim();
+        var v = raw === '' ? 0 : (+raw || 0);
+        /* Вписали ровно ту же цену, что уже пришла из iiko, — не держим
+           это как «ручную», пусть обновляется вместе с накладными. */
+        var it = IT.filter(function(x){ return x.key === k; })[0];
+        if (it && !PRICE_MAN[k] && v && Math.abs(v - it.price) < 0.005) return;
+        inp.disabled = true;
+        fetch(API + '?a=price', { method:'POST', headers:{'content-type':'application/json'},
+                                  body: JSON.stringify({ n:k, v:v }) })
+          .then(function(r){ return r.json(); })
+          .then(function (j) {
+            if (j && j.ok) {
+              if (v > 0) PRICE_MAN[k] = v; else delete PRICE_MAN[k];
+              redraw();
+              var again = document.querySelector('[data-pr="' + k.replace(/"/g,'\\"') + '"]');
+              if (again) { again.focus(); again.style.borderColor = '#16a34a';
+                setTimeout(function(){ again.style.borderColor = ''; }, 1200); }
+              toast(v > 0 ? 'Цена сохранена' : 'Вернули цену из iiko');
+            } else { inp.disabled = false; toast('Цену сохранить не удалось: ' + esc((j&&j.error)||'нет связи')); }
+          })
+          .catch(function(e){ inp.disabled = false; toast('Цену сохранить не удалось: ' + esc(String(e))); });
+      };
+    });
+  }
+
   /* ── СТОП-ЛИСТ ─────────────────────────────────────────────────────
      Галочка «стоп» убирает позицию из заявки: количество по ней видно
      в отдельном списке, но в таблицу заказа и в сумму она не попадает.
@@ -806,7 +858,7 @@ thead th.nm{text-align:left}
               +   (i.u ? ' · ' + esc(i.u) : '') + '</div></td>'
               + '<td>' + f1(i.stock) + '</td><td>' + f1(i.days) + '</td>'
               + '<td>' + (i.orderWanted ? f0(i.orderWanted) : '<span class="zero">—</span>') + '</td>'
-              + '<td>' + (i.price ? f0(i.price) : '<span class="zero">—</span>') + '</td>'
+              + '<td>' + (i.price ? f1(i.price) : '<span class="zero">—</span>') + '</td>'
               + '<td>' + (i.orderWanted && i.price ? f0(i.orderWanted * i.price) : '<span class="zero">—</span>') + '</td>'
               + stopCell(i) + '</tr>';
           }).join('')
@@ -819,7 +871,7 @@ thead th.nm{text-align:left}
             : 'Заказывать нечего: по всем позициям запаса больше ' + P.weeks + ' '
               + plw(P.weeks,'недели','недель','недель') + '.')
         + '</div></div>' + stopHtml;
-      el.innerHTML = html; bindPh(el); bindStop(el); return;
+      el.innerHTML = html; bindPh(el); bindStop(el); bindPrice(el); return;
     }
 
     /* Колонок было десять, и таблица не влезала в экран: цена и сумма
@@ -839,9 +891,7 @@ thead th.nm{text-align:left}
           + '<td>' + f1(i.stock) + '</td>'
           + '<td class="dd' + (i.days!=null&&i.days<i.lead?' red':'') + '">' + f1(i.days) + '</td>'
           + '<td class="q">' + f0(i.order) + '</td>'
-          + '<td>' + (withPrice
-              ? f0(i.price) + (i.manual ? ' <span class="sub2" style="display:inline">вручную</span>' : '')
-              : '<input class="pin" type="number" min="0" step="0.01" placeholder="цена" data-pr="' + esc(i.key) + '">') + '</td>'
+          + priceCell(i)
           + '<td class="mny">' + (withPrice ? f0(i.orderSum) : '<span class="zero">—</span>') + '</td>'
           + '<td>' + (i.urg ? '<span class="st ' + (i.urg==='срочно'?'s-def':i.urg==='скоро'?'s-soon':'s-low') + '">'
               + i.urg + '</span>' : '') + '</td>'
@@ -849,7 +899,7 @@ thead th.nm{text-align:left}
       }).join('');
     }
     var thead = '<thead><tr><th class="ph">Фото</th><th class="nm">Позиция</th><th>Остаток</th>'
-      + '<th>Хватит, дней</th><th>Заказать</th><th>Цена, ₸</th>'
+      + '<th>Хватит, дней</th><th>Заказать</th><th title="цена за единицу по последней накладной">Цена за 1, ₸</th>'
       + '<th>Сумма, ₸</th><th>Срочность</th><th class="stc" title="не заказывать">Стоп</th></tr></thead>';
 
     html += '<div class="card" style="margin-top:12px">'
@@ -859,7 +909,8 @@ thead th.nm{text-align:left}
       +   '<button class="mini" id="xbuy" style="margin-left:auto">📥 Заявка в Excel</button></div>'
       + '<div class="hint">Сверху то, что кончится раньше, чем придёт поставка. '
       + '«Минимум» — сколько должно лежать, чтобы хватило на ' + P.weeks + ' '
-      + plw(P.weeks,'неделю','недели','недель') + '; «заказать» — разница с остатком.</div>'
+      + plw(P.weeks,'неделю','недели','недель') + '; «заказать» — разница с остатком. '
+      + '«Цена за 1» — по последней накладной в iiko, под ценой написано, когда брали.</div>'
       + '<div class="tw"><table>' + thead + '<tbody>' + rows(withP, true) + '</tbody>'
       + '<tfoot><tr><td></td><td class="nm">Итого · ' + withP.length + '</td><td></td><td></td>'
       + '<td>' + f0(withP.reduce(function(s,i){return s+i.order;},0)) + '</td><td></td>'
@@ -878,23 +929,9 @@ thead th.nm{text-align:left}
     html += stopHtml;
 
     el.innerHTML = html;
-    bindPh(el); bindStop(el);
+    bindPh(el); bindStop(el); bindPrice(el);
     var xb = document.getElementById('xbuy');
     if (xb) xb.onclick = function(){ xlsxBuy(withP.concat(noP)); };
-    el.querySelectorAll('[data-pr]').forEach(function (inp) {
-      inp.onchange = function () {
-        var k = inp.getAttribute('data-pr'), v = +inp.value || 0;
-        inp.disabled = true;
-        fetch(API + '?a=price', { method:'POST', headers:{'content-type':'application/json'},
-                                  body: JSON.stringify({ n:k, v:v }) })
-          .then(function(r){ return r.json(); })
-          .then(function (j) {
-            if (j && j.ok) { if (v>0) PRICE_MAN[k] = v; else delete PRICE_MAN[k]; redraw(); }
-            else { inp.disabled = false; alert('Цену сохранить не удалось: ' + ((j&&j.error)||'нет связи')); }
-          })
-          .catch(function(e){ inp.disabled = false; alert('Цену сохранить не удалось: ' + e); });
-      };
-    });
   }
 
   /* ── 2. ЗАЯВКА: по поставщикам ─────────────────────────────────── */
@@ -1010,7 +1047,7 @@ thead th.nm{text-align:left}
   var SORT = { k:'order', dir:-1 };
   var COLS = [['n','Позиция'],['stock','Остаток'],['perD','Расход в день'],['days','Хватит, дней'],
               ['lead','Срок, дн'],['order','Заказать'],['orderSum','Сумма, ₸'],
-              ['price','Цена, ₸'],['stSum','Лежит, ₸'],['st_','Статус']];
+              ['price','Цена за 1, ₸'],['stSum','Лежит, ₸'],['st_','Статус']];
   function secAll() {
     var a = IT.filter(function(i){ return qmatch(i); }).slice();
     a.sort(function (x, y) {
@@ -1040,7 +1077,8 @@ thead th.nm{text-align:left}
         + '<td>' + i.lead + '</td>'
         + '<td>' + (i.order ? '<b style="color:#fcd34d">'+f0(i.order)+'</b>' : '<span class="zero">—</span>') + '</td>'
         + '<td>' + (i.orderSum ? f0(i.orderSum) : '<span class="zero">—</span>') + '</td>'
-        + '<td>' + (i.price ? f0(i.price) : '<span class="zero">—</span>') + '</td>'
+        + '<td>' + (i.price ? f1(i.price) + '<div class="sub2">' + esc(i.priceSrc) + '</div>'
+            : '<span class="zero">—</span>') + '</td>'
         + '<td>' + f0(i.stSum) + '</td>'
         + '<td><span class="st ' + stCls(i.st_) + '">' + i.st_ + '</span></td></tr>';
     });
@@ -1449,25 +1487,26 @@ thead th.nm{text-align:left}
   function W(a){ return a.map(function(w){ return {w:w}; }); }
   function buyRows(list) {
     var head = ['Позиция','Ед.','Поставщик','Остаток','Расход в день','Хватит, дней',
-                'Минимум, ' + covDays() + ' дн','Заказать','Цена, ₸','Сумма, ₸','Срочность','Где лежит'];
+                'Минимум, ' + covDays() + ' дн','Заказать','Цена за 1, ₸','Цена откуда','Сумма, ₸','Срочность','Где лежит'];
     var rows = [head.map(function(h){ return {v:h,s:1}; })];
     list.forEach(function (i) {
       rows.push([{v:i.n,s:2},{v:i.u,s:2},{v:i.main||'поставщик не указан',s:9},
         {v:+i.stock.toFixed(2),s:3},{v:+i.perD.toFixed(1),s:3},
         {v:i.days==null?'':+i.days.toFixed(1),s:i.days!=null&&i.days<i.lead?10:3},
         {v:Math.round(i.min),s:3},{v:Math.round(i.order),s:10},
-        {v:i.price?Math.round(i.price):'',s:3},{v:i.orderSum?Math.round(i.orderSum):'',s:10},
+        {v:i.price?Math.round(i.price*100)/100:'',s:3},{v:i.priceSrc||'',s:9},
+        {v:i.orderSum?Math.round(i.orderSum):'',s:10},
         {v:i.urg||'',s:2},
         {v:Object.keys(i.st).map(function(s){return s+' — '+f1(i.st[s][0]);}).join('; '),s:9}]);
     });
     rows.push([{v:'Итого',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
-      {v:Math.round(list.reduce(function(s,i){return s+i.order;},0)),s:7},{v:'',s:6},
+      {v:Math.round(list.reduce(function(s,i){return s+i.order;},0)),s:7},{v:'',s:6},{v:'',s:6},
       {v:Math.round(list.reduce(function(s,i){return s+i.orderSum;},0)),s:7},{v:'',s:6},{v:'',s:6}]);
     return rows;
   }
   function xlsxBuy(list) {
     saveXlsx([{ name:'Что заказать', first:true, rows:buyRows(list),
-      cols:W([44,7,26,11,12,11,13,11,10,13,12,40]), hRows:{0:30} }],
+      cols:W([44,7,26,11,12,11,13,11,11,14,13,12,40]), hRows:{0:30} }],
       'Что заказать ' + dmy(TH).replace(/\./g,'-') + '.xlsx');
   }
   function orderRows(list) {
