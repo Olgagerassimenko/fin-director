@@ -152,6 +152,9 @@ async function handleGallery(request, env, url) {
 //  Доступ закрыт общим паролем сайта (authGate), отдельного кода нет.
 const UPF_PREFIX = "upf:f:";
 const UPF_PRICE_KEY = "upf:prices";
+// Стоп-лист: позиция, которую решили не заказывать. В заявку она не идёт
+// и в сумму не входит. Решение общее для всех, поэтому не в браузере.
+const UPF_STOP_KEY = "upf:stops";
 
 async function handleUpak(request, env, url) {
   const act = url.searchParams.get("a") || "";
@@ -165,9 +168,10 @@ async function handleUpak(request, env, url) {
       for (const k of r.keys) foto[k.name.slice(UPF_PREFIX.length)] = Object.assign({}, k.metadata || {});
       cursor = r.list_complete ? null : r.cursor;
     } while (cursor);
-    let prices = {};
+    let prices = {}, stops = {};
     try { prices = JSON.parse((await env.PLAN.get(UPF_PRICE_KEY)) || "{}") || {}; } catch (e) {}
-    return jsonResp({ foto, prices, count: Object.keys(foto).length });
+    try { stops = JSON.parse((await env.PLAN.get(UPF_STOP_KEY)) || "{}") || {}; } catch (e) {}
+    return jsonResp({ foto, prices, stops, count: Object.keys(foto).length });
   }
 
   if (act === "foto") {
@@ -207,6 +211,18 @@ async function handleUpak(request, env, url) {
     const v = Number(body.v);
     if (isFinite(v) && v > 0) p[n] = Math.round(v * 100) / 100; else delete p[n];
     await env.PLAN.put(UPF_PRICE_KEY, JSON.stringify(p));
+    return jsonResp({ ok: true, count: Object.keys(p).length });
+  }
+
+  if (act === "stop" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const n = String(body.n || "").slice(0, 400);
+    if (!n) return jsonResp({ error: "нет названия позиции" }, 400);
+    let p = {};
+    try { p = JSON.parse((await env.PLAN.get(UPF_STOP_KEY)) || "{}") || {}; } catch (e) {}
+    if (body.v) p[n] = { d: new Date().toISOString().slice(0, 10) }; else delete p[n];
+    await env.PLAN.put(UPF_STOP_KEY, JSON.stringify(p));
     return jsonResp({ ok: true, count: Object.keys(p).length });
   }
 
