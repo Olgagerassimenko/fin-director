@@ -177,6 +177,7 @@ tfoot td:first-child{text-align:left}
 .s-ok{background:rgba(34,197,94,.13);color:#86efac}
 .s-non{background:rgba(148,163,184,.12);color:#94a3b8}
 .s-dead{background:rgba(124,58,237,.15);color:#c4b5fd}
+.s-low{background:rgba(96,165,250,.16);color:#93c5fd}
 .sub2{font-size:10.5px;color:var(--dim);margin-top:3px;line-height:1.45}
 .zero{color:#3d4a60}
 
@@ -210,6 +211,25 @@ tfoot td:first-child{text-align:left}
 .mx td.no{color:#334155}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--mut);margin-top:10px}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* фото позиции */
+td.ph,th.ph{width:62px;min-width:62px;text-align:center}
+.ph-b{width:52px;height:52px;border-radius:9px;border:1px solid var(--line2);background:#0d1626;
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;
+  font-size:9.5px;color:#55688a;font-weight:700;line-height:1.2;padding:2px;transition:.15s}
+.ph-b:hover{border-color:var(--vio);color:#c4b5fd}
+.ph-b img{width:100%;height:100%;object-fit:cover;display:block}
+.ph-b.busy{opacity:.45}
+.lb{display:none;position:fixed;inset:0;z-index:90;background:rgba(5,9,18,.88);
+  align-items:center;justify-content:center;padding:20px}
+.lb.on{display:flex}
+.lb-in{max-width:min(620px,94vw);text-align:center}
+.lb-in img{max-width:100%;max-height:68vh;border-radius:14px;border:1px solid var(--line2);display:block;margin:0 auto}
+.lb-n{font-size:13px;font-weight:700;color:#e8eef6;margin:12px 0 10px}
+.lb-b{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.pin{width:78px;background:#0d1626;border:1px solid var(--line2);color:#e8eef6;border-radius:7px;
+  padding:4px 6px;font-size:11.5px;font-family:inherit;text-align:right}
+.hint{font-size:11.5px;color:#7f93b0;line-height:1.6;margin-top:3px}
 </style></head>
 <body>
 
@@ -222,7 +242,7 @@ tfoot td:first-child{text-align:left}
 <div class="section" id="up">
   <div class="hero"><div class="hero-in">
     <div>
-      <h2>Заявка на сегодня</h2>
+      <h2>Что заказать</h2>
       <div class="big" id="h-sum">—</div>
       <div class="sub" id="h-txt">—</div>
     </div>
@@ -233,35 +253,53 @@ tfoot td:first-child{text-align:left}
 
   <div class="card">
     <div class="ctl">
+      <div><label>Минимальный запас, недель</label><input type="number" id="p-weeks" min="1" max="26" step="1" value="6"></div>
       <div><label>Срок поставки, дней</label><input type="number" id="p-lead" min="1" max="60" value="7"></div>
       <div><label>Под заказ, дней</label><input type="number" id="p-long" min="1" max="90" value="10"></div>
       <div><label>Страховой запас, дней</label><input type="number" id="p-safe" min="0" max="60" value="5"></div>
-      <div><label>На сколько дней заказываем</label><input type="number" id="p-cov" min="7" max="180" value="30"></div>
+      <div><label>Не заказывать, если не хватает менее, %</label>
+        <input type="number" id="p-thr" min="0" max="50" value="10"></div>
       <div style="flex:1;min-width:190px"><label>Поиск</label>
         <input type="search" id="q" placeholder="позиция, поставщик, склад…"></div>
       <button class="btn pri" id="xls">📥 Всё в Excel</button>
+      <button class="btn" id="fotobulk">📷 Фото пачкой</button>
     </div>
     <div class="note" id="how"></div>
   </div>
 
   <div class="tabs" id="tabs">
-    <button class="tab on" data-s="ord">📝 Заявка<b id="t-ord"></b></button>
+    <button class="tab on" data-s="buy">🛒 Что заказать<b id="t-buy"></b></button>
+    <button class="tab" data-s="ord">📝 Заявка по поставщикам<b id="t-ord"></b></button>
     <button class="tab" data-s="mx">🏬 Где что лежит<b id="t-mx"></b></button>
     <button class="tab" data-s="all">📋 Вся упаковка<b id="t-all"></b></button>
     <button class="tab" data-s="dead">🧊 Не используется<b id="t-dead"></b></button>
   </div>
 
-  <div class="sec on" id="s-ord"></div>
+  <div class="sec on" id="s-buy"></div>
+  <div class="sec" id="s-ord"></div>
   <div class="sec" id="s-mx"></div>
   <div class="sec" id="s-all"></div>
   <div class="sec" id="s-dead"></div>
 </div>
 
+<input type="file" id="f-one" accept="image/*" style="display:none">
+<input type="file" id="f-many" accept="image/*" multiple style="display:none">
+<div id="lb" class="lb"><div class="lb-in">
+  <img id="lb-img" alt="">
+  <div class="lb-n" id="lb-n"></div>
+  <div class="lb-b">
+    <button class="mini" id="lb-re">🔁 Заменить фото</button>
+    <button class="mini" id="lb-rm">🗑 Удалить фото</button>
+    <button class="mini" id="lb-x">Закрыть</button>
+  </div>
+</div></div>
+
 <div id="p-nodata" class="section" style="display:none">
   <div class="card"><div class="empty">Срез по упаковке ещё не собран: upak_data.js появится после ближайшего ночного прогона.</div></div>
 </div>
 
-<footer>Система «Пульс» · Фуд Завод<br>данные из iiko, обновляются каждое утро</footer>
+<!-- Подпись страницы добавляет nav.js — своего подвала здесь быть не должно,
+     иначе внизу две одинаковые строки (так было до 05.10.2026). -->
 
 <script>
 
@@ -287,6 +325,9 @@ tfoot td:first-child{text-align:left}
   function plw(n,a,b,c){ var m=n%100; if(m>=11&&m<=14) return c; m=n%10;
     return m===1?a:(m>=2&&m<=4)?b:c; }
   function dmy(s){ return /^\d{4}-\d{2}-\d{2}$/.test(s||'') ? s.split('-').reverse().join('.') : (s||'—'); }
+  /* момент, на который сняты остатки: с 05.10.2026 сборщик пишет его со
+     временем, старые файлы отдают только дату */
+  var SAT = D.stockAt || dmy(TH);
 
   /* ── ПАРАМЕТРЫ ЗАКАЗА ────────────────────────────────────────────
      Срок поставки решает всё: пока едет упаковка, производство не ждёт.
@@ -298,30 +339,46 @@ tfoot td:first-child{text-align:left}
   if (!LONG) LONG = { 'Color express ТОО':1, 'Компания В ТОО':1, 'Казтехнолоджи Пак ТОО':1 };
   function saveLong(){ try{ localStorage.setItem(LONG_KEY, JSON.stringify(LONG)); }catch(e){} }
 
-  var P = { lead:7, long:10, safe:5, cov:30 };
+  var P = { lead:7, long:10, safe:5, weeks:6, thr:10, test:false };
+  function covDays(){ return P.weeks * 7; }
 
   /* последние три полных месяца: по ним считаем дневной расход */
   var LAST3 = MON.slice(-4, -1);
   if (LAST3.length < 3) LAST3 = MON.slice(-3);
-  var D3 = LAST3.length * 30.4;
+
+  /* «Склад ТЕСТ» — служебный. Его остатки и движения в расчёт заказа не идут:
+     05.10.2026 он давал минусовые остатки и портил дневной расход. */
+  var TEST_RE = /склад\s*тест/i;
+  function skipStore(s){ return !P.test && TEST_RE.test(String(s||'')); }
+
+  /* Фото и ручные цены лежат в воркере (/api/upak), ключ — нормализованное
+     название позиции, поэтому они переживают пересборку данных. */
+  var FOTO = {}, PRICE_MAN = {};
+  function nkey(s){
+    return String(s==null?'':s).toLowerCase().replace(/^у\s*\*\s*/,'')
+      .replace(/ё/g,'е').replace(/[^0-9a-zа-я]+/g,' ').trim().replace(/\s+/g,' ');
+  }
 
   var IT = D.items.map(function (r) {
-    var stock = 0, stSum = 0, st = {};
+    var stRaw = 0, stSum = 0, st = {};
     Object.keys(r.st || {}).forEach(function (s) {
-      st[s] = r.st[s]; stock += r.st[s][0]; stSum += r.st[s][1];
+      if (skipStore(s)) return;
+      st[s] = r.st[s]; stRaw += r.st[s][0]; stSum += r.st[s][1];
     });
     /* расход — прямой: сколько ушло со склада, а не разница остатков */
-    var out3 = 0, in3 = 0, outAll = 0, lastMove = '', curMv = 0;
+    var out3 = 0, in3 = 0, outAll = 0, lastMove = '', curMv = 0, m3 = [0, 0, 0];
     var byStore = {};
     MON.forEach(function (k) {
       var m = (r.mv || {})[k]; if (!m) return;
       Object.keys(m).forEach(function (s) {
+        if (skipStore(s)) return;
         var v = m[s];
         outAll += v[1];
         if (v[0] || v[1]) lastMove = k;
         var b = byStore[s] || (byStore[s] = [0, 0]);
         b[0] += v[0]; b[1] += v[1];
-        if (LAST3.indexOf(k) >= 0) { in3 += v[0]; out3 += v[1]; }
+        var ix = LAST3.indexOf(k);
+        if (ix >= 0) { in3 += v[0]; out3 += v[1]; m3[ix] += v[1]; }
         /* Текущий месяц неполный и в базу расхода не входит — но если позиция
            в нём двигалась, называть её «не используется» неправильно. */
         if (k === MON[MON.length - 1]) curMv += v[0] + v[1];
@@ -332,22 +389,59 @@ tfoot td:first-child{text-align:left}
     var main = sup[0] || '';
     var qty = sup.reduce(function (s2, k) { return s2 + (r.sup[k][1] || 0); }, 0);
     var sum = sup.reduce(function (s2, k) { return s2 + (r.sup[k][0] || 0); }, 0);
-    return { n:r.n, u:r.u||'', st:st, stock:stock, stSum:stSum, sup:r.sup||{}, sups:sup, main:main,
-             price: qty ? sum/qty : 0, buySum:sum, buyQty:qty,
-             out3:out3, in3:in3, outAll:outAll, last:lastMove, curMv:curMv, byStore:byStore,
+    return { n:r.n, key:nkey(r.n), u:r.u||'', st:st,
+             /* В формулу заказа идёт только неотрицательный остаток: минус —
+                это ошибка учёта, а не «надо докупить ещё и на минус». */
+             stRaw:stRaw, stock:Math.max(0, stRaw), neg:stRaw < 0,
+             stSum:stSum, sup:r.sup||{}, sups:sup, main:main,
+             priceBuy: qty ? sum/qty : 0, buySum:sum, buyQty:qty,
+             m3:m3, out3:out3, in3:in3, outAll:outAll, last:lastMove, curMv:curMv, byStore:byStore,
              stores:Object.keys(st) };
   });
 
   function leadOf(it){ var l=P.lead; it.sups.forEach(function(s){ if(LONG[s]) l=Math.max(l,P.long); }); return l; }
+
+  /* ── СКОЛЬКО УХОДИТ В ДЕНЬ ───────────────────────────────────────
+     Плоское среднее за три месяца врёт там, где дороже всего. Позицию
+     выводят из оборота (268 773 → 87 766 → 10 424 шт), а среднее всё ещё
+     велит заказать годовой запас: 05.10.2026 так в заявку попали 149 131
+     этикетка на 1,2 млн ₸. Поэтому последний месяц весит втрое, а при явном
+     спаде расход сверху ограничен полутора месяцами последнего факта.
+     Два последних месяца без расхода — позиция не заказывается вовсе.      */
+  function rateOf(it) {
+    var a = it.m3[0] || 0, b = it.m3[1] || 0, c = it.m3[2] || 0;
+    if (!a && !b && !c) return { m:0, why:'' };
+    if (!b && !c) return { m:0, why:'два месяца без расхода' };
+    var w = (a + 2 * b + 3 * c) / 6;
+    if (c > 0 && c < b) {
+      var cap = c * 1.5;
+      if (cap < w) return { m:cap, why:'расход падает — считаем по последнему месяцу' };
+    }
+    return { m:w, why:'' };
+  }
+
   function calc() {
     IT.forEach(function (it) {
       it.lead = leadOf(it);
-      it.perD = it.out3 > 0 ? it.out3 / D3 : 0;
+      var rt = rateOf(it);
+      it.perM = rt.m; it.why = rt.why;
+      it.perD = rt.m / 30.4;
+      it.price = PRICE_MAN[it.key] || it.priceBuy || 0;
+      it.manual = !it.priceBuy && !!PRICE_MAN[it.key];
+      it.noPrice = !it.price;
       it.days = it.perD > 0 ? it.stock / it.perD : null;
-      it.point = it.perD * (it.lead + P.safe);
-      it.target = it.perD * (it.lead + P.cov);
-      it.order = (it.perD > 0 && it.stock < it.point) ? Math.max(0, it.target - it.stock) : 0;
+      it.min = it.perD * covDays();                 /* минимальный остаток */
+      it.point = it.perD * (it.lead + P.safe);      /* точка заказа */
+      var need = (it.perD > 0 && it.stock < it.min) ? it.min - it.stock : 0;
+      /* мелкую недостачу в заявку не тащим — иначе список не прочитать */
+      if (need > 0 && it.min > 0 && need < it.min * (P.thr / 100)) need = 0;
+      it.order = Math.round(need);
       it.orderSum = it.order * it.price;
+      /* Срочность: кончится раньше, чем придёт поставка — «срочно». */
+      it.urg = it.perD <= 0 ? ''
+             : it.days < it.lead ? 'срочно'
+             : it.days < it.lead + P.safe ? 'скоро'
+             : it.order ? 'ниже минимума' : '';
       /* Позиция без единого движения за три месяца — это не дефицит,
          а вещь, которой сейчас не пользуются. Заказывать её незачем,
          но если на складе лежит остаток, это замороженные деньги. */
@@ -355,11 +449,12 @@ tfoot td:first-child{text-align:left}
       it.st_ = it.dead ? (it.stock > 0 ? 'лежит без движения' : 'не используется')
              : it.perD <= 0 ? 'только приход'
              : it.days < it.lead ? 'дефицит'
-             : it.days < it.lead + P.safe ? 'пора заказывать' : 'норма';
+             : it.days < it.lead + P.safe ? 'пора заказывать'
+             : it.order ? 'ниже минимума' : 'норма';
     });
   }
   function stCls(s){ return s==='дефицит'?'s-def':s==='пора заказывать'?'s-soon'
-    :s==='норма'?'s-ok':s==='лежит без движения'?'s-dead':'s-non'; }
+    :s==='ниже минимума'?'s-low':s==='норма'?'s-ok':s==='лежит без движения'?'s-dead':'s-non'; }
   function hot(){ return IT.filter(function(i){ return i.order>0; }); }
 
   /* ── ШАПКА ─────────────────────────────────────────────────────── */
@@ -372,13 +467,17 @@ tfoot td:first-child{text-align:left}
     var sups = {}; h.forEach(function(i){ if(i.main) sups[i.main]=1; });
     var nsup = Object.keys(sups).length;
 
+    var noP = h.filter(function(i){ return i.noPrice; });
+
     document.getElementById('h-sum').textContent = f0(need) + ' ₸';
     document.getElementById('h-txt').innerHTML =
       '<b>' + h.length + '</b> ' + plw(h.length,'позиция','позиции','позиций') + ' у <b>' + nsup + '</b> ' +
-      plw(nsup,'поставщика','поставщиков','поставщиков') + '. Считаем от расхода за ' +
+      plw(nsup,'поставщика','поставщиков','поставщиков') + '. Доводим запас до <b>' + P.weeks + '</b> ' +
+      plw(P.weeks,'недели','недель','недель') + ' работы (' + covDays() + ' дней). Считаем от расхода за ' +
       (LAST3.length? LAST3[0].slice(5)+'.'+LAST3[0].slice(2,4)+'–'+LAST3[LAST3.length-1].slice(5)+'.'+LAST3[LAST3.length-1].slice(2,4) : 'три месяца') +
-      ' и остатка на ' + dmy(TH) + '. Заказ считаем на ' + P.cov + ' ' +
-      plw(P.cov,'день','дня','дней') + ' работы плюс срок поставки.';
+      ' и остатка на ' + SAT + '.' +
+      (noP.length ? ' <b style="color:#fca5a5">' + noP.length + ' ' + plw(noP.length,'позиция','позиции','позиций')
+        + ' без цены</b> — количество посчитано, в сумму не вошло.' : '');
     document.getElementById('h-side').innerHTML =
       hs(f0(stockSum)+' ₸', 'лежит на складах в упаковке') +
       hs(f0(deadSum)+' ₸', dead.length + ' ' + plw(dead.length,'позиция','позиции','позиций') + ' лежит без движения') +
@@ -389,6 +488,8 @@ tfoot td:first-child{text-align:left}
       ['#f87171','В дефиците', def, 'запаса меньше, чем срок поставки'],
       ['#fbbf24','Пора заказывать', IT.filter(function(i){return i.st_==='пора заказывать';}).length,
        'подходят к точке заказа'],
+      ['#93c5fd','Ниже минимума', IT.filter(function(i){return i.st_==='ниже минимума';}).length,
+       'запаса меньше ' + P.weeks + ' ' + plw(P.weeks,'недели','недель','недель')],
       ['#4ade80','В норме', IT.filter(function(i){return i.st_==='норма';}).length, 'запаса хватает'],
       ['#c4b5fd','Без движения', IT.filter(function(i){return i.dead;}).length,
        'ни прихода, ни расхода за три месяца']
@@ -397,16 +498,23 @@ tfoot td:first-child{text-align:left}
       return '<div class="kpi" style="--c:'+k[0]+'"><div class="l">'+k[1]+'</div>'+
         '<div class="v" style="color:'+k[0]+'">'+k[2]+'</div><div class="s">'+k[3]+'</div></div>';
     }).join('');
-    document.getElementById('live').textContent = 'остатки на ' + dmy(TH);
+    document.getElementById('live').textContent = 'остатки на ' + SAT;
     document.getElementById('sub').textContent =
       IT.length + ' позиций · ' + STORES.length + ' складов · обновлено ' + (D.updated||'');
+    document.getElementById('t-buy').textContent = h.length ? '· ' + h.length : '';
     document.getElementById('t-ord').textContent = h.length ? '· ' + h.length : '';
     document.getElementById('t-all').textContent = '· ' + IT.length;
     document.getElementById('t-dead').textContent = IT.filter(function(i){return i.dead;}).length
       ? '· ' + IT.filter(function(i){return i.dead;}).length : '';
     document.getElementById('t-mx').textContent = '· ' + STORES.length;
     document.getElementById('how').innerHTML =
-      'Расход берётся прямой — сколько упаковки ушло со склада за три последних месяца, а не разница остатков. ' +
+      'Расход берётся прямой — сколько упаковки ушло со склада, а не разница остатков. ' +
+      'Дневной расход считаем по трём последним полным месяцам, но <b>последний месяц весит втрое</b>, ' +
+      'а если расход падает — берём полтора последних месяца, чтобы выводимая из оборота позиция ' +
+      'не попала в заявку годовым запасом. ' +
+      '<b>Минимальный остаток</b> = дневной расход × ' + covDays() + ' дней, ' +
+      '<b>заказать</b> = минимум минус остаток. ' +
+      'Отрицательные остатки в расчёт не берём (это ошибки учёта), служебный «Склад ТЕСТ» исключён. ' +
       '<b>Дефицит</b> — запаса меньше срока поставки: заказ уже не успеет. ' +
       '<b>Пора заказывать</b> — меньше срока поставки плюс страховой. ' +
       '<b>Без движения</b> — за три месяца ни прихода, ни расхода: такой позицией сейчас не пользуются, ' +
@@ -421,7 +529,217 @@ tfoot td:first-child{text-align:left}
     return (it.n + ' ' + it.sups.join(' ') + ' ' + it.stores.join(' ')).toLowerCase().indexOf(q) >= 0;
   }
 
-  /* ── 1. ЗАЯВКА: по поставщикам ─────────────────────────────────── */
+  /* ── ФОТО ПОЗИЦИЙ ──────────────────────────────────────────────────
+     По названию «У* Лоток 187*137*45 ФС 504 шт/кор» на складе ничего не
+     узнать, поэтому к каждой позиции можно приложить фото. Хранится оно
+     в воркере (KV), ключ — нормализованное название, значит фото видят все
+     и оно не теряется при пересборке данных. Загрузить можно по одной
+     (клик по рамке) или пачкой — тогда файлы раскладываются по позициям
+     по имени файла.                                                      */
+  var API = '/api/upak';
+  var fotoTarget = null;
+
+  function fotoUrl(k){
+    var m = FOTO[k];
+    return API + '?a=foto&n=' + encodeURIComponent(k) + (m && m.d ? '&v=' + encodeURIComponent(m.d) : '');
+  }
+  function phCell(i){
+    return '<td class="ph"><div class="ph-b" data-ph="' + esc(i.key) + '" title="'
+      + (FOTO[i.key] ? 'фото позиции — нажмите, чтобы открыть' : 'добавить фото позиции') + '">'
+      + (FOTO[i.key] ? '<img loading="lazy" src="' + esc(fotoUrl(i.key)) + '" alt="">' : '+ фото')
+      + '</div></td>';
+  }
+  function bindPh(el){
+    el.querySelectorAll('[data-ph]').forEach(function (b) {
+      b.onclick = function () {
+        var k = b.getAttribute('data-ph');
+        if (FOTO[k]) lbOpen(k); else { fotoTarget = k; document.getElementById('f-one').click(); }
+      };
+    });
+  }
+  /* Сжимаем в браузере: со телефона прилетает 4–6 МБ, а для опознания
+     позиции хватает 640 px по длинной стороне. */
+  function shrink(file, cb){
+    var fr = new FileReader();
+    fr.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var s = Math.min(1, 640 / Math.max(img.width, img.height));
+        var w = Math.max(1, Math.round(img.width * s)), hh = Math.max(1, Math.round(img.height * s));
+        var c = document.createElement('canvas'); c.width = w; c.height = hh;
+        c.getContext('2d').drawImage(img, 0, 0, w, hh);
+        if (c.toBlob) c.toBlob(function (b) { cb(b || file); }, 'image/jpeg', 0.72);
+        else cb(file);
+      };
+      img.onerror = function () { cb(file); };
+      img.src = fr.result;
+    };
+    fr.onerror = function () { cb(file); };
+    fr.readAsDataURL(file);
+  }
+  function fotoPut(k, file, done){
+    shrink(file, function (blob) {
+      fetch(API + '?a=up&n=' + encodeURIComponent(k) + '&ct=' + encodeURIComponent(blob.type || 'image/jpeg'),
+            { method:'POST', body: blob })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.ok) FOTO[k] = { ct: blob.type || 'image/jpeg', s: j.s, d: String(Date.now()) };
+          done(j && j.ok ? null : (j && j.error) || 'не удалось сохранить');
+        })
+        .catch(function (e) { done(String(e)); });
+    });
+  }
+  function lbOpen(k){
+    var it = IT.filter(function(i){ return i.key===k; })[0];
+    document.getElementById('lb-img').src = fotoUrl(k);
+    document.getElementById('lb-n').textContent = it ? it.n : k;
+    document.getElementById('lb').classList.add('on');
+    document.getElementById('lb').setAttribute('data-k', k);
+  }
+  function lbClose(){ document.getElementById('lb').classList.remove('on'); }
+
+  function fotoLoad(){
+    return fetch(API + '?a=list').then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j) return;
+        FOTO = j.foto || {}; PRICE_MAN = j.prices || {};
+      }).catch(function () {});
+  }
+
+  /* ── 1. ЧТО ЗАКАЗАТЬ ───────────────────────────────────────────────
+     Главная страница закупщика: один список, в котором видно позицию,
+     её фото, сколько лежит, на сколько дней хватит и сколько заказать,
+     чтобы запаса стало на заданное число недель.                        */
+  function secBuy() {
+    var el = document.getElementById('s-buy');
+    var h = hot().filter(qmatch);
+    var urgRank = { 'срочно':0, 'скоро':1 };
+    h.sort(function (a, b) {
+      var ra = urgRank[a.urg] == null ? 2 : urgRank[a.urg];
+      var rb = urgRank[b.urg] == null ? 2 : urgRank[b.urg];
+      if (ra !== rb) return ra - rb;
+      return (b.orderSum - a.orderSum) || (b.order - a.order);
+    });
+    var withP = h.filter(function(i){ return !i.noPrice; });
+    var noP = h.filter(function(i){ return i.noPrice; });
+    var sum = withP.reduce(function(s,i){ return s+i.orderSum; }, 0);
+    var urgent = h.filter(function(i){ return i.urg==='срочно'; });
+    var urgentSum = urgent.reduce(function(s,i){ return s+i.orderSum; }, 0);
+    var negs = IT.filter(function(i){ return i.neg; });
+
+    var html = '';
+
+    html += '<div class="card" style="border-left:3px solid #fbbf24">'
+      + '<div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap">'
+      +   '<div><div style="font-size:11px;color:#7f93b0;font-weight:600">ЗАКАЗАТЬ НА СУММУ</div>'
+      +   '<div style="font-size:30px;font-weight:800;color:#fcd34d;line-height:1.2;font-variant-numeric:tabular-nums">'
+      +     f0(sum) + ' ₸</div></div>'
+      +   '<div style="flex:1;min-width:280px;font-size:12.5px;color:#c3d2e6;line-height:1.65">'
+      +     '<b style="color:#f1f5f9">' + h.length + '</b> ' + plw(h.length,'позиция','позиции','позиций')
+      +     ' ниже минимального запаса в ' + P.weeks + ' ' + plw(P.weeks,'неделю','недели','недель') + '. '
+      +     (urgent.length
+            ? '<b style="color:#fca5a5">' + urgent.length + ' ' + plw(urgent.length,'позиция','позиции','позиций')
+              + ' срочно</b> — запаса меньше, чем идёт поставка (' + f0(urgentSum) + ' ₸). '
+            : 'Срочных нет — ни по одной позиции запас не кончается раньше поставки. ')
+      +     (noP.length ? '<div style="margin-top:7px;color:#fcd9a0">' + noP.length + ' '
+              + plw(noP.length,'позиция','позиции','позиций') + ' без цены: количество посчитано, '
+              + 'сумму подставить не из чего — впишите цену в таблице ниже, она сохранится для всех.</div>' : '')
+      +   '</div></div></div>';
+
+    if (negs.length) {
+      html += '<div class="card" style="margin-top:12px;border-left:3px solid #f87171">'
+        + '<div style="font-size:13px;font-weight:700;color:#f1f5f9">Отрицательные остатки — ошибки учёта</div>'
+        + '<div class="hint">В заказ такие минусы не идут. Склад списал больше, чем приходил: '
+        + 'пока не проведут приход или не поправят документ, расход по этим позициям тоже посчитан не полностью.</div>'
+        + '<div class="tw"><table><thead><tr><th>Позиция</th><th>Остаток</th><th>Сумма, ₸</th>'
+        + '<th>Где минус</th></tr></thead><tbody>'
+        + negs.map(function (i) {
+            var w = Object.keys(i.st).filter(function(s){ return i.st[s][0] < 0; })
+              .map(function(s){ return esc(s) + ' — ' + f1(i.st[s][0]); }).join('; ');
+            return '<tr class="hot"><td>' + esc(i.n) + '</td><td style="color:#fca5a5;font-weight:800">'
+              + f1(i.stRaw) + '</td><td>' + f0(i.stSum) + '</td>'
+              + '<td style="text-align:left;white-space:normal;font-size:11px;color:#8fa2bd">' + w + '</td></tr>';
+          }).join('')
+        + '</tbody></table></div></div>';
+    }
+
+    if (!h.length) {
+      html += '<div class="card" style="margin-top:12px"><div class="empty">Заказывать нечего: '
+        + 'по всем позициям запаса больше ' + P.weeks + ' ' + plw(P.weeks,'недели','недель','недель') + '.</div></div>';
+      el.innerHTML = html; return;
+    }
+
+    function rows(list, withPrice) {
+      return list.map(function (i) {
+        var cls = i.urg==='срочно' ? 'hot' : '';
+        return '<tr class="' + cls + '">'
+          + phCell(i)
+          + '<td>' + esc(i.n)
+          +   '<div class="sub2">' + esc(i.main || 'поставщик не указан')
+          +     (i.u ? ' · ' + esc(i.u) : '')
+          +     (i.why ? ' · <span style="color:#fcd34d">' + esc(i.why) + '</span>' : '')
+          +   '</div></td>'
+          + '<td>' + f1(i.stock) + '</td>'
+          + '<td>' + f1(i.perD) + '</td>'
+          + '<td style="font-weight:800' + (i.days!=null&&i.days<i.lead?';color:#fca5a5':'') + '">' + f1(i.days) + '</td>'
+          + '<td>' + f0(i.min) + '</td>'
+          + '<td style="font-weight:800;color:#fcd34d">' + f0(i.order) + '</td>'
+          + '<td>' + (withPrice
+              ? f0(i.price) + (i.manual ? ' <span class="sub2" style="display:inline">вручную</span>' : '')
+              : '<input class="pin" type="number" min="0" step="0.01" placeholder="цена" data-pr="' + esc(i.key) + '">') + '</td>'
+          + '<td>' + (withPrice ? f0(i.orderSum) : '<span class="zero">—</span>') + '</td>'
+          + '<td>' + (i.urg ? '<span class="st ' + (i.urg==='срочно'?'s-def':i.urg==='скоро'?'s-soon':'s-low') + '">'
+              + i.urg + '</span>' : '') + '</td></tr>';
+      }).join('');
+    }
+    var thead = '<thead><tr><th class="ph">Фото</th><th>Позиция</th><th>Остаток</th><th>Расход в день</th>'
+      + '<th>Хватит, дней</th><th>Минимум, ' + covDays() + ' дн</th><th>Заказать</th><th>Цена, ₸</th>'
+      + '<th>Сумма, ₸</th><th>Срочность</th></tr></thead>';
+
+    html += '<div class="card" style="margin-top:12px">'
+      + '<div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap">'
+      +   '<div style="font-size:13px;font-weight:700;color:#f1f5f9">Заказать — ' + withP.length + ' '
+      +     plw(withP.length,'позиция','позиции','позиций') + '</div>'
+      +   '<button class="mini" id="xbuy" style="margin-left:auto">📥 Заявка в Excel</button></div>'
+      + '<div class="hint">Сверху то, что кончится раньше, чем придёт поставка. '
+      + '«Минимум» — сколько должно лежать, чтобы хватило на ' + P.weeks + ' '
+      + plw(P.weeks,'неделю','недели','недель') + '; «заказать» — разница с остатком.</div>'
+      + '<div class="tw"><table>' + thead + '<tbody>' + rows(withP, true) + '</tbody>'
+      + '<tfoot><tr><td></td><td>Итого · ' + withP.length + '</td><td></td><td></td><td></td><td></td>'
+      + '<td>' + f0(withP.reduce(function(s,i){return s+i.order;},0)) + '</td><td></td>'
+      + '<td>' + f0(sum) + '</td><td></td></tr></tfoot></table></div></div>';
+
+    if (noP.length) {
+      html += '<div class="card" style="margin-top:12px;border-left:3px solid #fbbf24">'
+        + '<div style="font-size:13px;font-weight:700;color:#f1f5f9">Цена неизвестна — ' + noP.length + ' '
+        + plw(noP.length,'позиция','позиции','позиций') + '</div>'
+        + '<div class="hint">По этим позициям за год не было приходной накладной в iiko: расход есть, '
+        + 'цены нет. Количество к заказу посчитано, в сумму заявки они не входят. '
+        + 'Впишите цену — она сохранится на сайте и попадёт в расчёт.</div>'
+        + '<div class="tw"><table>' + thead + '<tbody>' + rows(noP, false) + '</tbody></table></div></div>';
+    }
+
+    el.innerHTML = html;
+    bindPh(el);
+    var xb = document.getElementById('xbuy');
+    if (xb) xb.onclick = function(){ xlsxBuy(withP.concat(noP)); };
+    el.querySelectorAll('[data-pr]').forEach(function (inp) {
+      inp.onchange = function () {
+        var k = inp.getAttribute('data-pr'), v = +inp.value || 0;
+        inp.disabled = true;
+        fetch(API + '?a=price', { method:'POST', headers:{'content-type':'application/json'},
+                                  body: JSON.stringify({ n:k, v:v }) })
+          .then(function(r){ return r.json(); })
+          .then(function (j) {
+            if (j && j.ok) { if (v>0) PRICE_MAN[k] = v; else delete PRICE_MAN[k]; redraw(); }
+            else { inp.disabled = false; alert('Цену сохранить не удалось: ' + ((j&&j.error)||'нет связи')); }
+          })
+          .catch(function(e){ inp.disabled = false; alert('Цену сохранить не удалось: ' + e); });
+      };
+    });
+  }
+
+  /* ── 2. ЗАЯВКА: по поставщикам ─────────────────────────────────── */
   function secOrd() {
     var by = {};
     hot().filter(qmatch).forEach(function (i) {
@@ -452,12 +770,14 @@ tfoot td:first-child{text-align:left}
         +   '<input type="checkbox" data-long="' + esc(k) + '"' + (LONG[k]?' checked':'') + '> под заказ</label>'
         + '</div>'
         + '<div class="ord-b"><div class="tw"><table><thead><tr>'
+        + '<th class="ph">Фото</th>'
         + '<th>Позиция</th><th>Остаток</th><th>Расход в день</th><th>Хватит, дней</th>'
         + '<th>Заказать</th><th>Сумма, ₸</th><th>Где лежит</th></tr></thead><tbody>'
         + list.map(function (i) {
             var where = Object.keys(i.st).sort(function(a,b){return i.st[b][0]-i.st[a][0];})
               .map(function(s){ return esc(s)+' — '+f1(i.st[s][0]); }).join('; ');
             return '<tr class="' + (i.st_==='дефицит'?'hot':'') + '">'
+              + phCell(i)
               + '<td>' + esc(i.n) + '<div class="sub2">' + esc(i.u||'') + '</div></td>'
               + '<td>' + f1(i.stock) + '</td>'
               + '<td>' + f1(i.perD) + '</td>'
@@ -470,6 +790,7 @@ tfoot td:first-child{text-align:left}
           }).join('')
         + '</tbody></table></div></div></div>';
     }).join('');
+    bindPh(el);
     el.querySelectorAll('[data-ord]').forEach(function (b) {
       b.onclick = function () { xlsxOrder(b.getAttribute('data-ord'), by[b.getAttribute('data-ord')]); };
     });
@@ -541,13 +862,17 @@ tfoot td:first-child{text-align:left}
       if (vx==null) vx = -1; if (vy==null) vy = -1;
       return SORT.dir * (vx - vy);
     });
-    var h = '<div class="card"><div class="tw"><table><thead><tr>'
+    var h = '<div class="card"><div class="hint" style="margin-bottom:8px">'
+      + 'Нажмите на рамку в колонке «Фото», чтобы приложить снимок позиции — он сохранится на сайте '
+      + 'и будет виден всем. Можно залить сразу папку кнопкой «Фото пачкой» наверху.</div>'
+      + '<div class="tw"><table><thead><tr><th class="ph">Фото</th>'
       + COLS.map(function (c) {
           return '<th data-k="'+c[0]+'" class="'+(SORT.k===c[0]?'on':'')+'">'+c[1]
             + (SORT.k===c[0] ? (SORT.dir>0?' ↑':' ↓') : '') + '</th>'; }).join('')
       + '</tr></thead><tbody>';
     a.forEach(function (i) {
       h += '<tr class="' + (i.order>0?'hot':'') + '">'
+        + phCell(i)
         + '<td>' + esc(i.n) + '<div class="sub2">' + esc(i.main||'поставщик не указан')
         +   (i.sups.length>1 ? ' и ещё ' + (i.sups.length-1) : '')
         +   (i.stores.length ? ' · ' + esc(i.stores.join(', ')) : ' · нет на складах') + '</div></td>'
@@ -561,12 +886,13 @@ tfoot td:first-child{text-align:left}
         + '<td>' + f0(i.stSum) + '</td>'
         + '<td><span class="st ' + stCls(i.st_) + '">' + i.st_ + '</span></td></tr>';
     });
-    h += '</tbody><tfoot><tr><td>Итого · ' + a.length + '</td><td></td><td></td><td></td><td></td>'
+    h += '</tbody><tfoot><tr><td></td><td>Итого · ' + a.length + '</td><td></td><td></td><td></td><td></td>'
       + '<td>' + f0(a.reduce(function(s,i){return s+i.order;},0)) + '</td>'
       + '<td>' + f0(a.reduce(function(s,i){return s+i.orderSum;},0)) + '</td><td></td>'
       + '<td>' + f0(a.reduce(function(s,i){return s+i.stSum;},0)) + '</td><td></td></tr></tfoot></table></div></div>';
     var el = document.getElementById('s-all');
     el.innerHTML = h;
+    bindPh(el);
     el.querySelectorAll('th[data-k]').forEach(function (th) {
       th.onclick = function () {
         var k = th.getAttribute('data-k');
@@ -799,7 +1125,7 @@ tfoot td:first-child{text-align:left}
       + '</td><td>100%</td><td></td><td></td><td></td></tr></tfoot></table></div>'
       + '<div class="note">Позиция попадает сюда, если за три последних полных месяца по ней не было ни прихода, '
       + 'ни расхода и в текущем месяце движений тоже нет. Сумма — остаток по учётной стоимости на '
-      + dmy(TH) + '. Брендом помечены позиции, чьё название привязано к конкретному проекту.</div></div>';
+      + SAT + '. Брендом помечены позиции, чьё название привязано к конкретному проекту.</div></div>';
 
     el.innerHTML = html;
   }
@@ -963,6 +1289,29 @@ tfoot td:first-child{text-align:left}
   }
 
   function W(a){ return a.map(function(w){ return {w:w}; }); }
+  function buyRows(list) {
+    var head = ['Позиция','Ед.','Поставщик','Остаток','Расход в день','Хватит, дней',
+                'Минимум, ' + covDays() + ' дн','Заказать','Цена, ₸','Сумма, ₸','Срочность','Где лежит'];
+    var rows = [head.map(function(h){ return {v:h,s:1}; })];
+    list.forEach(function (i) {
+      rows.push([{v:i.n,s:2},{v:i.u,s:2},{v:i.main||'поставщик не указан',s:9},
+        {v:+i.stock.toFixed(2),s:3},{v:+i.perD.toFixed(1),s:3},
+        {v:i.days==null?'':+i.days.toFixed(1),s:i.days!=null&&i.days<i.lead?10:3},
+        {v:Math.round(i.min),s:3},{v:Math.round(i.order),s:10},
+        {v:i.price?Math.round(i.price):'',s:3},{v:i.orderSum?Math.round(i.orderSum):'',s:10},
+        {v:i.urg||'',s:2},
+        {v:Object.keys(i.st).map(function(s){return s+' — '+f1(i.st[s][0]);}).join('; '),s:9}]);
+    });
+    rows.push([{v:'Итого',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
+      {v:Math.round(list.reduce(function(s,i){return s+i.order;},0)),s:7},{v:'',s:6},
+      {v:Math.round(list.reduce(function(s,i){return s+i.orderSum;},0)),s:7},{v:'',s:6},{v:'',s:6}]);
+    return rows;
+  }
+  function xlsxBuy(list) {
+    saveXlsx([{ name:'Что заказать', first:true, rows:buyRows(list),
+      cols:W([44,7,26,11,12,11,13,11,10,13,12,40]), hRows:{0:30} }],
+      'Что заказать ' + dmy(TH).replace(/\./g,'-') + '.xlsx');
+  }
   function orderRows(list) {
     var head = ['Позиция','Ед.','Остаток','Расход в день','Хватит, дней','Срок поставки, дн',
                 'Заказать','Цена, ₸','Сумма, ₸','Где лежит'];
@@ -1012,18 +1361,107 @@ tfoot td:first-child{text-align:left}
   }
 
   /* ── ЗАПУСК ────────────────────────────────────────────────────── */
-  function redraw(){ calc(); head(); secOrd(); secMx(); secAll(); secDead(); }
-  ['p-lead','p-long','p-safe','p-cov'].forEach(function (id) {
+  function redraw(){ calc(); head(); secBuy(); secOrd(); secMx(); secAll(); secDead(); }
+  ['p-weeks','p-lead','p-long','p-safe','p-thr'].forEach(function (id) {
     document.getElementById(id).oninput = function () {
-      P.lead = +document.getElementById('p-lead').value || 7;
-      P.long = +document.getElementById('p-long').value || 10;
-      P.safe = +document.getElementById('p-safe').value || 0;
-      P.cov  = +document.getElementById('p-cov').value  || 30;
+      P.weeks = +document.getElementById('p-weeks').value || 6;
+      P.lead  = +document.getElementById('p-lead').value  || 7;
+      P.long  = +document.getElementById('p-long').value  || 10;
+      P.safe  = +document.getElementById('p-safe').value  || 0;
+      P.thr   = +document.getElementById('p-thr').value   || 0;
       redraw();
     };
   });
-  document.getElementById('q').oninput = function () { secOrd(); secMx(); secAll(); secDead(); };
+  document.getElementById('q').oninput = function () { secBuy(); secOrd(); secMx(); secAll(); secDead(); };
   document.getElementById('xls').onclick = xlsxAll;
+
+  /* ── загрузка фото ──────────────────────────────────────────────── */
+  function toast(msg, ms) {
+    var t = document.getElementById('toast');
+    if (!t) {
+      t = document.createElement('div'); t.id = 'toast';
+      t.style.cssText = 'position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:95;'
+        + 'background:#13233f;border:1px solid #2a3a5c;color:#e8eef6;border-radius:12px;'
+        + 'padding:11px 16px;font-size:12.5px;font-weight:600;max-width:min(520px,92vw);'
+        + 'box-shadow:0 10px 40px -12px rgba(0,0,0,.8);line-height:1.5';
+      document.body.appendChild(t);
+    }
+    t.innerHTML = msg; t.style.display = '';
+    clearTimeout(toast.t);
+    if (ms !== 0) toast.t = setTimeout(function(){ t.style.display = 'none'; }, ms || 3800);
+  }
+
+  document.getElementById('f-one').onchange = function () {
+    var f = this.files && this.files[0]; var k = fotoTarget; this.value = '';
+    if (!f || !k) return;
+    toast('Загружаю фото…', 0);
+    fotoPut(k, f, function (err) {
+      if (err) toast('Фото не загрузилось: ' + esc(err));
+      else { toast('Фото сохранено'); redraw(); }
+    });
+  };
+
+  /* Пачкой: файл привязывается к позиции по своему имени. «Лоток 187137 45.jpg»
+     найдёт «У* Лоток 187*137*45 ФС 504 шт/кор» — служебные знаки при сравнении
+     отбрасываются, достаточно узнаваемого куска названия. */
+  function bulkMatch(fileName) {
+    var nm = nkey(String(fileName).replace(/\.[a-z0-9]+$/i, ''));
+    if (!nm) return null;
+    var keys = IT.map(function(i){ return i.key; });
+    if (keys.indexOf(nm) >= 0) return nm;
+    var cand = keys.filter(function (x) { return x.indexOf(nm) >= 0 || nm.indexOf(x) >= 0; });
+    if (!cand.length) return null;
+    cand.sort(function (a, b) { return b.length - a.length; });
+    return cand[0];
+  }
+  document.getElementById('f-many').onchange = function () {
+    var files = Array.prototype.slice.call(this.files || []); this.value = '';
+    if (!files.length) return;
+    var pairs = [], miss = [];
+    files.forEach(function (f) {
+      var k = bulkMatch(f.name);
+      if (k) pairs.push([k, f]); else miss.push(f.name);
+    });
+    if (!pairs.length) {
+      toast('Ни один файл не удалось сопоставить с позицией. Назовите файл по названию позиции — '
+        + 'например «Лоток 187 137 45.jpg».', 7000);
+      return;
+    }
+    var done = 0, bad = [];
+    (function next() {
+      if (!pairs.length) {
+        redraw();
+        toast('Загружено фото: <b>' + done + '</b>'
+          + (bad.length ? '<br>не получилось: ' + bad.length : '')
+          + (miss.length ? '<br>не узнали позицию по имени файла: ' + esc(miss.slice(0,6).join(', '))
+              + (miss.length>6 ? ' и ещё ' + (miss.length-6) : '') : ''), 9000);
+        return;
+      }
+      var p = pairs.shift();
+      toast('Загружаю фото… ' + (done + bad.length + 1) + ' из ' + (done + bad.length + 1 + pairs.length), 0);
+      fotoPut(p[0], p[1], function (err) { if (err) bad.push(p[1].name); else done++; next(); });
+    })();
+  };
+  document.getElementById('fotobulk').onclick = function () { document.getElementById('f-many').click(); };
+
+  document.getElementById('lb-x').onclick = lbClose;
+  document.getElementById('lb').onclick = function (e) { if (e.target === this) lbClose(); };
+  document.getElementById('lb-re').onclick = function () {
+    fotoTarget = document.getElementById('lb').getAttribute('data-k');
+    lbClose(); document.getElementById('f-one').click();
+  };
+  document.getElementById('lb-rm').onclick = function () {
+    var k = document.getElementById('lb').getAttribute('data-k');
+    lbClose();
+    fetch(API + '?a=rm&n=' + encodeURIComponent(k), { method:'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function (j) {
+        if (j && j.ok) { delete FOTO[k]; redraw(); toast('Фото удалено'); }
+        else toast('Удалить не удалось: ' + esc((j&&j.error)||'нет связи'));
+      }).catch(function(e){ toast('Удалить не удалось: ' + esc(String(e))); });
+  };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lbClose(); });
+
   document.querySelectorAll('#tabs .tab').forEach(function (t) {
     t.onclick = function () {
       document.querySelectorAll('#tabs .tab').forEach(function(x){ x.classList.remove('on'); });
@@ -1032,7 +1470,11 @@ tfoot td:first-child{text-align:left}
       document.getElementById('s-' + t.getAttribute('data-s')).classList.add('on');
     };
   });
+
   redraw();
+  /* Фото и ручные цены приходят из воркера: страница рисуется сразу,
+     а когда список дойдёт — перерисовываем. */
+  fotoLoad().then(function () { if (Object.keys(FOTO).length || Object.keys(PRICE_MAN).length) redraw(); });
 })();
 
 </script>
