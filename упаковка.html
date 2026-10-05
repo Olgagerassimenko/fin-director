@@ -72,9 +72,11 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .fcount{margin-left:auto;padding-bottom:10px;font-size:11.5px;color:var(--mut)}
 .fcount b{color:#fcd34d}
 .supl{cursor:pointer;border-bottom:1px dashed #3a4a68}
+.un{font-size:10px;color:#6b7f9c;font-weight:600}
 .supl:hover{color:#c4b5fd;border-bottom-color:#c4b5fd}
 td.stc,th.stc{width:54px;min-width:54px;text-align:center}
 td.prc{min-width:98px}
+td.minq{font-weight:800;color:#93c5fd}
 .pin{width:84px}
 td.wkc,th.wkc{width:70px;min-width:70px;text-align:center}
 .win{width:56px;background:#0a1222;border:1px solid var(--line2);color:var(--ink);border-radius:7px;padding:4px 6px;font-size:11.5px;font-family:inherit;text-align:center;font-weight:800}
@@ -650,6 +652,15 @@ thead th.nm{text-align:left}
     });
   }
 
+  /* Везде, где число — это количество, рядом стоит единица, а под ним
+     те же штуки в деньгах. Иначе непонятно, 98 447 — это штуки или тенге. */
+  function qtyCell(qty, price, unit, cls){
+    var money = (price && isFinite(qty)) ? qty * price : null;
+    return '<td' + (cls ? ' class="' + cls + '"' : '') + '>'
+      + f1(qty) + (unit ? ' <span class="un">' + esc(unit) + '</span>' : '')
+      + '<div class="sub2">' + (money == null ? '—' : f0(money) + ' ₸') + '</div></td>';
+  }
+
   function stCls(s){ return s==='в стопе'?'s-stop':s==='дефицит'?'s-def':s==='пора заказывать'?'s-soon'
     :s==='ниже минимума'?'s-low':s==='норма'?'s-ok':s==='лежит без движения'?'s-dead':'s-non'; }
   function hot(){ return IT.filter(function(i){ return i.order>0; }); }
@@ -1071,10 +1082,11 @@ thead th.nm{text-align:left}
           +     ' · расход ' + f1(i.perD) + '/дн · минимум ' + f0(i.min)
           +     (i.why ? ' · <span style="color:#fcd34d">' + esc(i.why) + '</span>' : '')
           +   '</div></td>'
-          + '<td>' + f1(i.stock) + '</td>'
+          + qtyCell(i.stock, i.price, i.u)
           + '<td class="dd' + (i.days!=null&&i.days<i.lead?' red':'') + '">' + f1(i.days) + '</td>'
           + weeksCell(i)
-          + '<td class="q">' + f0(i.order) + '</td>'
+          + '<td class="q">' + f0(i.order)
+          +   (i.u ? ' <span class="un">' + esc(i.u) + '</span>' : '') + '</td>'
           + priceCell(i)
           + '<td class="mny">' + (withPrice ? f0(i.orderSum) : '<span class="zero">—</span>') + '</td>'
           + '<td>' + (i.urg ? '<span class="st ' + (i.urg==='срочно'?'s-def':i.urg==='скоро'?'s-soon':'s-low') + '">'
@@ -1083,9 +1095,11 @@ thead th.nm{text-align:left}
       }).join('');
     }
     var thead = '<thead><tr>' + thSort(BUY_SORT, [
-        ['', 'Фото', 'ph'], ['n', 'Позиция', 'nm'], ['stock', 'Остаток'], ['days', 'Хватит, дней'],
+        ['', 'Фото', 'ph'], ['n', 'Позиция', 'nm'],
+        ['stock', 'Остаток', '', 'сверху в единицах, снизу в тенге'], ['days', 'Хватит, дней'],
         ['weeks', 'Недель', 'wkc', 'на сколько недель держим запас по этой позиции'],
-        ['order', 'Заказать'], ['price', 'Цена за 1, ₸', '', 'цена за единицу по последней накладной'],
+        ['order', 'Заказать', '', 'в единицах позиции'],
+        ['price', 'Цена за 1, ₸', '', 'цена за единицу по последней накладной'],
         ['orderSum', 'Сумма, ₸'], ['urg', 'Срочность'], ['', 'Стоп', 'stc']
       ]) + '</tr></thead>';
 
@@ -1177,10 +1191,10 @@ thead th.nm{text-align:left}
       + 'это деньги, которые лежат без дела. В отчёт берём только упаковку, которой пользуются: '
       + 'есть расход за три последних месяца и она не в стопе.</div>'
       + '<div class="kpis" style="margin-top:12px">'
-      +   tile('Неснижаемый остаток', f0(normSum) + ' ₸', 'запас на ' + P.weeks + ' '
+      +   tile('Неснижаемый остаток, ₸', f0(normSum) + ' ₸', 'запас на ' + P.weeks + ' '
             + plw(P.weeks,'неделю','недели','недель') + ' по всей рабочей упаковке', '#60a5fa')
-      +   tile('Лежит сейчас', f0(factSum) + ' ₸', a.length + ' ' + plw(a.length,'позиция','позиции','позиций') + ' в обороте', '#4ade80')
-      +   tile('Не хватает до неснижаемого', f0(needSum) + ' ₸', below.length + ' ' + plw(below.length,'позиция','позиции','позиций'), '#f87171')
+      +   tile('Лежит сейчас, ₸', f0(factSum) + ' ₸', a.length + ' ' + plw(a.length,'позиция','позиции','позиций') + ' в обороте', '#4ade80')
+      +   tile('Не хватает, ₸', f0(needSum) + ' ₸', below.length + ' ' + plw(below.length,'позиция','позиции','позиций'), '#f87171')
       +   tile('Избыток сверх ' + P.over + ' недель', f0(overSum) + ' ₸', over.length + ' ' + plw(over.length,'позиция','позиции','позиций'), '#fbbf24')
       +   tile('Лежит без движения', f0(deadSum) + ' ₸', 'не заказывать вовсе', '#c4b5fd')
       +   (stoppedRep.length ? tile('В стопе', f0(stopSum) + ' ₸', stoppedRep.length + ' '
@@ -1193,12 +1207,17 @@ thead th.nm{text-align:left}
       +   '<button class="mini" id="xrep" style="margin-left:auto">📥 Отчёт в Excel</button></div>'
       + '<div class="hint">Сверху то, где дыра до неснижаемого больше всего в деньгах. '
       + '«Отклонение» — остаток минус неснижаемый: минус значит, что уже ниже нормы. '
+      + 'В колонках «неснижаемый» и «остаток» сверху количество в единицах позиции, снизу то же в тенге. '
       + 'Заголовки кликаются — можно отсортировать по любому столбцу.</div>'
       + '<div class="tw"><table><thead><tr>' + thSort(REP_SORT, [
-          ['', 'Фото', 'ph'], ['n', 'Позиция', 'nm'], ['perD', 'Расход в день'],
+          ['', 'Фото', 'ph'], ['n', 'Позиция', 'nm'],
+          ['perD', 'Расход в день', '', 'в единицах позиции'],
           ['weeks', 'Недель', 'wkc', 'на сколько недель держим запас'],
-          ['min', 'Неснижаемый'], ['stock', 'Остаток'], ['days', 'Хватит, дней'],
-          ['devQty', 'Отклонение'], ['devSum', 'Отклонение, ₸'], ['zone', 'Зона']
+          ['min', 'Неснижаемый', '', 'сверху в единицах, снизу в тенге'],
+          ['stock', 'Остаток', '', 'сверху в единицах, снизу в тенге'],
+          ['days', 'Хватит, дней'],
+          ['devQty', 'Отклонение', '', 'остаток минус неснижаемый, в единицах'],
+          ['devSum', 'Отклонение, ₸'], ['zone', 'Зона']
         ]) + '</tr></thead><tbody>'
       + a.map(function (i) {
           var z = i.zone === 'ниже неснижаемого' ? 's-def' : i.zone === 'избыток' ? 's-soon' : 's-ok';
@@ -1209,13 +1228,14 @@ thead th.nm{text-align:left}
             +   '<div class="sub2">' + supLink(i.main)
             +   (i.u ? ' · ' + esc(i.u) : '') + ' · запас на ' + i.weeks + ' '
             +   plw(i.weeks,'неделю','недели','недель') + (i.ownWeeks ? ' (своё)' : '') + '</div></td>'
-            + '<td>' + f1(i.perD) + '</td>'
+            + '<td>' + f1(i.perD) + (i.u ? ' <span class="un">' + esc(i.u) + '</span>' : '') + '</td>'
             + weeksCell(i)
-            + '<td style="font-weight:800;color:#93c5fd">' + f0(i.min) + '</td>'
-            + '<td>' + f1(i.stock) + '</td>'
+            + qtyCell(i.min, i.price, i.u, 'minq')
+            + qtyCell(i.stock, i.price, i.u)
             + '<td class="dd' + (i.days!=null&&i.days<i.lead?' red':'') + '">' + f1(i.days) + '</td>'
             + '<td style="font-weight:800;color:' + (i.devQty<0?'#fca5a5':'#86efac') + '">'
-            +   (i.devQty>0?'+':'') + f0(i.devQty) + '</td>'
+            +   (i.devQty>0?'+':'') + f0(i.devQty)
+            +   (i.u ? ' <span class="un">' + esc(i.u) + '</span>' : '') + '</td>'
             + '<td style="color:' + (i.devSum<0?'#fca5a5':'#8fa2bd') + '">'
             +   (i.devSum>0?'+':'') + f0(i.devSum) + '</td>'
             + '<td><span class="st ' + z + '">' + i.zone + '</span></td></tr>';
@@ -1827,8 +1847,9 @@ thead th.nm{text-align:left}
      формулами. Столбцы: D расход, E недель, F неснижаемый, G остаток,
      H хватит дней, I заказать, J цена, K сумма, L стоп. */
   function buyRows(list) {
-    var head = ['Позиция','Ед.','Поставщик','Расход в день','Недель','Неснижаемый остаток','Остаток',
-                'Хватит, дней','Заказать','Цена за 1, ₸','Сумма, ₸','Стоп','Срочность','Где лежит'];
+    var head = ['Позиция','Ед.','Поставщик','Расход в день, ед.','Недель','Неснижаемый остаток, ед.',
+                'Остаток, ед.','Хватит, дней','Заказать, ед.','Цена за 1, ₸','Сумма, ₸','Стоп',
+                'Срочность','Где лежит'];
     var rows = [head.map(function(h){ return {v:h,s:1}; })];
     list.forEach(function (i, n) {
       var r = n + 2;
@@ -1854,8 +1875,8 @@ thead th.nm{text-align:left}
   }
 
   function repRows(list) {
-    var head = ['Позиция','Ед.','Поставщик','Расход в день','Недель','Неснижаемый остаток','Остаток',
-                'Хватит, дней','Отклонение','Цена за 1, ₸','Отклонение, ₸','Зона'];
+    var head = ['Позиция','Ед.','Поставщик','Расход в день, ед.','Недель','Неснижаемый остаток, ед.',
+                'Остаток, ед.','Хватит, дней','Отклонение, ед.','Цена за 1, ₸','Отклонение, ₸','Зона'];
     var rows = [head.map(function(h){ return {v:h,s:1}; })];
     list.forEach(function (i, n) {
       var r = n + 2;
