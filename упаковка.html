@@ -690,10 +690,12 @@ thead th.nm{text-align:left}
      те же штуки в деньгах. Иначе непонятно, 98 447 — это штуки или тенге. */
   /* Количество и деньги — разными столбцами: так их видно рядом и можно
      отсортировать и по штукам, и по сумме. */
+  /* Единица измерения стоит в шапке столбца и в подписи под названием
+     позиции — в каждой ячейке её дублировать не нужно, цифры из-за этого
+     не читаются. */
   function qtyCell(qty, price, unit, cls){
     var money = (price && isFinite(qty)) ? qty * price : null;
-    return '<td' + (cls ? ' class="' + cls + '"' : '') + '>'
-      + f1(qty) + (unit ? ' <span class="un">' + esc(unit) + '</span>' : '') + '</td>'
+    return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + f1(qty) + '</td>'
       + '<td class="mn">' + (money == null ? '<span class="zero">—</span>' : f0(money)) + '</td>';
   }
 
@@ -1128,8 +1130,7 @@ thead th.nm{text-align:left}
           + qtyCell(i.stock, i.price, i.u)
           + '<td class="dd' + (i.days!=null&&i.days<i.lead?' red':'') + '">' + f1(i.days) + '</td>'
           + weeksCell(i)
-          + '<td class="q">' + f0(i.order)
-          +   (i.u ? ' <span class="un">' + esc(i.u) + '</span>' : '') + '</td>'
+          + '<td class="q">' + f0(i.order) + '</td>'
           + priceCell(i)
           + '<td class="mny">' + (withPrice ? f0(i.orderSum) : '<span class="zero">—</span>') + '</td>'
           + '<td>' + (i.urg ? '<span class="st ' + (i.urg==='срочно'?'s-def':i.urg==='скоро'?'s-soon':'s-low') + '">'
@@ -1265,14 +1266,13 @@ thead th.nm{text-align:left}
             +   (i.stop ? ' <span class="st s-stop">в стопе</span>' : '')
             +   '<div class="sub2">' + supLink(i.main)
             +   (i.u ? ' · ' + esc(i.u) : '') + '</div></td>'
-            + '<td>' + f1(i.perD) + (i.u ? ' <span class="un">' + esc(i.u) + '</span>' : '') + '</td>'
+            + '<td>' + f1(i.perD) + '</td>'
             + weeksCell(i)
             + qtyCell(i.min, i.price, i.u, 'minq')
             + qtyCell(i.stock, i.price, i.u)
             + '<td class="dd' + (i.days!=null&&i.days<i.lead?' red':'') + '">' + f1(i.days) + '</td>'
             + '<td style="font-weight:800;color:' + (i.devQty<0?'#fca5a5':'#86efac') + '">'
-            +   (i.devQty>0?'+':'') + f0(i.devQty)
-            +   (i.u ? ' <span class="un">' + esc(i.u) + '</span>' : '') + '</td>'
+            +   (i.devQty>0?'+':'') + f0(i.devQty) + '</td>'
             /* Без цены отклонение в деньгах посчитать не из чего — ноль
                здесь читался бы как «всё сходится». */
             + '<td style="color:' + (i.devSum<0?'#fca5a5':'#8fa2bd') + '">'
