@@ -121,9 +121,19 @@ if _neg:
     for nm, v in _neg[:20]: log("      %-55s %12.2f" % (nm[:55], v))
 
 # ── 3. движение по месяцам: позиция × склад ────────────────────
+#  05.10.2026. Движение бралось по всем типам операций разом, а в них входят
+#  перемещения между складами: упаковку приняли на «Основной склад», оттуда
+#  передали в «Производство» — и это посчиталось и как приход, и как расход
+#  ещё раз. По лотку 187*137*45 сентябрьский приход выходил 211 554 шт при
+#  закупе 91 480: расход, от которого считается заявка, был завышен почти
+#  вдвое. Теперь тип операции запрашивается отдельным разрезом, и для
+#  расчёта потребления перемещения не учитываются. Разрез по складам
+#  (вкладка «где что лежит») по-прежнему по всем типам — там это верно.
 log("3) движение по месяцам")
-def moves(d1, d2, by_store):
-    fields = ["Product.Name"] + (["Store"] if by_store else [])
+TRANSFER_RE = re.compile(r"transfer|перемещ", re.I)
+
+def moves(d1, d2, by_store, by_type=True):
+    fields = ["Product.Name"] + (["Store"] if by_store else []) + (["TransactionType"] if by_type else [])
     body = {"reportType": "TRANSACTIONS", "buildSummary": "false",
             "groupByRowFields": fields,
             "aggregateFields": ["Amount.In", "Amount.Out"],
@@ -133,9 +143,12 @@ def moves(d1, d2, by_store):
                         "Department": {"filterType": "IncludeValues", "values": [DEP]}}}
     return olap(body)
 
-mv = {}             # месяц -> позиция -> склад -> [приход, расход]
+mv = {}             # месяц -> позиция -> склад -> [приход, расход]   все типы
+mvc = {}            # месяц -> позиция -> [приход, расход]            без перемещений
 mv_tot = {}         # месяц -> позиция -> [приход, расход]
+types = {}          # тип операции -> [приход, расход]  (для лога)
 store_ok = None
+type_ok = None
 for k in MONTHS:
     d1, d2 = m_bounds(k)
     if d1 >= d2: continue
@@ -143,19 +156,41 @@ for k in MONTHS:
     if store_ok is None:
         store_ok = any((r.get("Store") or "").strip() for r in rows)
         log("   разрез по складам:", "есть" if store_ok else "iiko его не отдаёт")
+    if type_ok is None:
+        type_ok = any((r.get("TransactionType") or "").strip() for r in rows)
+        log("   разрез по типу операции:", "есть" if type_ok else "iiko его не отдаёт — перемещения отделить нечем")
     if not store_ok:
         rows = moves(d1, d2, False)
     for r in rows:
         nm = r.get("Product.Name") or ""
         if not is_pack(nm): continue
         st = (r.get("Store") or "").strip() or "—"
+        tt = (r.get("TransactionType") or "").strip()
         i = float(r.get("Amount.In") or 0); o = float(r.get("Amount.Out") or 0)
         if not i and not o: continue
         a = mv.setdefault(k, {}).setdefault(nm, {}).setdefault(st, [0.0, 0.0])
         a[0] += i; a[1] += o
         b = mv_tot.setdefault(k, {}).setdefault(nm, [0.0, 0.0])
         b[0] += i; b[1] += o
+        t = types.setdefault(tt or "(без типа)", [0.0, 0.0]); t[0] += i; t[1] += o
+        if not TRANSFER_RE.search(tt):
+            c = mvc.setdefault(k, {}).setdefault(nm, [0.0, 0.0])
+            c[0] += i; c[1] += o
     log("   %s: позиций %d" % (k, len(mv.get(k, {}))))
+
+log("   типы операций за год (приход / расход):")
+for tt, v in sorted(types.items(), key=lambda x: -x[1][1]):
+    log("      %-40s %14.0f %14.0f%s" % (tt[:40], v[0], v[1],
+        "   ← перемещение, в расчёт не идёт" if TRANSFER_RE.search(tt) else ""))
+_lm = [k for k in MONTHS if k in mv_tot]
+if _lm:
+    _k = _lm[-2] if len(_lm) > 1 else _lm[-1]
+    _d = sorted(((nm, mv_tot[_k][nm][1], (mvc.get(_k, {}).get(nm) or [0, 0])[1]) for nm in mv_tot[_k]),
+                key=lambda x: -(x[1] - x[2]))
+    _d = [x for x in _d if x[1] - x[2] > 1]
+    log("   %s: расход со всеми типами против расхода без перемещений, позиций %d:" % (_k, len(_d)))
+    for nm, a, b in _d[:12]:
+        log("      %-48s %12.0f -> %12.0f" % (nm[:48], a, b))
 
 # ── 4. закуп по поставщикам ────────────────────────────────────
 log("4) закуп по поставщикам")
@@ -217,6 +252,9 @@ for nm in names:
         "st": {k: [round(v[0], 2), round(v[1])] for k, v in st.items() if abs(v[0]) > 0.0001 or abs(v[1]) > 0.5},
         "mv": {k: {s2: [round(v[0], 2), round(v[1], 2)] for s2, v in (mv.get(k, {}).get(nm) or {}).items()}
                for k in MONTHS if mv.get(k, {}).get(nm)},
+        # движение без перемещений между складами: от него считается расход
+        "mc": {k: [round(mvc[k][nm][0], 2), round(mvc[k][nm][1], 2)]
+               for k in MONTHS if mvc.get(k, {}).get(nm)},
         "sup": {k: [round(v[0]), round(v[1], 2)] for k, v in (buy.get(nm) or {}).items()},
         # [цена за единицу, месяц закупа, поставщик, сколько взяли]
         "last": last_buy.get(nm),
@@ -229,6 +267,9 @@ out = {
     "lastFull": last_full.isoformat(),
     "months": MONTHS,
     "storeSplit": bool(store_ok),
+    # есть ли разрез по типу операции: если нет, расход посчитан вместе
+    # с перемещениями и страница должна об этом предупредить
+    "typeSplit": bool(type_ok),
     "stores": sorted({s2 for it in items for s2 in it["st"]}
                      | {s2 for it in items for k in it["mv"] for s2 in it["mv"][k]}),
     "items": items,
