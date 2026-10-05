@@ -246,6 +246,10 @@ thead th.ph{width:64px;min-width:64px;text-align:center}
 tbody td.nm{text-align:left;white-space:normal;min-width:240px}
 thead th.nm{text-align:left}
 #s-buy table{min-width:880px;font-size:13px}
+#s-rep table{min-width:1020px;font-size:12.5px}
+#s-rep tbody td{padding:8px 9px}
+#s-rep tbody td.nm{min-width:200px}
+#s-rep thead th{padding:9px}
 #s-buy tbody td{padding:10px 12px}
 #s-buy .q{font-size:15px;font-weight:900;color:#fcd34d}
 #s-buy .mny{font-weight:800;color:#eef3fa}
@@ -354,16 +358,16 @@ thead th.nm{text-align:left}
   </div>
 
   <div class="tabs" id="tabs">
-    <button class="tab on" data-s="buy">🛒 Что заказать<b id="t-buy"></b></button>
-    <button class="tab" data-s="rep">📈 Неснижаемый остаток<b id="t-rep"></b></button>
+    <button class="tab on" data-s="rep">📈 Неснижаемый остаток<b id="t-rep"></b></button>
+    <button class="tab" data-s="buy">🛒 Что заказать<b id="t-buy"></b></button>
     <button class="tab" data-s="ord">📝 Заявка по поставщикам<b id="t-ord"></b></button>
     <button class="tab" data-s="mx">🏬 Где что лежит<b id="t-mx"></b></button>
     <button class="tab" data-s="all">📋 Вся упаковка<b id="t-all"></b></button>
     <button class="tab" data-s="dead">🧊 Не используется<b id="t-dead"></b></button>
   </div>
 
-  <div class="sec on" id="s-buy"></div>
-  <div class="sec" id="s-rep"></div>
+  <div class="sec on" id="s-rep"></div>
+  <div class="sec" id="s-buy"></div>
   <div class="sec" id="s-ord"></div>
   <div class="sec" id="s-mx"></div>
   <div class="sec" id="s-all"></div>
@@ -413,7 +417,8 @@ thead th.nm{text-align:left}
     document.getElementById('up').style.display = 'none';
     document.getElementById('p-nodata').style.display = ''; return;
   }
-  var MON = D.months || [], STORES = D.stores || [], TH = D.through || '';
+  var MON = D.months || [], TH = D.through || '';
+  var STORES = (D.stores || []).filter(function(s){ return !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(s||'')); });
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -456,7 +461,15 @@ thead th.nm{text-align:left}
   /* «Склад ТЕСТ» — служебный. Его остатки и движения в расчёт заказа не идут:
      05.10.2026 он давал минусовые остатки и портил дневной расход. */
   var TEST_RE = /склад\s*тест/i;
-  function skipStore(s){ return !P.test && TEST_RE.test(String(s||'')); }
+  /* Иногда iiko отдаёт склад, которого нет в справочнике, и вместо названия
+     в данные попадает его идентификатор вида cd19b5ea-1b32-… Такие остатки
+     (обычно копейки) из расчёта и из таблиц убираем всегда. */
+  var GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}/i;
+  function skipStore(s){
+    s = String(s || '');
+    if (GUID_RE.test(s)) return true;
+    return !P.test && TEST_RE.test(s);
+  }
 
   /* Фото и ручные цены лежат в воркере (/api/upak), ключ — нормализованное
      название позиции, поэтому они переживают пересборку данных. */
@@ -1211,13 +1224,13 @@ thead th.nm{text-align:left}
       + 'Заголовки кликаются — можно отсортировать по любому столбцу.</div>'
       + '<div class="tw"><table><thead><tr>' + thSort(REP_SORT, [
           ['', 'Фото', 'ph'], ['n', 'Позиция', 'nm'],
-          ['perD', 'Расход в день', '', 'в единицах позиции'],
+          ['perD', 'Расход/день', '', 'в единицах позиции'],
           ['weeks', 'Недель', 'wkc', 'на сколько недель держим запас'],
           ['min', 'Неснижаемый', '', 'сверху в единицах, снизу в тенге'],
           ['stock', 'Остаток', '', 'сверху в единицах, снизу в тенге'],
-          ['days', 'Хватит, дней'],
-          ['devQty', 'Отклонение', '', 'остаток минус неснижаемый, в единицах'],
-          ['devSum', 'Отклонение, ₸'], ['zone', 'Зона']
+          ['days', 'Хватит, дн'],
+          ['devQty', 'Откл., ед.', '', 'остаток минус неснижаемый, в единицах'],
+          ['devSum', 'Откл., ₸'], ['zone', 'Зона']
         ]) + '</tr></thead><tbody>'
       + a.map(function (i) {
           var z = i.zone === 'ниже неснижаемого' ? 's-def' : i.zone === 'избыток' ? 's-soon' : 's-ok';
@@ -1226,8 +1239,7 @@ thead th.nm{text-align:left}
             + '<td class="nm">' + esc(i.n)
             +   (i.stop ? ' <span class="st s-stop">в стопе</span>' : '')
             +   '<div class="sub2">' + supLink(i.main)
-            +   (i.u ? ' · ' + esc(i.u) : '') + ' · запас на ' + i.weeks + ' '
-            +   plw(i.weeks,'неделю','недели','недель') + (i.ownWeeks ? ' (своё)' : '') + '</div></td>'
+            +   (i.u ? ' · ' + esc(i.u) : '') + '</div></td>'
             + '<td>' + f1(i.perD) + (i.u ? ' <span class="un">' + esc(i.u) + '</span>' : '') + '</td>'
             + weeksCell(i)
             + qtyCell(i.min, i.price, i.u, 'minq')
@@ -1238,7 +1250,8 @@ thead th.nm{text-align:left}
             +   (i.u ? ' <span class="un">' + esc(i.u) + '</span>' : '') + '</td>'
             + '<td style="color:' + (i.devSum<0?'#fca5a5':'#8fa2bd') + '">'
             +   (i.devSum>0?'+':'') + f0(i.devSum) + '</td>'
-            + '<td><span class="st ' + z + '">' + i.zone + '</span></td></tr>';
+            + '<td><span class="st ' + z + '" title="' + i.zone + '">'
+            +   (i.zone === 'ниже неснижаемого' ? 'ниже' : i.zone) + '</span></td></tr>';
         }).join('')
       + '</tbody><tfoot><tr><td></td><td class="nm">Итого · ' + a.length + '</td><td></td><td></td>'
       + '<td>' + f0(normSum) + ' ₸</td><td>' + f0(factSum) + ' ₸</td><td></td><td></td>'
