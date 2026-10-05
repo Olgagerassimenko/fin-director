@@ -73,6 +73,8 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .fcount b{color:#fcd34d}
 .supl{cursor:pointer;border-bottom:1px dashed #3a4a68}
 .un{font-size:10px;color:#6b7f9c;font-weight:600}
+td.mn{color:#9fb2cc}
+thead th br{line-height:1.35}
 .supl:hover{color:#c4b5fd;border-bottom-color:#c4b5fd}
 td.stc,th.stc{width:54px;min-width:54px;text-align:center}
 td.prc{min-width:98px}
@@ -251,10 +253,12 @@ thead th.nm{text-align:left}
    Числам даём ширину по содержимому, остаток ширины забирает название. */
 #s-rep th, #s-rep td, #s-buy th, #s-buy td{width:1%}
 #s-rep th.nm, #s-rep td.nm, #s-buy th.nm, #s-buy td.nm{width:auto}
-#s-rep table{min-width:1020px;font-size:12.5px}
-#s-rep tbody td{padding:8px 9px}
-#s-rep tbody td.nm{min-width:200px}
-#s-rep thead th{padding:9px}
+#s-rep table{min-width:980px;font-size:12px}
+#s-rep tbody td{padding:7px 7px}
+#s-rep tbody td.nm{min-width:180px}
+#s-rep thead th{padding:8px 7px;font-size:10px}
+#s-rep tbody td.ph,#s-rep thead th.ph{width:54px;min-width:54px}
+#s-rep .ph-b{width:44px;height:44px}
 #s-buy tbody td{padding:10px 12px}
 #s-buy .q{font-size:15px;font-weight:900;color:#fcd34d}
 #s-buy .mny{font-weight:800;color:#eef3fa}
@@ -603,6 +607,8 @@ thead th.nm{text-align:left}
       it.order = it.stop ? 0 : it.orderWanted;
       it.orderSum = it.order * it.price;
       /* Срочность: кончится раньше, чем придёт поставка — «срочно». */
+      it.minMoney = it.min * it.price;
+      it.stockMoney = it.stock * it.price;
       it.urg = (it.stop || it.perD <= 0) ? ''
              : it.days < it.lead ? 'срочно'
              : it.days < it.lead + P.safe ? 'скоро'
@@ -676,11 +682,13 @@ thead th.nm{text-align:left}
 
   /* Везде, где число — это количество, рядом стоит единица, а под ним
      те же штуки в деньгах. Иначе непонятно, 98 447 — это штуки или тенге. */
+  /* Количество и деньги — разными столбцами: так их видно рядом и можно
+     отсортировать и по штукам, и по сумме. */
   function qtyCell(qty, price, unit, cls){
     var money = (price && isFinite(qty)) ? qty * price : null;
     return '<td' + (cls ? ' class="' + cls + '"' : '') + '>'
-      + f1(qty) + (unit ? ' <span class="un">' + esc(unit) + '</span>' : '')
-      + '<div class="sub2">' + (money == null ? '—' : f0(money) + ' ₸') + '</div></td>';
+      + f1(qty) + (unit ? ' <span class="un">' + esc(unit) + '</span>' : '') + '</td>'
+      + '<td class="mn">' + (money == null ? '<span class="zero">—</span>' : f0(money)) + '</td>';
   }
 
   function stCls(s){ return s==='в стопе'?'s-stop':s==='дефицит'?'s-def':s==='пора заказывать'?'s-soon'
@@ -1118,7 +1126,7 @@ thead th.nm{text-align:left}
     }
     var thead = '<thead><tr>' + thSort(BUY_SORT, [
         ['', 'Фото', 'ph'], ['n', 'Позиция', 'nm'],
-        ['stock', 'Остаток', '', 'сверху в единицах, снизу в тенге'], ['days', 'Хватит, дней'],
+        ['stock', 'Остаток<br>ед.'], ['stockMoney', 'Остаток<br>₸'], ['days', 'Хватит, дней'],
         ['weeks', 'Недель', 'wkc', 'на сколько недель держим запас по этой позиции'],
         ['order', 'Заказать', '', 'в единицах позиции'],
         ['price', 'Цена за 1, ₸', '', 'цена за единицу по последней накладной'],
@@ -1136,7 +1144,8 @@ thead th.nm{text-align:left}
       + '«Цена за 1» — по последней накладной в iiko, под ценой написано, когда брали. '
       + 'Любой заголовок можно нажать — таблица отсортируется по нему, третий клик вернёт порядок по умолчанию.</div>'
       + '<div class="tw"><table>' + thead + '<tbody>' + rows(withP, true) + '</tbody>'
-      + '<tfoot><tr><td></td><td class="nm">Итого · ' + withP.length + '</td><td></td><td></td><td></td>'
+      + '<tfoot><tr><td></td><td class="nm">Итого · ' + withP.length + '</td><td></td>'
+      + '<td>' + f0(withP.reduce(function(s,i){return s+i.stockMoney;},0)) + '</td><td></td><td></td>'
       + '<td>' + f0(withP.reduce(function(s,i){return s+i.order;},0)) + '</td><td></td>'
       + '<td>' + f0(sum) + '</td><td></td><td></td></tr></tfoot></table></div></div>';
 
@@ -1233,11 +1242,12 @@ thead th.nm{text-align:left}
       + 'Заголовки кликаются — можно отсортировать по любому столбцу.</div>'
       + '<div class="tw"><table><thead><tr>' + thSort(REP_SORT, [
           ['', 'Фото', 'ph'], ['n', 'Позиция', 'nm'],
-          ['perD', 'Расход/день', '', 'в единицах позиции'],
+          ['perD', 'Расход<br>в день', '', 'в единицах позиции'],
           ['weeks', 'Недель', 'wkc', 'на сколько недель держим запас'],
-          ['min', 'Неснижаемый', '', 'сверху в единицах, снизу в тенге'],
-          ['stock', 'Остаток', '', 'сверху в единицах, снизу в тенге'],
-          ['days', 'Хватит, дн'],
+          ['min', 'Неснижаемый<br>ед.', '', 'неснижаемый остаток в единицах позиции'],
+          ['minMoney', 'Неснижаемый<br>₸', '', 'неснижаемый остаток в деньгах'],
+          ['stock', 'Остаток<br>ед.'], ['stockMoney', 'Остаток<br>₸'],
+          ['days', 'Хватит<br>дн'],
           ['devQty', 'Откл., ед.', '', 'остаток минус неснижаемый, в единицах'],
           ['devSum', 'Откл., ₸'], ['zone', 'Зона']
         ]) + '</tr></thead><tbody>'
@@ -1263,7 +1273,7 @@ thead th.nm{text-align:left}
             +   (i.zone === 'ниже неснижаемого' ? 'ниже' : i.zone) + '</span></td></tr>';
         }).join('')
       + '</tbody><tfoot><tr><td></td><td class="nm">Итого · ' + a.length + '</td><td></td><td></td>'
-      + '<td>' + f0(normSum) + ' ₸</td><td>' + f0(factSum) + ' ₸</td><td></td><td></td>'
+      + '<td></td><td>' + f0(normSum) + '</td><td></td><td>' + f0(factSum) + '</td><td></td><td></td>'
       + '<td>' + f0(factSum - normSum) + '</td><td></td></tr></tfoot></table></div></div>';
 
     el.innerHTML = html;
