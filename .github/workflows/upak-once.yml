@@ -1,0 +1,80 @@
+name: Упаковка — пересобрать сейчас
+
+# Ежедневный прогон длится сорок минут, и упаковка стоит в нём ближе к концу.
+# Когда правка касается только её (цена последнего закупа, разрез по складам),
+# ждать весь прогон незачем: этот собирает один срез и сразу публикует сайт.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Та же группа, что у ежедневного прогона: два сборщика не должны лезть
+# в iiko и в репозиторий одновременно.
+concurrency:
+  group: pulse-daily
+  cancel-in-progress: false
+
+jobs:
+  upak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Получить репозиторий
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Зависимости
+        run: pip install -r requirements.txt
+
+      - name: "Упаковка: склады, движение, поставщики, цена последнего закупа"
+        timeout-minutes: 15
+        run: python gen_upakovka.py
+
+      - name: Сохранить срез в репозиторий
+        run: |
+          git config user.name "pulse-ci"
+          git config user.email "ci@local"
+          git add -f upak_data.js upak_LOG.txt
+          git commit -m "Упаковка: свежий срез [skip ci]" || echo "нет изменений"
+          git pull --rebase -X theirs origin main || { git rebase --abort || true; }
+          git push origin HEAD:main || echo "push не удался"
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Публикация (Cloudflare Workers)
+        timeout-minutes: 6
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@3 deploy
+
+      - name: Что собралось
+        run: |
+          python - <<'PY'
+          import json, re, os
+          t = open("upak_data.js", encoding="utf-8").read()
+          d = json.loads(t[t.index("{"):t.rstrip().rstrip(";").rindex("}") + 1])
+          n = len(d["items"])
+          withlast = sum(1 for i in d["items"] if i.get("last"))
+          neg = [(i["n"], round(sum(v[0] for v in i["st"].values()), 2)) for i in d["items"]
+                 if sum(v[0] for v in i["st"].values()) < 0]
+          out = ["## Упаковка — %s" % d.get("updated", "?"), "",
+                 "- остатки на **%s**" % d.get("stockAt", d.get("through", "?")),
+                 "- позиций: **%d**, с ценой последнего закупа: **%d**" % (n, withlast),
+                 "- складов: %d" % len(d.get("stores", []))]
+          if neg:
+              out += ["", "**Отрицательные остатки — ошибки учёта:**"]
+              out += ["- %s — %s" % (a, b) for a, b in sorted(neg, key=lambda x: x[1])[:15]]
+          s = "\n".join(out)
+          print(s)
+          p = os.environ.get("GITHUB_STEP_SUMMARY")
+          if p:
+              open(p, "a", encoding="utf-8").write(s + "\n")
+          PY
