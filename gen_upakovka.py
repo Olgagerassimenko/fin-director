@@ -74,16 +74,40 @@ log("1) справочники")
 prod_name, prod_unit = {}, {}
 pl = s.get(f"{URL}/resto/api/v2/entities/products/list",
            params={"key": tok, "includeDeleted": "false"}, verify=False, timeout=180).json()
+# 05.10.2026. Единицу взяли из справочника номенклатуры — и на страницу
+# поехало «0,3 cd19b5ea-1b32-a6e5-…»: в поле mainUnit лежит не «шт», а
+# идентификатор единицы. Поэтому сначала тянем справочник единиц и
+# переводим идентификатор в название; всё, что похоже на идентификатор,
+# в данные не пускаем.
+GUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}", re.I)
+unit_name = {}
+try:
+    ul = s.get(f"{URL}/resto/api/v2/entities/list",
+               params={"key": tok, "rootType": "MeasureUnit", "includeDeleted": "false"},
+               verify=False, timeout=120).json()
+    for q in ul:
+        nm = (q.get("name") or "").strip()
+        if q.get("id") and nm: unit_name[q["id"]] = nm
+except Exception as e:
+    log("   единицы измерения: не получили справочник —", e)
+log("   единиц измерения:", len(unit_name))
+
+def clean_unit(v):
+    v = str(v or "").strip()
+    if not v: return ""
+    if v in unit_name: return unit_name[v]
+    return "" if GUID_RE.match(v) else v
+
 unit_by_name = {}
 for p in pl:
     prod_name[p.get("id")] = p.get("name") or ""
-    prod_unit[p.get("id")] = (p.get("mainUnit") or p.get("unitName") or "") or ""
+    prod_unit[p.get("id")] = clean_unit(p.get("mainUnit") or p.get("unitName"))
     # Единицу раньше брали только из накладных, и у 76 позиций из 167 её не
     # было вовсе — просто потому, что за год их не покупали. В справочнике
     # номенклатуры она есть всегда.
-    if p.get("name"):
+    if p.get("name") and prod_unit[p.get("id")]:
         unit_by_name[p["name"]] = prod_unit[p.get("id")]
-log("   товаров:", len(prod_name))
+log("   товаров:", len(prod_name), "| с единицей из справочника:", len(unit_by_name))
 
 store_name = {}
 try:
@@ -250,7 +274,7 @@ for k in MONTHS:
         buy_m.setdefault(k, {})[nm] = buy_m.setdefault(k, {}).get(nm, 0) + sm
         c = cur.setdefault(nm, [0.0, 0.0, {}])
         c[0] += sm; c[1] += q; c[2][sup] = c[2].get(sup, 0) + q
-        u = (r.get("Product.MeasureUnit") or "").strip()
+        u = clean_unit(r.get("Product.MeasureUnit"))
         if u: unit[nm] = u
     for nm, (sm, q, sups) in cur.items():
         if q > 0 and sm > 0:
