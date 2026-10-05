@@ -70,8 +70,8 @@ def main():
         out.setdefault(k,{})["kz"]=round(abs(v)) if v else None
         out[k]["kz_date"]=dt.strftime("%d.%m.%Y")
     # ДЗ — сумма положительных по компаниям
-    hi2,h2=find_header(dz,r"дз\s+на|д/з\s+на|д\.з\.\s*на|задолженность\s+на")
-    cols2=dated_cols(h2,r"дз\s+на|д/з\s+на|д\.з\.\s*на|задолженность\s+на") if h2 else []
+    hi2,h2=find_header(dz,r"дз\s+на|д/з\s+на|д\.з\.\s*на|задолженность\s+на|дебиторам\s+на")
+    cols2=dated_cols(h2,r"дз\s+на|д/з\s+на|д\.з\.\s*на|задолженность\s+на|дебиторам\s+на") if h2 else []
     dzm=month_pick(cols2)
     log(f"ДЗ: колонок {len(cols2)}, месяцев {len(dzm)}")
     for k,(i,dt) in sorted(dzm.items()):
@@ -84,8 +84,10 @@ def main():
     out["updated"]=almaty.now().strftime("%d.%m.%Y %H:%M")
     json.dump(out,open(os.path.join(HERE,"дз_кз_месяцы.json"),"w",encoding="utf-8"),ensure_ascii=False,indent=1)
     log("\nПОМЕСЯЧНО:")
+    def _f(v):
+        return f"{v:>14,}" if isinstance(v,(int,float)) else f"{'нет данных':>14}"
     for k in sorted(out):
-        if k.startswith("2026"): log(f"   {k}: КЗ={out[k].get('kz'):>14,} ({out[k].get('kz_date')})   ДЗ={out[k].get('dz'):>14,} ({out[k].get('dz_date')})")
+        if k.startswith("2026"): log(f"   {k}: КЗ={_f(out[k].get('kz'))} ({out[k].get('kz_date')})   ДЗ={_f(out[k].get('dz'))} ({out[k].get('dz_date')})")
     log("ГОТОВО -> дз_кз_месяцы.json"); LOG.close(); print("OK")
 def _rebuild_dz_kz_page():
     """Пересобрать страницу /дз_кз (dz_kz.js) из того же Google-файла — чтобы она
