@@ -74,9 +74,15 @@ log("1) справочники")
 prod_name, prod_unit = {}, {}
 pl = s.get(f"{URL}/resto/api/v2/entities/products/list",
            params={"key": tok, "includeDeleted": "false"}, verify=False, timeout=180).json()
+unit_by_name = {}
 for p in pl:
     prod_name[p.get("id")] = p.get("name") or ""
     prod_unit[p.get("id")] = (p.get("mainUnit") or p.get("unitName") or "") or ""
+    # Единицу раньше брали только из накладных, и у 76 позиций из 167 её не
+    # было вовсе — просто потому, что за год их не покупали. В справочнике
+    # номенклатуры она есть всегда.
+    if p.get("name"):
+        unit_by_name[p["name"]] = prod_unit[p.get("id")]
 log("   товаров:", len(prod_name))
 
 store_name = {}
@@ -248,7 +254,7 @@ for nm in names:
     st = stock.get(nm, {})
     items.append({
         "n": nm,
-        "u": unit.get(nm, ""),
+        "u": unit.get(nm) or unit_by_name.get(nm, ""),
         "st": {k: [round(v[0], 2), round(v[1])] for k, v in st.items() if abs(v[0]) > 0.0001 or abs(v[1]) > 0.5},
         "mv": {k: {s2: [round(v[0], 2), round(v[1], 2)] for s2, v in (mv.get(k, {}).get(nm) or {}).items()}
                for k in MONTHS if mv.get(k, {}).get(nm)},
