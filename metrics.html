@@ -533,11 +533,25 @@
 
   function devs(){ return DATA && DATA.devs ? DATA.devs : {}; }
   function devIcon(d){ return d.kind==="телефон"?"📱":d.kind==="планшет"?"📲":"💻"; }
+  /* Номер устройства по порядку — чтобы в таблицах никогда не светился
+     служебный идентификатор вида cd19b5ea-1b32-a6e5-… Он ничего не
+     говорит человеку и занимает полколонки. */
+  function devNo(vid){
+    var ks=Object.keys(devs()).sort(); var i=ks.indexOf(vid);
+    return i<0 ? "" : String(i+1);
+  }
+  function isId(x){ return /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(x||"")); }
   function devName(vid){
-    var d=devs()[vid]; if(!d) return "устройство "+String(vid).slice(0,6);
-    if(d.name) return d.name;
-    var left=d.chModel||d.model||((d.os||"устройство")+(d.osv?" "+d.osv:""));
-    return d.br ? left+" · "+d.br : left;
+    var d=devs()[vid];
+    var nm="";
+    if(d){
+      if(d.name && !isId(d.name)) return d.name;
+      var left=d.chModel||d.model||((d.os||"")+(d.osv?" "+d.osv:""));
+      if(isId(left)) left="";
+      nm = left && d.br ? left+" · "+d.br : (left || d.br || "");
+    }
+    if(!nm || isId(nm)) nm = "Устройство №"+(devNo(vid)||String(vid).slice(0,4));
+    return nm;
   }
   function ago(iso){
     if(!iso) return "—";
