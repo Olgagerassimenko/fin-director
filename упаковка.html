@@ -1861,11 +1861,14 @@ thead th.nm{text-align:left}
         '</Relationships>' },
       { name: 'xl/workbook.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
-        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
-        '<calcPr calcId="0" fullCalcOnLoad="1"/><sheets>' +
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
         sheets.map(function (s, i) {
           return '<sheet name="' + xesc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
-        }).join('') + '</sheets></workbook>' },
+        }).join('') + '</sheets>' +
+        /* calcPr обязан стоять ПОСЛЕ sheets: LibreOffice это прощает, а
+           Excel на таком файле пишет «обнаружено нечитаемое содержимое»
+           и предлагает восстановить книгу. */
+        '<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>' },
       { name: 'xl/_rels/workbook.xml.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
         sheets.map(function (s, i) {
