@@ -1062,8 +1062,8 @@ thead th.nm{text-align:left}
         + '<div style="font-size:13px;font-weight:700;color:#f1f5f9">Отрицательные остатки — ошибки учёта</div>'
         + '<div class="hint">В заказ такие минусы не идут. Склад списал больше, чем приходил: '
         + 'пока не проведут приход или не поправят документ, расход по этим позициям тоже посчитан не полностью.</div>'
-        + '<div class="tw"><table><thead><tr><th>Позиция</th><th>Остаток</th><th>Сумма, ₸</th>'
-        + '<th>Где минус</th></tr></thead><tbody>'
+        + '<div class="tw"><table><thead><tr><th class="nm">Позиция</th><th>Остаток, штук</th>'
+        + '<th>Сумма, тенге</th><th>Где минус</th></tr></thead><tbody>'
         + negs.map(function (i) {
             var w = Object.keys(i.st).filter(function(s){ return i.st[s][0] < 0; })
               .map(function(s){ return esc(s) + ' — ' + f1(i.st[s][0]); }).join('; ');
@@ -1086,7 +1086,8 @@ thead th.nm{text-align:left}
         + '<div class="hint">Эти позиции решили не заказывать: в заявку и в сумму они не входят. '
         + 'По расчёту им не хватает на ' + f0(lost) + ' ₸ — снимите галочку, и позиция вернётся в заявку.</div>'
         + '<div class="tw"><table><thead><tr><th class="ph">Фото</th><th class="nm">Позиция</th>'
-        + '<th>Остаток</th><th>Хватит, дней</th><th>Расчёт просит</th><th>Цена, ₸</th><th>Сумма, ₸</th>'
+        + '<th>Остаток, штук</th><th>Хватит, дней</th><th>Расчёт просит, штук</th>'
+        + '<th>Цена за 1, тенге</th><th>Сумма, тенге</th>'
         + '<th class="stc">Стоп</th></tr></thead><tbody>'
         + stopped.map(function (i) {
             return '<tr class="stopped">' + phCell(i)
@@ -1138,11 +1139,12 @@ thead th.nm{text-align:left}
     }
     var thead = '<thead><tr>' + thSort(BUY_SORT, [
         ['', 'Фото', 'ph'], ['n', 'Позиция', 'nm'],
-        ['stock', 'Остаток<br>ед.'], ['stockMoney', 'Остаток<br>₸'], ['days', 'Хватит, дней'],
-        ['weeks', 'Недель', 'wkc', 'на сколько недель держим запас по этой позиции'],
-        ['order', 'Заказать', '', 'в единицах позиции'],
-        ['price', 'Цена за 1, ₸', '', 'цена за единицу по последней накладной'],
-        ['orderSum', 'Сумма, ₸'], ['urg', 'Срочность'], ['', 'Стоп', 'stc']
+        ['stock', 'Остаток<br>штук'], ['stockMoney', 'Остаток<br>тенге'],
+        ['days', 'Хватит<br>дней'],
+        ['weeks', 'Запас<br>недель', 'wkc', 'на сколько недель держим запас по этой позиции'],
+        ['order', 'Заказать<br>штук', '', 'в единицах позиции: шт, м, кг'],
+        ['price', 'Цена за 1<br>тенге', '', 'цена за единицу по последней накладной'],
+        ['orderSum', 'Сумма<br>тенге'], ['urg', 'Срочность'], ['', 'Стоп', 'stc']
       ]) + '</tr></thead>';
 
     html += '<div class="card" style="margin-top:12px">'
@@ -1246,14 +1248,14 @@ thead th.nm{text-align:left}
       + 'Заголовки кликаются — можно отсортировать по любому столбцу.</div>'
       + '<div class="tw"><table><thead><tr>' + thSort(REP_SORT, [
           ['', 'Фото', 'ph'], ['n', 'Позиция', 'nm'],
-          ['perD', 'Расход<br>в день', '', 'в единицах позиции'],
-          ['weeks', 'Недель', 'wkc', 'на сколько недель держим запас'],
-          ['min', 'Неснижаемый<br>ед.', '', 'неснижаемый остаток в единицах позиции'],
-          ['minMoney', 'Неснижаемый<br>₸', '', 'неснижаемый остаток в деньгах'],
-          ['stock', 'Остаток<br>ед.'], ['stockMoney', 'Остаток<br>₸'],
-          ['days', 'Хватит<br>дн'],
-          ['devQty', 'Откл., ед.', '', 'остаток минус неснижаемый, в единицах'],
-          ['devSum', 'Откл., ₸'], ['zone', 'Зона']
+          ['perD', 'Расход в день<br>штук', '', 'в единицах позиции: шт, м, кг'],
+          ['weeks', 'Запас<br>недель', 'wkc', 'на сколько недель держим запас'],
+          ['min', 'Неснижаемый<br>штук', '', 'неснижаемый остаток в единицах позиции'],
+          ['minMoney', 'Неснижаемый<br>тенге', '', 'неснижаемый остаток в деньгах'],
+          ['stock', 'Остаток<br>штук'], ['stockMoney', 'Остаток<br>тенге'],
+          ['days', 'Хватит<br>дней'],
+          ['devQty', 'Отклонение<br>штук', '', 'остаток минус неснижаемый, в единицах'],
+          ['devSum', 'Отклонение<br>тенге'], ['zone', 'Зона']
         ]) + '</tr></thead><tbody>'
       + a.map(function (i) {
           var z = i.zone === 'ниже неснижаемого' ? 's-def' : i.zone === 'избыток' ? 's-soon' : 's-ok';
@@ -1271,8 +1273,10 @@ thead th.nm{text-align:left}
             + '<td style="font-weight:800;color:' + (i.devQty<0?'#fca5a5':'#86efac') + '">'
             +   (i.devQty>0?'+':'') + f0(i.devQty)
             +   (i.u ? ' <span class="un">' + esc(i.u) + '</span>' : '') + '</td>'
+            /* Без цены отклонение в деньгах посчитать не из чего — ноль
+               здесь читался бы как «всё сходится». */
             + '<td style="color:' + (i.devSum<0?'#fca5a5':'#8fa2bd') + '">'
-            +   (i.devSum>0?'+':'') + f0(i.devSum) + '</td>'
+            +   (i.price ? (i.devSum>0?'+':'') + f0(i.devSum) : '<span class="zero">—</span>') + '</td>'
             + '<td><span class="st ' + z + '" title="' + i.zone + '">'
             +   (i.zone === 'ниже неснижаемого' ? 'ниже' : i.zone) + '</span></td></tr>';
         }).join('')
@@ -1304,7 +1308,8 @@ thead th.nm{text-align:left}
       : 'Срочного нет: по всем позициям запаса хватает дольше, чем идёт поставка.';
     document.getElementById('md-b').innerHTML = u.length
       ? '<div class="tw"><table><thead><tr><th class="ph">Фото</th><th class="nm">Позиция</th>'
-        + '<th>Остаток</th><th>Хватит, дней</th><th>Заказать</th><th>Сумма, ₸</th></tr></thead><tbody>'
+        + '<th>Остаток, штук</th><th>Хватит, дней</th><th>Заказать, штук</th>'
+        + '<th>Сумма, тенге</th></tr></thead><tbody>'
         + u.map(function (i) {
             return '<tr class="hot">' + phCell(i)
               + '<td class="nm">' + esc(i.n) + '<div class="sub2">' + supLink(i.main)
@@ -1354,8 +1359,9 @@ thead th.nm{text-align:left}
         + '</div>'
         + '<div class="ord-b"><div class="tw"><table><thead><tr>'
         + '<th class="ph">Фото</th>'
-        + '<th class="nm">Позиция</th><th>Остаток</th><th>Расход в день</th><th>Хватит, дней</th>'
-        + '<th>Заказать</th><th>Сумма, ₸</th><th>Где лежит</th></tr></thead><tbody>'
+        + '<th class="nm">Позиция</th><th>Остаток, штук</th><th>Расход в день, штук</th>'
+        + '<th>Хватит, дней</th><th>Заказать, штук</th><th>Сумма, тенге</th>'
+        + '<th>Где лежит</th></tr></thead><tbody>'
         + list.map(function (i) {
             var where = Object.keys(i.st).sort(function(a,b){return i.st[b][0]-i.st[a][0];})
               .map(function(s){ return esc(s)+' — '+f1(i.st[s][0]); }).join('; ');
@@ -1409,7 +1415,7 @@ thead th.nm{text-align:left}
       + 'что позиции там нет: если она нужна цеху, её либо заказывают, либо перекидывают с другого склада.</div>'
       + '<div class="mx"><table><thead><tr><th>Позиция</th>'
       + used.map(function(s){ return '<th class="rot" title="' + esc(s) + '">' + esc(shortStore(s)) + '</th>'; }).join('')
-      + '<th>Всего</th><th>Сумма, ₸</th><th>Статус</th></tr></thead><tbody>';
+      + '<th>Всего, штук</th><th>Сумма, тенге</th><th>Статус</th></tr></thead><tbody>';
     rows.forEach(function (i) {
       h += '<tr><td>' + esc(i.n) + '<div class="sub2">' + esc(i.u||'') + '</div></td>'
         + used.map(function (s) {
@@ -1433,9 +1439,10 @@ thead th.nm{text-align:left}
 
   /* ── 3. ВСЯ УПАКОВКА ───────────────────────────────────────────── */
   var SORT = { k:'order', dir:-1 };
-  var COLS = [['n','Позиция'],['stock','Остаток'],['perD','Расход в день'],['days','Хватит, дней'],
-              ['lead','Срок, дн'],['order','Заказать'],['orderSum','Сумма, ₸'],
-              ['price','Цена за 1, ₸'],['stSum','Лежит, ₸'],['st_','Статус']];
+  var COLS = [['n','Позиция'],['stock','Остаток, штук'],['perD','Расход в день, штук'],
+              ['days','Хватит, дней'],['lead','Срок поставки, дн'],['order','Заказать, штук'],
+              ['orderSum','Сумма, тенге'],['price','Цена за 1, тенге'],['stSum','Лежит, тенге'],
+              ['st_','Статус']];
   function secAll() {
     var a = IT.filter(function(i){ return qmatch(i); }).slice();
     a.sort(function (x, y) {
@@ -1688,7 +1695,8 @@ thead th.nm{text-align:left}
       + '<div style="font-size:11.5px;color:#7f93b0;margin:3px 0 4px;line-height:1.55">'
       + 'Отсортировано по сумме. Колонка «накоплено» показывает, какую часть замороженных денег вы закроете, '
       + 'разобрав позиции сверху вниз.</div>'
-      + '<div class="tw"><table><thead><tr><th>Позиция</th><th>Остаток</th><th>Лежит, ₸</th><th>Накоплено</th>'
+      + '<div class="tw"><table><thead><tr><th class="nm">Позиция</th><th>Остаток, штук</th>'
+      + '<th>Лежит, тенге</th><th>Накоплено, %</th>'
       + '<th>Последнее движение</th><th>Где лежит</th><th>Поставщик</th></tr></thead><tbody>'
       + a.map(function (i) {
           var where = Object.keys(i.st).map(function (s2) { return esc(s2); }).join(', ');
@@ -1883,8 +1891,8 @@ thead th.nm{text-align:left}
      формулами. Столбцы: D расход, E недель, F неснижаемый, G остаток,
      H хватит дней, I заказать, J цена, K сумма, L стоп. */
   function buyRows(list) {
-    var head = ['Позиция','Ед.','Поставщик','Расход в день, ед.','Недель','Неснижаемый остаток, ед.',
-                'Остаток, ед.','Хватит, дней','Заказать, ед.','Цена за 1, ₸','Сумма, ₸','Стоп',
+    var head = ['Позиция','Ед.','Поставщик','Расход в день, штук','Недель','Неснижаемый остаток, штук',
+                'Остаток, штук','Хватит, дней','Заказать, штук','Цена за 1, тенге','Сумма, тенге','Стоп',
                 'Срочность','Где лежит'];
     var rows = [head.map(function(h){ return {v:h,s:1}; })];
     list.forEach(function (i, n) {
@@ -1911,8 +1919,8 @@ thead th.nm{text-align:left}
   }
 
   function repRows(list) {
-    var head = ['Позиция','Ед.','Поставщик','Расход в день, ед.','Недель','Неснижаемый остаток, ед.',
-                'Остаток, ед.','Хватит, дней','Отклонение, ед.','Цена за 1, ₸','Отклонение, ₸','Зона'];
+    var head = ['Позиция','Ед.','Поставщик','Расход в день, штук','Недель','Неснижаемый остаток, штук',
+                'Остаток, штук','Хватит, дней','Отклонение, штук','Цена за 1, тенге','Отклонение, тенге','Зона'];
     var rows = [head.map(function(h){ return {v:h,s:1}; })];
     list.forEach(function (i, n) {
       var r = n + 2;
