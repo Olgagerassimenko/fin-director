@@ -69,6 +69,17 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .ctl.flt select{max-width:230px}
 .fcount{margin-left:auto;padding-bottom:10px;font-size:11.5px;color:var(--mut)}
 .fcount b{color:#fcd34d}
+td.stc,th.stc{width:54px;min-width:54px;text-align:center}
+.stbox{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:4px}
+.stbox input{appearance:none;-webkit-appearance:none;width:18px;height:18px;border:1.5px solid #3a4a68;
+  border-radius:5px;background:#0a1222;cursor:pointer;position:relative;transition:.15s;margin:0}
+.stbox input:hover{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.15)}
+.stbox input:checked{background:#ef4444;border-color:#ef4444}
+.stbox input:checked:after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:900;color:#2a0606}
+.stbox input:disabled{opacity:.5;cursor:default}
+tr.stopped{opacity:.55}
+tr.stopped td.nm{text-decoration:line-through;text-decoration-color:#64748b}
 .btn{background:#16233c;border:1px solid var(--line2);color:var(--ink2);border-radius:11px;padding:9px 14px;
   font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.16s}
 .btn:hover{background:#1e2f4d;color:#fff;box-shadow:0 0 18px -5px rgba(34,211,238,.75)}
@@ -182,6 +193,7 @@ tfoot td:first-child{text-align:left}
 .s-non{background:rgba(148,163,184,.12);color:#94a3b8}
 .s-dead{background:rgba(124,58,237,.15);color:#c4b5fd}
 .s-low{background:rgba(96,165,250,.16);color:#93c5fd}
+.s-stop{background:rgba(148,163,184,.14);color:#cbd5e1;text-decoration:line-through}
 .sub2{font-size:10.5px;color:var(--dim);margin-top:3px;line-height:1.45}
 .zero{color:#3d4a60}
 
@@ -291,6 +303,10 @@ thead th.nm{text-align:left}
         <option value="">любая</option>
         <option value="no">только без цены</option>
         <option value="yes">только с ценой</option></select></div>
+      <div><label>Стоп-лист</label><select id="f-stop">
+        <option value="">не важно</option>
+        <option value="no">без стопа</option>
+        <option value="yes">только в стопе</option></select></div>
       <button class="btn" id="f-reset">Сбросить</button>
       <div class="fcount" id="f-count"></div>
     </div>
@@ -383,7 +399,7 @@ thead th.nm{text-align:left}
 
   /* Фото и ручные цены лежат в воркере (/api/upak), ключ — нормализованное
      название позиции, поэтому они переживают пересборку данных. */
-  var FOTO = {}, PRICE_MAN = {};
+  var FOTO = {}, PRICE_MAN = {}, STOPS = {};
   function nkey(s){
     return String(s==null?'':s).toLowerCase().replace(/^у\s*\*\s*/,'')
       .replace(/ё/g,'е').replace(/[^0-9a-zа-я]+/g,' ').trim().replace(/\s+/g,' ');
@@ -465,10 +481,15 @@ thead th.nm{text-align:left}
       var need = (it.perD > 0 && it.stock < it.min) ? it.min - it.stock : 0;
       /* мелкую недостачу в заявку не тащим — иначе список не прочитать */
       if (need > 0 && it.min > 0 && need < it.min * (P.thr / 100)) need = 0;
-      it.order = Math.round(need);
+      /* Стоп-лист: позицию решили не заказывать. Количество считаем
+         по-прежнему (видно, от чего отказались), но в заявку и в сумму
+         она не идёт. Отметка общая — лежит в воркере. */
+      it.stop = !!STOPS[it.key];
+      it.orderWanted = Math.round(need);
+      it.order = it.stop ? 0 : it.orderWanted;
       it.orderSum = it.order * it.price;
       /* Срочность: кончится раньше, чем придёт поставка — «срочно». */
-      it.urg = it.perD <= 0 ? ''
+      it.urg = (it.stop || it.perD <= 0) ? ''
              : it.days < it.lead ? 'срочно'
              : it.days < it.lead + P.safe ? 'скоро'
              : it.order ? 'ниже минимума' : '';
@@ -476,14 +497,15 @@ thead th.nm{text-align:left}
          а вещь, которой сейчас не пользуются. Заказывать её незачем,
          но если на складе лежит остаток, это замороженные деньги. */
       it.dead = it.out3 <= 0 && it.in3 <= 0 && !it.curMv;
-      it.st_ = it.dead ? (it.stock > 0 ? 'лежит без движения' : 'не используется')
+      it.st_ = it.stop ? 'в стопе'
+             : it.dead ? (it.stock > 0 ? 'лежит без движения' : 'не используется')
              : it.perD <= 0 ? 'только приход'
              : it.days < it.lead ? 'дефицит'
              : it.days < it.lead + P.safe ? 'пора заказывать'
              : it.order ? 'ниже минимума' : 'норма';
     });
   }
-  function stCls(s){ return s==='дефицит'?'s-def':s==='пора заказывать'?'s-soon'
+  function stCls(s){ return s==='в стопе'?'s-stop':s==='дефицит'?'s-def':s==='пора заказывать'?'s-soon'
     :s==='ниже минимума'?'s-low':s==='норма'?'s-ok':s==='лежит без движения'?'s-dead':'s-non'; }
   function hot(){ return IT.filter(function(i){ return i.order>0; }); }
 
@@ -545,6 +567,8 @@ thead th.nm{text-align:left}
       '<b>Минимальный остаток</b> = дневной расход × ' + covDays() + ' дней, ' +
       '<b>заказать</b> = минимум минус остаток. ' +
       'Отрицательные остатки в расчёт не берём (это ошибки учёта), служебный «Склад ТЕСТ» исключён. ' +
+      'Галочка <b>«Стоп»</b> в строке убирает позицию из заявки и из суммы — отметка сохраняется на сайте '+
+      'и видна всем. ' +
       '<b>Дефицит</b> — запаса меньше срока поставки: заказ уже не успеет. ' +
       '<b>Пора заказывать</b> — меньше срока поставки плюс страховой. ' +
       '<b>Без движения</b> — за три месяца ни прихода, ни расхода: такой позицией сейчас не пользуются, ' +
@@ -557,7 +581,7 @@ thead th.nm{text-align:left}
      Поиск оставляем как был, сверху — срочность, поставщик, склад и
      наличие цены. Поставщик и склад действуют на всех вкладках, срочность
      и цена — только там, где они осмысленны (не на «не используется»). */
-  var F = { urg:'', sup:'', store:'', price:'' };
+  var F = { urg:'', sup:'', store:'', price:'', stop:'' };
   function qmatch(it, light) {
     var q = (document.getElementById('q').value||'').toLowerCase().trim();
     if (q && (it.n + ' ' + it.sups.join(' ') + ' ' + it.stores.join(' ')).toLowerCase().indexOf(q) < 0) return false;
@@ -566,6 +590,8 @@ thead th.nm{text-align:left}
       else if (it.sups.indexOf(F.sup) < 0) return false;
     }
     if (F.store && !it.st[F.store]) return false;
+    if (F.stop === 'yes' && !it.stop) return false;
+    if (F.stop === 'no' && it.stop) return false;
     if (!light) {
       if (F.urg && it.urg !== F.urg) return false;
       if (F.price === 'no' && !it.noPrice) return false;
@@ -589,7 +615,7 @@ thead th.nm{text-align:left}
     fill('f-sup', Object.keys(sups), ['—', 'без поставщика']);
     fill('f-store', Object.keys(sts));
   }
-  function filtersOn(){ return !!(F.urg || F.sup || F.store || F.price
+  function filtersOn(){ return !!(F.urg || F.sup || F.store || F.price || F.stop
     || (document.getElementById('q').value||'').trim()); }
   function fcount(shown, total) {
     var el = document.getElementById('f-count');
@@ -667,11 +693,38 @@ thead th.nm{text-align:left}
   }
   function lbClose(){ document.getElementById('lb').classList.remove('on'); }
 
+  /* ── СТОП-ЛИСТ ─────────────────────────────────────────────────────
+     Галочка «стоп» убирает позицию из заявки: количество по ней видно
+     в отдельном списке, но в таблицу заказа и в сумму она не попадает.
+     Отметка хранится в воркере — значит, одна на всех. */
+  function stopCell(i){
+    return '<td class="stc"><label class="stbox" title="'
+      + (i.stop ? 'вернуть в заявку' : 'не заказывать эту позицию') + '">'
+      + '<input type="checkbox" data-stop="' + esc(i.key) + '"' + (i.stop ? ' checked' : '') + '></label></td>';
+  }
+  function bindStop(el){
+    el.querySelectorAll('[data-stop]').forEach(function (c) {
+      c.onchange = function () {
+        var k = c.getAttribute('data-stop'), v = c.checked;
+        c.disabled = true;
+        fetch(API + '?a=stop', { method:'POST', headers:{'content-type':'application/json'},
+                                 body: JSON.stringify({ n:k, v:v }) })
+          .then(function(r){ return r.json(); })
+          .then(function (j) {
+            if (j && j.ok) { if (v) STOPS[k] = 1; else delete STOPS[k]; redraw();
+              toast(v ? 'Позиция в стопе — в заявку не попадёт' : 'Позиция вернулась в заявку'); }
+            else { c.disabled = false; c.checked = !v; toast('Не сохранилось: ' + esc((j&&j.error)||'нет связи')); }
+          })
+          .catch(function(e){ c.disabled = false; c.checked = !v; toast('Не сохранилось: ' + esc(String(e))); });
+      };
+    });
+  }
+
   function fotoLoad(){
     return fetch(API + '?a=list').then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         if (!j) return;
-        FOTO = j.foto || {}; PRICE_MAN = j.prices || {};
+        FOTO = j.foto || {}; PRICE_MAN = j.prices || {}; STOPS = j.stops || {};
       }).catch(function () {});
   }
 
@@ -733,10 +786,40 @@ thead th.nm{text-align:left}
         + '</tbody></table></div></div>';
     }
 
+    /* ── в стопе ── */
+    var stopHtml = '';
+    var stopped = IT.filter(function (i) { return i.stop && qmatch(i, true); });
+    if (stopped.length) {
+      stopped.sort(function (a, b) { return (b.orderWanted * b.price) - (a.orderWanted * a.price); });
+      var lost = stopped.reduce(function (s2, i) { return s2 + i.orderWanted * i.price; }, 0);
+      stopHtml = '<div class="card" style="margin-top:12px;border-left:3px solid #64748b">'
+        + '<div style="font-size:13px;font-weight:700;color:#f1f5f9">В стопе — ' + stopped.length + ' '
+        + plw(stopped.length,'позиция','позиции','позиций') + '</div>'
+        + '<div class="hint">Эти позиции решили не заказывать: в заявку и в сумму они не входят. '
+        + 'По расчёту им не хватает на ' + f0(lost) + ' ₸ — снимите галочку, и позиция вернётся в заявку.</div>'
+        + '<div class="tw"><table><thead><tr><th class="ph">Фото</th><th class="nm">Позиция</th>'
+        + '<th>Остаток</th><th>Хватит, дней</th><th>Расчёт просит</th><th>Цена, ₸</th><th>Сумма, ₸</th>'
+        + '<th class="stc">Стоп</th></tr></thead><tbody>'
+        + stopped.map(function (i) {
+            return '<tr class="stopped">' + phCell(i)
+              + '<td class="nm">' + esc(i.n) + '<div class="sub2">' + esc(i.main || 'поставщик не указан')
+              +   (i.u ? ' · ' + esc(i.u) : '') + '</div></td>'
+              + '<td>' + f1(i.stock) + '</td><td>' + f1(i.days) + '</td>'
+              + '<td>' + (i.orderWanted ? f0(i.orderWanted) : '<span class="zero">—</span>') + '</td>'
+              + '<td>' + (i.price ? f0(i.price) : '<span class="zero">—</span>') + '</td>'
+              + '<td>' + (i.orderWanted && i.price ? f0(i.orderWanted * i.price) : '<span class="zero">—</span>') + '</td>'
+              + stopCell(i) + '</tr>';
+          }).join('')
+        + '</tbody></table></div></div>';
+    }
+
     if (!h.length) {
-      html += '<div class="card" style="margin-top:12px"><div class="empty">Заказывать нечего: '
-        + 'по всем позициям запаса больше ' + P.weeks + ' ' + plw(P.weeks,'недели','недель','недель') + '.</div></div>';
-      el.innerHTML = html; return;
+      html += '<div class="card" style="margin-top:12px"><div class="empty">'
+        + (filtersOn() ? 'По этому фильтру заказывать нечего.'
+            : 'Заказывать нечего: по всем позициям запаса больше ' + P.weeks + ' '
+              + plw(P.weeks,'недели','недель','недель') + '.')
+        + '</div></div>' + stopHtml;
+      el.innerHTML = html; bindPh(el); bindStop(el); return;
     }
 
     /* Колонок было десять, и таблица не влезала в экран: цена и сумма
@@ -761,12 +844,13 @@ thead th.nm{text-align:left}
               : '<input class="pin" type="number" min="0" step="0.01" placeholder="цена" data-pr="' + esc(i.key) + '">') + '</td>'
           + '<td class="mny">' + (withPrice ? f0(i.orderSum) : '<span class="zero">—</span>') + '</td>'
           + '<td>' + (i.urg ? '<span class="st ' + (i.urg==='срочно'?'s-def':i.urg==='скоро'?'s-soon':'s-low') + '">'
-              + i.urg + '</span>' : '') + '</td></tr>';
+              + i.urg + '</span>' : '') + '</td>'
+          + stopCell(i) + '</tr>';
       }).join('');
     }
     var thead = '<thead><tr><th class="ph">Фото</th><th class="nm">Позиция</th><th>Остаток</th>'
       + '<th>Хватит, дней</th><th>Заказать</th><th>Цена, ₸</th>'
-      + '<th>Сумма, ₸</th><th>Срочность</th></tr></thead>';
+      + '<th>Сумма, ₸</th><th>Срочность</th><th class="stc" title="не заказывать">Стоп</th></tr></thead>';
 
     html += '<div class="card" style="margin-top:12px">'
       + '<div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap">'
@@ -779,7 +863,7 @@ thead th.nm{text-align:left}
       + '<div class="tw"><table>' + thead + '<tbody>' + rows(withP, true) + '</tbody>'
       + '<tfoot><tr><td></td><td class="nm">Итого · ' + withP.length + '</td><td></td><td></td>'
       + '<td>' + f0(withP.reduce(function(s,i){return s+i.order;},0)) + '</td><td></td>'
-      + '<td>' + f0(sum) + '</td><td></td></tr></tfoot></table></div></div>';
+      + '<td>' + f0(sum) + '</td><td></td><td></td></tr></tfoot></table></div></div>';
 
     if (noP.length) {
       html += '<div class="card" style="margin-top:12px;border-left:3px solid #fbbf24">'
@@ -791,8 +875,10 @@ thead th.nm{text-align:left}
         + '<div class="tw"><table>' + thead + '<tbody>' + rows(noP, false) + '</tbody></table></div></div>';
     }
 
+    html += stopHtml;
+
     el.innerHTML = html;
-    bindPh(el);
+    bindPh(el); bindStop(el);
     var xb = document.getElementById('xbuy');
     if (xb) xb.onclick = function(){ xlsxBuy(withP.concat(noP)); };
     el.querySelectorAll('[data-pr]').forEach(function (inp) {
@@ -937,14 +1023,14 @@ thead th.nm{text-align:left}
     var h = '<div class="card"><div class="hint" style="margin-bottom:8px">'
       + 'Нажмите на рамку в колонке «Фото», чтобы приложить снимок позиции — он сохранится на сайте '
       + 'и будет виден всем. Можно залить сразу папку кнопкой «Фото пачкой» наверху.</div>'
-      + '<div class="tw"><table><thead><tr><th class="ph">Фото</th>'
+      + '<div class="tw"><table><thead><tr><th class="ph">Фото</th><th class="stc" title="не заказывать">Стоп</th>'
       + COLS.map(function (c) {
           return '<th data-k="'+c[0]+'" class="'+(c[0]==='n'?'nm ':'')+(SORT.k===c[0]?'on':'')+'">'+c[1]
             + (SORT.k===c[0] ? (SORT.dir>0?' ↑':' ↓') : '') + '</th>'; }).join('')
       + '</tr></thead><tbody>';
     a.forEach(function (i) {
-      h += '<tr class="' + (i.order>0?'hot':'') + '">'
-        + phCell(i)
+      h += '<tr class="' + (i.stop?'stopped':i.order>0?'hot':'') + '">'
+        + phCell(i) + stopCell(i)
         + '<td class="nm">' + esc(i.n) + '<div class="sub2">' + esc(i.main||'поставщик не указан')
         +   (i.sups.length>1 ? ' и ещё ' + (i.sups.length-1) : '')
         +   (i.stores.length ? ' · ' + esc(i.stores.join(', ')) : ' · нет на складах') + '</div></td>'
@@ -958,13 +1044,13 @@ thead th.nm{text-align:left}
         + '<td>' + f0(i.stSum) + '</td>'
         + '<td><span class="st ' + stCls(i.st_) + '">' + i.st_ + '</span></td></tr>';
     });
-    h += '</tbody><tfoot><tr><td></td><td>Итого · ' + a.length + '</td><td></td><td></td><td></td><td></td>'
+    h += '</tbody><tfoot><tr><td></td><td></td><td>Итого · ' + a.length + '</td><td></td><td></td><td></td><td></td>'
       + '<td>' + f0(a.reduce(function(s,i){return s+i.order;},0)) + '</td>'
       + '<td>' + f0(a.reduce(function(s,i){return s+i.orderSum;},0)) + '</td><td></td>'
       + '<td>' + f0(a.reduce(function(s,i){return s+i.stSum;},0)) + '</td><td></td></tr></tfoot></table></div></div>';
     var el = document.getElementById('s-all');
     el.innerHTML = h;
-    bindPh(el);
+    bindPh(el); bindStop(el);
     el.querySelectorAll('th[data-k]').forEach(function (th) {
       th.onclick = function () {
         var k = th.getAttribute('data-k');
@@ -1447,18 +1533,19 @@ thead th.nm{text-align:left}
   function redrawSecs(){ secBuy(); secOrd(); secMx(); secAll(); secDead(); }
   document.getElementById('q').oninput = redrawSecs;
   fillFilters();
-  ['f-urg','f-sup','f-store','f-price'].forEach(function (id) {
+  ['f-urg','f-sup','f-store','f-price','f-stop'].forEach(function (id) {
     document.getElementById(id).onchange = function () {
       F.urg   = document.getElementById('f-urg').value;
       F.sup   = document.getElementById('f-sup').value;
       F.store = document.getElementById('f-store').value;
       F.price = document.getElementById('f-price').value;
+      F.stop  = document.getElementById('f-stop').value;
       redrawSecs();
     };
   });
   document.getElementById('f-reset').onclick = function () {
-    F = { urg:'', sup:'', store:'', price:'' };
-    ['f-urg','f-sup','f-store','f-price'].forEach(function(id){ document.getElementById(id).value = ''; });
+    F = { urg:'', sup:'', store:'', price:'', stop:'' };
+    ['f-urg','f-sup','f-store','f-price','f-stop'].forEach(function(id){ document.getElementById(id).value = ''; });
     document.getElementById('q').value = '';
     redrawSecs();
   };
@@ -1563,7 +1650,9 @@ thead th.nm{text-align:left}
   redraw();
   /* Фото и ручные цены приходят из воркера: страница рисуется сразу,
      а когда список дойдёт — перерисовываем. */
-  fotoLoad().then(function () { if (Object.keys(FOTO).length || Object.keys(PRICE_MAN).length) redraw(); });
+  fotoLoad().then(function () {
+    if (Object.keys(FOTO).length || Object.keys(PRICE_MAN).length || Object.keys(STOPS).length) redraw();
+  });
 })();
 
 </script>
