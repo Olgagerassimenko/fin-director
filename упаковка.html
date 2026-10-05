@@ -353,7 +353,7 @@ thead th.nm{text-align:left}
 
   <div class="tabs" id="tabs">
     <button class="tab on" data-s="buy">🛒 Что заказать<b id="t-buy"></b></button>
-    <button class="tab" data-s="rep">📈 Отчёт<b id="t-rep"></b></button>
+    <button class="tab" data-s="rep">📈 Неснижаемый остаток<b id="t-rep"></b></button>
     <button class="tab" data-s="ord">📝 Заявка по поставщикам<b id="t-ord"></b></button>
     <button class="tab" data-s="mx">🏬 Где что лежит<b id="t-mx"></b></button>
     <button class="tab" data-s="all">📋 Вся упаковка<b id="t-all"></b></button>
@@ -700,7 +700,11 @@ thead th.nm{text-align:left}
       IT.length + ' позиций · ' + STORES.length + ' складов · обновлено ' + (D.updated||'');
     document.getElementById('t-buy').textContent = h.length ? '· ' + h.length : '';
     var _urg = h.filter(function(i){ return i.urg==='срочно'; }).length;
-    document.getElementById('t-rep').textContent = _urg ? '· ' + _urg : '';
+    /* На вкладке показываем то, о чём она: сколько позиций ниже
+       неснижаемого остатка, а не сколько срочных. */
+    var _below = IT.filter(function(i){
+      return i.perD > 0 && !i.stop && i.stock < i.min; }).length;
+    document.getElementById('t-rep').textContent = _below ? '· ' + _below : '';
     var _ub = document.getElementById('urgbtn');
     if (_ub) _ub.textContent = _urg ? '🔴 Срочное · ' + _urg : '🔴 Срочное';
     document.getElementById('t-ord').textContent = h.length ? '· ' + h.length : '';
