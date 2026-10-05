@@ -65,6 +65,10 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .ctl select:focus,.ctl input:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3px rgba(34,211,238,.2)}
 .ctl input[type=number]{width:78px;text-align:right;font-weight:800}
 .ctl input[type=search]{min-width:230px}
+.ctl.flt{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.ctl.flt select{max-width:230px}
+.fcount{margin-left:auto;padding-bottom:10px;font-size:11.5px;color:var(--mut)}
+.fcount b{color:#fcd34d}
 .btn{background:#16233c;border:1px solid var(--line2);color:var(--ink2);border-radius:11px;padding:9px 14px;
   font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.16s}
 .btn:hover{background:#1e2f4d;color:#fff;box-shadow:0 0 18px -5px rgba(34,211,238,.75)}
@@ -274,6 +278,21 @@ thead th.nm{text-align:left}
         <input type="search" id="q" placeholder="позиция, поставщик, склад…"></div>
       <button class="btn pri" id="xls">📥 Всё в Excel</button>
       <button class="btn" id="fotobulk">📷 Фото пачкой</button>
+    </div>
+    <div class="ctl flt">
+      <div><label>Срочность</label><select id="f-urg">
+        <option value="">любая</option>
+        <option value="срочно">только срочные</option>
+        <option value="скоро">скоро</option>
+        <option value="ниже минимума">ниже минимума</option></select></div>
+      <div><label>Поставщик</label><select id="f-sup"><option value="">все</option></select></div>
+      <div><label>Склад</label><select id="f-store"><option value="">все</option></select></div>
+      <div><label>Цена</label><select id="f-price">
+        <option value="">любая</option>
+        <option value="no">только без цены</option>
+        <option value="yes">только с ценой</option></select></div>
+      <button class="btn" id="f-reset">Сбросить</button>
+      <div class="fcount" id="f-count"></div>
     </div>
     <div class="note" id="how"></div>
   </div>
@@ -534,10 +553,49 @@ thead th.nm{text-align:left}
   }
   function hs(v,l){ return '<div class="hs"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>'; }
 
-  function qmatch(it) {
+  /* ── ФИЛЬТРЫ ───────────────────────────────────────────────────────
+     Поиск оставляем как был, сверху — срочность, поставщик, склад и
+     наличие цены. Поставщик и склад действуют на всех вкладках, срочность
+     и цена — только там, где они осмысленны (не на «не используется»). */
+  var F = { urg:'', sup:'', store:'', price:'' };
+  function qmatch(it, light) {
     var q = (document.getElementById('q').value||'').toLowerCase().trim();
-    if (!q) return true;
-    return (it.n + ' ' + it.sups.join(' ') + ' ' + it.stores.join(' ')).toLowerCase().indexOf(q) >= 0;
+    if (q && (it.n + ' ' + it.sups.join(' ') + ' ' + it.stores.join(' ')).toLowerCase().indexOf(q) < 0) return false;
+    if (F.sup) {
+      if (F.sup === '—') { if (it.sups.length) return false; }
+      else if (it.sups.indexOf(F.sup) < 0) return false;
+    }
+    if (F.store && !it.st[F.store]) return false;
+    if (!light) {
+      if (F.urg && it.urg !== F.urg) return false;
+      if (F.price === 'no' && !it.noPrice) return false;
+      if (F.price === 'yes' && it.noPrice) return false;
+    }
+    return true;
+  }
+  function fillFilters() {
+    var sups = {}, sts = {};
+    IT.forEach(function (i) {
+      i.sups.forEach(function (s) { sups[s] = 1; });
+      Object.keys(i.st).forEach(function (s) { sts[s] = 1; });
+    });
+    function fill(id, list, extra) {
+      var el = document.getElementById(id);
+      list.sort(function (a, b) { return a.localeCompare(b, 'ru'); }).forEach(function (s) {
+        var o = document.createElement('option'); o.value = s; o.textContent = s; el.appendChild(o);
+      });
+      if (extra) { var o2 = document.createElement('option'); o2.value = extra[0]; o2.textContent = extra[1]; el.appendChild(o2); }
+    }
+    fill('f-sup', Object.keys(sups), ['—', 'без поставщика']);
+    fill('f-store', Object.keys(sts));
+  }
+  function filtersOn(){ return !!(F.urg || F.sup || F.store || F.price
+    || (document.getElementById('q').value||'').trim()); }
+  function fcount(shown, total) {
+    var el = document.getElementById('f-count');
+    el.innerHTML = filtersOn()
+      ? 'Фильтр: показано <b>' + shown + '</b> из ' + total + ' ' + plw(total,'позиции','позиций','позиций') + ' к заказу'
+      : '';
   }
 
   /* ── ФОТО ПОЗИЦИЙ ──────────────────────────────────────────────────
@@ -623,7 +681,7 @@ thead th.nm{text-align:left}
      чтобы запаса стало на заданное число недель.                        */
   function secBuy() {
     var el = document.getElementById('s-buy');
-    var h = hot().filter(qmatch);
+    var h = hot().filter(function(i){ return qmatch(i); });
     var urgRank = { 'срочно':0, 'скоро':1 };
     h.sort(function (a, b) {
       var ra = urgRank[a.urg] == null ? 2 : urgRank[a.urg];
@@ -637,6 +695,7 @@ thead th.nm{text-align:left}
     var urgent = h.filter(function(i){ return i.urg==='срочно'; });
     var urgentSum = urgent.reduce(function(s,i){ return s+i.orderSum; }, 0);
     var negs = IT.filter(function(i){ return i.neg; });
+    fcount(h.length, hot().length);
 
     var html = '';
 
@@ -755,7 +814,7 @@ thead th.nm{text-align:left}
   /* ── 2. ЗАЯВКА: по поставщикам ─────────────────────────────────── */
   function secOrd() {
     var by = {};
-    hot().filter(qmatch).forEach(function (i) {
+    hot().filter(function(i){ return qmatch(i); }).forEach(function (i) {
       var k = i.main || 'поставщик не указан';
       (by[k] = by[k] || []).push(i);
     });
@@ -818,7 +877,7 @@ thead th.nm{text-align:left}
 
   /* ── 2. ГДЕ ЧТО ЛЕЖИТ ──────────────────────────────────────────── */
   function secMx() {
-    var rows = IT.filter(qmatch).filter(function (i) { return i.stock > 0 || i.order > 0; });
+    var rows = IT.filter(function(i){ return qmatch(i, true); }).filter(function (i) { return i.stock > 0 || i.order > 0; });
     rows.sort(function (a, b) { return b.stSum - a.stSum; });
     var used = STORES.filter(function (s) {
       return rows.some(function (i) { return i.st[s]; }); });
@@ -867,7 +926,7 @@ thead th.nm{text-align:left}
               ['lead','Срок, дн'],['order','Заказать'],['orderSum','Сумма, ₸'],
               ['price','Цена, ₸'],['stSum','Лежит, ₸'],['st_','Статус']];
   function secAll() {
-    var a = IT.filter(qmatch).slice();
+    var a = IT.filter(function(i){ return qmatch(i); }).slice();
     a.sort(function (x, y) {
       var k = SORT.k;
       if (k==='n'||k==='st_') return SORT.dir * String(x[k]).localeCompare(String(y[k]),'ru');
@@ -981,7 +1040,7 @@ thead th.nm{text-align:left}
   }
 
   function secDead() {
-    var a = IT.filter(qmatch).filter(function (i) { return i.dead; });
+    var a = IT.filter(function(i){ return qmatch(i, true); }).filter(function (i) { return i.dead; });
     a.sort(function (x, y) { return y.stSum - x.stSum; });
     var withStock = a.filter(function (i) { return i.stock > 0; });
     var frozen = withStock.reduce(function (s, i) { return s + i.stSum; }, 0);
@@ -1385,7 +1444,24 @@ thead th.nm{text-align:left}
       redraw();
     };
   });
-  document.getElementById('q').oninput = function () { secBuy(); secOrd(); secMx(); secAll(); secDead(); };
+  function redrawSecs(){ secBuy(); secOrd(); secMx(); secAll(); secDead(); }
+  document.getElementById('q').oninput = redrawSecs;
+  fillFilters();
+  ['f-urg','f-sup','f-store','f-price'].forEach(function (id) {
+    document.getElementById(id).onchange = function () {
+      F.urg   = document.getElementById('f-urg').value;
+      F.sup   = document.getElementById('f-sup').value;
+      F.store = document.getElementById('f-store').value;
+      F.price = document.getElementById('f-price').value;
+      redrawSecs();
+    };
+  });
+  document.getElementById('f-reset').onclick = function () {
+    F = { urg:'', sup:'', store:'', price:'' };
+    ['f-urg','f-sup','f-store','f-price'].forEach(function(id){ document.getElementById(id).value = ''; });
+    document.getElementById('q').value = '';
+    redrawSecs();
+  };
   document.getElementById('xls').onclick = xlsxAll;
 
   /* ── загрузка фото ──────────────────────────────────────────────── */
