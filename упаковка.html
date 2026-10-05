@@ -72,6 +72,8 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 td.stc,th.stc{width:54px;min-width:54px;text-align:center}
 td.prc{min-width:98px}
 .pin{width:84px}
+td.wkc,th.wkc{width:70px;min-width:70px;text-align:center}
+.win{width:56px;background:#0a1222;border:1px solid var(--line2);color:var(--ink);border-radius:7px;padding:4px 6px;font-size:11.5px;font-family:inherit;text-align:center;font-weight:800}
 .stbox{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:4px}
 .stbox input{appearance:none;-webkit-appearance:none;width:18px;height:18px;border:1.5px solid #3a4a68;
   border-radius:5px;background:#0a1222;cursor:pointer;position:relative;transition:.15s;margin:0}
@@ -256,6 +258,26 @@ thead th.nm{text-align:left}
 .lb-in img{max-width:100%;max-height:68vh;border-radius:14px;border:1px solid var(--line2);display:block;margin:0 auto}
 .lb-n{font-size:13px;font-weight:700;color:#e8eef6;margin:12px 0 10px}
 .lb-b{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.md-in{width:min(900px,96vw);max-height:88vh;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#121d33,#0d1626);border:1px solid var(--line2);
+  border-left:4px solid #ef4444;border-radius:18px;overflow:hidden;
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.9)}
+.md-h{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;padding:18px 22px 14px;
+  border-bottom:1px solid var(--line)}
+.md-t{font-size:17px;font-weight:800;color:#fff}
+.md-s{font-size:12.5px;color:var(--mut);margin-top:4px;line-height:1.55;max-width:560px}
+.md-sum{margin-left:auto;font-size:26px;font-weight:900;color:#fcd34d;font-variant-numeric:tabular-nums;
+  white-space:nowrap}
+.md-b{overflow:auto;padding:4px 22px 6px}
+.md-b table{min-width:560px}
+.md-f{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:14px 22px 18px;
+  border-top:1px solid var(--line)}
+.md-chk{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--mut);
+  cursor:pointer;margin-right:auto}
+.md-chk input{width:15px;height:15px;accent-color:#f59e0b;cursor:pointer}
+.urgbtn{border-color:rgba(239,68,68,.5);color:#fca5a5}
+.urgbtn:hover{background:#2a1520;color:#fff;box-shadow:0 0 18px -5px rgba(239,68,68,.8)}
+.rep-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:12px}
 .pin{width:78px;background:#0d1626;border:1px solid var(--line2);color:#e8eef6;border-radius:7px;
   padding:4px 6px;font-size:11.5px;font-family:inherit;text-align:right}
 .hint{font-size:11.5px;color:#7f93b0;line-height:1.6;margin-top:3px}
@@ -288,10 +310,13 @@ thead th.nm{text-align:left}
       <div><label>Страховой запас, дней</label><input type="number" id="p-safe" min="0" max="60" value="5"></div>
       <div><label>Не заказывать, если не хватает менее, %</label>
         <input type="number" id="p-thr" min="0" max="50" value="10"></div>
+      <div><label>Избыток, если запаса больше, недель</label>
+        <input type="number" id="p-over" min="2" max="104" value="12"></div>
       <div style="flex:1;min-width:190px"><label>Поиск</label>
         <input type="search" id="q" placeholder="позиция, поставщик, склад…"></div>
       <button class="btn pri" id="xls">📥 Всё в Excel</button>
       <button class="btn" id="fotobulk">📷 Фото пачкой</button>
+      <button class="btn urgbtn" id="urgbtn">🔴 Срочное</button>
     </div>
     <div class="ctl flt">
       <div><label>Срочность</label><select id="f-urg">
@@ -317,6 +342,7 @@ thead th.nm{text-align:left}
 
   <div class="tabs" id="tabs">
     <button class="tab on" data-s="buy">🛒 Что заказать<b id="t-buy"></b></button>
+    <button class="tab" data-s="rep">📈 Отчёт<b id="t-rep"></b></button>
     <button class="tab" data-s="ord">📝 Заявка по поставщикам<b id="t-ord"></b></button>
     <button class="tab" data-s="mx">🏬 Где что лежит<b id="t-mx"></b></button>
     <button class="tab" data-s="all">📋 Вся упаковка<b id="t-all"></b></button>
@@ -324,6 +350,7 @@ thead th.nm{text-align:left}
   </div>
 
   <div class="sec on" id="s-buy"></div>
+  <div class="sec" id="s-rep"></div>
   <div class="sec" id="s-ord"></div>
   <div class="sec" id="s-mx"></div>
   <div class="sec" id="s-all"></div>
@@ -332,6 +359,20 @@ thead th.nm{text-align:left}
 
 <input type="file" id="f-one" accept="image/*" style="display:none">
 <input type="file" id="f-many" accept="image/*" multiple style="display:none">
+<div id="md" class="lb"><div class="md-in">
+  <div class="md-h"><div>
+    <div class="md-t">🔴 Срочно заказать</div>
+    <div class="md-s" id="md-s">—</div>
+  </div><div class="md-sum" id="md-sum">—</div></div>
+  <div class="md-b" id="md-b"></div>
+  <div class="md-f">
+    <label class="md-chk"><input type="checkbox" id="md-off"> не показывать сегодня</label>
+    <button class="btn" id="md-xls">📥 Заявка в Excel</button>
+    <button class="btn pri" id="md-go">Открыть заявку</button>
+    <button class="btn" id="md-close">Закрыть</button>
+  </div>
+</div></div>
+
 <div id="lb" class="lb"><div class="lb-in">
   <img id="lb-img" alt="">
   <div class="lb-n" id="lb-n"></div>
@@ -388,8 +429,11 @@ thead th.nm{text-align:left}
   if (!LONG) LONG = { 'Color express ТОО':1, 'Компания В ТОО':1, 'Казтехнолоджи Пак ТОО':1 };
   function saveLong(){ try{ localStorage.setItem(LONG_KEY, JSON.stringify(LONG)); }catch(e){} }
 
-  var P = { lead:7, long:10, safe:5, weeks:4, thr:10, test:false };
+  var P = { lead:7, long:10, safe:5, weeks:4, thr:10, over:12, test:false };
   function covDays(){ return P.weeks * 7; }
+  /* Срок запаса можно задать по каждой позиции отдельно: соуснице хватит
+     четырёх недель, а то, что возят раз в квартал, держат дольше. */
+  function weeksOf(it){ return WEEKS_MAN[it.key] || P.weeks; }
 
   /* последние три полных месяца: по ним считаем дневной расход */
   var LAST3 = MON.slice(-4, -1);
@@ -402,7 +446,7 @@ thead th.nm{text-align:left}
 
   /* Фото и ручные цены лежат в воркере (/api/upak), ключ — нормализованное
      название позиции, поэтому они переживают пересборку данных. */
-  var FOTO = {}, PRICE_MAN = {}, STOPS = {};
+  var FOTO = {}, PRICE_MAN = {}, STOPS = {}, WEEKS_MAN = {};
   function nkey(s){
     return String(s==null?'':s).toLowerCase().replace(/^у\s*\*\s*/,'')
       .replace(/ё/g,'е').replace(/[^0-9a-zа-я]+/g,' ').trim().replace(/\s+/g,' ');
@@ -502,8 +546,13 @@ thead th.nm{text-align:left}
       it.manual = !!PRICE_MAN[it.key];
       it.noPrice = !it.price;
       it.days = it.perD > 0 ? it.stock / it.perD : null;
-      it.min = it.perD * covDays();                 /* минимальный остаток */
-      it.point = it.perD * (it.lead + P.safe);      /* точка заказа */
+      it.weeks = weeksOf(it);                       /* срок запаса по этой позиции */
+      it.ownWeeks = !!WEEKS_MAN[it.key];
+      it.min = it.perD * it.weeks * 7;              /* до скольки дозаказываем */
+      /* Неснижаемый остаток — это НЕ целевой запас: столько должно лежать,
+         чтобы цех не встал, пока едет поставка. Срок поставки плюс страховой. */
+      it.point = it.perD * (it.lead + P.safe);
+      it.over = it.perD * P.over * 7;               /* выше этого — избыток */
       var need = (it.perD > 0 && it.stock < it.min) ? it.min - it.stock : 0;
       /* мелкую недостачу в заявку не тащим — иначе список не прочитать */
       if (need > 0 && it.min > 0 && need < it.min * (P.thr / 100)) need = 0;
@@ -580,6 +629,10 @@ thead th.nm{text-align:left}
     document.getElementById('sub').textContent =
       IT.length + ' позиций · ' + STORES.length + ' складов · обновлено ' + (D.updated||'');
     document.getElementById('t-buy').textContent = h.length ? '· ' + h.length : '';
+    var _urg = h.filter(function(i){ return i.urg==='срочно'; }).length;
+    document.getElementById('t-rep').textContent = _urg ? '· ' + _urg : '';
+    var _ub = document.getElementById('urgbtn');
+    if (_ub) _ub.textContent = _urg ? '🔴 Срочное · ' + _urg : '🔴 Срочное';
     document.getElementById('t-ord').textContent = h.length ? '· ' + h.length : '';
     document.getElementById('t-all').textContent = '· ' + IT.length;
     document.getElementById('t-dead').textContent = IT.filter(function(i){return i.dead;}).length
@@ -762,6 +815,43 @@ thead th.nm{text-align:left}
     });
   }
 
+  /* Срок запаса по позиции. Общее поле наверху — умолчание для всех,
+     здесь его можно переопределить для конкретной SKU: пустое поле
+     возвращает общий срок. Значение общее для всех, лежит в воркере. */
+  function weeksCell(i){
+    return '<td class="wkc"><input class="win" type="number" min="1" max="104" step="1"'
+      + ' value="' + (Math.round(i.weeks * 10) / 10) + '" data-wk="' + esc(i.key) + '">'
+      + '<div class="sub2">' + (i.ownWeeks ? 'своё' : 'общее') + '</div></td>';
+  }
+  function bindWeeks(el){
+    el.querySelectorAll('[data-wk]').forEach(function (inp) {
+      inp.onchange = function () {
+        var k = inp.getAttribute('data-wk');
+        var raw = String(inp.value || '').trim();
+        var v = raw === '' ? 0 : (+raw || 0);
+        var it = IT.filter(function(x){ return x.key === k; })[0];
+        if (it && !it.ownWeeks && v === P.weeks) return;      /* то же, что общее */
+        if (v && (v < 1 || v > 104)) { inp.value = it ? it.weeks : P.weeks; return; }
+        inp.disabled = true;
+        fetch(API + '?a=weeks', { method:'POST', headers:{'content-type':'application/json'},
+                                  body: JSON.stringify({ n:k, v:v }) })
+          .then(function(r){ return r.json(); })
+          .then(function (j) {
+            if (j && j.ok) {
+              if (v >= 1) WEEKS_MAN[k] = v; else delete WEEKS_MAN[k];
+              redraw();
+              var again = document.querySelector('[data-wk="' + k.replace(/"/g,'\\"') + '"]');
+              if (again) { again.focus(); again.style.borderColor = '#16a34a';
+                setTimeout(function(){ again.style.borderColor = ''; }, 1200); }
+              toast(v >= 1 ? 'Срок запаса по позиции: ' + v + ' ' + plw(v,'неделя','недели','недель')
+                           : 'Вернули общий срок запаса');
+            } else { inp.disabled = false; toast('Не сохранилось: ' + esc((j&&j.error)||'нет связи')); }
+          })
+          .catch(function(e){ inp.disabled = false; toast('Не сохранилось: ' + esc(String(e))); });
+      };
+    });
+  }
+
   /* ── СТОП-ЛИСТ ─────────────────────────────────────────────────────
      Галочка «стоп» убирает позицию из заявки: количество по ней видно
      в отдельном списке, но в таблицу заказа и в сумму она не попадает.
@@ -793,7 +883,7 @@ thead th.nm{text-align:left}
     return fetch(API + '?a=list').then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         if (!j) return;
-        FOTO = j.foto || {}; PRICE_MAN = j.prices || {}; STOPS = j.stops || {};
+        FOTO = j.foto || {}; PRICE_MAN = j.prices || {}; STOPS = j.stops || {}; WEEKS_MAN = j.weeks || {};
       }).catch(function () {});
   }
 
@@ -888,7 +978,7 @@ thead th.nm{text-align:left}
             : 'Заказывать нечего: по всем позициям запаса больше ' + P.weeks + ' '
               + plw(P.weeks,'недели','недель','недель') + '.')
         + '</div></div>' + stopHtml;
-      el.innerHTML = html; bindPh(el); bindStop(el); bindPrice(el); return;
+      el.innerHTML = html; bindPh(el); bindStop(el); bindPrice(el); bindWeeks(el); return;
     }
 
     /* Колонок было десять, и таблица не влезала в экран: цена и сумма
@@ -907,6 +997,7 @@ thead th.nm{text-align:left}
           +   '</div></td>'
           + '<td>' + f1(i.stock) + '</td>'
           + '<td class="dd' + (i.days!=null&&i.days<i.lead?' red':'') + '">' + f1(i.days) + '</td>'
+          + weeksCell(i)
           + '<td class="q">' + f0(i.order) + '</td>'
           + priceCell(i)
           + '<td class="mny">' + (withPrice ? f0(i.orderSum) : '<span class="zero">—</span>') + '</td>'
@@ -916,7 +1007,8 @@ thead th.nm{text-align:left}
       }).join('');
     }
     var thead = '<thead><tr><th class="ph">Фото</th><th class="nm">Позиция</th><th>Остаток</th>'
-      + '<th>Хватит, дней</th><th>Заказать</th><th title="цена за единицу по последней накладной">Цена за 1, ₸</th>'
+      + '<th>Хватит, дней</th><th class="wkc" title="на сколько недель держим запас по этой позиции">Недель</th>'
+      + '<th>Заказать</th><th title="цена за единицу по последней накладной">Цена за 1, ₸</th>'
       + '<th>Сумма, ₸</th><th>Срочность</th><th class="stc" title="не заказывать">Стоп</th></tr></thead>';
 
     html += '<div class="card" style="margin-top:12px">'
@@ -929,7 +1021,7 @@ thead th.nm{text-align:left}
       + plw(P.weeks,'неделю','недели','недель') + '; «заказать» — разница с остатком. '
       + '«Цена за 1» — по последней накладной в iiko, под ценой написано, когда брали.</div>'
       + '<div class="tw"><table>' + thead + '<tbody>' + rows(withP, true) + '</tbody>'
-      + '<tfoot><tr><td></td><td class="nm">Итого · ' + withP.length + '</td><td></td><td></td>'
+      + '<tfoot><tr><td></td><td class="nm">Итого · ' + withP.length + '</td><td></td><td></td><td></td>'
       + '<td>' + f0(withP.reduce(function(s,i){return s+i.order;},0)) + '</td><td></td>'
       + '<td>' + f0(sum) + '</td><td></td><td></td></tr></tfoot></table></div></div>';
 
@@ -946,12 +1038,138 @@ thead th.nm{text-align:left}
     html += stopHtml;
 
     el.innerHTML = html;
-    bindPh(el); bindStop(el); bindPrice(el);
+    bindPh(el); bindStop(el); bindPrice(el); bindWeeks(el);
     var xb = document.getElementById('xbuy');
     if (xb) xb.onclick = function(){ xlsxBuy(withP.concat(noP)); };
   }
 
-  /* ── 2. ЗАЯВКА: по поставщикам ─────────────────────────────────── */
+  /* ── 2. ОТЧЁТ: неснижаемый остаток ─────────────────────────────────
+     Два разных числа, которые часто путают.
+       Неснижаемый остаток — сколько должно лежать, чтобы цех не встал,
+       пока едет поставка: расход в день × (срок поставки + страховой).
+       Целевой запас — до скольки дозаказываем: расход × заданные недели.
+     Ниже неснижаемого — красная зона. Выше «избытка» — замороженные деньги. */
+  function secRep() {
+    var el = document.getElementById('s-rep');
+    var a = IT.filter(function (i) { return qmatch(i) && i.perD > 0; });
+    a.forEach(function (i) {
+      i.devQty = i.stock - i.point;
+      i.devSum = i.devQty * i.price;
+      i.zone = i.stock < i.point ? 'ниже неснижаемого'
+             : (P.over && i.stock > i.over) ? 'избыток' : 'норма';
+    });
+    a.sort(function (x, y) { return (x.devSum - y.devSum) || (x.devQty - y.devQty); });
+
+    var below = a.filter(function(i){ return i.zone==='ниже неснижаемого'; });
+    var over  = a.filter(function(i){ return i.zone==='избыток'; });
+    var needSum = below.reduce(function(s2,i){ return s2 + (i.point - i.stock) * i.price; }, 0);
+    var overSum = over.reduce(function(s2,i){ return s2 + (i.stock - i.over) * i.price; }, 0);
+    var normSum = a.reduce(function(s2,i){ return s2 + i.point * i.price; }, 0);
+    var factSum = a.reduce(function(s2,i){ return s2 + i.stock * i.price; }, 0);
+    var deadSum = IT.filter(function(i){ return i.dead && i.stock>0; })
+                    .reduce(function(s2,i){ return s2 + i.stSum; }, 0);
+
+    function tile(l, v, s2, c) {
+      return '<div class="kpi" style="--c:' + c + '"><div class="l">' + l + '</div>'
+        + '<div class="v" style="color:' + c + '">' + v + '</div><div class="s">' + s2 + '</div></div>';
+    }
+
+    var html = '<div class="card" style="border-left:3px solid #60a5fa">'
+      + '<div style="font-size:13px;font-weight:700;color:#f1f5f9">Неснижаемый остаток по упаковке</div>'
+      + '<div class="hint">Неснижаемый — сколько должно лежать, чтобы производство не встало, пока '
+      + 'едет поставка: расход в день × (срок поставки ' + P.lead + ' дн + страховой ' + P.safe + ' дн) = '
+      + '<b>' + (P.lead + P.safe) + ' дней</b>. Это не то же самое, что целевой запас: до него дозаказываем '
+      + '(по умолчанию ' + P.weeks + ' ' + plw(P.weeks,'неделя','недели','недель')
+      + ', по каждой позиции срок можно задать свой на вкладке «Что заказать»). '
+      + 'Запас больше ' + P.over + ' ' + plw(P.over,'недели','недель','недель') + ' считаем избытком — '
+      + 'это деньги, которые лежат без дела.</div>'
+      + '<div class="kpis" style="margin-top:12px">'
+      +   tile('Должно лежать всегда', f0(normSum) + ' ₸', 'неснижаемый остаток, ' + (P.lead+P.safe) + ' дней', '#60a5fa')
+      +   tile('Лежит сейчас', f0(factSum) + ' ₸', a.length + ' ' + plw(a.length,'позиция','позиции','позиций') + ' в обороте', '#4ade80')
+      +   tile('Не хватает до неснижаемого', f0(needSum) + ' ₸', below.length + ' ' + plw(below.length,'позиция','позиции','позиций'), '#f87171')
+      +   tile('Избыток сверх ' + P.over + ' недель', f0(overSum) + ' ₸', over.length + ' ' + plw(over.length,'позиция','позиции','позиций'), '#fbbf24')
+      +   tile('Лежит без движения', f0(deadSum) + ' ₸', 'не заказывать вовсе', '#c4b5fd')
+      + '</div></div>';
+
+    html += '<div class="card" style="margin-top:12px">'
+      + '<div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap">'
+      +   '<div style="font-size:13px;font-weight:700;color:#f1f5f9">Позиция за позицией</div>'
+      +   '<button class="mini" id="xrep" style="margin-left:auto">📥 Отчёт в Excel</button></div>'
+      + '<div class="hint">Сверху то, где дыра до неснижаемого больше всего в деньгах. '
+      + '«Отклонение» — остаток минус неснижаемый: минус значит, что уже ниже нормы.</div>'
+      + '<div class="tw"><table><thead><tr><th class="ph">Фото</th><th class="nm">Позиция</th>'
+      + '<th>Расход в день</th><th>Неснижаемый</th><th>Целевой</th><th>Остаток</th>'
+      + '<th>Хватит, дней</th><th>Отклонение</th><th>Отклонение, ₸</th><th>Зона</th></tr></thead><tbody>'
+      + a.map(function (i) {
+          var z = i.zone === 'ниже неснижаемого' ? 's-def' : i.zone === 'избыток' ? 's-soon' : 's-ok';
+          return '<tr class="' + (i.zone==='ниже неснижаемого'?'hot':'') + '">'
+            + phCell(i)
+            + '<td class="nm">' + esc(i.n) + '<div class="sub2">' + esc(i.main || 'поставщик не указан')
+            +   (i.u ? ' · ' + esc(i.u) : '') + ' · запас на ' + i.weeks + ' '
+            +   plw(i.weeks,'неделю','недели','недель') + (i.ownWeeks ? ' (своё)' : '') + '</div></td>'
+            + '<td>' + f1(i.perD) + '</td>'
+            + '<td style="font-weight:800;color:#93c5fd">' + f0(i.point) + '</td>'
+            + '<td>' + f0(i.min) + '</td>'
+            + '<td>' + f1(i.stock) + '</td>'
+            + '<td class="dd' + (i.days!=null&&i.days<i.lead?' red':'') + '">' + f1(i.days) + '</td>'
+            + '<td style="font-weight:800;color:' + (i.devQty<0?'#fca5a5':'#86efac') + '">'
+            +   (i.devQty>0?'+':'') + f0(i.devQty) + '</td>'
+            + '<td style="color:' + (i.devSum<0?'#fca5a5':'#8fa2bd') + '">'
+            +   (i.devSum>0?'+':'') + f0(i.devSum) + '</td>'
+            + '<td><span class="st ' + z + '">' + i.zone + '</span></td></tr>';
+        }).join('')
+      + '</tbody><tfoot><tr><td></td><td class="nm">Итого · ' + a.length + '</td><td></td>'
+      + '<td>' + f0(normSum) + ' ₸</td><td></td><td>' + f0(factSum) + ' ₸</td><td></td><td></td>'
+      + '<td>' + f0(factSum - normSum) + '</td><td></td></tr></tfoot></table></div></div>';
+
+    el.innerHTML = html;
+    bindPh(el);
+    var xr = document.getElementById('xrep');
+    if (xr) xr.onclick = function(){ xlsxRep(a); };
+  }
+
+  /* ── ВСПЛЫВАЮЩЕЕ ОКНО: что срочно заказать ─────────────────────── */
+  function urgList(){
+    return hot().filter(function(i){ return i.urg === 'срочно'; })
+      .sort(function(a,b){ return (b.orderSum - a.orderSum) || (b.order - a.order); });
+  }
+  function urgPopup(force){
+    var u = urgList();
+    var today = new Date().toISOString().slice(0,10);
+    if (!force) {
+      if (!u.length) return;
+      var off = '';
+      try { off = localStorage.getItem('upak_urg_off') || ''; } catch(e){}
+      if (off === today) return;
+    }
+    var sum = u.reduce(function(s2,i){ return s2 + i.orderSum; }, 0);
+    document.getElementById('md-sum').textContent = f0(sum) + ' ₸';
+    document.getElementById('md-s').innerHTML = u.length
+      ? '<b>' + u.length + '</b> ' + plw(u.length,'позиция','позиции','позиций')
+        + ' кончится раньше, чем придёт поставка (срок ' + P.lead + ' дней). '
+        + 'Остатки на ' + SAT + '.'
+      : 'Срочного нет: по всем позициям запаса хватает дольше, чем идёт поставка.';
+    document.getElementById('md-b').innerHTML = u.length
+      ? '<div class="tw"><table><thead><tr><th class="ph">Фото</th><th class="nm">Позиция</th>'
+        + '<th>Остаток</th><th>Хватит, дней</th><th>Заказать</th><th>Сумма, ₸</th></tr></thead><tbody>'
+        + u.map(function (i) {
+            return '<tr class="hot">' + phCell(i)
+              + '<td class="nm">' + esc(i.n) + '<div class="sub2">' + esc(i.main || 'поставщик не указан')
+              +   (i.u ? ' · ' + esc(i.u) : '') + '</div></td>'
+              + '<td>' + f1(i.stock) + '</td>'
+              + '<td class="dd red">' + f1(i.days) + '</td>'
+              + '<td class="q">' + f0(i.order) + '</td>'
+              + '<td class="mny">' + (i.orderSum ? f0(i.orderSum) : '<span class="zero">цены нет</span>') + '</td></tr>';
+          }).join('')
+        + '</tbody></table></div>'
+      : '<div class="empty">Ничего срочного.</div>';
+    var md = document.getElementById('md');
+    md.classList.add('on');
+    bindPh(md);
+  }
+  function mdClose(){ document.getElementById('md').classList.remove('on'); }
+
+  /* ── 3. ЗАЯВКА: по поставщикам ─────────────────────────────────── */
   function secOrd() {
     var by = {};
     hot().filter(function(i){ return qmatch(i); }).forEach(function (i) {
@@ -1521,6 +1739,25 @@ thead th.nm{text-align:left}
       {v:Math.round(list.reduce(function(s,i){return s+i.orderSum;},0)),s:7},{v:'',s:6},{v:'',s:6}]);
     return rows;
   }
+  function repRows(list) {
+    var head = ['Позиция','Ед.','Поставщик','Расход в день','Неснижаемый остаток','Целевой запас',
+                'Недель запаса','Остаток','Хватит, дней','Отклонение','Отклонение, ₸','Цена за 1, ₸','Зона'];
+    var rows = [head.map(function(h){ return {v:h,s:1}; })];
+    list.forEach(function (i) {
+      rows.push([{v:i.n,s:2},{v:i.u,s:2},{v:i.main||'поставщик не указан',s:9},
+        {v:+i.perD.toFixed(1),s:3},{v:Math.round(i.point),s:3},{v:Math.round(i.min),s:3},
+        {v:i.weeks,s:3},{v:+i.stock.toFixed(2),s:3},
+        {v:i.days==null?'':+i.days.toFixed(1),s:i.days!=null&&i.days<i.lead?10:3},
+        {v:Math.round(i.devQty),s:i.devQty<0?10:3},{v:Math.round(i.devSum),s:i.devSum<0?10:3},
+        {v:i.price?Math.round(i.price*100)/100:'',s:3},{v:i.zone,s:2}]);
+    });
+    return rows;
+  }
+  function xlsxRep(list) {
+    saveXlsx([{ name:'Неснижаемый остаток', first:true, rows:repRows(list),
+      cols:W([44,7,26,12,16,13,11,11,11,12,13,11,18]), hRows:{0:30} }],
+      'Неснижаемый остаток ' + dmy(TH).replace(/\./g,'-') + '.xlsx');
+  }
   function xlsxBuy(list) {
     saveXlsx([{ name:'Что заказать', first:true, rows:buyRows(list),
       cols:W([44,7,26,11,12,11,13,11,11,14,13,12,40]), hRows:{0:30} }],
@@ -1575,18 +1812,19 @@ thead th.nm{text-align:left}
   }
 
   /* ── ЗАПУСК ────────────────────────────────────────────────────── */
-  function redraw(){ calc(); head(); secBuy(); secOrd(); secMx(); secAll(); secDead(); }
-  ['p-weeks','p-lead','p-long','p-safe','p-thr'].forEach(function (id) {
+  function redraw(){ calc(); head(); secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); }
+  ['p-weeks','p-lead','p-long','p-safe','p-thr','p-over'].forEach(function (id) {
     document.getElementById(id).oninput = function () {
       P.weeks = +document.getElementById('p-weeks').value || 4;
       P.lead  = +document.getElementById('p-lead').value  || 7;
       P.long  = +document.getElementById('p-long').value  || 10;
       P.safe  = +document.getElementById('p-safe').value  || 0;
       P.thr   = +document.getElementById('p-thr').value   || 0;
+      P.over  = +document.getElementById('p-over').value  || 0;
       redraw();
     };
   });
-  function redrawSecs(){ secBuy(); secOrd(); secMx(); secAll(); secDead(); }
+  function redrawSecs(){ secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); }
   document.getElementById('q').oninput = redrawSecs;
   fillFilters();
   ['f-urg','f-sup','f-store','f-price','f-stop'].forEach(function (id) {
@@ -1676,6 +1914,22 @@ thead th.nm{text-align:left}
   };
   document.getElementById('fotobulk').onclick = function () { document.getElementById('f-many').click(); };
 
+  document.getElementById('urgbtn').onclick = function(){ urgPopup(true); };
+  document.getElementById('md-close').onclick = mdClose;
+  document.getElementById('md').onclick = function (e) { if (e.target === this) mdClose(); };
+  document.getElementById('md-go').onclick = function () {
+    mdClose();
+    var t = document.querySelector('#tabs .tab[data-s="buy"]');
+    if (t) t.click();
+    document.getElementById('s-buy').scrollIntoView({ block:'start' });
+  };
+  document.getElementById('md-xls').onclick = function () { xlsxBuy(urgList()); };
+  document.getElementById('md-off').onchange = function () {
+    try {
+      if (this.checked) localStorage.setItem('upak_urg_off', new Date().toISOString().slice(0,10));
+      else localStorage.removeItem('upak_urg_off');
+    } catch (e) {}
+  };
   document.getElementById('lb-x').onclick = lbClose;
   document.getElementById('lb').onclick = function (e) { if (e.target === this) lbClose(); };
   document.getElementById('lb-re').onclick = function () {
@@ -1692,7 +1946,7 @@ thead th.nm{text-align:left}
         else toast('Удалить не удалось: ' + esc((j&&j.error)||'нет связи'));
       }).catch(function(e){ toast('Удалить не удалось: ' + esc(String(e))); });
   };
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lbClose(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { lbClose(); mdClose(); } });
 
   document.querySelectorAll('#tabs .tab').forEach(function (t) {
     t.onclick = function () {
@@ -1707,7 +1961,9 @@ thead th.nm{text-align:left}
   /* Фото и ручные цены приходят из воркера: страница рисуется сразу,
      а когда список дойдёт — перерисовываем. */
   fotoLoad().then(function () {
-    if (Object.keys(FOTO).length || Object.keys(PRICE_MAN).length || Object.keys(STOPS).length) redraw();
+    if (Object.keys(FOTO).length || Object.keys(PRICE_MAN).length
+        || Object.keys(STOPS).length || Object.keys(WEEKS_MAN).length) redraw();
+    urgPopup();
   });
 })();
 
