@@ -49,6 +49,11 @@ def olap(body):
 
 today = almaty.today()
 last_full = today - datetime.timedelta(days=1)
+# 05.10.2026. Остатки брались на начало суток того дня, когда стартовал прогон.
+# Прогон часто переходит алматинскую полночь (начался 04.10 в 23:25, дошёл до
+# упаковки в 00:05), и страница показывала «остатки на 03.10», то есть на
+# позавчера. Закупщику нужен остаток на момент сборки — берём «сейчас».
+bal_at = almaty.now().replace(microsecond=0)
 
 def months_list(n):
     out, y, m = [], today.year, today.month
@@ -94,7 +99,7 @@ def is_pack(name): return str(name or "").startswith(PFX)
 # ── 2. остатки: склад × позиция ────────────────────────────────
 log("2) остатки по складам")
 bal = s.get(f"{URL}/resto/api/v2/reports/balance/stores",
-            params={"key": tok, "timestamp": today.strftime("%Y-%m-%dT00:00:00")},
+            params={"key": tok, "timestamp": bal_at.strftime("%Y-%m-%dT%H:%M:%S")},
             verify=False, timeout=180).json()
 stock = {}          # позиция -> склад -> [кол-во, сумма]
 for r in bal:
@@ -104,7 +109,16 @@ for r in bal:
     a = stock.setdefault(nm, {}).setdefault(sid, [0.0, 0.0])
     a[0] += r.get("amount") or 0
     a[1] += r.get("sum") or 0
+log("   остатки на:", bal_at.strftime("%d.%m.%Y %H:%M"))
 log("   позиций упаковки с остатком:", len(stock))
+# Минусы в остатках — ошибка учёта (списали больше, чем приходило). В заказ
+# они не идут, но знать о них надо: расход по такой позиции тоже неполный.
+_neg = sorted(((nm, round(sum(v[0] for v in d2.values()), 2)) for nm, d2 in stock.items()),
+              key=lambda x: x[1])
+_neg = [x for x in _neg if x[1] < 0]
+if _neg:
+    log("   ОТРИЦАТЕЛЬНЫЕ ОСТАТКИ (ошибки учёта), позиций %d:" % len(_neg))
+    for nm, v in _neg[:20]: log("      %-55s %12.2f" % (nm[:55], v))
 
 # ── 3. движение по месяцам: позиция × склад ────────────────────
 log("3) движение по месяцам")
@@ -194,7 +208,9 @@ for nm in names:
 
 out = {
     "updated": almaty.now().strftime("%d.%m.%Y %H:%M"),
-    "through": last_full.isoformat(),
+    "through": bal_at.date().isoformat(),
+    "stockAt": bal_at.strftime("%d.%m.%Y %H:%M"),
+    "lastFull": last_full.isoformat(),
     "months": MONTHS,
     "storeSplit": bool(store_ok),
     "stores": sorted({s2 for it in items for s2 in it["st"]}
