@@ -378,7 +378,7 @@ thead th.nm{text-align:left}
   </div><div class="md-sum" id="md-sum">—</div></div>
   <div class="md-b" id="md-b"></div>
   <div class="md-f">
-    <label class="md-chk"><input type="checkbox" id="md-off"> не показывать сегодня</label>
+    <div class="md-chk">Окно открывается кнопкой «Срочное» — само не выскакивает.</div>
     <button class="btn" id="md-xls">📥 Заявка в Excel</button>
     <button class="btn pri" id="md-go">Открыть заявку</button>
     <button class="btn" id="md-close">Закрыть</button>
@@ -1231,15 +1231,10 @@ thead th.nm{text-align:left}
     return hot().filter(function(i){ return i.urg === 'срочно'; })
       .sort(function(a,b){ return (b.orderSum - a.orderSum) || (b.order - a.order); });
   }
-  function urgPopup(force){
+  /* Само при входе окно больше не выскакивает — мешает. Открывается
+     только кнопкой «Срочное» со счётчиком в настройках. */
+  function urgPopup(){
     var u = urgList();
-    var today = new Date().toISOString().slice(0,10);
-    if (!force) {
-      if (!u.length) return;
-      var off = '';
-      try { off = localStorage.getItem('upak_urg_off') || ''; } catch(e){}
-      if (off === today) return;
-    }
     var sum = u.reduce(function(s2,i){ return s2 + i.orderSum; }, 0);
     document.getElementById('md-sum').textContent = f0(sum) + ' ₸';
     document.getElementById('md-s').innerHTML = u.length
@@ -2223,7 +2218,7 @@ thead th.nm{text-align:left}
   };
   document.getElementById('fotobulk').onclick = function () { document.getElementById('f-many').click(); };
 
-  document.getElementById('urgbtn').onclick = function(){ urgPopup(true); };
+  document.getElementById('urgbtn').onclick = function(){ urgPopup(); };
   document.getElementById('md-close').onclick = mdClose;
   document.getElementById('md').onclick = function (e) { if (e.target === this) mdClose(); };
   document.getElementById('md-go').onclick = function () {
@@ -2233,12 +2228,6 @@ thead th.nm{text-align:left}
     document.getElementById('s-buy').scrollIntoView({ block:'start' });
   };
   document.getElementById('md-xls').onclick = function () { xlsxBuy(urgList()); };
-  document.getElementById('md-off').onchange = function () {
-    try {
-      if (this.checked) localStorage.setItem('upak_urg_off', new Date().toISOString().slice(0,10));
-      else localStorage.removeItem('upak_urg_off');
-    } catch (e) {}
-  };
   document.getElementById('lb-x').onclick = lbClose;
   document.getElementById('lb').onclick = function (e) { if (e.target === this) lbClose(); };
   document.getElementById('lb-re').onclick = function () {
@@ -2272,7 +2261,6 @@ thead th.nm{text-align:left}
   fotoLoad().then(function () {
     if (Object.keys(FOTO).length || Object.keys(PRICE_MAN).length
         || Object.keys(STOPS).length || Object.keys(WEEKS_MAN).length) redraw();
-    urgPopup();
   });
 })();
 
