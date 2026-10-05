@@ -142,6 +142,78 @@ async function handleGallery(request, env, url) {
 }
 
 
+// ── Упаковка: фото позиции и ручная цена ─────────────────────────────────────
+//  Фото нужны закупщику: по названию «У* Лоток 187*137*45 ФС 504 шт/кор»
+//  на складе ничего не узнать, а ошибка в заявке стоит денег. Картинка лежит
+//  в том же KV, ключ — нормализованное название позиции, поэтому фото
+//  переживает пересборку upak_data.js и видно всем, кто вошёл на сайт.
+//  Ручная цена — для позиций, по которым за год не было приходной накладной:
+//  количество к заказу считается, а умножать его не на что.
+//  Доступ закрыт общим паролем сайта (authGate), отдельного кода нет.
+const UPF_PREFIX = "upf:f:";
+const UPF_PRICE_KEY = "upf:prices";
+
+async function handleUpak(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  const key = (url.searchParams.get("n") || "").slice(0, 400);
+
+  if (act === "list") {
+    const foto = {};
+    let cursor;
+    do {
+      const r = await env.PLAN.list({ prefix: UPF_PREFIX, cursor, limit: 1000 });
+      for (const k of r.keys) foto[k.name.slice(UPF_PREFIX.length)] = Object.assign({}, k.metadata || {});
+      cursor = r.list_complete ? null : r.cursor;
+    } while (cursor);
+    let prices = {};
+    try { prices = JSON.parse((await env.PLAN.get(UPF_PRICE_KEY)) || "{}") || {}; } catch (e) {}
+    return jsonResp({ foto, prices, count: Object.keys(foto).length });
+  }
+
+  if (act === "foto") {
+    if (!key) return jsonResp({ error: "нет названия позиции" }, 400);
+    const r = await env.PLAN.getWithMetadata(UPF_PREFIX + key, { type: "arrayBuffer" });
+    if (!r || !r.value) return jsonResp({ error: "фото нет" }, 404);
+    return new Response(r.value, { headers: {
+      "content-type": (r.metadata && r.metadata.ct) || "image/jpeg",
+      "cache-control": "private, max-age=300" } });
+  }
+
+  if (act === "up" && request.method === "POST") {
+    if (!key) return jsonResp({ error: "нет названия позиции" }, 400);
+    const ct = url.searchParams.get("ct") || "image/jpeg";
+    if (ct.indexOf("image/") !== 0) return jsonResp({ error: "принимаем только картинки" }, 400);
+    const buf = await request.arrayBuffer();
+    if (!buf.byteLength) return jsonResp({ error: "пустой файл" }, 400);
+    if (buf.byteLength > 3 * 1024 * 1024) return jsonResp({ error: "файл больше 3 МБ" }, 413);
+    await env.PLAN.put(UPF_PREFIX + key, buf, { metadata: {
+      ct, s: buf.byteLength, d: new Date().toISOString().slice(0, 10) } });
+    return jsonResp({ ok: true, s: buf.byteLength });
+  }
+
+  if (act === "rm" && request.method === "POST") {
+    if (!key) return jsonResp({ error: "нет названия позиции" }, 400);
+    await env.PLAN.delete(UPF_PREFIX + key);
+    return jsonResp({ ok: true });
+  }
+
+  if (act === "price" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const n = String(body.n || "").slice(0, 400);
+    if (!n) return jsonResp({ error: "нет названия позиции" }, 400);
+    let p = {};
+    try { p = JSON.parse((await env.PLAN.get(UPF_PRICE_KEY)) || "{}") || {}; } catch (e) {}
+    const v = Number(body.v);
+    if (isFinite(v) && v > 0) p[n] = Math.round(v * 100) / 100; else delete p[n];
+    await env.PLAN.put(UPF_PRICE_KEY, JSON.stringify(p));
+    return jsonResp({ ok: true, count: Object.keys(p).length });
+  }
+
+  return jsonResp({ error: "неизвестный запрос" }, 404);
+}
+
+
 
 // ── Вход по паролю ───────────────────────────────────────────────────────────
 //  До 22.09.2026 сайт был открыт любому, у кого есть ссылка: на нём продажи,
@@ -521,6 +593,8 @@ export default {
     if (url.pathname === "/api/halal") {
       return handleHalal(request, env);
     }
+    if (url.pathname === "/api/upak") return handleUpak(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/suppliers") return handleSuppliers(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/salesplan") return handleSalesPlan(request, env, url)
