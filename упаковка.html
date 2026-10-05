@@ -213,7 +213,18 @@ tfoot td:first-child{text-align:left}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 
 /* фото позиции */
-td.ph,th.ph{width:62px;min-width:62px;text-align:center}
+/* Колонка фото стоит первой, а общее правило «первая ячейка — текстовая»
+   растягивало её до 220 px и сдвигало название вправо. Перебиваем адресно. */
+tbody td.ph{width:64px;min-width:64px;text-align:center;white-space:nowrap;padding:7px 6px}
+thead th.ph{width:64px;min-width:64px;text-align:center}
+tbody td.nm{text-align:left;white-space:normal;min-width:240px}
+thead th.nm{text-align:left}
+#s-buy table{min-width:880px;font-size:13px}
+#s-buy tbody td{padding:10px 12px}
+#s-buy .q{font-size:15px;font-weight:900;color:#fcd34d}
+#s-buy .mny{font-weight:800;color:#eef3fa}
+#s-buy .dd{font-weight:800}
+#s-buy .dd.red{color:#fca5a5}
 .ph-b{width:52px;height:52px;border-radius:9px;border:1px solid var(--line2);background:#0d1626;
   display:inline-flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;
   font-size:9.5px;color:#55688a;font-weight:700;line-height:1.2;padding:2px;transition:.15s}
@@ -253,7 +264,7 @@ td.ph,th.ph{width:62px;min-width:62px;text-align:center}
 
   <div class="card">
     <div class="ctl">
-      <div><label>Минимальный запас, недель</label><input type="number" id="p-weeks" min="1" max="26" step="1" value="6"></div>
+      <div><label>Минимальный запас, недель</label><input type="number" id="p-weeks" min="1" max="26" step="1" value="4"></div>
       <div><label>Срок поставки, дней</label><input type="number" id="p-lead" min="1" max="60" value="7"></div>
       <div><label>Под заказ, дней</label><input type="number" id="p-long" min="1" max="90" value="10"></div>
       <div><label>Страховой запас, дней</label><input type="number" id="p-safe" min="0" max="60" value="5"></div>
@@ -339,7 +350,7 @@ td.ph,th.ph{width:62px;min-width:62px;text-align:center}
   if (!LONG) LONG = { 'Color express ТОО':1, 'Компания В ТОО':1, 'Казтехнолоджи Пак ТОО':1 };
   function saveLong(){ try{ localStorage.setItem(LONG_KEY, JSON.stringify(LONG)); }catch(e){} }
 
-  var P = { lead:7, long:10, safe:5, weeks:6, thr:10, test:false };
+  var P = { lead:7, long:10, safe:5, weeks:4, thr:10, test:false };
   function covDays(){ return P.weeks * 7; }
 
   /* последние три полных месяца: по ним считаем дневной расход */
@@ -669,31 +680,33 @@ td.ph,th.ph{width:62px;min-width:62px;text-align:center}
       el.innerHTML = html; return;
     }
 
+    /* Колонок было десять, и таблица не влезала в экран: цена и сумма
+       уезжали за правый край. Расход и минимум ушли в подпись под
+       названием — они объясняют цифру, но смотрят на них реже. */
     function rows(list, withPrice) {
       return list.map(function (i) {
         var cls = i.urg==='срочно' ? 'hot' : '';
         return '<tr class="' + cls + '">'
           + phCell(i)
-          + '<td>' + esc(i.n)
+          + '<td class="nm">' + esc(i.n)
           +   '<div class="sub2">' + esc(i.main || 'поставщик не указан')
           +     (i.u ? ' · ' + esc(i.u) : '')
+          +     ' · расход ' + f1(i.perD) + '/дн · минимум ' + f0(i.min)
           +     (i.why ? ' · <span style="color:#fcd34d">' + esc(i.why) + '</span>' : '')
           +   '</div></td>'
           + '<td>' + f1(i.stock) + '</td>'
-          + '<td>' + f1(i.perD) + '</td>'
-          + '<td style="font-weight:800' + (i.days!=null&&i.days<i.lead?';color:#fca5a5':'') + '">' + f1(i.days) + '</td>'
-          + '<td>' + f0(i.min) + '</td>'
-          + '<td style="font-weight:800;color:#fcd34d">' + f0(i.order) + '</td>'
+          + '<td class="dd' + (i.days!=null&&i.days<i.lead?' red':'') + '">' + f1(i.days) + '</td>'
+          + '<td class="q">' + f0(i.order) + '</td>'
           + '<td>' + (withPrice
               ? f0(i.price) + (i.manual ? ' <span class="sub2" style="display:inline">вручную</span>' : '')
               : '<input class="pin" type="number" min="0" step="0.01" placeholder="цена" data-pr="' + esc(i.key) + '">') + '</td>'
-          + '<td>' + (withPrice ? f0(i.orderSum) : '<span class="zero">—</span>') + '</td>'
+          + '<td class="mny">' + (withPrice ? f0(i.orderSum) : '<span class="zero">—</span>') + '</td>'
           + '<td>' + (i.urg ? '<span class="st ' + (i.urg==='срочно'?'s-def':i.urg==='скоро'?'s-soon':'s-low') + '">'
               + i.urg + '</span>' : '') + '</td></tr>';
       }).join('');
     }
-    var thead = '<thead><tr><th class="ph">Фото</th><th>Позиция</th><th>Остаток</th><th>Расход в день</th>'
-      + '<th>Хватит, дней</th><th>Минимум, ' + covDays() + ' дн</th><th>Заказать</th><th>Цена, ₸</th>'
+    var thead = '<thead><tr><th class="ph">Фото</th><th class="nm">Позиция</th><th>Остаток</th>'
+      + '<th>Хватит, дней</th><th>Заказать</th><th>Цена, ₸</th>'
       + '<th>Сумма, ₸</th><th>Срочность</th></tr></thead>';
 
     html += '<div class="card" style="margin-top:12px">'
@@ -705,7 +718,7 @@ td.ph,th.ph{width:62px;min-width:62px;text-align:center}
       + '«Минимум» — сколько должно лежать, чтобы хватило на ' + P.weeks + ' '
       + plw(P.weeks,'неделю','недели','недель') + '; «заказать» — разница с остатком.</div>'
       + '<div class="tw"><table>' + thead + '<tbody>' + rows(withP, true) + '</tbody>'
-      + '<tfoot><tr><td></td><td>Итого · ' + withP.length + '</td><td></td><td></td><td></td><td></td>'
+      + '<tfoot><tr><td></td><td class="nm">Итого · ' + withP.length + '</td><td></td><td></td>'
       + '<td>' + f0(withP.reduce(function(s,i){return s+i.order;},0)) + '</td><td></td>'
       + '<td>' + f0(sum) + '</td><td></td></tr></tfoot></table></div></div>';
 
@@ -771,14 +784,14 @@ td.ph,th.ph{width:62px;min-width:62px;text-align:center}
         + '</div>'
         + '<div class="ord-b"><div class="tw"><table><thead><tr>'
         + '<th class="ph">Фото</th>'
-        + '<th>Позиция</th><th>Остаток</th><th>Расход в день</th><th>Хватит, дней</th>'
+        + '<th class="nm">Позиция</th><th>Остаток</th><th>Расход в день</th><th>Хватит, дней</th>'
         + '<th>Заказать</th><th>Сумма, ₸</th><th>Где лежит</th></tr></thead><tbody>'
         + list.map(function (i) {
             var where = Object.keys(i.st).sort(function(a,b){return i.st[b][0]-i.st[a][0];})
               .map(function(s){ return esc(s)+' — '+f1(i.st[s][0]); }).join('; ');
             return '<tr class="' + (i.st_==='дефицит'?'hot':'') + '">'
               + phCell(i)
-              + '<td>' + esc(i.n) + '<div class="sub2">' + esc(i.u||'') + '</div></td>'
+              + '<td class="nm">' + esc(i.n) + '<div class="sub2">' + esc(i.u||'') + '</div></td>'
               + '<td>' + f1(i.stock) + '</td>'
               + '<td>' + f1(i.perD) + '</td>'
               + '<td style="font-weight:800' + (i.days!=null&&i.days<i.lead?';color:#fca5a5':'') + '">'
@@ -867,13 +880,13 @@ td.ph,th.ph{width:62px;min-width:62px;text-align:center}
       + 'и будет виден всем. Можно залить сразу папку кнопкой «Фото пачкой» наверху.</div>'
       + '<div class="tw"><table><thead><tr><th class="ph">Фото</th>'
       + COLS.map(function (c) {
-          return '<th data-k="'+c[0]+'" class="'+(SORT.k===c[0]?'on':'')+'">'+c[1]
+          return '<th data-k="'+c[0]+'" class="'+(c[0]==='n'?'nm ':'')+(SORT.k===c[0]?'on':'')+'">'+c[1]
             + (SORT.k===c[0] ? (SORT.dir>0?' ↑':' ↓') : '') + '</th>'; }).join('')
       + '</tr></thead><tbody>';
     a.forEach(function (i) {
       h += '<tr class="' + (i.order>0?'hot':'') + '">'
         + phCell(i)
-        + '<td>' + esc(i.n) + '<div class="sub2">' + esc(i.main||'поставщик не указан')
+        + '<td class="nm">' + esc(i.n) + '<div class="sub2">' + esc(i.main||'поставщик не указан')
         +   (i.sups.length>1 ? ' и ещё ' + (i.sups.length-1) : '')
         +   (i.stores.length ? ' · ' + esc(i.stores.join(', ')) : ' · нет на складах') + '</div></td>'
         + '<td>' + f1(i.stock) + ' <span class="sub2" style="display:inline">' + esc(i.u) + '</span></td>'
@@ -1364,7 +1377,7 @@ td.ph,th.ph{width:62px;min-width:62px;text-align:center}
   function redraw(){ calc(); head(); secBuy(); secOrd(); secMx(); secAll(); secDead(); }
   ['p-weeks','p-lead','p-long','p-safe','p-thr'].forEach(function (id) {
     document.getElementById(id).oninput = function () {
-      P.weeks = +document.getElementById('p-weeks').value || 6;
+      P.weeks = +document.getElementById('p-weeks').value || 4;
       P.lead  = +document.getElementById('p-lead').value  || 7;
       P.long  = +document.getElementById('p-long').value  || 10;
       P.safe  = +document.getElementById('p-safe').value  || 0;
