@@ -108,13 +108,27 @@ bal = s.get(f"{URL}/resto/api/v2/reports/balance/stores",
             params={"key": tok, "timestamp": bal_at.strftime("%Y-%m-%dT%H:%M:%S")},
             verify=False, timeout=180).json()
 stock = {}          # позиция -> склад -> [кол-во, сумма]
+_unknown = {}       # склады, которых нет в справочнике
 for r in bal:
     pid = r.get("product"); nm = prod_name.get(pid, "")
     if not is_pack(nm): continue
-    sid = store_name.get(r.get("store"), r.get("store"))
+    raw = r.get("store")
+    sid = store_name.get(raw)
+    if not sid:
+        # 05.10.2026. Склад есть в остатках, но его нет в справочнике — в
+        # данные попадал его идентификатор (cd19b5ea-1b32-…), и на странице
+        # вместо названия склада стояла эта строка. Такие остатки (копейки)
+        # в срез не берём, но в лог пишем — вдруг появится настоящий склад.
+        a = _unknown.setdefault(raw, [0.0, 0.0])
+        a[0] += r.get("amount") or 0
+        a[1] += r.get("sum") or 0
+        continue
     a = stock.setdefault(nm, {}).setdefault(sid, [0.0, 0.0])
     a[0] += r.get("amount") or 0
     a[1] += r.get("sum") or 0
+if _unknown:
+    log("   склады без названия в справочнике (в срез не вошли):")
+    for k, v in _unknown.items(): log("      %s  %.2f ед, %.0f ₸" % (k, v[0], v[1]))
 log("   остатки на:", bal_at.strftime("%d.%m.%Y %H:%M"))
 log("   позиций упаковки с остатком:", len(stock))
 # Минусы в остатках — ошибка учёта (списали больше, чем приходило). В заказ
