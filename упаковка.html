@@ -66,6 +66,8 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .ctl input[type=number]{width:78px;text-align:right;font-weight:800}
 .ctl input[type=search]{min-width:230px}
 .ctl.flt{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.ctl .adv{display:none}
+.ctl.open .adv{display:block}
 .ctl.flt select{max-width:230px}
 .fcount{margin-left:auto;padding-bottom:10px;font-size:11.5px;color:var(--mut)}
 .fcount b{color:#fcd34d}
@@ -305,16 +307,18 @@ thead th.nm{text-align:left}
   <div class="card">
     <div class="ctl">
       <div><label>Минимальный запас, недель</label><input type="number" id="p-weeks" min="1" max="26" step="1" value="4"></div>
-      <div><label>Срок поставки, дней</label><input type="number" id="p-lead" min="1" max="60" value="7"></div>
-      <div><label>Под заказ, дней</label><input type="number" id="p-long" min="1" max="90" value="10"></div>
-      <div><label>Страховой запас, дней</label><input type="number" id="p-safe" min="0" max="60" value="5"></div>
-      <div><label>Не заказывать, если не хватает менее, %</label>
+      <div class="adv" id="adv"><label>Срок поставки, дней</label><input type="number" id="p-lead" min="1" max="60" value="7"></div>
+      <div class="adv"><label>Под заказ, дней</label><input type="number" id="p-long" min="1" max="90" value="10"></div>
+      <div class="adv"><label>Страховой запас, дней</label><input type="number" id="p-safe" min="0" max="60" value="5"></div>
+      <div class="adv"><label>Не заказывать, если не хватает менее, %</label>
         <input type="number" id="p-thr" min="0" max="50" value="10"></div>
-      <div><label>Избыток, если запаса больше, недель</label>
+      <div class="adv"><label>Избыток, если запаса больше, недель</label>
         <input type="number" id="p-over" min="2" max="104" value="12"></div>
+      <button class="btn" id="advbtn">⚙ Ещё настройки</button>
       <div style="flex:1;min-width:190px"><label>Поиск</label>
         <input type="search" id="q" placeholder="позиция, поставщик, склад…"></div>
       <button class="btn pri" id="xls">📥 Всё в Excel</button>
+      <button class="btn" id="xlsin">📤 Импорт из Excel</button>
       <button class="btn" id="fotobulk">📷 Фото пачкой</button>
       <button class="btn urgbtn" id="urgbtn">🔴 Срочное</button>
     </div>
@@ -330,6 +334,11 @@ thead th.nm{text-align:left}
         <option value="">любая</option>
         <option value="no">только без цены</option>
         <option value="yes">только с ценой</option></select></div>
+      <div><label>Зона запаса</label><select id="f-zone">
+        <option value="">любая</option>
+        <option value="ниже неснижаемого">ниже неснижаемого</option>
+        <option value="норма">норма</option>
+        <option value="избыток">избыток</option></select></div>
       <div><label>Стоп-лист</label><select id="f-stop">
         <option value="">не важно</option>
         <option value="no">без стопа</option>
@@ -359,6 +368,7 @@ thead th.nm{text-align:left}
 
 <input type="file" id="f-one" accept="image/*" style="display:none">
 <input type="file" id="f-many" accept="image/*" multiple style="display:none">
+<input type="file" id="f-xls" accept=".xlsx,.csv,text/csv" style="display:none">
 <div id="md" class="lb"><div class="md-in">
   <div class="md-h"><div>
     <div class="md-t">🔴 Срочно заказать</div>
@@ -548,10 +558,13 @@ thead th.nm{text-align:left}
       it.days = it.perD > 0 ? it.stock / it.perD : null;
       it.weeks = weeksOf(it);                       /* срок запаса по этой позиции */
       it.ownWeeks = !!WEEKS_MAN[it.key];
-      it.min = it.perD * it.weeks * 7;              /* до скольки дозаказываем */
-      /* Неснижаемый остаток — это НЕ целевой запас: столько должно лежать,
-         чтобы цех не встал, пока едет поставка. Срок поставки плюс страховой. */
-      it.point = it.perD * (it.lead + P.safe);
+      /* Неснижаемый остаток = запас на заданное число недель. По умолчанию
+         общие 4 недели, по позиции можно поставить свои. До него и
+         дозаказываем — это одно и то же число, двух разных «минимумов»
+         на странице быть не должно. */
+      it.min = it.perD * it.weeks * 7;
+      /* Отдельный порог срочности: кончится раньше, чем придёт поставка. */
+      it.pt = it.perD * (it.lead + P.safe);
       it.over = it.perD * P.over * 7;               /* выше этого — избыток */
       var need = (it.perD > 0 && it.stock < it.min) ? it.min - it.stock : 0;
       /* мелкую недостачу в заявку не тащим — иначе список не прочитать */
@@ -663,7 +676,7 @@ thead th.nm{text-align:left}
      Поиск оставляем как был, сверху — срочность, поставщик, склад и
      наличие цены. Поставщик и склад действуют на всех вкладках, срочность
      и цена — только там, где они осмысленны (не на «не используется»). */
-  var F = { urg:'', sup:'', store:'', price:'', stop:'' };
+  var F = { urg:'', sup:'', store:'', price:'', stop:'', zone:'' };
   function qmatch(it, light) {
     var q = (document.getElementById('q').value||'').toLowerCase().trim();
     if (q && (it.n + ' ' + it.sups.join(' ') + ' ' + it.stores.join(' ')).toLowerCase().indexOf(q) < 0) return false;
@@ -697,7 +710,7 @@ thead th.nm{text-align:left}
     fill('f-sup', Object.keys(sups), ['—', 'без поставщика']);
     fill('f-store', Object.keys(sts));
   }
-  function filtersOn(){ return !!(F.urg || F.sup || F.store || F.price || F.stop
+  function filtersOn(){ return !!(F.urg || F.sup || F.store || F.price || F.stop || F.zone
     || (document.getElementById('q').value||'').trim()); }
   function fcount(shown, total) {
     var el = document.getElementById('f-count');
@@ -1051,20 +1064,25 @@ thead th.nm{text-align:left}
      Ниже неснижаемого — красная зона. Выше «избытка» — замороженные деньги. */
   function secRep() {
     var el = document.getElementById('s-rep');
-    var a = IT.filter(function (i) { return qmatch(i) && i.perD > 0; });
-    a.forEach(function (i) {
-      i.devQty = i.stock - i.point;
+    /* Считаем только ту упаковку, которой реально пользуются: есть расход
+       за три последних месяца и она не в стопе. Позиции без движения —
+       отдельный разговор, они на вкладке «не используется». */
+    IT.forEach(function (i) {
+      i.devQty = i.stock - i.min;
       i.devSum = i.devQty * i.price;
-      i.zone = i.stock < i.point ? 'ниже неснижаемого'
+      i.zone = i.perD <= 0 ? '' : i.stock < i.min ? 'ниже неснижаемого'
              : (P.over && i.stock > i.over) ? 'избыток' : 'норма';
+    });
+    var a = IT.filter(function (i) {
+      return qmatch(i) && i.perD > 0 && !i.stop && (!F.zone || i.zone === F.zone);
     });
     a.sort(function (x, y) { return (x.devSum - y.devSum) || (x.devQty - y.devQty); });
 
     var below = a.filter(function(i){ return i.zone==='ниже неснижаемого'; });
     var over  = a.filter(function(i){ return i.zone==='избыток'; });
-    var needSum = below.reduce(function(s2,i){ return s2 + (i.point - i.stock) * i.price; }, 0);
+    var needSum = below.reduce(function(s2,i){ return s2 + (i.min - i.stock) * i.price; }, 0);
     var overSum = over.reduce(function(s2,i){ return s2 + (i.stock - i.over) * i.price; }, 0);
-    var normSum = a.reduce(function(s2,i){ return s2 + i.point * i.price; }, 0);
+    var normSum = a.reduce(function(s2,i){ return s2 + i.min * i.price; }, 0);
     var factSum = a.reduce(function(s2,i){ return s2 + i.stock * i.price; }, 0);
     var deadSum = IT.filter(function(i){ return i.dead && i.stock>0; })
                     .reduce(function(s2,i){ return s2 + i.stSum; }, 0);
@@ -1076,15 +1094,16 @@ thead th.nm{text-align:left}
 
     var html = '<div class="card" style="border-left:3px solid #60a5fa">'
       + '<div style="font-size:13px;font-weight:700;color:#f1f5f9">Неснижаемый остаток по упаковке</div>'
-      + '<div class="hint">Неснижаемый — сколько должно лежать, чтобы производство не встало, пока '
-      + 'едет поставка: расход в день × (срок поставки ' + P.lead + ' дн + страховой ' + P.safe + ' дн) = '
-      + '<b>' + (P.lead + P.safe) + ' дней</b>. Это не то же самое, что целевой запас: до него дозаказываем '
-      + '(по умолчанию ' + P.weeks + ' ' + plw(P.weeks,'неделя','недели','недель')
-      + ', по каждой позиции срок можно задать свой на вкладке «Что заказать»). '
+      + '<div class="hint">Неснижаемый остаток = расход в день × число недель. По умолчанию <b>' + P.weeks
+      + ' ' + plw(P.weeks,'неделя','недели','недель') + '</b>, но по каждой позиции срок можно поставить свой — '
+      + 'прямо в колонке «Недель», и он тут же пересчитает и неснижаемый, и заявку. '
+      + 'До неснижаемого и дозаказываем: «не хватает» — это и есть заявка. '
       + 'Запас больше ' + P.over + ' ' + plw(P.over,'недели','недель','недель') + ' считаем избытком — '
-      + 'это деньги, которые лежат без дела.</div>'
+      + 'это деньги, которые лежат без дела. В отчёт берём только упаковку, которой пользуются: '
+      + 'есть расход за три последних месяца и она не в стопе.</div>'
       + '<div class="kpis" style="margin-top:12px">'
-      +   tile('Должно лежать всегда', f0(normSum) + ' ₸', 'неснижаемый остаток, ' + (P.lead+P.safe) + ' дней', '#60a5fa')
+      +   tile('Неснижаемый остаток', f0(normSum) + ' ₸', 'запас на ' + P.weeks + ' '
+            + plw(P.weeks,'неделю','недели','недель') + ' по всей рабочей упаковке', '#60a5fa')
       +   tile('Лежит сейчас', f0(factSum) + ' ₸', a.length + ' ' + plw(a.length,'позиция','позиции','позиций') + ' в обороте', '#4ade80')
       +   tile('Не хватает до неснижаемого', f0(needSum) + ' ₸', below.length + ' ' + plw(below.length,'позиция','позиции','позиций'), '#f87171')
       +   tile('Избыток сверх ' + P.over + ' недель', f0(overSum) + ' ₸', over.length + ' ' + plw(over.length,'позиция','позиции','позиций'), '#fbbf24')
@@ -1098,7 +1117,8 @@ thead th.nm{text-align:left}
       + '<div class="hint">Сверху то, где дыра до неснижаемого больше всего в деньгах. '
       + '«Отклонение» — остаток минус неснижаемый: минус значит, что уже ниже нормы.</div>'
       + '<div class="tw"><table><thead><tr><th class="ph">Фото</th><th class="nm">Позиция</th>'
-      + '<th>Расход в день</th><th>Неснижаемый</th><th>Целевой</th><th>Остаток</th>'
+      + '<th>Расход в день</th><th class="wkc" title="на сколько недель держим запас">Недель</th>'
+      + '<th>Неснижаемый</th><th>Остаток</th>'
       + '<th>Хватит, дней</th><th>Отклонение</th><th>Отклонение, ₸</th><th>Зона</th></tr></thead><tbody>'
       + a.map(function (i) {
           var z = i.zone === 'ниже неснижаемого' ? 's-def' : i.zone === 'избыток' ? 's-soon' : 's-ok';
@@ -1108,8 +1128,8 @@ thead th.nm{text-align:left}
             +   (i.u ? ' · ' + esc(i.u) : '') + ' · запас на ' + i.weeks + ' '
             +   plw(i.weeks,'неделю','недели','недель') + (i.ownWeeks ? ' (своё)' : '') + '</div></td>'
             + '<td>' + f1(i.perD) + '</td>'
-            + '<td style="font-weight:800;color:#93c5fd">' + f0(i.point) + '</td>'
-            + '<td>' + f0(i.min) + '</td>'
+            + weeksCell(i)
+            + '<td style="font-weight:800;color:#93c5fd">' + f0(i.min) + '</td>'
             + '<td>' + f1(i.stock) + '</td>'
             + '<td class="dd' + (i.days!=null&&i.days<i.lead?' red':'') + '">' + f1(i.days) + '</td>'
             + '<td style="font-weight:800;color:' + (i.devQty<0?'#fca5a5':'#86efac') + '">'
@@ -1118,12 +1138,12 @@ thead th.nm{text-align:left}
             +   (i.devSum>0?'+':'') + f0(i.devSum) + '</td>'
             + '<td><span class="st ' + z + '">' + i.zone + '</span></td></tr>';
         }).join('')
-      + '</tbody><tfoot><tr><td></td><td class="nm">Итого · ' + a.length + '</td><td></td>'
-      + '<td>' + f0(normSum) + ' ₸</td><td></td><td>' + f0(factSum) + ' ₸</td><td></td><td></td>'
+      + '</tbody><tfoot><tr><td></td><td class="nm">Итого · ' + a.length + '</td><td></td><td></td>'
+      + '<td>' + f0(normSum) + ' ₸</td><td>' + f0(factSum) + ' ₸</td><td></td><td></td>'
       + '<td>' + f0(factSum - normSum) + '</td><td></td></tr></tfoot></table></div></div>';
 
     el.innerHTML = html;
-    bindPh(el);
+    bindPh(el); bindWeeks(el);
     var xr = document.getElementById('xrep');
     if (xr) xr.onclick = function(){ xlsxRep(a); };
   }
@@ -1654,9 +1674,13 @@ thead th.nm{text-align:left}
     }).join('') + '</cols>';
     var rows = sh.rows.map(function (row, ri) {
       var cells = row.map(function (c, ci) {
-        if (c == null || c.v === '' || c.v === null || c.v === undefined)
+        if (c == null || ((c.v === '' || c.v === null || c.v === undefined) && !c.f))
           return '<c r="' + colName(ci) + (ri + 1) + '" s="' + (c && c.s != null ? c.s : 0) + '"/>';
         var ref = colName(ci) + (ri + 1), st = c.s != null ? c.s : 0;
+        /* Формула вместо значения: файл должен пересчитываться сам, когда
+           в нём меняют недели, цену или ставят «стоп». */
+        if (c.f)
+          return '<c r="' + ref + '" s="' + st + '"><f>' + xesc(c.f) + '</f></c>';
         if (typeof c.v === 'number')
           return '<c r="' + ref + '" s="' + st + '"><v>' + c.v + '</v></c>';
         return '<c r="' + ref + '" s="' + st + '" t="inlineStr"><is><t xml:space="preserve">'
@@ -1696,7 +1720,8 @@ thead th.nm{text-align:left}
         '</Relationships>' },
       { name: 'xl/workbook.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
-        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+        '<calcPr calcId="0" fullCalcOnLoad="1"/><sheets>' +
         sheets.map(function (s, i) {
           return '<sheet name="' + xesc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
         }).join('') + '</sheets></workbook>' },
@@ -1720,47 +1745,70 @@ thead th.nm{text-align:left}
   }
 
   function W(a){ return a.map(function(w){ return {w:w}; }); }
+  /* Выгрузка живая: недели, цену и «стоп» в файле можно менять, а
+     неснижаемый остаток, количество к заказу и суммы пересчитываются
+     формулами. Столбцы: D расход, E недель, F неснижаемый, G остаток,
+     H хватит дней, I заказать, J цена, K сумма, L стоп. */
   function buyRows(list) {
-    var head = ['Позиция','Ед.','Поставщик','Остаток','Расход в день','Хватит, дней',
-                'Минимум, ' + covDays() + ' дн','Заказать','Цена за 1, ₸','Цена откуда','Сумма, ₸','Срочность','Где лежит'];
+    var head = ['Позиция','Ед.','Поставщик','Расход в день','Недель','Неснижаемый остаток','Остаток',
+                'Хватит, дней','Заказать','Цена за 1, ₸','Сумма, ₸','Стоп','Срочность','Где лежит'];
     var rows = [head.map(function(h){ return {v:h,s:1}; })];
-    list.forEach(function (i) {
-      rows.push([{v:i.n,s:2},{v:i.u,s:2},{v:i.main||'поставщик не указан',s:9},
-        {v:+i.stock.toFixed(2),s:3},{v:+i.perD.toFixed(1),s:3},
-        {v:i.days==null?'':+i.days.toFixed(1),s:i.days!=null&&i.days<i.lead?10:3},
-        {v:Math.round(i.min),s:3},{v:Math.round(i.order),s:10},
-        {v:i.price?Math.round(i.price*100)/100:'',s:3},{v:i.priceSrc||'',s:9},
-        {v:i.orderSum?Math.round(i.orderSum):'',s:10},
+    list.forEach(function (i, n) {
+      var r = n + 2;
+      rows.push([
+        {v:i.n,s:2},{v:i.u,s:2},{v:i.main||'поставщик не указан',s:9},
+        {v:+i.perD.toFixed(2),s:3},
+        {v:i.weeks,s:3},
+        {f:'ROUND(D'+r+'*E'+r+'*7,0)',s:3},
+        {v:+i.stock.toFixed(2),s:3},
+        {f:'IF(D'+r+'>0,ROUND(G'+r+'/D'+r+',1),"")',s:(i.days!=null&&i.days<i.lead)?10:3},
+        {f:'IF(L'+r+'="стоп",0,MAX(0,F'+r+'-G'+r+'))',s:10},
+        {v:i.price?Math.round(i.price*100)/100:'',s:3},
+        {f:'I'+r+'*J'+r,s:10},
+        {v:i.stop?'стоп':'',s:2},
         {v:i.urg||'',s:2},
-        {v:Object.keys(i.st).map(function(s){return s+' — '+f1(i.st[s][0]);}).join('; '),s:9}]);
+        {v:Object.keys(i.st).map(function(s2){return s2+' — '+f1(i.st[s2][0]);}).join('; '),s:9}
+      ]);
     });
-    rows.push([{v:'Итого',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
-      {v:Math.round(list.reduce(function(s,i){return s+i.order;},0)),s:7},{v:'',s:6},{v:'',s:6},
-      {v:Math.round(list.reduce(function(s,i){return s+i.orderSum;},0)),s:7},{v:'',s:6},{v:'',s:6}]);
+    var last = list.length + 1;
+    rows.push([{v:'Итого',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
+      {f:'SUM(I2:I'+last+')',s:7},{v:'',s:6},{f:'SUM(K2:K'+last+')',s:7},{v:'',s:6},{v:'',s:6},{v:'',s:6}]);
     return rows;
   }
+
   function repRows(list) {
-    var head = ['Позиция','Ед.','Поставщик','Расход в день','Неснижаемый остаток','Целевой запас',
-                'Недель запаса','Остаток','Хватит, дней','Отклонение','Отклонение, ₸','Цена за 1, ₸','Зона'];
+    var head = ['Позиция','Ед.','Поставщик','Расход в день','Недель','Неснижаемый остаток','Остаток',
+                'Хватит, дней','Отклонение','Цена за 1, ₸','Отклонение, ₸','Зона'];
     var rows = [head.map(function(h){ return {v:h,s:1}; })];
-    list.forEach(function (i) {
-      rows.push([{v:i.n,s:2},{v:i.u,s:2},{v:i.main||'поставщик не указан',s:9},
-        {v:+i.perD.toFixed(1),s:3},{v:Math.round(i.point),s:3},{v:Math.round(i.min),s:3},
-        {v:i.weeks,s:3},{v:+i.stock.toFixed(2),s:3},
-        {v:i.days==null?'':+i.days.toFixed(1),s:i.days!=null&&i.days<i.lead?10:3},
-        {v:Math.round(i.devQty),s:i.devQty<0?10:3},{v:Math.round(i.devSum),s:i.devSum<0?10:3},
-        {v:i.price?Math.round(i.price*100)/100:'',s:3},{v:i.zone,s:2}]);
+    list.forEach(function (i, n) {
+      var r = n + 2;
+      rows.push([
+        {v:i.n,s:2},{v:i.u,s:2},{v:i.main||'поставщик не указан',s:9},
+        {v:+i.perD.toFixed(2),s:3},
+        {v:i.weeks,s:3},
+        {f:'ROUND(D'+r+'*E'+r+'*7,0)',s:3},
+        {v:+i.stock.toFixed(2),s:3},
+        {f:'IF(D'+r+'>0,ROUND(G'+r+'/D'+r+',1),"")',s:(i.days!=null&&i.days<i.lead)?10:3},
+        {f:'G'+r+'-F'+r,s:i.devQty<0?10:3},
+        {v:i.price?Math.round(i.price*100)/100:'',s:3},
+        {f:'I'+r+'*J'+r,s:i.devSum<0?10:3},
+        {v:i.zone,s:2}
+      ]);
     });
+    var last = list.length + 1;
+    rows.push([{v:'Итого',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
+      {f:'SUMPRODUCT(F2:F'+last+',J2:J'+last+')',s:7},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
+      {f:'SUM(K2:K'+last+')',s:7},{v:'',s:6}]);
     return rows;
   }
   function xlsxRep(list) {
     saveXlsx([{ name:'Неснижаемый остаток', first:true, rows:repRows(list),
-      cols:W([44,7,26,12,16,13,11,11,11,12,13,11,18]), hRows:{0:30} }],
+      cols:W([44,7,26,12,9,16,11,11,12,11,13,18]), hRows:{0:30} }],
       'Неснижаемый остаток ' + dmy(TH).replace(/\./g,'-') + '.xlsx');
   }
   function xlsxBuy(list) {
     saveXlsx([{ name:'Что заказать', first:true, rows:buyRows(list),
-      cols:W([44,7,26,11,12,11,13,11,11,14,13,12,40]), hRows:{0:30} }],
+      cols:W([44,7,26,12,9,16,11,11,12,11,13,8,12,38]), hRows:{0:30} }],
       'Что заказать ' + dmy(TH).replace(/\./g,'-') + '.xlsx');
   }
   function orderRows(list) {
@@ -1811,6 +1859,179 @@ thead th.nm{text-align:left}
     saveXlsx([s1,s2,s3], 'Упаковка ' + dmy(TH).replace(/\./g,'-') + '.xlsx');
   }
 
+  /* ── ИМПОРТ ИЗ EXCEL ───────────────────────────────────────────────
+     Выгрузили файл, поправили в нём недели, цены и «стоп» — и вернули
+     обратно. Строки узнаём по названию позиции, остальное берём из
+     колонок с теми же заголовками, что в выгрузке. Понимает .xlsx и
+     .csv; xlsx распаковывается прямо в браузере. */
+  function inflateRaw(buf){
+    if (typeof DecompressionStream === 'undefined') return Promise.reject('браузер не умеет распаковывать');
+    var ds = new DecompressionStream('deflate-raw');
+    return new Response(new Blob([buf]).stream().pipeThrough(ds)).arrayBuffer();
+  }
+  function unzip(ab, want){
+    var dv = new DataView(ab), u8 = new Uint8Array(ab), end = -1;
+    for (var i = ab.byteLength - 22; i >= 0 && i > ab.byteLength - 70000; i--) {
+      if (dv.getUint32(i, true) === 0x06054b50) { end = i; break; }
+    }
+    if (end < 0) return Promise.reject('это не xlsx');
+    var n = dv.getUint16(end + 10, true), off = dv.getUint32(end + 16, true);
+    var out = {}, jobs = [], p = off;
+    for (var k = 0; k < n; k++) {
+      var nameLen = dv.getUint16(p + 28, true), extLen = dv.getUint16(p + 30, true),
+          cmtLen = dv.getUint16(p + 32, true), lho = dv.getUint32(p + 42, true),
+          method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+      var name = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nameLen));
+      p += 46 + nameLen + extLen + cmtLen;
+      if (want.indexOf(name) < 0) continue;
+      var lnl = dv.getUint16(lho + 26, true), lel = dv.getUint16(lho + 28, true);
+      var dstart = lho + 30 + lnl + lel;
+      var data = u8.subarray(dstart, dstart + csize);
+      (function (nm, m, d) {
+        jobs.push((m === 0 ? Promise.resolve(d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength))
+                           : inflateRaw(d)).then(function (b) { out[nm] = new TextDecoder().decode(b); }));
+      })(name, method, data);
+    }
+    return Promise.all(jobs).then(function () { return out; });
+  }
+  function sheetToRows(xml, shared){
+    var doc = new DOMParser().parseFromString(xml, 'application/xml');
+    var rows = [];
+    Array.prototype.forEach.call(doc.getElementsByTagName('row'), function (tr) {
+      var arr = [];
+      Array.prototype.forEach.call(tr.getElementsByTagName('c'), function (c) {
+        var ref = c.getAttribute('r') || '', col = 0;
+        (ref.match(/^[A-Z]+/) || [''])[0].split('').forEach(function (ch) {
+          col = col * 26 + (ch.charCodeAt(0) - 64);
+        });
+        var t = c.getAttribute('t'), v = '';
+        if (t === 'inlineStr') { var is = c.getElementsByTagName('t')[0]; v = is ? is.textContent : ''; }
+        else { var vn = c.getElementsByTagName('v')[0]; v = vn ? vn.textContent : '';
+               if (t === 's') v = shared[+v] || ''; }
+        if (col > 0) arr[col - 1] = v;
+      });
+      rows.push(arr);
+    });
+    return rows;
+  }
+  function csvToRows(txt){
+    var first = txt.split('\n')[0] || '';
+    var sep = first.split(';').length > first.split(',').length ? ';' : ',';
+    return txt.split(/\r?\n/).filter(function(l){ return l.trim(); }).map(function (line) {
+      var out = [], cur = '', q = false;
+      for (var i = 0; i < line.length; i++) {
+        var ch = line[i];
+        if (q) { if (ch === '"' && line[i+1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
+        else if (ch === '"') q = true;
+        else if (ch === sep) { out.push(cur); cur = ''; }
+        else cur += ch;
+      }
+      out.push(cur); return out;
+    });
+  }
+  function importRows(rows){
+    if (!rows.length) { toast('Файл пустой'); return; }
+    var head = (rows[0] || []).map(function(x){ return String(x||'').toLowerCase().trim(); });
+    function col(){
+      for (var i = 0; i < arguments.length; i++) {
+        for (var j = 0; j < head.length; j++) if (head[j].indexOf(arguments[i]) === 0) return j;
+      }
+      return -1;
+    }
+    var cN = col('позиц','наимен','товар'), cW = col('недел'), cP = col('цена'), cS = col('стоп');
+    if (cN < 0) { toast('В файле нет колонки «Позиция» — импортировать нечего.', 7000); return; }
+    var byKey = {}; IT.forEach(function(i){ byKey[i.key] = i; });
+    var jobs = [], miss = [], seen = 0;
+    rows.slice(1).forEach(function (r) {
+      var nm = String(r[cN] || '').trim();
+      if (!nm || /^итого/i.test(nm)) return;
+      var it = byKey[nkey(nm)];
+      if (!it) { miss.push(nm); return; }
+      seen++;
+      if (cW >= 0) {
+        var w = parseFloat(String(r[cW]).replace(',', '.'));
+        var curW = WEEKS_MAN[it.key] || 0;
+        if (isFinite(w) && w >= 1 && w <= 104) {
+          if (w !== curW && !(curW === 0 && w === P.weeks)) jobs.push({ a:'weeks', n:it.key, v:w });
+        } else if (curW) jobs.push({ a:'weeks', n:it.key, v:0 });
+      }
+      if (cP >= 0) {
+        var pr = parseFloat(String(r[cP]).replace(/\s/g,'').replace(',', '.'));
+        var curP = PRICE_MAN[it.key] || 0;
+        if (isFinite(pr) && pr > 0 && Math.abs(pr - (curP || it.price)) > 0.005)
+          jobs.push({ a:'price', n:it.key, v:pr });
+      }
+      if (cS >= 0) {
+        var st = /стоп|да|yes|true|1|x|✓/i.test(String(r[cS] || '').trim());
+        if (st !== !!it.stop) jobs.push({ a:'stop', n:it.key, v:st });
+      }
+    });
+    if (!jobs.length) {
+      toast('Узнали ' + seen + ' ' + plw(seen,'позицию','позиции','позиций') + ', менять нечего — всё совпадает.'
+        + (miss.length ? '<br>Не нашли на сайте: ' + miss.length : ''), 7000);
+      return;
+    }
+    var done = 0, bad = 0, total = jobs.length;
+    toast('Применяю изменения: 0 из ' + total, 0);
+    (function next(){
+      if (!jobs.length) {
+        redraw();
+        toast('Импорт готов: изменено <b>' + done + '</b> '
+          + plw(done,'значение','значения','значений')
+          + (bad ? '<br>не сохранилось: ' + bad : '')
+          + (miss.length ? '<br>не нашли на сайте: ' + miss.length + ' '
+              + plw(miss.length,'строку','строки','строк') : ''), 9000);
+        return;
+      }
+      var j = jobs.shift();
+      fetch(API + '?a=' + j.a, { method:'POST', headers:{'content-type':'application/json'},
+                                 body: JSON.stringify({ n:j.n, v:j.v }) })
+        .then(function(r){ return r.json(); })
+        .then(function (res) {
+          if (res && res.ok) {
+            done++;
+            if (j.a === 'weeks') { if (j.v >= 1) WEEKS_MAN[j.n] = j.v; else delete WEEKS_MAN[j.n]; }
+            if (j.a === 'price') { if (j.v > 0) PRICE_MAN[j.n] = j.v; else delete PRICE_MAN[j.n]; }
+            if (j.a === 'stop')  { if (j.v) STOPS[j.n] = 1; else delete STOPS[j.n]; }
+          } else bad++;
+          toast('Применяю изменения: ' + (done + bad) + ' из ' + total, 0);
+          next();
+        })
+        .catch(function(){ bad++; next(); });
+    })();
+  }
+  document.getElementById('advbtn').onclick = function () {
+    var c = document.getElementById('p-lead').closest('.ctl');
+    c.classList.toggle('open');
+    this.textContent = c.classList.contains('open') ? '⚙ Свернуть настройки' : '⚙ Ещё настройки';
+  };
+  document.getElementById('xlsin').onclick = function(){ document.getElementById('f-xls').click(); };
+  document.getElementById('f-xls').onchange = function () {
+    var f = this.files && this.files[0]; this.value = '';
+    if (!f) return;
+    toast('Читаю файл…', 0);
+    if (/\.csv$/i.test(f.name)) {
+      f.text().then(function(t){ importRows(csvToRows(t)); })
+        .catch(function(e){ toast('Не прочитали файл: ' + esc(String(e))); });
+      return;
+    }
+    f.arrayBuffer().then(function (ab) {
+      return unzip(ab, ['xl/worksheets/sheet1.xml', 'xl/sharedStrings.xml']);
+    }).then(function (files) {
+      var shared = [];
+      if (files['xl/sharedStrings.xml']) {
+        var sd = new DOMParser().parseFromString(files['xl/sharedStrings.xml'], 'application/xml');
+        shared = Array.prototype.map.call(sd.getElementsByTagName('si'), function (si) {
+          return Array.prototype.map.call(si.getElementsByTagName('t'), function(t){ return t.textContent; }).join('');
+        });
+      }
+      if (!files['xl/worksheets/sheet1.xml']) throw 'в файле нет первого листа';
+      importRows(sheetToRows(files['xl/worksheets/sheet1.xml'], shared));
+    }).catch(function (e) {
+      toast('Не прочитали xlsx (' + esc(String(e)) + '). Сохраните файл как CSV и попробуйте ещё раз.', 9000);
+    });
+  };
+
   /* ── ЗАПУСК ────────────────────────────────────────────────────── */
   function redraw(){ calc(); head(); secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); }
   ['p-weeks','p-lead','p-long','p-safe','p-thr','p-over'].forEach(function (id) {
@@ -1827,19 +2048,20 @@ thead th.nm{text-align:left}
   function redrawSecs(){ secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); }
   document.getElementById('q').oninput = redrawSecs;
   fillFilters();
-  ['f-urg','f-sup','f-store','f-price','f-stop'].forEach(function (id) {
+  ['f-urg','f-sup','f-store','f-price','f-stop','f-zone'].forEach(function (id) {
     document.getElementById(id).onchange = function () {
       F.urg   = document.getElementById('f-urg').value;
       F.sup   = document.getElementById('f-sup').value;
       F.store = document.getElementById('f-store').value;
       F.price = document.getElementById('f-price').value;
       F.stop  = document.getElementById('f-stop').value;
+      F.zone  = document.getElementById('f-zone').value;
       redrawSecs();
     };
   });
   document.getElementById('f-reset').onclick = function () {
-    F = { urg:'', sup:'', store:'', price:'', stop:'' };
-    ['f-urg','f-sup','f-store','f-price','f-stop'].forEach(function(id){ document.getElementById(id).value = ''; });
+    F = { urg:'', sup:'', store:'', price:'', stop:'', zone:'' };
+    ['f-urg','f-sup','f-store','f-price','f-stop','f-zone'].forEach(function(id){ document.getElementById(id).value = ''; });
     document.getElementById('q').value = '';
     redrawSecs();
   };
