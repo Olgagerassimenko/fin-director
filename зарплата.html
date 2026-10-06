@@ -1,0 +1,582 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Зарплата · Пульс</title>
+<!-- Фуд Завод · © 2026. Все права защищены.
+     Раздел закрыт отдельным паролем: в облаке лежит только SHA-256, сам
+     пароль никуда не передаётся. Расчёт идёт в браузере, ставки 2026 года
+     вынесены в блок «Ставки и показатели» и правятся без выкладки сайта. -->
+<script src="nav.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#070c17;--line:#1c2740;--line2:#26334d;--ink:#eef3fb;--ink2:#c3d0e2;
+  --mut:#7b8ca6;--dim:#546279;--ac:#f59e0b;--ac2:#b45309;--good:#4ade80;--bad:#f87171;--cy:#22d3ee}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
+  -webkit-font-smoothing:antialiased;background:
+   radial-gradient(900px 520px at 6% -8%,rgba(245,158,11,.13),transparent 60%),
+   radial-gradient(780px 460px at 97% 0%,rgba(34,211,238,.09),transparent 60%),var(--bg);
+  background-attachment:fixed}
+.topbar{display:flex;align-items:center;gap:16px;padding:15px 30px;position:sticky;top:0;z-index:60;
+  background:rgba(10,16,29,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.backbtn{display:inline-flex;align-items:center;background:#16203a;color:var(--ink2);border:1px solid var(--line2);
+  font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;text-decoration:none;transition:.18s;white-space:nowrap}
+.backbtn:hover{background:var(--ac);color:#1a1205;border-color:var(--ac)}
+.topbar h1{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;display:flex;gap:8px;align-items:center}
+.pill{font-size:11.5px;color:#fde68a;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);
+  border-radius:999px;padding:6px 13px;font-weight:700;white-space:nowrap}
+.section{padding:20px 30px 56px;max-width:1420px;margin:0 auto}
+
+/* ── вход ──────────────────────────────────────────────────────────────── */
+.gate{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;
+  background:rgba(5,9,17,.96);backdrop-filter:blur(8px);padding:20px}
+.gbox{width:min(420px,100%);background:linear-gradient(170deg,#101a2b,#0b1320);border:1px solid var(--line2);
+  border-radius:20px;padding:26px 26px 22px;box-shadow:0 30px 70px -30px #000}
+.gbox h2{font-size:18px;font-weight:900;margin-bottom:6px}
+.gbox p{font-size:12.5px;color:var(--mut);line-height:1.6;margin-bottom:16px}
+.gbox label{display:block;font-size:11.5px;color:var(--ink2);font-weight:700;margin:0 0 5px}
+.gbox input{width:100%;background:#0b1422;border:1px solid var(--line2);border-radius:12px;color:var(--ink);
+  font:inherit;font-size:14px;padding:11px 14px;outline:none;margin-bottom:12px}
+.gbox input:focus{border-color:var(--ac)}
+.gbox button{width:100%;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#1a1205;border:0;
+  border-radius:12px;padding:12px;font:inherit;font-size:14px;font-weight:800;cursor:pointer}
+.gerr{font-size:12.5px;color:var(--bad);font-weight:700;margin-bottom:10px;min-height:17px}
+
+/* ── формы ─────────────────────────────────────────────────────────────── */
+.wrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start}
+.card{background:linear-gradient(170deg,#0f1828,#0b1320);border:1px solid var(--line);
+  border-radius:18px;padding:17px 19px;margin-bottom:14px}
+.card.ac{border-left:3px solid var(--ac)}
+.card h2{font-size:14.5px;font-weight:800;margin-bottom:2px}
+.card .sub{font-size:12px;color:var(--mut);line-height:1.5;margin-bottom:14px}
+.grp{border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:11px;background:rgba(255,255,255,.015)}
+.grp>.t{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ac);font-weight:800;margin-bottom:10px}
+.f{display:grid;grid-template-columns:1fr 132px;gap:8px 10px;align-items:center}
+.f label{font-size:12.5px;color:var(--ink2);line-height:1.35}
+.f label .h{display:block;font-size:11px;color:var(--dim);margin-top:1px}
+.f input[type=number],.f input[type=text],.f select{background:#0b1422;border:1px solid var(--line2);
+  border-radius:9px;color:var(--ink);font:inherit;font-size:13px;padding:7px 10px;text-align:right;
+  outline:none;width:100%;font-variant-numeric:tabular-nums}
+.f input[type=text]{text-align:left}
+.f select{text-align:left;cursor:pointer}
+.f input:focus,.f select:focus{border-color:var(--ac)}
+.f .wide{grid-column:1/-1}
+.ck{grid-column:1/-1;display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--ink2);cursor:pointer;
+  padding:3px 0;line-height:1.4}
+.ck input{width:16px;height:16px;accent-color:var(--ac);cursor:pointer;flex-shrink:0;margin-top:1px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.seg button{background:#121c30;border:1px solid var(--line2);color:var(--ink2);border-radius:999px;
+  padding:7px 14px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.15s}
+.seg button:hover{border-color:var(--ac);color:var(--ink)}
+.seg button.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#1a1205;border-color:var(--ac)}
+
+/* ── расчётный лист ────────────────────────────────────────────────────── */
+.wrap>div:last-child{position:sticky;top:76px;align-self:start}
+.sticky{display:block}
+.r{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:baseline;padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,.055);font-size:13px}
+.r .nm{color:var(--ink2);line-height:1.35}
+.r .nm .h{display:block;font-size:11px;color:var(--dim);margin-top:1px}
+.r .am{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.r.sec{padding:9px 0 5px;border-bottom:0}
+.r.sec .nm{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);font-weight:800}
+.r.sub .nm{padding-left:12px;color:var(--mut);font-size:12.5px}
+.r.tot{border-top:1px solid rgba(245,158,11,.35);border-bottom:0;margin-top:4px;padding-top:9px}
+.r.tot .nm{font-weight:800;color:var(--ink);font-size:13.5px}.r.tot .am{font-size:16px}
+.r.fin{background:linear-gradient(120deg,rgba(245,158,11,.16),rgba(245,158,11,.04));
+  border:1px solid rgba(245,158,11,.4);border-radius:13px;padding:12px 14px;margin-top:10px}
+.r.fin .nm{font-weight:800;color:#fde68a;font-size:14px}.r.fin .am{font-size:21px;color:#fff}
+.neg{color:var(--bad)}.pos{color:var(--good)}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}
+.kpi .k{border:1px solid var(--line2);border-radius:12px;padding:10px 12px}
+.kpi .k .l{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);font-weight:800}
+.kpi .k .v{font-size:17px;font-weight:900;margin-top:3px;font-variant-numeric:tabular-nums}
+.note{font-size:11.5px;color:var(--dim);line-height:1.55;margin-top:11px}
+.ins{background:linear-gradient(120deg,rgba(245,158,11,.1),rgba(245,158,11,.02));
+  border:1px solid rgba(245,158,11,.25);border-left:3px solid var(--ac);border-radius:13px;
+  padding:12px 15px;font-size:12.5px;line-height:1.6;color:#dfe7f1;margin-top:13px}
+.ins b{color:#fde68a}
+.btn{background:#121c30;border:1px solid var(--line2);color:var(--ink2);border-radius:999px;
+  padding:8px 15px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.btn:hover{border-color:var(--ac);color:var(--ink)}
+.btn.pri{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#1a1205;border-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);
+  font-weight:800;padding:8px 9px;border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:8px 9px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--ink2)}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink);font-weight:700}
+tbody tr:hover td{background:rgba(255,255,255,.03)}
+.x{color:var(--dim);cursor:pointer;font-weight:800}.x:hover{color:var(--bad)}
+.foot{text-align:center;color:var(--dim);font-size:11.5px;padding:24px 0 0}
+details.more{border:1px dashed rgba(245,158,11,.3);border-radius:14px;padding:0 15px;margin-top:12px}
+details.more summary{list-style:none;cursor:pointer;color:var(--ac);font-size:12px;font-weight:800;padding:11px 0}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::before{content:"▸ "}details.more[open] summary::before{content:"▾ "}
+@media(max-width:1100px){.wrap{grid-template-columns:1fr}.wrap>div:last-child{position:static}}
+@media(max-width:700px){.section{padding:16px 14px 44px}.topbar{padding:13px 14px}
+  .f{grid-template-columns:1fr 110px}.kpi{grid-template-columns:1fr}}
+</style></head>
+<body>
+<div class="topbar">
+  <a class="backbtn" href="index.html">← Пульс</a>
+  <div><h1>👥 Зарплата</h1><p>Полный расчёт по сотруднику и фонд оплаты труда · ставки РК 2026</p></div>
+  <div class="live"><span class="pill" id="pill">🔒 закрытый раздел</span>
+    <button class="btn" id="pw" style="display:none">Сменить пароль</button></div>
+</div>
+
+<div class="gate" id="gate">
+  <div class="gbox">
+    <h2 id="g-h">Раздел закрыт</h2>
+    <p id="g-p">Загружаю…</p>
+    <div class="gerr" id="g-err"></div>
+    <form id="g-f" style="display:none">
+      <label id="g-l1">Пароль</label><input type="password" id="g-1" autocomplete="current-password" required>
+      <div id="g-2w" style="display:none"><label>Ещё раз</label><input type="password" id="g-2" autocomplete="new-password"></div>
+      <button type="submit" id="g-b">Войти</button>
+    </form>
+  </div>
+</div>
+
+<div class="section" id="root" style="display:none"></div>
+
+<script>
+(function(){
+ /* ── утилиты ────────────────────────────────────────────────────────── */
+ var $=function(id){ return document.getElementById(id); };
+ function num(v){ var n=Math.round(v); return (n<0?'\u2212':'')+Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+ function f0(v){ return num(v||0)+' ₸'; }
+ function pc(v){ return String(Math.round(v*10)/10).replace('.',','); }
+ function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+ async function sha(s){
+   var b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+   return [].slice.call(new Uint8Array(b)).map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
+ }
+ function api(q,opt){ return fetch('/api/zp?'+q, opt||{}).then(function(r){
+   return r.json().then(function(j){ return {ok:r.ok, j:j}; }); }); }
+
+ /* ── ставки и показатели 2026 ───────────────────────────────────────── */
+ var R = {
+   mrp:4325, mzp:85000,
+   opv:10,   opvLimMzp:50,
+   opvr:3.5, opvrMinMzp:1, opvrLimMzp:50,
+   vosms:2,  vosmsLimMzp:20,
+   oosms:3,  oosmsLimMzp:40,
+   so:5,     soMinMzp:1, soLimMzp:7,
+   sn:6,     snMinMrp:14,
+   ipn:10,   ipnHi:15, ipnHiMrp:8500,
+   vychetMrp:30, vychetYearMrp:360,
+   medLimMrp:94
+ };
+ var HASH='', DATA={ staff:[], rates:null };
+
+ /* ── расчёт ─────────────────────────────────────────────────────────── */
+ function calc(p){
+   var mzp=R.mzp, mrp=R.mrp, L={};
+   /* 1. начисления */
+   var norm = p.normDays>0 ? Math.min(1, p.workDays/p.normDays) : 1;
+   var base = p.form==='hour' ? p.rate*p.hours
+            : p.form==='piece' ? p.rate*p.units
+            : p.oklad*norm;
+   var hourRate = p.normHours>0 ? (p.form==='oklad'? p.oklad : base)/p.normHours : 0;
+   var night = p.nightH*hourRate*p.kNight;
+   var hol   = p.holH*hourRate*p.kHol;
+   var over  = p.overH*hourRate*p.kOver;
+   var harm  = base*(p.harmPct||0)/100;
+   var prem  = base*(p.premPct||0)/100 + (p.premSum||0);
+   var extra = (p.vacation||0)+(p.sick||0)+(p.otherPay||0)+(p.combine||0);
+   var gross = base+night+hol+over+harm+prem+extra;
+   var free  = p.freePay||0;                 /* необлагаемые выплаты */
+
+   /* 2. кто что платит */
+   var opvOn   = p.opvOn,   opvrOn = p.opvrOn, vosmsOn = p.vosmsOn,
+       oosmsOn = p.oosmsOn, soOn   = p.soOn,   snOn    = p.snOn;
+
+   /* 3. удержания с работника */
+   var opv   = opvOn   ? Math.min(gross, mzp*R.opvLimMzp)*R.opv/100 : 0;
+   var vosms = vosmsOn ? Math.min(gross, mzp*R.vosmsLimMzp)*R.vosms/100 : 0;
+
+   /* 4. вычеты по ИПН */
+   var vBase = p.vychet ? mrp*R.vychetMrp : 0;
+   var vYear = (p.extraYearMrp||0)*mrp/12;          /* годовой вычет — помесячно */
+   var vDpv  = p.dpv||0, vMed = Math.min(p.med||0, mrp*R.medLimMrp), vIpo = p.ipoteka||0;
+   var ded   = opv+vosms+vBase+vYear+vDpv+vMed+vIpo;
+   var ipnBase = Math.max(0, gross-ded);
+
+   /* 5. ИПН, с учётом порога 15% нарастающим итогом */
+   var thr = mrp*R.ipnHiMrp, ytd = p.ytdBase||0, ipn=0;
+   if(ytd>=thr) ipn = ipnBase*R.ipnHi/100;
+   else if(ytd+ipnBase<=thr) ipn = ipnBase*R.ipn/100;
+   else { var lo=thr-ytd; ipn = lo*R.ipn/100 + (ipnBase-lo)*R.ipnHi/100; }
+   if(p.nonResident) ipn = gross*R.ipn/100;         /* нерезидент — без вычетов */
+
+   /* 6. прочие удержания */
+   var afterTax = gross-opv-vosms-ipn;
+   var alim = p.alimPct>0 ? afterTax*p.alimPct/100 : (p.alimSum||0);
+   var hold = alim+(p.loan||0)+(p.union||0)+(p.holdOther||0);
+   var net  = afterTax-hold+free;
+
+   /* 7. платежи работодателя сверху */
+   var opvr = opvrOn ? Math.min(Math.max(gross, mzp*R.opvrMinMzp), mzp*R.opvrLimMzp)*R.opvr/100 : 0;
+   var soB  = p.gph ? gross : Math.min(Math.max(gross-opv, mzp*R.soMinMzp), mzp*R.soLimMzp);
+   if(!p.gph) soB = Math.min(soB, mzp*R.soLimMzp);
+   var so   = soOn ? soB*R.so/100 : 0;
+   var oosms= oosmsOn ? Math.min(gross, mzp*R.oosmsLimMzp)*R.oosms/100 : 0;
+   var snB  = Math.max(0, gross-opv-vosms);
+   if(!p.hireFire && snB < mrp*R.snMinMrp) snB = mrp*R.snMinMrp;
+   var sn   = snOn ? snB*R.sn/100 : 0;
+
+   var employer = opvr+so+oosms+sn;
+   var cost = gross+free+employer;
+   return {
+     parts:{base:base,night:night,hol:hol,over:over,harm:harm,prem:prem,extra:extra,free:free},
+     gross:gross, opv:opv, vosms:vosms, ipn:ipn, ipnBase:ipnBase, ded:ded,
+     vBase:vBase, vYear:vYear, alim:alim, hold:hold, net:net,
+     opvr:opvr, so:so, oosms:oosms, sn:sn, snB:snB, employer:employer, cost:cost,
+     loadPct: cost? (cost-net)/cost*100 : 0,
+     taxes: opv+vosms+ipn+employer
+   };
+ }
+ /* обратный расчёт: подбираем оклад под нужную сумму на руки */
+ function gross4net(p, target){
+   var lo=0, hi=Math.max(target*3, 1e6), mid, r;
+   for(var i=0;i<60;i++){
+     mid=(lo+hi)/2;
+     r=calc(Object.assign({},p,{oklad:mid, form:'oklad', workDays:p.normDays, rate:0}));
+     if(r.net<target) lo=mid; else hi=mid;
+   }
+   return (lo+hi)/2;
+ }
+
+ /* ── поля ───────────────────────────────────────────────────────────── */
+ var MODE='gross';
+ var CAT=[['norm','Обычный сотрудник'],['pens','Пенсионер по возрасту'],
+          ['inv12','Инвалид 1–2 группы (бессрочно)'],['inv3','Инвалид 3 группы'],
+          ['stud','Студент очной формы'],['eaeu','Иностранец из ЕАЭС'],
+          ['for','Иностранец не из ЕАЭС, без ВНЖ']];
+ function applyCat(){
+   var c=$('f_cat').value, gph=$('f_gph').checked;
+   var born=+$('f_born').value||1990;
+   /* правила 2026: кто от чего освобождён */
+   var on={opv:true,opvr:true,vosms:true,oosms:true,so:true,sn:true};
+   if(c==='pens'){ on.opv=false; on.opvr=false; on.vosms=false; on.oosms=false; on.so=false; }
+   if(c==='inv12'){ on.vosms=false; on.oosms=false; on.opv=false; on.opvr=false; }
+   if(c==='stud'){ on.vosms=false; on.oosms=false; }
+   if(c==='for'){ on.opv=false; on.opvr=false; on.vosms=false; on.oosms=false; on.so=false; }
+   if(born<1975) on.opvr=false;
+   if(gph){ on.opvr=false; on.oosms=false; }
+   var mode=$('f_mode').value;
+   if(mode!=='our') on.sn=false;              /* упрощёнка и розничный СН не платят */
+   ['opv','opvr','vosms','oosms','so','sn'].forEach(function(k){
+     var el=$('f_'+k); if(el && !el.dataset.touched) el.checked=on[k]; });
+ }
+ function P(){
+   function v(id){ var e=$(id); return e? (+e.value||0) : 0; }
+   function b(id){ var e=$(id); return !!(e&&e.checked); }
+   function s(id){ var e=$(id); return e? e.value : ''; }
+   return {
+     name:s('f_name'), form:s('f_form'), mode:s('f_mode'), cat:s('f_cat'),
+     born:v('f_born'), gph:b('f_gph'), nonResident:b('f_nores'), hireFire:b('f_hf'),
+     oklad:v('f_oklad'), rate:v('f_rate'), hours:v('f_hours'), units:v('f_units'),
+     normDays:v('f_normDays'), workDays:v('f_workDays'), normHours:v('f_normHours'),
+     nightH:v('f_nightH'), kNight:v('f_kNight'), holH:v('f_holH'), kHol:v('f_kHol'),
+     overH:v('f_overH'), kOver:v('f_kOver'), harmPct:v('f_harm'), combine:v('f_combine'),
+     premPct:v('f_premPct'), premSum:v('f_premSum'),
+     vacation:v('f_vac'), sick:v('f_sick'), otherPay:v('f_other'), freePay:v('f_free'),
+     vychet:b('f_vychet'), extraYearMrp:v('f_extraMrp'), dpv:v('f_dpv'), med:v('f_med'), ipoteka:v('f_ipo'),
+     alimPct:v('f_alimPct'), alimSum:v('f_alimSum'), loan:v('f_loan'), union:v('f_union'), holdOther:v('f_hold'),
+     ytdBase:v('f_ytd'),
+     opvOn:b('f_opv'), opvrOn:b('f_opvr'), vosmsOn:b('f_vosms'),
+     oosmsOn:b('f_oosms'), soOn:b('f_so'), snOn:b('f_sn')
+   };
+ }
+
+ function formHtml(){
+   function fld(id,label,val,hint,attr){
+     return '<label for="'+id+'">'+label+(hint?'<span class="h">'+hint+'</span>':'')+'</label>'
+       + '<input type="number" id="'+id+'" value="'+val+'" step="any" '+(attr||'')+'>';
+   }
+   function ck(id,label,on,hint){
+     return '<label class="ck"><input type="checkbox" id="'+id+'"'+(on?' checked':'')+'>'
+       + '<span>'+label+(hint?'<span class="h" style="display:block;font-size:11px;color:var(--dim)">'+hint+'</span>':'')+'</span></label>';
+   }
+   return '<div class="card ac"><h2>Параметры расчёта</h2>'
+   + '<div class="sub">Заполните то, что есть; пустое поле — ноль. Правила 2026 года подставляются '
+   + 'по категории сотрудника, но любую галочку можно переключить вручную.</div>'
+
+   + '<div class="seg" id="seg">'
+   + '<button data-m="gross" class="on">От оклада</button>'
+   + '<button data-m="net">От суммы на руки</button></div>'
+
+   + '<div class="grp"><div class="t">Сотрудник</div><div class="f">'
+   + '<label for="f_name" class="">ФИО или табельный</label><input type="text" id="f_name" value="">'
+   + '<label for="f_cat">Категория</label><select id="f_cat">'
+   + CAT.map(function(c){ return '<option value="'+c[0]+'">'+c[1]+'</option>'; }).join('')+'</select>'
+   + fld('f_born','Год рождения','1990','влияет на ОПВР: до 1975 не платится')
+   + '<label for="f_mode">Режим компании</label><select id="f_mode">'
+   + '<option value="our">ОУР (общеустановленный)</option>'
+   + '<option value="simple">Упрощёнка</option>'
+   + '<option value="retail">Розничный налог</option></select>'
+   + ck('f_gph','Договор ГПХ, не трудовой','', 'нет ОПВР и ООСМС; у соцотчислений нет нижнего порога')
+   + ck('f_nores','Нерезидент — ИПН 10% со всей суммы, без вычетов','')
+   + ck('f_hf','Месяц приёма или увольнения','', 'в этом месяце минимум 14 МРП по соцналогу не применяется')
+   + '</div></div>'
+
+   + '<div class="grp"><div class="t">Начисления</div><div class="f">'
+   + '<label for="f_form">Форма оплаты</label><select id="f_form">'
+   + '<option value="oklad">Оклад</option><option value="hour">Почасовая</option>'
+   + '<option value="piece">Сдельная</option></select>'
+   + fld('f_oklad','Оклад за полный месяц','500000')
+   + fld('f_rate','Ставка за час / за единицу','0','для почасовой и сдельной')
+   + fld('f_hours','Отработано часов','0')
+   + fld('f_units','Выработка, единиц','0')
+   + fld('f_normDays','Норма дней в месяце','22')
+   + fld('f_workDays','Отработано дней','22')
+   + fld('f_normHours','Норма часов в месяце','176','из неё считается часовая ставка для доплат')
+   + '</div></div>'
+
+   + '<div class="grp"><div class="t">Доплаты и премии</div><div class="f">'
+   + fld('f_nightH','Ночные часы','0') + fld('f_kNight','Коэффициент ночных','1.5')
+   + fld('f_holH','Часы в праздники и выходные','0') + fld('f_kHol','Коэффициент праздничных','2')
+   + fld('f_overH','Сверхурочные часы','0') + fld('f_kOver','Коэффициент сверхурочных','1.5')
+   + fld('f_harm','Надбавка за вредность, %','0')
+   + fld('f_combine','Доплата за совмещение, ₸','0')
+   + fld('f_premPct','Премия, % от оклада','0')
+   + fld('f_premSum','Премия суммой, ₸','0')
+   + fld('f_vac','Отпускные, ₸','0')
+   + fld('f_sick','Больничный за счёт работодателя, ₸','0')
+   + fld('f_other','Прочие облагаемые выплаты, ₸','0')
+   + fld('f_free','Необлагаемые выплаты, ₸','0','матпомощь в пределах лимита и т.п.')
+   + '</div></div>'
+
+   + '<div class="grp"><div class="t">Вычеты по ИПН</div><div class="f">'
+   + ck('f_vychet','Заявление на вычет 30 МРП (129 750 ₸)', true)
+   + fld('f_extraMrp','Доп. годовой вычет, МРП','0','инвалидность, ВОВ, многодетные — делится на 12')
+   + fld('f_dpv','Добровольные пенсионные взносы, ₸','0')
+   + fld('f_med','Медицинские расходы, ₸','0','в пределах 94 МРП в год')
+   + fld('f_ipo','Вознаграждение по ипотеке, ₸','0')
+   + fld('f_ytd','Налоговая база с начала года, ₸','0','для порога 15% — 8 500 МРП')
+   + '</div></div>'
+
+   + '<div class="grp"><div class="t">Удержания</div><div class="f">'
+   + fld('f_alimPct','Алименты, % от дохода после налогов','0')
+   + fld('f_alimSum','Алименты суммой, ₸','0')
+   + fld('f_loan','Удержание по займу, ₸','0')
+   + fld('f_union','Профсоюзные взносы, ₸','0')
+   + fld('f_hold','Прочие удержания, ₸','0')
+   + '</div></div>'
+
+   + '<div class="grp"><div class="t">Что начисляем (правила подставлены по категории)</div><div class="f">'
+   + ck('f_opv','ОПВ 10% — пенсионные работника', true)
+   + ck('f_vosms','ВОСМС 2% — медстрахование работника', true)
+   + ck('f_opvr','ОПВР 3,5% — пенсионные за счёт компании', true)
+   + ck('f_so','СО 5% — социальные отчисления', true)
+   + ck('f_oosms','ООСМС 3% — медстрахование за счёт компании', true)
+   + ck('f_sn','СН 6% — социальный налог', true)
+   + '</div></div>'
+
+   + '<div class="row"><button class="btn pri" id="add">＋ Добавить в список</button>'
+   + '<button class="btn" id="reset">Сбросить поля</button></div>'
+   + '</div>';
+ }
+
+ function sheetHtml(r,p){
+   function row(nm,v,cls,hint){
+     return '<div class="r '+(cls||'')+'"><span class="nm">'+nm
+       + (hint?'<span class="h">'+hint+'</span>':'')+'</span>'
+       + '<span class="am'+(v<0?' neg':'')+'">'+(v===null?'':f0(v))+'</span></div>';
+   }
+   var pr=r.parts, h='';
+   h+='<div class="r sec"><span class="nm">Начислено</span><span class="am"></span></div>';
+   h+=row('Оклад / тариф', pr.base);
+   if(pr.night) h+=row('Ночные часы', pr.night,'sub');
+   if(pr.hol)   h+=row('Праздничные и выходные', pr.hol,'sub');
+   if(pr.over)  h+=row('Сверхурочные', pr.over,'sub');
+   if(pr.harm)  h+=row('Надбавка за вредность', pr.harm,'sub');
+   if(pr.prem)  h+=row('Премия', pr.prem,'sub');
+   if(pr.extra) h+=row('Отпускные, больничный, прочее', pr.extra,'sub');
+   h+=row('Итого начислено', r.gross,'tot');
+   if(pr.free)  h+=row('Необлагаемые выплаты', pr.free,'sub');
+
+   h+='<div class="r sec"><span class="nm">Удержано у работника</span><span class="am"></span></div>';
+   h+=row('ОПВ 10%', -r.opv);
+   h+=row('ВОСМС 2%', -r.vosms);
+   h+=row('ИПН', -r.ipn, '', 'база '+f0(r.ipnBase)+' после вычетов '+f0(r.ded));
+   if(r.hold) h+=row('Прочие удержания', -r.hold, '', r.alim? 'в т.ч. алименты '+f0(r.alim) : '');
+   h+='<div class="r fin"><span class="nm">На руки</span><span class="am">'+f0(r.net)+'</span></div>';
+
+   h+='<div class="r sec"><span class="nm">Платит компания сверх зарплаты</span><span class="am"></span></div>';
+   h+=row('ОПВР 3,5%', r.opvr);
+   h+=row('СО 5%', r.so);
+   h+=row('ООСМС 3%', r.oosms);
+   h+=row('СН 6%', r.sn, '', 'база '+f0(r.snB));
+   h+=row('Итого сверху', r.employer,'tot');
+   h+=row('Полная стоимость сотрудника', r.cost,'tot');
+
+   h+='<div class="kpi">'
+    + '<div class="k"><div class="l">Налоги и взносы</div><div class="v">'+f0(r.taxes)+'</div></div>'
+    + '<div class="k"><div class="l">Нагрузка</div><div class="v">'+pc(r.loadPct)+'%</div></div>'
+    + '<div class="k"><div class="l">На руки от стоимости</div><div class="v">'
+    + pc(r.cost? r.net/r.cost*100:0)+'%</div></div></div>';
+
+   h+='<div class="ins">💡 Чтобы выдать <b>'+f0(r.net)+'</b> на руки, компания тратит <b>'+f0(r.cost)
+    + '</b> — это <b>'+pc(r.cost&&r.net? r.cost/r.net : 0).replace(',0','')+'×</b> от суммы в руках. '
+    + 'На налоги и взносы уходит <b>'+f0(r.taxes)+'</b>, из них <b>'+f0(r.employer)+'</b> платит компания сверх, '
+    + 'а <b>'+f0(r.opv+r.vosms+r.ipn)+'</b> удерживается у работника.</div>';
+
+   h+='<details class="more"><summary>Как считалось</summary><div class="note">'
+    + 'ОПВ 10% с дохода не больше 50 МЗП; ВОСМС 2% — не больше 20 МЗП; ООСМС 3% — не больше 40 МЗП. '
+    + 'СО 5% от дохода за минусом ОПВ, база от 1 до 7 МЗП (по ГПХ нижнего порога с 2026 нет). '
+    + 'ОПВР 3,5% с базы от 1 до 50 МЗП, не начисляется за рождённых до 1975 года, пенсионеров, '
+    + 'инвалидов 1–2 групп и по договорам ГПХ. Социальный налог 6% от дохода за минусом ОПВ и ВОСМС; '
+    + 'если база меньше 14 МРП, берётся 14 МРП, кроме месяца приёма или увольнения; на соцотчисления '
+    + 'с 2026 года он больше не уменьшается; на упрощёнке и розничном налоге не платится. '
+    + 'ИПН 10%, а с годового дохода свыше 8 500 МРП — 15%; вычитаются ОПВ, ВОСМС, вычет 30 МРП '
+    + 'и заявленные вычеты. Это расчёт для планирования — спорные случаи сверяйте с бухгалтерией.'
+    + '</div></details>';
+   return h;
+ }
+
+ /* ── список сотрудников ─────────────────────────────────────────────── */
+ function staffHtml(){
+   var st=DATA.staff||[];
+   if(!st.length) return '<div class="card"><h2>Фонд оплаты труда</h2>'
+     + '<div class="sub">Добавляйте рассчитанных сотрудников — здесь соберётся ФОТ целиком: '
+     + 'на руки, удержания, платежи компании и полная стоимость. Список хранится в облаке '
+     + 'и доступен всем, у кого есть пароль раздела.</div>'
+     + '<div style="color:var(--dim);font-size:12.5px;padding:18px 0">Пока пусто.</div></div>';
+   var T={gross:0,net:0,hold:0,employer:0,cost:0,taxes:0};
+   st.forEach(function(x){ T.gross+=x.r.gross; T.net+=x.r.net; T.employer+=x.r.employer;
+     T.cost+=x.r.cost; T.taxes+=x.r.taxes; });
+   return '<div class="card"><h2>Фонд оплаты труда · '+st.length+'</h2>'
+     + '<div class="sub">Список хранится в облаке, виден всем с паролем раздела.</div>'
+     + '<div class="kpi" style="grid-template-columns:repeat(4,1fr);margin:0 0 12px">'
+     + '<div class="k"><div class="l">Начислено</div><div class="v">'+f0(T.gross)+'</div></div>'
+     + '<div class="k"><div class="l">На руки</div><div class="v">'+f0(T.net)+'</div></div>'
+     + '<div class="k"><div class="l">Налоги и взносы</div><div class="v">'+f0(T.taxes)+'</div></div>'
+     + '<div class="k"><div class="l">Стоимость ФОТ</div><div class="v">'+f0(T.cost)+'</div></div></div>'
+     + '<div style="overflow-x:auto"><table><thead><tr><th>Сотрудник</th>'
+     + '<th style="text-align:right">Начислено</th><th style="text-align:right">На руки</th>'
+     + '<th style="text-align:right">Сверху</th><th style="text-align:right">Стоимость</th><th></th></tr></thead><tbody>'
+     + st.map(function(x,i){ return '<tr><td>'+esc(x.p.name||('Сотрудник '+(i+1)))+'</td>'
+         + '<td class="n">'+num(x.r.gross)+'</td><td class="n">'+num(x.r.net)+'</td>'
+         + '<td class="n">'+num(x.r.employer)+'</td><td class="n">'+num(x.r.cost)+'</td>'
+         + '<td class="x" data-del="'+i+'">✕</td></tr>'; }).join('')
+     + '</tbody></table></div>'
+     + '<div class="row"><button class="btn" id="csv">⤓ Выгрузить в Excel (CSV)</button>'
+     + '<button class="btn" id="clr">Очистить список</button></div></div>';
+ }
+
+ /* ── отрисовка ──────────────────────────────────────────────────────── */
+ function render(){
+   $('root').innerHTML =
+     '<div class="wrap"><div>'+formHtml()+'</div>'
+   + '<div><div class="sticky"><div class="card" id="sheet"></div>'+staffHtml()+'</div></div></div>'
+   + '<div class="foot">Система «Пульс» · © 2026 · ставки РК 2026: МРП '+num(R.mrp)
+   + ' ₸, МЗП '+num(R.mzp)+' ₸</div>';
+   bind(); recalc();
+ }
+ function bind(){
+   $('root').querySelectorAll('input,select').forEach(function(e){
+     e.addEventListener('input', function(){
+       if(e.type==='checkbox' && /^f_(opv|opvr|vosms|oosms|so|sn)$/.test(e.id)) e.dataset.touched='1';
+       if(['f_cat','f_born','f_gph','f_mode'].indexOf(e.id)>=0) applyCat();
+       recalc(); });
+     e.addEventListener('change', function(){
+       if(['f_cat','f_born','f_gph','f_mode'].indexOf(e.id)>=0) applyCat();
+       recalc(); });
+   });
+   $('root').querySelectorAll('#seg button').forEach(function(b){
+     b.onclick=function(){ MODE=b.dataset.m;
+       $('root').querySelectorAll('#seg button').forEach(function(x){ x.classList.toggle('on',x===b); });
+       var l=document.querySelector('label[for="f_oklad"]');
+       if(l) l.firstChild.nodeValue = MODE==='net' ? 'Нужная сумма на руки' : 'Оклад за полный месяц';
+       recalc(); };
+   });
+   $('add').onclick=addStaff;
+   $('reset').onclick=function(){ render(); };
+   var c=$('csv'); if(c) c.onclick=exportCsv;
+   var cl=$('clr'); if(cl) cl.onclick=function(){ DATA.staff=[]; save(); render(); };
+   $('root').querySelectorAll('[data-del]').forEach(function(t){
+     t.onclick=function(){ DATA.staff.splice(+t.dataset.del,1); save(); render(); }; });
+   applyCat();
+ }
+ function current(){
+   var p=P();
+   if(MODE==='net'){ var g=gross4net(p, p.oklad); p=Object.assign({},p,{oklad:g, form:'oklad', workDays:p.normDays}); }
+   return {p:p, r:calc(p)};
+ }
+ function recalc(){
+   var c=current();
+   $('sheet').innerHTML='<h2>Расчётный лист</h2><div class="sub">'
+     + (MODE==='net' ? 'Оклад подобран под нужную сумму на руки: <b style="color:#fde68a">'
+         + f0(c.p.oklad)+'</b>' : 'Пересчитывается при каждом изменении.')
+     + '</div>' + sheetHtml(c.r, c.p);
+ }
+ function addStaff(){
+   var c=current();
+   if(!c.p.name) c.p.name='Сотрудник '+((DATA.staff||[]).length+1);
+   DATA.staff=(DATA.staff||[]).concat([{p:c.p, r:c.r}]);
+   save(); render();
+ }
+ function exportCsv(){
+   var st=DATA.staff||[];
+   var head='Сотрудник;Начислено;ОПВ;ВОСМС;ИПН;Удержания;На руки;ОПВР;СО;ООСМС;СН;Сверху;Стоимость';
+   var lines=[head].concat(st.map(function(x){ var r=x.r;
+     return '"'+String(x.p.name||'').replace(/"/g,'""')+'";'+[r.gross,r.opv,r.vosms,r.ipn,r.hold,r.net,
+       r.opvr,r.so,r.oosms,r.sn,r.employer,r.cost].map(Math.round).join(';'); }));
+   var blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+   var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+   a.download='Зарплата — ФОТ.csv'; a.click();
+   setTimeout(function(){ URL.revokeObjectURL(a.href); },1500);
+ }
+ function save(){
+   api('a=save&h='+HASH, {method:'POST', headers:{'content-type':'application/json'},
+     body:JSON.stringify(DATA)}).catch(function(){});
+ }
+
+ /* ── вход ───────────────────────────────────────────────────────────── */
+ var SETUP=false;
+ api('a=state').then(function(res){
+   SETUP = !(res.j && res.j.set);
+   $('g-h').textContent = SETUP ? 'Задайте пароль раздела' : 'Зарплата — закрытый раздел';
+   $('g-p').innerHTML = SETUP
+     ? 'Раздел ещё никем не открыт. Придумайте пароль — он понадобится каждому, кто будет сюда заходить. '
+       + 'В облаке сохранится только его отпечаток, сам пароль нигде не хранится и не передаётся.'
+     : 'Введите пароль раздела. Он отдельный от пароля сайта.';
+   $('g-l1').textContent = SETUP ? 'Новый пароль' : 'Пароль';
+   $('g-2w').style.display = SETUP ? '' : 'none';
+   $('g-b').textContent = SETUP ? 'Задать пароль' : 'Войти';
+   $('g-f').style.display=''; $('g-1').focus();
+ });
+ $('g-f').onsubmit=async function(e){
+   e.preventDefault(); $('g-err').textContent='';
+   var p1=$('g-1').value, p2=$('g-2').value;
+   if(SETUP){
+     if(p1.length<4) return $('g-err').textContent='Пароль короче четырёх знаков.';
+     if(p1!==p2)     return $('g-err').textContent='Пароли не совпали.';
+   }
+   var h=await sha(p1);
+   var res = SETUP ? await api('a=setup&h='+h,{method:'POST'}) : await api('a=login&h='+h);
+   if(!res.ok) return $('g-err').textContent=(res.j&&res.j.error)||'Не удалось войти.';
+   HASH=h; $('gate').style.display='none'; $('root').style.display='';
+   $('pill').textContent='🔓 доступ открыт'; $('pw').style.display='';
+   var d=await api('a=load&h='+HASH);
+   if(d.ok && d.j && d.j.data) DATA=Object.assign({staff:[]}, d.j.data);
+   if(DATA.rates) R=Object.assign(R, DATA.rates);
+   render();
+ };
+ $('pw').onclick=async function(){
+   var cur=prompt('Текущий пароль'); if(cur===null) return;
+   var nw=prompt('Новый пароль'); if(nw===null) return;
+   if(nw.length<4) return alert('Пароль короче четырёх знаков.');
+   var res=await api('a=passwd&h='+(await sha(cur))+'&n='+(await sha(nw)),{method:'POST'});
+   alert(res.ok ? 'Пароль изменён.' : ((res.j&&res.j.error)||'Не удалось.'));
+   if(res.ok) HASH=await sha(nw);
+ };
+})();
+</script>
+</body></html>
