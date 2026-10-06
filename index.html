@@ -171,7 +171,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pt:hover{transform:translateY(-2px);border-color:var(--g);
   background:rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(0,0,0,.38);}
 #p-sales{--g:#60a5fa} #p-fc{--g:#a78bfa} #p-cash{--g:#34d399} #p-win{--g:#fbbf24}
-#p-zak{--g:#38bdf8} #p-up{--g:#f87171} #p-fresh{--g:#a78bfa} #p-buy{--g:#60a5fa}
+#p-zak{--g:#38bdf8} #p-up{--g:#f87171} #p-fresh{--g:#a78bfa} #p-oliv{--g:#9ec948}
 #p-dz{--g:#34d399} #p-kz{--g:#f87171} .pt-edu{--g:#c4b5fd}
 @media (prefers-reduced-motion:reduce){ .pt,.pt::before{transition:none} .pt:hover{transform:none} }
 /* Прижимать подпись к низу (margin-top:auto) оказалось плохо: у короткой
@@ -181,7 +181,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pt-l{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
   color:rgba(255,255,255,.5);min-height:12px;}
 .pt-v{font-size:21px;font-weight:900;color:#fff;margin-top:7px;letter-spacing:-.5px;}
-#p-zak .pt-v,#p-up .pt-v,#p-fresh .pt-v,#p-buy .pt-v{font-size:inherit;font-weight:inherit;letter-spacing:normal;margin-top:6px;}
+#p-zak .pt-v,#p-up .pt-v,#p-fresh .pt-v{font-size:inherit;font-weight:inherit;letter-spacing:normal;margin-top:6px;}
 .pt-d{font-size:11px;margin-top:4px;color:rgba(255,255,255,.45);}
 .pt .up{color:#34d399;font-weight:800;}
 .pt .down{color:#fb7185;font-weight:800;}
@@ -338,10 +338,18 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-v" id="p-kz-v">—</div>
         <div class="pt-d" id="p-kz-d">загрузка…</div>
       </a>
-      <a class="pt" id="p-sales" href="продажи_2026.html" title="Выручка последнего месяца за вычетом возвратов, из iiko">
-        <div class="pt-l">Продажи за месяц</div>
+      <a class="pt" id="p-sales" href="продажи_2026.html" title="Выручка Фуд Завода за последний месяц, без возвратов и без Olive — из iiko">
+        <div class="pt-l">Продажи ФУД ЗАВОД</div>
         <div class="pt-v" id="p-sales-v">—</div>
         <div class="pt-d" id="p-sales-d">загрузка…</div>
+      </a>
+      <!-- Olive вынесена из продаж завода 06.10.2026: это отдельное направление,
+           и в общей выручке оно смазывало картину. Цифра берётся из того же
+           sales_sum.js (ключ oliv), поэтому две плитки всегда согласованы. -->
+      <a class="pt" id="p-oliv" href="olive.html" title="Контрагент Olive — отдельное направление, в продажах завода не учитывается">
+        <div class="pt-l">Продажи OLIVE</div>
+        <div class="pt-v" id="p-oliv-v">—</div>
+        <div class="pt-d" id="p-oliv-d">загрузка…</div>
       </a>
       <!-- Прогноз вместо «Топ-категории»: категория месяца — справка, а прогноз
            отвечает на вопрос, с которым директор открывает страницу: закроем ли
@@ -361,11 +369,6 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-v" id="p-win-v">—</div>
         <div class="pt-d" id="p-win-d">загрузка…</div>
       </a>
-      <a class="pt" href="продажи_2026.html#contractors" id="p-buy" title="Крупнейший покупатель месяца — открывает список контрагентов">
-        <div class="pt-l" id="p-buy-l">Кто больше всех купил</div>
-        <div class="pt-v" id="p-buy-v">—</div>
-        <div class="pt-d" id="p-buy-d">загрузка…</div>
-      </a>
       <!-- Рекорд закупа за неделю: что взяли крупнее всего. Считается только
            по закрытым неделям — в текущей закуп ещё идёт, и «рекорд» по ней
            был бы недосчитанным. Данные — маленький zakup_top.js, чтобы не
@@ -378,10 +381,10 @@ a.card.key .card-title{padding-right:100px;}
       <!-- Дебиторка и кредиторка разведены по разным плашкам: это разные
            деньги и разные разговоры — одну сумму мы собираем, другую отдаём.
            В подписи у каждой крупнейший контрагент: с него начинается разбор. -->
-      <!-- Конкретика по закупу и покупателям: что подорожало, что взяли
-           впервые и кто больше всех купил. Данные — маленькие zakup_top.js и
-           buyer_top.js: тянуть на главную мегабайтные файлы закупа и
-           контрагентов ради шести строк нельзя. -->
+      <!-- Конкретика по закупу: что подорожало и что взяли впервые.
+           Данные — маленький zakup_top.js: тянуть на главную мегабайтный
+           zakup_data.js ради четырёх строк нельзя. Плитка «Кто больше всех
+           купил» убрана 06.10.2026 — её место заняли продажи Olive. -->
       <a class="pt" href="закуп.html" id="p-up" title="Рост цены закупа неделя к неделе">
         <div class="pt-l" id="p-up-l">Подорожало за неделю</div>
         <div class="pt-v" id="p-up-v">—</div>
@@ -528,12 +531,21 @@ a.card.key .card-title{padding-right:100px;}
       </a>
       <a class="card key" style="--c1:#e0995a;--c2:#d97706;--cr:224,153,90" href="продажи_2026.html">
         <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🛒</div><div class="card-title">Продажи 2026</div></div>
-        <div class="card-desc">Динамика продаж 2026: топ SKU, каналы сбыта, помесячно. Интерактивный дашборд.</div>
+        <div class="card-hd"><div class="card-icon">🛒</div><div class="card-title">Продажи ФУД ЗАВОД</div></div>
+        <div class="card-desc">Динамика продаж 2026: топ SKU, каналы сбыта, помесячно. Интерактивный дашборд. Olive вынесена в отдельный отчёт и здесь не учитывается.</div>
         <div class="card-tags">
           <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждое утро</span>
           <span class="card-badge" style="background:#ecfeff;color:#0e7490;">🛒 категории · товары · возвраты</span>
           <span class="card-badge" id="sales-upd" style="background:#f0fdf4;color:#166534;">🕒 …</span>
+        </div>
+      </a>
+      <a class="card" data-new="2026-10-06" style="--c1:#9ec948;--c2:#6f9c22;--cr:158,201,72" href="olive.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🫒</div><div class="card-title">Продажи Olive</div></div>
+        <div class="card-desc">Отдельное направление: сколько Olive берёт у завода — по месяцам, категориям и позициям, с полным списком и выгрузкой.</div>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждое утро</span>
+          <span class="card-badge" style="background:#f7fee7;color:#4d7c0f;">🫒 месяцы · категории · позиции</span>
         </div>
       </a>
       <a class="card" style="--c1:#e8c766;--c2:#d4af37;--cr:232,199,102" href="закуп.html">
@@ -591,6 +603,15 @@ a.card.key .card-title{padding-right:100px;}
         <div class="card-tags">
           <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 счётчик · в реальном времени</span>
           <span class="card-badge" style="background:#ecfeff;color:#0e7490;">🔒 доступ по паролю</span>
+        </div>
+      </a>
+      <a class="card" data-new="2026-10-06" style="--c1:#e8c766;--c2:#b8902f;--cr:232,199,102" href="%D0%B6%D1%83%D1%80%D0%BD%D0%B0%D0%BB.html">
+        <div class="card-accent"></div>
+        <div class="card-hd"><div class="card-icon">🗂</div><div class="card-title">Журнал изменений</div></div>
+        <div class="card-desc">Что меняли на сайте и когда: правки по дням и разделам, автоматические обновления данных — отдельной строкой. Собирается сам.</div>
+        <div class="card-tags">
+          <span class="card-badge" style="background:#fffbeb;color:#b45309;">🗂 история правок</span>
+          <span class="card-badge" style="background:#f8fafc;color:#475569;">⚙️ собирается автоматически</span>
         </div>
       </a>
     </div>
@@ -1062,6 +1083,12 @@ a.card.key .card-title{padding-right:100px;}
     SUM=window.SALES_SUM; if(!SUM) return;
     set('p-sales', money(SUM.rev),
         chg(SUM.rev,SUM.prevRev,1)+'к '+(SUM.prevLabel?dat(SUM.prevLabel):'прошлому месяцу')+' · '+SUM.label.toLowerCase());
+    /* Olive — отдельным направлением, рядом с продажами завода */
+    var O=SUM.oliv;
+    if(O) set('p-oliv', money1(O.rev),
+        chg(O.rev,O.prevRev,1)+'к '+(O.prevLabel?dat(O.prevLabel):'прошлому месяцу')
+        +' · с начала года '+money1(O.yearRev));
+    else set('p-oliv','—','нет данных');
     /* Плитка «С начала года» заменена ссылкой на «Путеводитель» — цифры года
        остались на дашборде продаж, поэтому здесь их больше не считаем. */
     /* Топ-категория ушла с главной 05.09.2026: она почти не менялась месяцами,
@@ -1408,27 +1435,6 @@ a.card.key .card-title{padding-right:100px;}
                                  : 'прошлый раз брали:  ' + x.lastSeen);
           }).join('\n\n');
     }
-  });
-
-  /* ── КТО БОЛЬШЕ ВСЕХ КУПИЛ ──────────────────────────────────────
-     Крупнейший покупатель месяца: сумма, доля в выручке и что берёт чаще. */
-  function pcRu(x){ return String(x).replace('.',','); }
-  load('/buyer_top.js?v=1',function(){
-    var B=window.BUYER_TOP;
-    if(!B||!B.top){ set('p-buy','—','нет данных'); return; }
-    var t=B.top, bl=document.getElementById('p-buy-l');
-    if(bl) bl.innerHTML='Кто больше всех купил <span style="color:#a78bfa">'+(B.monthLabel||'')+'</span>';
-    set('p-buy',
-      '<div style="font-size:21px;font-weight:900;color:#fff;line-height:1.15;letter-spacing:-.4px">'+money1(t.rev)+'</div>'
-      + '<div style="font-size:12px;font-weight:700;color:#e8eef6;margin-top:3px;line-height:1.3">'+short(t.n,26)+'</div>',
-      (t.pct? (pcRu(t.pct)+'% всей выручки месяца') : '')
-      + (t.item? ('<br>чаще всего берёт '+short(t.item,24)) : ''));
-    var eB=document.getElementById('p-buy');
-    if(eB) eB.title=t.full+': '+num(t.rev)+' ₸ за '+(B.monthLabel||'месяц')
-      + (t.pct?(', '+pcRu(t.pct)+'% выручки'):'')
-      + (t.points>1?(', точек — '+t.points):'')
-      + (t.item?('\nТоп-позиция: '+t.item+' — '+num(t.itemRev)+' ₸'):'')
-      + (B.year?('\nЗа год лидер — '+B.year.n+', '+num(B.year.rev)+' ₸'):'');
   });
 
   /* ── НАЛИЧНЫЕ В КАССЕ ───────────────────────────────────────────
