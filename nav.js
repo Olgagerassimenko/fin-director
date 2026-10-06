@@ -16,7 +16,8 @@
     {href:'рычаги.html',icon:'⚙️',label:'Рычаги прибыли'},
     {href:'опиу_2026.html',icon:'📊',label:'ОПиУ 2026'},
     {href:'опиу_аудит.html',icon:'🔎',label:'Аудит ОПиУ'},
-{href:'nalogi_%D0%BE%D1%82%D1%87%D1%91%D1%82.html',icon:'🧾',label:'Налоги'}
+{href:'nalogi_%D0%BE%D1%82%D1%87%D1%91%D1%82.html',icon:'🧾',label:'Налоги'},
+    {href:'%D0%BA%D0%B0%D0%BB%D1%8C%D0%BA%D1%83%D0%BB%D1%8F%D1%82%D0%BE%D1%80.html',icon:'🧮',label:'Калькулятор'}
   ];
   var cur=location.pathname.split('/').pop()||'index.html';
   var s=document.createElement('style');
