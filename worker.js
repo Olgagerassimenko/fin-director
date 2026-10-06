@@ -159,6 +159,59 @@ const UPF_STOP_KEY = "upf:stops";
 // умолчание, но по конкретной SKU его можно задать свой.
 const UPF_WEEKS_KEY = "upf:weeks";
 
+// ── Налоговый калькулятор: ставки и история расчётов ────────────────────────
+//  Ставки держим в KV, а не в коде: меняется МРП, МЗП или сама ставка —
+//  финдиректор правит их на странице, без выкладки сайта. История расчётов
+//  общая: сохранил расчёт — его видят все, кто вошёл.
+const CALC_RATES_KEY = "calc:rates";
+const CALC_HIST_KEY = "calc:hist";
+const CALC_HIST_MAX = 300;
+
+async function handleCalc(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+
+  if (act === "list") {
+    let rates = null, hist = [];
+    try { rates = JSON.parse((await env.PLAN.get(CALC_RATES_KEY)) || "null"); } catch (e) {}
+    try { hist = JSON.parse((await env.PLAN.get(CALC_HIST_KEY)) || "[]") || []; } catch (e) {}
+    return jsonResp({ rates, hist });
+  }
+
+  if (act === "rates" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    if (!body || typeof body !== "object") return jsonResp({ error: "пустой запрос" }, 400);
+    await env.PLAN.put(CALC_RATES_KEY, JSON.stringify(body).slice(0, 20000));
+    return jsonResp({ ok: true });
+  }
+
+  if (act === "save" && request.method === "POST") {
+    let rec = {};
+    try { rec = await request.json(); } catch (e) {}
+    if (!rec || !rec.kind) return jsonResp({ error: "нечего сохранять" }, 400);
+    let hist = [];
+    try { hist = JSON.parse((await env.PLAN.get(CALC_HIST_KEY)) || "[]") || []; } catch (e) {}
+    rec.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    rec.at = new Date().toISOString();
+    hist.unshift(rec);
+    if (hist.length > CALC_HIST_MAX) hist = hist.slice(0, CALC_HIST_MAX);
+    await env.PLAN.put(CALC_HIST_KEY, JSON.stringify(hist));
+    return jsonResp({ ok: true, id: rec.id, count: hist.length });
+  }
+
+  if (act === "del" && request.method === "POST") {
+    const id = url.searchParams.get("id") || "";
+    let hist = [];
+    try { hist = JSON.parse((await env.PLAN.get(CALC_HIST_KEY)) || "[]") || []; } catch (e) {}
+    const before = hist.length;
+    hist = hist.filter((r) => r && r.id !== id);
+    await env.PLAN.put(CALC_HIST_KEY, JSON.stringify(hist));
+    return jsonResp({ ok: true, removed: before - hist.length });
+  }
+
+  return jsonResp({ error: "неизвестный запрос" }, 404);
+}
+
 async function handleUpak(request, env, url) {
   const act = url.searchParams.get("a") || "";
   const key = (url.searchParams.get("n") || "").slice(0, 400);
@@ -627,6 +680,8 @@ export default {
       return handleHalal(request, env);
     }
     if (url.pathname === "/api/upak") return handleUpak(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/calc") return handleCalc(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/suppliers") return handleSuppliers(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
