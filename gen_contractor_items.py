@@ -108,6 +108,12 @@ def scan_reports(folder, year):
 # общие, и в разрезах их надо видеть вместе. Сводим 110 под 99.
 MERGE_NUM = {'110': '99'}
 
+# Olive (контрагент 98) с 06.10.2026 — отдельное направление со своим отчётом
+# «Продажи Olive». В разрезах по контрагентам (продажи, рычаги, себестоимость)
+# его быть не должно: иначе он тянет на себя доли и портит сравнение каналов.
+# Его продажи собираются отдельно — oliv_data.js из rebuild_sales.py.
+OLIV_NUM = '98'
+
 
 def group_key(name):
     """Номер контрагента. Если номера нет — сам контрагент отдельной группой."""
@@ -154,6 +160,8 @@ def parse_month(path):
         except (TypeError, ValueError):
             qty = 0.0
         num = group_key(cur)
+        if num == OLIV_NUM:
+            continue
         g = groups[num]
         if not g['sample']:
             g['sample'] = cur
