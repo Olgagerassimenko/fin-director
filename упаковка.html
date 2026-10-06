@@ -66,6 +66,24 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .ctl input[type=number]{width:78px;text-align:right;font-weight:800}
 .ctl input[type=search]{min-width:230px}
 .ctl.flt{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+/* Галочки по видам упаковки: этикетки, коробки, пакеты… Отбирают сразу
+   по всем вкладкам, можно отметить несколько. */
+.kinds{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:14px 0 0}
+.kinds .kl{font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim);margin-right:4px}
+.kchip{display:inline-flex;align-items:center;gap:7px;background:#101a2f;border:1px solid var(--line2);
+  color:var(--ink2);border-radius:10px;padding:7px 12px;font-size:12px;font-weight:700;
+  cursor:pointer;user-select:none;transition:.15s;white-space:nowrap}
+.kchip:hover{background:#1a2842;color:#fff}
+.kchip input{appearance:none;-webkit-appearance:none;width:15px;height:15px;border:1.5px solid #3a4a68;
+  border-radius:4px;background:#0a1222;position:relative;cursor:pointer;margin:0;flex:none}
+.kchip input:checked{background:#f59e0b;border-color:#f59e0b}
+.kchip input:checked:after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:900;color:#1a1204}
+.kchip.on{background:linear-gradient(135deg,#f59e0b,#b45309);border-color:transparent;color:#1a1204}
+.kchip.on input{border-color:#1a1204}
+.kchip b{opacity:.7;font-weight:700}
+.kchip.clr{color:#8fa2bd}
 .ctl .adv{display:none}
 .ctl.open .adv{display:block}
 .ctl.flt select{max-width:230px}
@@ -366,6 +384,8 @@ thead th.nm{text-align:left}
     <div class="note" id="how"></div>
   </div>
 
+  <div class="kinds" id="kinds"></div>
+
   <div class="tabs" id="tabs">
     <button class="tab on" data-s="rep">📈 Неснижаемый остаток<b id="t-rep"></b></button>
     <button class="tab" data-s="buy">🛒 Что заказать<b id="t-buy"></b></button>
@@ -536,7 +556,7 @@ thead th.nm{text-align:left}
        cd19b5ea-1b32-… Такую «единицу» не показываем вовсе. */
     var uu = String(r.u || '');
     if (GUID_RE.test(uu)) uu = '';
-    return { n:r.n, key:nkey(r.n), u:uu, st:st,
+    return { n:r.n, key:nkey(r.n), kind:kindOf(r.n), u:uu, st:st,
              /* В формулу заказа идёт только неотрицательный остаток: минус —
                 это ошибка учёта, а не «надо докупить ещё и на минус». */
              stRaw:stRaw, stock:Math.max(0, stRaw), neg:stRaw < 0,
@@ -699,16 +719,34 @@ thead th.nm{text-align:left}
       + '<td class="mn">' + (money == null ? '<span class="zero">—</span>' : f0(money)) + '</td>';
   }
 
+  /* Вид упаковки по названию позиции: этикетки, коробки, пакеты и так
+     далее. Нужен для быстрых галочек наверху — закупщик чаще смотрит не
+     всю упаковку разом, а один вид. */
+  function kindOf(n){
+    var t = String(n || '').toLowerCase();
+    if (/этикетк|стикер|наклейк|термоэтикетк|топпер|слепок|лента красящ|ribbon/.test(t)) return 'Этикетки';
+    if (/короб|гофротар|обечайк|ящик/.test(t)) return 'Коробки';
+    if (/пакет|мешок|кармашек|уголок/.test(t)) return 'Пакеты';
+    if (/плен|плён|стрейч|вакуум/.test(t)) return 'Плёнка';
+    if (/лоток|контейнер|боул|креманк|соусниц|блюдо|тарелк|упак/.test(t)) return 'Лотки и контейнеры';
+    if (/стакан|крышк|трубочк|шейкер|держател/.test(t)) return 'Стаканы и крышки';
+    if (/форма|подложк|салфетк|вилк|ложк|нож|набор/.test(t)) return 'Формы и приборы';
+    return 'Прочее';
+  }
+
   function stCls(s){ return s==='в стопе'?'s-stop':s==='дефицит'?'s-def':s==='пора заказывать'?'s-soon'
     :s==='ниже минимума'?'s-low':s==='норма'?'s-ok':s==='лежит без движения'?'s-dead':'s-non'; }
   function hot(){ return IT.filter(function(i){ return i.order>0; }); }
 
   /* ── ШАПКА ─────────────────────────────────────────────────────── */
   function head() {
-    var h = hot();
+    /* Шапка и плитки считаются по тому же отбору, что и таблицы: отметили
+       «Этикетки» — наверху тоже только этикетки, иначе цифры спорят. */
+    var BASE = IT.filter(function(i){ return qmatch(i); });
+    var h = hot().filter(function(i){ return qmatch(i); });
     var need = h.reduce(function(s,i){ return s+i.orderSum; },0);
-    var stockSum = IT.reduce(function(s,i){ return s+i.stSum; },0);
-    var dead = IT.filter(function(i){ return i.dead && i.stock>0; });
+    var stockSum = BASE.reduce(function(s,i){ return s+i.stSum; },0);
+    var dead = BASE.filter(function(i){ return i.dead && i.stock>0; });
     var deadSum = dead.reduce(function(s,i){ return s+i.stSum; },0);
     var sups = {}; h.forEach(function(i){ if(i.main) sups[i.main]=1; });
     var nsup = Object.keys(sups).length;
@@ -727,17 +765,16 @@ thead th.nm{text-align:left}
     document.getElementById('h-side').innerHTML =
       hs(f0(stockSum)+' ₸', 'лежит на складах в упаковке') +
       hs(f0(deadSum)+' ₸', dead.length + ' ' + plw(dead.length,'позиция','позиции','позиций') + ' лежит без движения') +
-      hs(IT.length, 'позиций упаковки всего');
+      hs(BASE.length, filtersOn() ? 'позиций по фильтру из ' + IT.length : 'позиций упаковки всего');
 
-    var def = IT.filter(function(i){ return i.st_==='дефицит'; }).length;
+    function cntBy(st){ return BASE.filter(function(i){ return i.st_===st; }).length; }
     var kp = [
-      ['#f87171','В дефиците', def, 'запаса меньше, чем срок поставки'],
-      ['#fbbf24','Пора заказывать', IT.filter(function(i){return i.st_==='пора заказывать';}).length,
-       'подходят к точке заказа'],
-      ['#93c5fd','Ниже минимума', IT.filter(function(i){return i.st_==='ниже минимума';}).length,
+      ['#f87171','В дефиците', cntBy('дефицит'), 'запаса меньше, чем срок поставки'],
+      ['#fbbf24','Пора заказывать', cntBy('пора заказывать'), 'подходят к точке заказа'],
+      ['#93c5fd','Ниже минимума', cntBy('ниже минимума'),
        'запаса меньше ' + P.weeks + ' ' + plw(P.weeks,'недели','недель','недель')],
-      ['#4ade80','В норме', IT.filter(function(i){return i.st_==='норма';}).length, 'запаса хватает'],
-      ['#c4b5fd','Без движения', IT.filter(function(i){return i.dead;}).length,
+      ['#4ade80','В норме', cntBy('норма'), 'запаса хватает'],
+      ['#c4b5fd','Без движения', BASE.filter(function(i){return i.dead;}).length,
        'ни прихода, ни расхода за три месяца']
     ];
     document.getElementById('kpis').innerHTML = kp.map(function(k){
@@ -752,7 +789,7 @@ thead th.nm{text-align:left}
     var _urg = h.filter(function(i){ return i.urg==='срочно'; }).length;
     /* На вкладке показываем то, о чём она: сколько позиций ниже
        неснижаемого остатка, а не сколько срочных. */
-    var _below = IT.filter(function(i){
+    var _below = BASE.filter(function(i){
       return i.perD > 0 && !i.stop && i.stock < i.min; }).length;
     document.getElementById('t-rep').textContent = _below ? '· ' + _below : '';
     var _ub = document.getElementById('urgbtn');
@@ -787,10 +824,12 @@ thead th.nm{text-align:left}
      Поиск оставляем как был, сверху — срочность, поставщик, склад и
      наличие цены. Поставщик и склад действуют на всех вкладках, срочность
      и цена — только там, где они осмысленны (не на «не используется»). */
-  var F = { urg:'', sup:'', store:'', price:'', stop:'', zone:'' };
+  var F = { urg:'', sup:'', store:'', price:'', stop:'', zone:'', kinds:{} };
+  function kindsOn(){ for (var k in F.kinds) if (F.kinds[k]) return true; return false; }
   function qmatch(it, light) {
     var q = (document.getElementById('q').value||'').toLowerCase().trim();
     if (q && (it.n + ' ' + it.sups.join(' ') + ' ' + it.stores.join(' ')).toLowerCase().indexOf(q) < 0) return false;
+    if (kindsOn() && !F.kinds[it.kind]) return false;
     if (F.sup) {
       if (F.sup === '—') { if (it.sups.length) return false; }
       else if (it.sups.indexOf(F.sup) < 0) return false;
@@ -808,6 +847,36 @@ thead th.nm{text-align:left}
     }
     return true;
   }
+  /* Полоса галочек по видам: «Этикетки» (сюда же термоэтикетки, стикеры
+     и наклейки), «Коробки», «Пакеты» и так далее. Отмеченные виды
+     отбирают сразу на всех вкладках. */
+  function renderKinds(){
+    var el = document.getElementById('kinds'); if (!el) return;
+    var cnt = {}, order = [];
+    IT.forEach(function (i) {
+      if (cnt[i.kind] == null) { cnt[i.kind] = 0; order.push(i.kind); }
+      cnt[i.kind]++;
+    });
+    order.sort(function (a2, b2) { return cnt[b2] - cnt[a2]; });
+    el.innerHTML = '<span class="kl">Вид упаковки</span>'
+      + order.map(function (k) {
+          var on = !!F.kinds[k];
+          return '<label class="kchip' + (on ? ' on' : '') + '">'
+            + '<input type="checkbox" data-kind="' + esc(k) + '"' + (on ? ' checked' : '') + '>'
+            + esc(k) + ' <b>' + cnt[k] + '</b></label>';
+        }).join('')
+      + (kindsOn() ? '<button class="kchip clr" id="kclr">× снять</button>' : '');
+    el.querySelectorAll('[data-kind]').forEach(function (c) {
+      c.onchange = function () {
+        var k = c.getAttribute('data-kind');
+        if (c.checked) F.kinds[k] = 1; else delete F.kinds[k];
+        renderKinds(); redrawSecs();
+      };
+    });
+    var cl = document.getElementById('kclr');
+    if (cl) cl.onclick = function () { F.kinds = {}; renderKinds(); redrawSecs(); };
+  }
+
   function fillFilters() {
     var sups = {}, sts = {};
     IT.forEach(function (i) {
@@ -824,7 +893,7 @@ thead th.nm{text-align:left}
     fill('f-sup', Object.keys(sups), ['—', 'без поставщика']);
     fill('f-store', Object.keys(sts));
   }
-  function filtersOn(){ return !!(F.urg || F.sup || F.store || F.price || F.stop || F.zone
+  function filtersOn(){ return !!(F.urg || F.sup || F.store || F.price || F.stop || F.zone || kindsOn()
     || (document.getElementById('q').value||'').trim()); }
   function fcount() {
     var el = document.getElementById('f-count');
@@ -2212,9 +2281,10 @@ thead th.nm{text-align:left}
       redraw();
     };
   });
-  function redrawSecs(){ fcount(); secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); }
+  function redrawSecs(){ head(); secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); }
   document.getElementById('q').oninput = redrawSecs;
   fillFilters();
+  renderKinds();
   ['f-urg','f-sup','f-store','f-price','f-stop','f-zone'].forEach(function (id) {
     document.getElementById(id).onchange = function () {
       F.urg   = document.getElementById('f-urg').value;
@@ -2227,7 +2297,8 @@ thead th.nm{text-align:left}
     };
   });
   document.getElementById('f-reset').onclick = function () {
-    F = { urg:'', sup:'', store:'', price:'', stop:'', zone:'' };
+    F = { urg:'', sup:'', store:'', price:'', stop:'', zone:'', kinds:{} };
+    renderKinds();
     ['f-urg','f-sup','f-store','f-price','f-stop','f-zone'].forEach(function(id){ document.getElementById(id).value = ''; });
     document.getElementById('q').value = '';
     redrawSecs();
