@@ -212,6 +212,70 @@ async function handleCalc(request, env, url) {
   return jsonResp({ error: "неизвестный запрос" }, 404);
 }
 
+// ── Раздел «Зарплата»: свой пароль и общий список сотрудников ───────────────
+//  Пароль раздела отдельный от пароля сайта и от пароля «Метрик». В облаке
+//  лежит только SHA-256 — сам пароль нигде не хранится и не передаётся.
+//  Первый, кто открыл раздел, задаёт пароль; дальше вход только по нему.
+//  Забыли — удалить ключ zp:auth в KV, и раздел снова попросит задать новый.
+const ZP_AUTH_KEY = "zp:auth";
+const ZP_DATA_KEY = "zp:data";
+
+async function zpOk(env, h) {
+  if (!isHex64(h)) return false;
+  const cur = await env.PLAN.get(ZP_AUTH_KEY);
+  return !!cur && cur === h;
+}
+
+async function handleZp(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  const h = (url.searchParams.get("h") || "").toLowerCase();
+
+  if (act === "state") {
+    const cur = await env.PLAN.get(ZP_AUTH_KEY);
+    return jsonResp({ set: !!cur });
+  }
+
+  if (act === "setup" && request.method === "POST") {
+    const cur = await env.PLAN.get(ZP_AUTH_KEY);
+    if (cur) return jsonResp({ error: "Пароль раздела уже задан" }, 409);
+    if (!isHex64(h)) return jsonResp({ error: "Браузер не смог обработать пароль" }, 400);
+    await env.PLAN.put(ZP_AUTH_KEY, h);
+    return jsonResp({ ok: true });
+  }
+
+  if (act === "login") {
+    return (await zpOk(env, h))
+      ? jsonResp({ ok: true })
+      : jsonResp({ error: "Неверный пароль" }, 401);
+  }
+
+  if (act === "passwd" && request.method === "POST") {
+    const nw = (url.searchParams.get("n") || "").toLowerCase();
+    if (!(await zpOk(env, h))) return jsonResp({ error: "Текущий пароль неверен" }, 401);
+    if (!isHex64(nw)) return jsonResp({ error: "Новый пароль не принят" }, 400);
+    await env.PLAN.put(ZP_AUTH_KEY, nw);
+    return jsonResp({ ok: true });
+  }
+
+  if (act === "load") {
+    if (!(await zpOk(env, h))) return jsonResp({ error: "Неверный пароль" }, 401);
+    let d = null;
+    try { d = JSON.parse((await env.PLAN.get(ZP_DATA_KEY)) || "null"); } catch (e) {}
+    return jsonResp({ data: d });
+  }
+
+  if (act === "save" && request.method === "POST") {
+    if (!(await zpOk(env, h))) return jsonResp({ error: "Неверный пароль" }, 401);
+    let body = null;
+    try { body = await request.json(); } catch (e) {}
+    if (!body || typeof body !== "object") return jsonResp({ error: "пустой запрос" }, 400);
+    await env.PLAN.put(ZP_DATA_KEY, JSON.stringify(body).slice(0, 900000));
+    return jsonResp({ ok: true });
+  }
+
+  return jsonResp({ error: "неизвестный запрос" }, 404);
+}
+
 async function handleUpak(request, env, url) {
   const act = url.searchParams.get("a") || "";
   const key = (url.searchParams.get("n") || "").slice(0, 400);
@@ -682,6 +746,8 @@ export default {
     if (url.pathname === "/api/upak") return handleUpak(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/calc") return handleCalc(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/zp") return handleZp(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/suppliers") return handleSuppliers(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
