@@ -43,6 +43,9 @@ jobs:
 
       - name: Получить репозиторий
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Python
         uses: actions/setup-python@v5
@@ -216,6 +219,10 @@ jobs:
 
       # Публикуем всегда: если какой-то источник отвалился по таймауту,
       # сайт всё равно должен обновиться остальными свежими данными.
+      - name: Журнал изменений сайта
+        continue-on-error: true
+        run: python3 gen_zhurnal.py
+
       - name: Публикация (Cloudflare Workers)
         if: always()
         timeout-minutes: 6
