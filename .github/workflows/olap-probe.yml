@@ -1,0 +1,68 @@
+name: iiko — какие поля отдаёт OLAP
+
+# Разовая разведка перед «аналитикой изменений» в ДДС: нужно понять, есть ли
+# в отчёте TRANSACTIONS автор документа, время создания и время изменения.
+# Ничего не пишет, только печатает список полей в сводку прогона.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - name: Список полей OLAP
+        run: |
+          python - <<'PY'
+          import json, os, warnings, hashlib, requests, sys
+          warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
+          from iiko_export import URL, LOGIN, PASS
+          s = requests.Session()
+          tok = s.get(f"{URL}/resto/api/auth",
+                      params={"login": LOGIN, "pass": hashlib.sha1(PASS.encode()).hexdigest()},
+                      verify=False, timeout=60).text.strip().strip('"')
+          out = []
+          for rt in ("TRANSACTIONS",):
+              r = s.get(f"{URL}/resto/api/v2/reports/olap/columns",
+                        params={"key": tok, "reportType": rt}, verify=False, timeout=120)
+              out.append("## %s — HTTP %s" % (rt, r.status_code))
+              if r.status_code != 200:
+                  out.append("```\n%s\n```" % r.text[:600]); continue
+              d = r.json()
+              rows = []
+              for k, v in sorted(d.items()):
+                  nm = (v or {}).get("name") or ""
+                  tp = (v or {}).get("type") or ""
+                  agg = (v or {}).get("aggregationAllowed")
+                  grp = (v or {}).get("groupingAllowed")
+                  rows.append((k, nm, tp, "агр" if agg else "", "груп" if grp else ""))
+              out.append("всего полей: **%d**" % len(rows))
+              # то, что нас интересует: автор, время, документ, изменение
+              key = [r2 for r2 in rows if any(w in (r2[0]+r2[1]).lower() for w in
+                     ("author","автор","user","польз","created","созд","change","измен",
+                      "time","врем","document","документ","session","смен"))]
+              out.append("")
+              out.append("### поля про автора, время и документ")
+              out.append("| код | название | тип | |")
+              out.append("|---|---|---|---|")
+              for k, nm, tp, a, g in key:
+                  out.append("| `%s` | %s | %s | %s %s |" % (k, nm, tp, a, g))
+              out.append("")
+              out.append("<details><summary>все поля</summary>")
+              out.append("")
+              out.append("| код | название | тип |")
+              out.append("|---|---|---|")
+              for k, nm, tp, a, g in rows:
+                  out.append("| `%s` | %s | %s |" % (k, nm, tp))
+              out.append("")
+              out.append("</details>")
+          txt = "\n".join(out)
+          print(txt)
+          p = os.environ.get("GITHUB_STEP_SUMMARY")
+          if p: open(p, "a", encoding="utf-8").write(txt + "\n")
+          PY
