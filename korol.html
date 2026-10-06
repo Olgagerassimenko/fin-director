@@ -162,6 +162,32 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .mini .mr.over{color:var(--crit);font-weight:500}
 .sumempty{padding:20px 0 24px;text-align:center;color:var(--ink-3);font-size:12.5px}
 
+.vtable{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--ring);border-radius:11px;overflow:hidden;margin-top:10px}
+.vtable>div{background:var(--surface);padding:10px 13px;font-size:12.5px;line-height:1.45}
+.vtable .vh{font-family:var(--disp);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);font-weight:500;background:var(--plane)}
+.vtable .bad{color:var(--ink-3)}
+.vtable .bad::before{content:"✕ ";color:var(--crit);font-weight:600}
+.vtable .good::before{content:"→ ";color:var(--st-closed);font-weight:600}
+@media (max-width:620px){.vtable{grid-template-columns:1fr}.vtable .vh:nth-of-type(2){display:none}}
+.bans{display:flex;flex-direction:column;gap:7px;margin-top:9px}
+.ban{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.45;color:var(--ink-2);background:var(--plane);border:1px solid var(--ring);border-left:3px solid var(--crit);border-radius:9px;padding:9px 13px}
+.esc{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) auto;gap:8px 12px;align-items:baseline;font-size:12.5px;padding:9px 13px;border-top:1px solid var(--line);background:var(--surface)}
+.esc:first-of-type{border-top:0}
+.esc .w{color:var(--ink-2)}
+.esc .t{font-family:var(--mono);font-size:11.5px;white-space:nowrap;color:var(--crit);font-weight:500}
+.escwrap{border:1px solid var(--ring);border-radius:11px;overflow:hidden;margin-top:9px}
+.norms{display:flex;flex-direction:column;border:1px solid var(--ring);border-radius:11px;overflow:hidden;margin-top:9px}
+.norm{display:flex;align-items:center;gap:12px;padding:9px 13px;border-top:1px solid var(--line);background:var(--surface);font-size:12.5px}
+.norm:first-child{border-top:0}
+.norm .n{margin-left:auto;font-family:var(--disp);font-weight:600;font-size:15px;color:var(--st-closed);white-space:nowrap}
+.norm .n.zero{color:var(--crit)}
+.escbox{margin-top:0;background:color-mix(in srgb,var(--crit) 8%,transparent);border:1px solid var(--crit);border-radius:10px;padding:11px 13px;font-size:12.5px;line-height:1.5;color:var(--ink)}
+.escbox b{color:var(--crit)}
+.chk2{display:flex;flex-direction:column;gap:5px}
+.chk2 div{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.4;color:var(--ink-2)}
+.chk2 i{font-style:normal;flex:none;width:15px;text-align:center;font-weight:600}
+.chk2 i.ok{color:var(--st-closed)}
+.chk2 i.no{color:var(--crit)}
 .lvlgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:4px}
 .lvlcard{border:1px solid var(--ring);border-radius:11px;background:var(--surface);padding:13px 15px 12px;border-top:3px solid var(--sv)}
 .lvlcard .hd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -581,6 +607,8 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
         <span class="ic">◧</span><span class="lb">Аналитика</span></button>
       <button class="navi" type="button" data-act="dict">
         <span class="ic">☰</span><span class="lb">Справочники</span></button>
+      <button class="navi" type="button" data-pane="voice">
+        <span class="ic">✉</span><span class="lb">Ответ партнёру</span></button>
       <button class="navi" type="button" data-pane="help">
         <span class="ic">?</span><span class="lb">Как работать</span></button>
       <div class="sidefoot" id="sideFoot"></div>
@@ -743,6 +771,119 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
       <div class="sevlegend" id="sevlegend"></div>
     </div>
   </section>
+      </div>
+
+      <div class="pane" id="pane-voice" hidden>
+
+        <section class="stage" style="margin-top:0">
+          <div class="stagehead"><span class="stepno">!</span><h2>Главное правило</h2></div>
+          <div class="escbox">Партнёру нужно решение, а не извинения. У сети и дистрибьютора своя механика работы с покупателем — наши извинения в неё не встраиваются. Нужны факт, решение по партии и гарантия, что это не повторится.<br><br><b>Правило одного извинения:</b> одно короткое извинение в первом сообщении. Дальше в переписке слово «извините» не появляется.</div>
+        </section>
+
+        <section class="stage">
+          <div class="stagehead"><span class="stepno">⏱</span><h2>Два обязательства по срокам</h2>
+            <span class="hintline">Других обязательств по времени партнёру не даём. Эти два выполняем всегда</span></div>
+          <div class="rules">
+            <div class="rule" style="border-left:3px solid var(--crit)">
+              <h4>30 минут · первый ответ</h4>
+              <p>Приняли, зафиксировали номер и партию, назвали срок полного ответа. Одним списком запросили недостающие данные.</p>
+            </div>
+            <div class="rule" style="border-left:3px solid var(--serious)">
+              <h4>24 часа · полное решение</h4>
+              <p>Факт · причина · решение по этой партии · действие «чтобы не повторилось» со сроком и ответственным.</p>
+            </div>
+            <div class="rule">
+              <h4>Если не укладываемся</h4>
+              <p>Пишем в срок всё равно: «Полное решение будет к ___. Сделано на сегодня: ___. Следующее сообщение — в ___». Перенос срока с объяснением и новой датой партнёр принимает. Молчание — нет. Перенос разбирается на еженедельном собрании наравне с самой рекламацией.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="stage">
+          <div class="stagehead"><span class="stepno">5</span><h2>Порядок ответа: пять абзацев</h2></div>
+          <div class="flow">
+            <div class="fs"><span class="no" style="background:var(--st-new)">1</span><div class="bd">
+              <div class="ttl">Приняли <em>в течение 30 минут</em></div>
+              <div class="do">«Рекламацию приняли, №___ от ___, партия ___. Полный ответ дам до ___».</div>
+              <div class="out"><span>Если не хватает данных — списком в этом же письме: номер партии и дата с маркировки, дата приёмки, объём (сколько из скольких), фото продукта и маркировки, температура хранения, сохранён ли образец</span></div>
+            </div></div>
+            <div class="fs"><span class="no" style="background:var(--st-work)">2</span><div class="bd">
+              <div class="ttl">Факт</div>
+              <div class="do">«Проверили партию №___ от ___. Подтверждаем: ___ на ___ ед. из ___». <b>Без цифр письмо пустое.</b></div>
+            </div></div>
+            <div class="fs"><span class="no" style="background:var(--st-check)">3</span><div class="bd">
+              <div class="ttl">Причина</div>
+              <div class="do">«Причина — ___». Одной фразой. Без фамилий, смен и внутренней кухни.</div>
+            </div></div>
+            <div class="fs"><span class="no" style="background:var(--st-fixed)">4</span><div class="bd">
+              <div class="ttl">Решение по партии</div>
+              <div class="do">«По этой партии: ___. Срок — ___». Что делаем здесь и сейчас.</div>
+            </div></div>
+            <div class="fs"><span class="no" style="background:var(--st-closed)">5</span><div class="bd">
+              <div class="ttl">Чтобы не повторилось</div>
+              <div class="do">«С ___ введено: ___. Отвечает ___». Действие, срок и ответственный.</div>
+            </div></div>
+          </div>
+        </section>
+
+        <section class="stage">
+          <div class="stagehead"><span class="stepno">✉</span><h2>Шаблон ответа</h2>
+            <span class="hintline">В карточке рекламации есть кнопка «Собрать ответ» — подставит поля сама</span></div>
+          <div class="quote">Здравствуйте, ___.
+
+Рекламацию приняли: №___ от ___, партия ___, дата производства ___.
+Проверили. Подтверждаем: ___ (что именно, на скольких единицах из скольких).
+Причина — ___.
+По этой партии: ___. Срок — ___.
+Чтобы это не повторилось, с ___ на производстве введено: ___. Контроль — ___, ответственный ___. Подтверждение о выполнении направлю ___.
+
+Остаюсь на связи по этому вопросу.
+___, специалист по контролю качества, Фуд завод</div>
+        </section>
+
+        <section class="stage">
+          <div class="stagehead"><span class="stepno">↔</span><h2>Так не пишем — пишем так</h2></div>
+          <div class="vtable">
+            <div class="vh">Так не пишем</div><div class="vh">Пишем так</div>
+            <div class="bad">«Извините, извините, это полностью наша вина»</div><div class="good">«Признаём: ___ подтверждено. Ниже — причина, решение и срок.»</div>
+            <div class="bad">«Мы разберёмся и сообщим»</div><div class="good">«Полный ответ с причиной и решением дам до ___ — в течение 24 часов.»</div>
+            <div class="bad">«Такое иногда бывает на производстве»</div><div class="good">«Это отклонение от нашего стандарта. Устраняем.»</div>
+            <div class="bad">«Виновата ночная смена / новенький»</div><div class="good">«Причина — в контроле на участке ___. Контроль усилен.»</div>
+            <div class="bad">«Постараемся больше так не делать»</div><div class="good">«С ___ введён контроль ___ с записью в журнале.»</div>
+            <div class="bad">«Вы, наверное, неправильно хранили» — сразу</div><div class="good">«Чтобы точно определить причину, нужны ___. Направьте — ответим в тот же день.»</div>
+            <div class="bad">«Это не наша зона, обращайтесь к логистам»</div><div class="good">«По нашей части отклонений нет, данные прилагаю. Нарушение на этапе ___. Готовы разобрать вместе.»</div>
+            <div class="bad">«Ничего страшного, продукт безопасен»</div><div class="good">«Риска нет — подтверждено лабораторией. Но стандарту не соответствует, поэтому ___.»</div>
+            <div class="bad">«Сделаем всё, что захотите»</div><div class="good">«Можем ___ и ___. Вариант ___ не сможем — объясню почему.»</div>
+            <div class="bad">«Мы вам компенсируем» — от себя</div><div class="good">«Вопрос компенсации передаю директору по производству сегодня.»</div>
+            <div class="bad">Молчание, пока нет решения</div><div class="good">«Решения пока нет. Сделано: ___. Следующее сообщение — в ___.»</div>
+          </div>
+        </section>
+
+        <section class="stage">
+          <div class="stagehead"><span class="stepno">✕</span><h2>Запреты</h2></div>
+          <div class="bans">
+            <div class="ban">Не молчим. Отсутствие ответа — худший ответ.</div>
+            <div class="ban">Не извиняемся больше одного раза.</div>
+            <div class="ban">Не ищем виноватого человека в письме партнёру: наружу говорим о процессе.</div>
+            <div class="ban">Не обещаем чужое: компенсация, возврат и замена — решение директора по производству; цена, скидка и бонус — коммерческого отдела.</div>
+            <div class="ban">Не спорим и не копируем тон партнёра.</div>
+            <div class="ban">Не закрываем рекламацию, пока не выполнено действие «чтобы не повторилось».</div>
+          </div>
+        </section>
+
+        <section class="stage">
+          <div class="stagehead"><span class="stepno">▲</span><h2>Эскалация</h2>
+            <span class="hintline">Кто подключается и в какой срок</span></div>
+          <div class="escwrap" id="escTable"></div>
+        </section>
+
+        <section class="stage">
+          <div class="stagehead"><span class="stepno">%</span><h2>Контроль исполнения</h2>
+            <span class="hintline">Проверяют СКК и директор по производству еженедельно, итог — на собрании производства</span></div>
+          <div class="norms" id="normTable"></div>
+        </section>
+
+        <p class="hintline" style="margin-top:18px;max-width:76ch">Регламент. Tone of voice в работе с рекламациями партнёров · редакция 1 · исполнитель — специалист по контролю качества. Утверждён управляющим директором.</p>
       </div>
 
       <div class="pane" id="pane-help" hidden>
@@ -1029,6 +1170,38 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     DICT.culprits.concat(DICT.units).forEach(function(v){
       if(v && !seen[v]){ seen[v] = 1; out.push(v); }
     });
+    return out;
+  }
+
+  var ESCALATION = [
+    {w:"Посторонний предмет, микробиология, жалоба на самочувствие", who:"СКК · Директор по производству · Управляющий директор", t:"немедленно",
+     cats:{"Посторонний предмет":1,"Отравление":1,"Загрязнение и немытое сырьё":1}},
+    {w:"Повторная рекламация по той же причине", who:"Директор по производству · СКК", t:"в день получения", repeat:true},
+    {w:"Компенсация, возврат, замена партии", who:"Директор по производству", t:"в день получения",
+     imps:{"Возврат":1,"Компенсация клиенту":1}},
+    {w:"Скидка, бонус, пересмотр цены", who:"Коммерческий отдел", t:"в день получения"},
+    {w:"Угроза вывода из матрицы", who:"СКК · Директор по производству · Управляющий директор · Коммерческий отдел", t:"немедленно",
+     imps:{"Отказ от поставок":1,"Потеря клиента":1,"Угроза жалобы в надзор":1}},
+    {w:"Нарушение после отгрузки: логистика, хранение, приёмка", who:"Директор по производству · Коммерческий отдел · Логисты · Склад ГП", t:"24 часа",
+     cats:{"Температура и холодовая цепь":1,"Доставка":1}},
+    {w:"Претензия к сырью поставщика", who:"Отдел снабжения · Технологический отдел · СКК", t:"24 часа",
+     culs:{"Сырьё (поставщик)":1}}
+  ];
+  var NORMS = [
+    {t:"Первый ответ партнёру в течение 30 минут", n:"100%"},
+    {t:"Полное решение в течение 24 часов", n:"100%"},
+    {t:"Рекламации, закрытые корректирующим действием, а не отпиской", n:"100%"},
+    {t:"Повторные рекламации по той же причине", n:"0", zero:true},
+    {t:"Доля рекламаций в объёме отгрузки (SLA завода)", n:"не выше 1%"},
+    {t:"Письма партнёру с более чем одним извинением", n:"0", zero:true}
+  ];
+  function escFor(c){
+    var out = [];
+    ESCALATION.forEach(function(e){
+      if((e.cats && e.cats[c.cat]) || (e.imps && c.impact && e.imps[c.impact]) || (e.culs && e.culs[c.culprit])) out.push(e);
+    });
+    var same = cases.filter(function(x){ return x.id !== c.id && x.cat === c.cat && x.culprit === c.culprit && c.culprit && c.culprit !== "Не определён"; });
+    if(same.length) ESCALATION.forEach(function(e){ if(e.repeat && out.indexOf(e) === -1) out.push(e); });
     return out;
   }
 
@@ -1325,6 +1498,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     fillSelect(el("fCul"), uniq(culpritList().concat(cases.map(function(c){return c.culprit}))).sort(function(a,b){return a.localeCompare(b,"ru")}));
     renderRoutes();
     renderSevGuide();
+    renderVoice();
   }
   function filtered(){
     var p = el("fPeriod").value, cat = el("fCat").value, sev = el("fSev").value,
@@ -2083,6 +2257,13 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
           (ownerLabel(c) ? '<span>Ведёт: <b>'+esc(ownerLabel(c))+'</b></span>' : '<span class="muted">Ответственный не назначен</span>')+
         '</div>'+
         '<div class="slabox">'+slaHtml+'</div>'+
+        (function(){
+          var e = escFor(c);
+          if(!e.length) return "";
+          return '<div class="escbox"><b>Эскалация</b><br>'+e.map(function(x){
+            return esc(x.w)+' → '+esc(x.who)+' · <b>'+esc(x.t)+'</b>';
+          }).join('<br>')+'</div>';
+        })()+
         '<div class="quote">'+(c.text ? esc(c.text) : "Текст обращения не заполнен.")+'</div>'+
         '<div class="grp"><span class="gl">Этап обработки</span>'+
           '<div class="steps" id="pSteps"></div>'+
@@ -2108,9 +2289,15 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
           '<textarea id="pAction" placeholder="Партия снята, клиенту возмещено, оборудование настроено"'+(ro?" disabled":"")+'>'+esc(c.action||"")+'</textarea></div>'+
         '<div class="grp"><label for="pPrev">Чтобы не повторилось</label>'+
           '<textarea id="pPrev" placeholder="Изменение в техкарте, инструктаж, входной контроль"'+(ro?" disabled":"")+'>'+esc(c.prevention||"")+'</textarea></div>'+
-        '<div class="grp"><label for="pReply">Ответ клиенту</label>'+
-          '<textarea id="pReply" placeholder="Что сообщили клиенту: какие меры приняты и как решён вопрос"'+(ro?" disabled":"")+'>'+esc(c.reply||"")+'</textarea>'+
-          '<div class="hintline">Без ответа клиенту рекламация не завершается: по регламенту колл-центр даёт обратную связь по скриптам, задача — закрыть потребность клиента и сохранить лояльность.</div></div>'+
+        '<div class="grp"><label for="pReply">Ответ партнёру или клиенту</label>'+
+          '<textarea id="pReply" rows="9" placeholder="Соберите по шаблону или напишите сами"'+(ro?" disabled":"")+'>'+esc(c.reply||"")+'</textarea>'+
+          (ro ? "" : '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:2px">'+
+            '<button class="btn btn-sm" id="pGen" type="button">Собрать ответ по шаблону</button>'+
+            '<button class="btn btn-sm" id="pCopy" type="button">Скопировать</button>'+
+            '<span class="hintline" id="pCopyMsg" style="align-self:center"></span></div>')+
+          '<div class="hintline">Партнёру нужно решение, а не извинения: факт, причина, решение по партии и гарантия, что не повторится. Правило одного извинения — только в первом сообщении.</div></div>'+
+        '<div class="grp"><span class="gl">Проверка перед отправкой</span>'+
+          '<div class="chk2" id="pCheck"></div></div>'+
         '<div class="grp"><label for="pControl">Контролирует закрытие</label>'+
           '<input type="text" id="pControl" list="roleList" value="'+esc(c.control||"")+'" placeholder="Директор по качеству"'+(ro?" disabled":"")+'>'+
           '<datalist id="roleList">'+(DICT.roles||[]).map(function(r){ return '<option value="'+esc(r)+'">'; }).join("")+'</datalist>'+
@@ -2179,6 +2366,60 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
         pp.appendChild(b);
       });
     }
+
+    function fillCheck(){
+      var box = panelEl.querySelector("#pCheck"); if(!box) return;
+      var rp = panelEl.querySelector("#pReply"), txt = rp ? rp.value : (c.reply||"");
+      var ackMin = c.ackAt ? Math.round((c.ackAt - (c.createdAt||c.date||c.ackAt))/60000) : null;
+      var fullH  = c.closedAt ? Math.round((c.closedAt - (c.createdAt||c.date))/3600000) : null;
+      var sorry  = (txt.match(/извин/gi)||[]).length;
+      var items = [
+        [ackMin !== null && ackMin <= ACK_MIN,
+         ackMin === null ? "Первый ответ за 30 минут — реакции ещё не было" : ("Первый ответ за 30 минут — фактически " + minsText(ackMin))],
+        [fullH === null ? null : fullH <= 24,
+         fullH === null ? "Полное решение за 24 часа — ещё не завершена" : ("Полное решение за 24 часа — фактически " + fullH + " " + plural(fullH,"час","часа","часов"))],
+        [!!(c.batch || /\d/.test(txt)), "Есть факт: партия, дата, объём. Без цифр письмо пустое"],
+        [!!c.cause, "Есть причина одной фразой. «Разберёмся» — не причина"],
+        [!!c.action, "Есть решение по этой партии и срок"],
+        [!!c.prevention, "Есть действие «чтобы не повторилось» со сроком и ответственным"],
+        [sorry <= 1, "Не больше одного извинения" + (sorry > 1 ? (" — в тексте " + sorry) : "")],
+        [!/виноват|смена|новичок|новеньк/i.test(txt), "В письме нет фамилий и смен: наружу говорим о процессе"]
+      ];
+      box.innerHTML = items.map(function(it){
+        var ok = it[0];
+        return '<div><i class="'+(ok===null?"":(ok?"ok":"no"))+'">'+(ok===null?"·":(ok?"✓":"✕"))+'</i><span>'+esc(it[1])+'</span></div>';
+      }).join("");
+    }
+    fillCheck();
+    var rpEl = panelEl.querySelector("#pReply");
+    if(rpEl) rpEl.addEventListener("input", fillCheck);
+
+    var gen = panelEl.querySelector("#pGen");
+    if(gen) gen.addEventListener("click", function(){
+      var who = ownerLabel(c) || "специалист по контролю качества";
+      var t =
+        "Здравствуйте.\n\n" +
+        "Рекламацию приняли: " + (c.no ? "№"+c.no+" " : "") + "от " + dstr(c.date) +
+        (c.batch ? ", партия " + c.batch : ", партия ___") + ".\n" +
+        "Проверили. Подтверждаем: " + (c.text || "___") + ".\n" +
+        "Причина — " + (c.cause || "___") + ".\n" +
+        "По этой партии: " + (c.action || "___") + ". Срок — " + dstr(c.due) + ".\n" +
+        "Чтобы это не повторилось, на производстве введено: " + (c.prevention || "___") + "." +
+        (c.control ? " Контроль — " + c.control + "." : " Контроль — ___.") + "\n\n" +
+        "Остаюсь на связи по этому вопросу.\n" +
+        who + ", специалист по контролю качества, Фуд завод";
+      rpEl.value = t; fillCheck(); rpEl.focus();
+    });
+    var cp = panelEl.querySelector("#pCopy");
+    if(cp) cp.addEventListener("click", function(){
+      var msg = panelEl.querySelector("#pCopyMsg");
+      try{
+        rpEl.select(); rpEl.setSelectionRange(0, 99999);
+        var ok = document.execCommand("copy");
+        if(msg) msg.textContent = ok ? "скопировано" : "выделено — нажмите Ctrl+C";
+      }catch(e){ if(msg) msg.textContent = "выделите текст и нажмите Ctrl+C"; }
+      setTimeout(function(){ if(msg) msg.textContent = ""; }, 2500);
+    });
 
     panelEl.querySelector("#pClose").addEventListener("click", closePanel);
     var note = panelEl.querySelector("#pAddNote");
@@ -2550,6 +2791,27 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     if(!DICT[dictTab].length) list.innerHTML = '<div class="hintline">Список пуст — добавьте первое значение.</div>';
   }
 
+  function renderVoice(){
+    var box = el("escTable");
+    if(box){
+      box.innerHTML = "";
+      ESCALATION.forEach(function(e){
+        var d = document.createElement("div"); d.className = "esc";
+        d.innerHTML = '<span>'+esc(e.w)+'</span><span class="w">'+esc(e.who)+'</span><span class="t">'+esc(e.t)+'</span>';
+        box.appendChild(d);
+      });
+    }
+    var nb = el("normTable");
+    if(nb){
+      nb.innerHTML = "";
+      NORMS.forEach(function(x){
+        var d = document.createElement("div"); d.className = "norm";
+        d.innerHTML = '<span>'+esc(x.t)+'</span><span class="n'+(x.zero?" zero":"")+'">'+esc(x.n)+'</span>';
+        nb.appendChild(d);
+      });
+    }
+  }
+
   function renderSevGuide(){
     var box = el("sevGuide"); if(!box) return;
     box.innerHTML = "";
@@ -2891,11 +3153,11 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
   });
 
   /* ================= разделы ================= */
-  var PANE_TITLES = {summary:"Сводка", board:"Воронка", journal:"Журнал", analytics:"Аналитика", help:"Как работать"};
+  var PANE_TITLES = {summary:"Сводка", board:"Воронка", journal:"Журнал", analytics:"Аналитика", voice:"Ответ партнёру", help:"Как работать"};
   var pane = "summary";
   function showPane(p){
     pane = p;
-    ["summary","board","journal","analytics","help"].forEach(function(k){
+    ["summary","board","journal","analytics","voice","help"].forEach(function(k){
       var e = el("pane-"+k); if(e) e.hidden = (k !== p);
     });
     Array.prototype.forEach.call(document.querySelectorAll(".navi"), function(b){
@@ -2905,7 +3167,7 @@ footer.note{margin-top:20px;font-size:11.5px;color:var(--ink-3);max-width:76ch;l
     var journalOnly = (p === "journal");
     el("addBtn").hidden = false;
     el("importLbl").hidden = !(journalOnly || p === "summary");
-    el("anaBtn").hidden = (p === "help");
+    el("anaBtn").hidden = (p === "help" || p === "voice");
     window.scrollTo({top:0, behavior:"smooth"});
     render();
   }
