@@ -35,6 +35,13 @@
      свою ширину, а карточка при нехватке места прокручивается вбок. */
   .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .tw>table{min-width:max-content}
+  /* Таблица устройств не помещалась в экран: «просмотров» и даты заходов
+     уезжали за правый край. Числовым и коротким колонкам — ширина по
+     содержимому, остаток забирают название и провайдер. */
+  #devList table{min-width:0;width:100%;font-size:12.5px}
+  #devList th,#devList td{width:1%;white-space:nowrap;padding:8px 9px}
+  #devList th:first-child,#devList td:first-child,
+  #devList th:nth-child(6),#devList td:nth-child(6){width:auto;white-space:normal}
   /* «Что смотрели» и города — колонок мало, и на широком экране цифры
      разъезжались к самому краю: держим таблицу в разумной ширине. */
   #tPages table,#tCity table,#tCtry table{max-width:1000px}
@@ -541,17 +548,18 @@
     return i<0 ? "" : String(i+1);
   }
   function isId(x){ return /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(x||"")); }
+  /* Имя устройства. Система и браузер стоят в соседней колонке, поэтому
+     повторять их здесь нельзя: восемь строк «Windows 10 или 11 · Chrome»
+     друг от друга не отличить. Берём данное человеком имя, иначе модель
+     (её отдают только телефоны), иначе номер по порядку. */
   function devName(vid){
     var d=devs()[vid];
-    var nm="";
     if(d){
       if(d.name && !isId(d.name)) return d.name;
-      var left=d.chModel||d.model||((d.os||"")+(d.osv?" "+d.osv:""));
-      if(isId(left)) left="";
-      nm = left && d.br ? left+" · "+d.br : (left || d.br || "");
+      var mdl=d.chModel||d.model||"";
+      if(mdl && !isId(mdl) && !/^(windows|mac|linux|android|ios)/i.test(mdl)) return mdl;
     }
-    if(!nm || isId(nm)) nm = "Устройство №"+(devNo(vid)||String(vid).slice(0,4));
-    return nm;
+    return "Устройство №"+(devNo(vid)||String(vid).slice(0,4));
   }
   function ago(iso){
     if(!iso) return "—";
