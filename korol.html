@@ -1420,13 +1420,14 @@ ___, специалист по контролю качества, Фуд зав�
 
   /* ================= запись ================= */
   function blank(seed){
+
     var d = seed.date || today0();
     return {
       no: seed.no||"", date: d, cat: seed.cat||"Другое", sev: sevKey(seed.sev||"Жёлтый"),
       unit: seed.unit||"", text: seed.text||"", src: seed.src||"",
       status:"Поступила", owner:"", ownerText:"",
       culprit:"Не определён", batch:"", supplier:"",
-      cause:"", action:"", prevention:"", reply:"", control:"", impact:"", ackAt:0,
+      cause:"", action:"", prevention:"", reply:"", control:"", impact: seed.impact||"", ackAt:0,
       due: dueFrom(d, sevKey(seed.sev||"Жёлтый")), cost:0,
       createdAt: Date.now(), updatedAt: Date.now(), closedAt:0,
       log:[{ts:Date.now(), by:meId||"", t:"Рекламация заведена"}]
@@ -2383,7 +2384,11 @@ ___, специалист по контролю качества, Фуд зав�
         [!!c.action, "Есть решение по этой партии и срок"],
         [!!c.prevention, "Есть действие «чтобы не повторилось» со сроком и ответственным"],
         [sorry <= 1, "Не больше одного извинения" + (sorry > 1 ? (" — в тексте " + sorry) : "")],
-        [!/виноват|смена|новичок|новеньк/i.test(txt), "В письме нет фамилий и смен: наружу говорим о процессе"]
+        [!/виноват|смена|новичок|новеньк/i.test(txt), "В письме нет фамилий и смен: наружу говорим о процессе"],
+        [!/компенсир|скидк|бонус|пересмотр цен|вернём деньги|вернем деньги/i.test(txt) || /передаю|передам|директор/i.test(txt),
+         "Не обещаю чужое: компенсация и возврат — решение директора по производству, цена и скидка — коммерческого отдела"],
+        [txt.split(/\n\s*\n/).filter(function(x){ return x.trim(); }).length <= 6,
+         "Письмо умещается в пять абзацев"]
       ];
       box.innerHTML = items.map(function(it){
         var ok = it[0];
@@ -2914,6 +2919,105 @@ ___, специалист по контролю качества, Фуд зав�
     return found;
   }
 
+  /* ---------- заводской словарь: разбор переписки без ИИ ----------
+     Работает прямо в браузере, ключей и сервера не нужно.
+     Правила редактируются здесь же: слово → категория → цвет. */
+  var WORDS = [
+    {re:/волос|шерст|насеком|муха|таракан|стекл|металл|пластик|проволок|посторонн|инородн|шуба|нитк/i,
+     cat:"Посторонний предмет", sev:"Красный", w:"посторонний предмет"},
+    {re:/отрав|тошнит|тошнот|рвот|заболел|стало плохо|госпитал|скорая|улы|уланд/i,
+     cat:"Отравление", sev:"Красный", w:"жалоба на самочувствие"},
+    {re:/плесен|тухл|протух|прокис|кислятин|кислый (вкус|запах|соус)|испорч|вздул|вздут|несвеж|затхл|бұзыл|иіс/i,
+     cat:"Срок годности и свежесть", sev:"Красный", w:"порча продукта"},
+    {re:/срок годност|истек|истёк|просроч|без даты|дата не совпад|мерзім/i,
+     cat:"Срок годности и свежесть", sev:"Красный", w:"срок годности"},
+    {re:/этикет|маркировк|аллерген|состав не указан|заң|мемлекеттік тіл|не на казах/i,
+     cat:"Маркировка", sev:"Красный", w:"маркировка и этикетка"},
+    {re:/тёпл|теплый|тёплый|разморо|не холодн|температур|холодов[ао]й цеп|рефриж/i,
+     cat:"Температура и холодовая цепь", sev:"Красный", w:"холодовая цепь"},
+    {re:/грязн|немыт|песок на|земл[яёе]|пыл[ьи]/i,
+     cat:"Загрязнение и немытое сырьё", sev:"Красный", w:"загрязнение"},
+    {re:/сыр(ое|ая|ой) (мяс|тест|курин|внутри)|не пропеч|непропеч|сырое,? липк/i,
+     cat:"Органолептика: вкус, запах, вид", sev:"Красный", w:"сырое, не пропечено"},
+
+    {re:/недовес|не хватает веса|вес (меньше|не соответ)|грамм меньше|вес[^.]{0,40}вместо|\d+\s*(г|гр|грамм)[^.]{0,20}(вместо|при заявленн)/i,
+     cat:"Недовес", sev:"Жёлтый", w:"недовес"},
+    {re:/недолож|не долож|недовоз|недопостав|не привезли|не хватает позиц|не доклад|переделк/i,
+     cat:"Комплектация заказа", sev:"Жёлтый", w:"недовоз, недовложение"},
+    {re:/пересол|недосол|невкусн|не вкусн|привкус|горьк|кисл(ит|о)|солёно|солено|остр(ый|ое) вкус|вкус не/i,
+     cat:"Органолептика: вкус, запах, вид", sev:"Жёлтый", w:"вкус"},
+    {re:/рецептур|начинк|пропорц|толст(ые|ая)|тонк(ие|ая)|сгущ[её]нк|мало (мяса|сыра|соуса)/i,
+     cat:"Состав и рецептура", sev:"Жёлтый", w:"рецептура"},
+    {re:/упаковк|пакет|крышк|дырк|разош[её]л|по шву|протек|течь|помят|вскры|пл[её]нк|вакуум/i,
+     cat:"Упаковка", sev:"Жёлтый", w:"упаковка"},
+    {re:/нарезк|порцион|куск(и|ами) (больш|крупн)|не прорезан/i,
+     cat:"Органолептика: вкус, запах, вид", sev:"Жёлтый", w:"нарезка"},
+    {re:/подгорел|пригорел|деформ|внешний вид|выглядит|сух(ой|ая|ое)/i,
+     cat:"Органолептика: вкус, запах, вид", sev:"Жёлтый", w:"внешний вид"},
+    {re:/опозда|привезли поздно|водител|курьер|доставк[аи] (поздн|не|опозд)/i,
+     cat:"Доставка", sev:"Жёлтый", w:"доставка"},
+
+    {re:/пожелани|предлож(ение|ила|ил)|хотел[аи]? бы улучш|обратн(ая|ой) связ|совет/i,
+     cat:"Другое", sev:"Зелёный", w:"пожелание"}
+  ];
+  /* служебная переписка и продажи — не рекламации */
+  var NOISE = /заказ(ать|ы|а|у)?\b|прайс|цен[аыу]|стоимост|минимальн(ая|ый)|ассортимент|ходов(ые|ых)|сотрудничеств|коммерческ|счёт на оплату|счет на оплату|фактур|договор|реквизит|ваканс|резюме|трудоустройств|график работы|оплат[аыу]\b|доставляете ли|есть ли в наличии|наличи[еи]/i;
+  var IMPACT_RE = [
+    {re:/вычерк/i, v:"Вычерк из заказа"},
+    {re:/не приня(ли|л)|отказ(ались|ался) приня/i, v:"Не приняли товар"},
+    {re:/возврат|вернул|верну[лт]/i, v:"Возврат"},
+    {re:/откажут|полностью откаж|перестанем брать|выведем из матриц/i, v:"Отказ от поставок"},
+    {re:/надзор|санэпид|проверк[уи]|жалобу? в|обращат[ьс]|в суд/i, v:"Угроза жалобы в надзор"},
+    {re:/компенс|возмест/i, v:"Компенсация клиенту"}
+  ];
+
+  function classify(t){
+    var hits = [];
+    WORDS.forEach(function(r){ if(r.re.test(t)) hits.push(r); });
+    if(!hits.length) return null;
+    var order = {"Красный":2,"Жёлтый":1,"Зелёный":0};
+    hits.sort(function(a,b){ return order[b.sev] - order[a.sev]; });
+    var top = hits[0];
+    var noise = NOISE.test(t);
+    var conf = (top.sev === "Красный" ? 0.85 : 0.7) - (noise ? 0.25 : 0) - (t.length < 18 ? 0.1 : 0);
+    var imp = "";
+    for(var i=0;i<IMPACT_RE.length;i++){ if(IMPACT_RE[i].re.test(t)){ imp = IMPACT_RE[i].v; break; } }
+    return {cat:top.cat, sev:top.sev, w:hits.map(function(h){ return h.w; }).slice(0,3).join(", "),
+            conf:Math.max(0.3, Math.min(0.95, conf)), impact:imp, noise:noise};
+  }
+
+  function localExtract(msgs, channel, chatName){
+    var found = [], seen = {};
+    msgs.slice(0, 600).forEach(function(m){
+      var t = (m.t||"").trim();
+      if(t.length < 6) return;
+      var c = classify(t);
+      if(!c) return;
+      if(c.noise && c.conf < 0.5) return;
+      var key = (m.who||"") + "|" + c.cat + "|" + (m.date||0);
+      if(seen[key]){
+        var prev = seen[key];
+        if(prev.quote.length < 700) prev.quote += "\n" + t.slice(0,300);
+        return;
+      }
+      var no = (t.match(/№\s?(\d{3,6})|\b(\d{4,6})\b(?=\s*(фуд|заказ|заявк))/i) || [])[1] || "";
+      var rec = {
+        channel: channel, chat: chatName || "",
+        date: m.date || today0(), no: no,
+        cat: c.cat, sev: c.sev,
+        text: t.replace(/\s+/g," ").slice(0,220),
+        quote: t.slice(0,400),
+        conf: c.conf,
+        why: "Словарь: " + c.w + (c.impact ? " · последствие: " + c.impact.toLowerCase() : "") + (c.noise ? " · похоже и на заявку — проверьте" : ""),
+        impact: c.impact,
+        who: m.who || ""
+      };
+      seen[key] = rec;
+      found.push(rec);
+    });
+    return found;
+  }
+
   async function pushInbox(items){
     if(!db){ inbox = inbox.concat(items.map(function(x,i){ return Object.assign({id:"loc"+Date.now()+i}, x); })); return; }
     for(var i=0;i<items.length;i++){
@@ -3010,7 +3114,7 @@ ___, специалист по контролю качества, Фуд зав�
 
     inboxEl.querySelector("#iRun").addEventListener("click", async function(){
       var stat = inboxEl.querySelector("#iStat"), run = inboxEl.querySelector("#iRun");
-      if(!sampleCap){ stat.textContent = "Разбор недоступен в этом просмотре."; return; }
+
       var chatName = inboxEl.querySelector("#iChat").value.trim();
       var blocks = [];
       var pasted = inboxEl.querySelector("#iText").value.trim();
@@ -3024,10 +3128,11 @@ ___, специалист по контролю качества, Фуд зав�
       var total = 0;
       try{
         for(var bi=0; bi<blocks.length; bi++){
-          stat.innerHTML = '<span class="spin"></span>Читаю ' + (bi+1) + " из " + blocks.length + "…";
+          stat.innerHTML = '<span class="spin"></span>' + (sampleCap ? "Читаю " : "Разбираю по словарю ") + (bi+1) + " из " + blocks.length + "…";
           var msgs = parseChat(blocks[bi].text);
           if(!msgs.length) continue;
-          var got = await extract(msgs, channel, blocks[bi].name);
+          var got = sampleCap ? await extract(msgs, channel, blocks[bi].name)
+                              : localExtract(msgs, channel, blocks[bi].name);
           if(got.length){ await pushInbox(got); total += got.length; }
         }
         stat.textContent = total
@@ -3056,8 +3161,9 @@ ___, специалист по контролю качества, Фуд зав�
   async function acceptCand(cand, silent){
     await createCase({
       date: cand.date, no: cand.no, cat: cand.cat, sev: cand.sev,
-      unit: "", src: cand.channel + (cand.chat ? " · " + cand.chat : ""),
-      text: cand.text || cand.quote
+      unit: routeFor(cand.cat), src: cand.channel + (cand.chat ? " · " + cand.chat : ""),
+      text: cand.text || cand.quote,
+      impact: cand.impact || ""
     });
     inbox = inbox.filter(function(x){ return x.id !== cand.id; });
     if(db && cand.id && cand.id.indexOf("loc") !== 0){
