@@ -61,7 +61,7 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .hero-v{display:flex;gap:12px;align-items:flex-start;margin:12px 22px 20px;padding:14px 16px;border-radius:15px;
   background:linear-gradient(120deg,rgba(158,201,72,.11),rgba(158,201,72,.025));
   border:1px solid rgba(158,201,72,.25);border-left:3px solid var(--oliv)}
-.hero-v .t{font-size:11.5px;font-weight:800;letter-spacing:.05em;color:#c3e07a;margin-bottom:4px}
+.hero-v .vt{font-size:11.5px;font-weight:800;letter-spacing:.05em;color:#c3e07a;margin-bottom:4px}
 .hero-v .p{font-size:13px;line-height:1.65;color:#d5deea}.hero-v .p b{color:#f1f6ff}
 
 .card{background:linear-gradient(170deg,#0e1828,#0b1320);border:1px solid var(--line);
@@ -185,7 +185,11 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
 
  var MS=D.months, YEAR=D.year;
  MS.forEach(function(m){ m.days=daysOf(m); m.dim=dimOf(m); m.perDay=m.days?m.total_rev/m.days:0;
-                         m.fc = m.partial ? m.perDay*m.dim : m.total_rev; });
+   /* Сентябрь (1–29) — по сути целый месяц: рисовать над ним прогноз значит
+      задваивать подписи. Прогноз показываем только там, где закрыто меньше
+      90% дней. */
+   m.showFc = !!m.partial && (m.days/m.dim) < 0.9;
+   m.fc = m.showFc ? m.perDay*m.dim : m.total_rev; });
  var LAST=MS[MS.length-1], PREV=MS.length>1?MS[MS.length-2]:null;
  /* «последний полный» — где закрыто хотя бы 90% дней: сентябрь (1–29) по сути
     целый месяц, и в тексте честнее опираться на него, а не на август */
@@ -243,7 +247,7 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
    var maxI=MS.reduce(function(b,m,i){ return m.total_rev>MS[b].total_rev?i:b; },0);
    MS.forEach(function(m,i){
      var x=X(i)-bw/2, y=Y(m.total_rev), h=Math.max(2,H-pB-y);
-     if(m.partial){ /* прогноз — лёгкий контур поверх факта */
+     if(m.showFc){ /* прогноз — лёгкий контур поверх факта */
        var yf=Y(m.fc), hf=Math.max(2,H-pB-yf);
        s+='<rect x="'+x.toFixed(1)+'" y="'+yf.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+hf.toFixed(1)
          +'" rx="4" fill="none" stroke="#9ec948" stroke-width="1.5" stroke-dasharray="5 4" opacity=".75"/>'
@@ -257,7 +261,7 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
          +'font-weight="800" fill="#d7eda6">'+mln(m.total_rev)+'</text>';
      s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-30)+'" text-anchor="middle" font-size="11" fill="#c3d0e2">'
        + shortM(m.label).slice(0,3)+'</text>';
-     if(m.partial) s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-16)+'" text-anchor="middle" font-size="9.5" fill="#6f7f93">'
+     if(m.showFc) s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-16)+'" text-anchor="middle" font-size="9.5" fill="#6f7f93">'
        + m.days+' '+plw(m.days,'день','дня','дней')+'</text>';
    });
    s+='<line x1="'+pL+'" y1="'+(H-pB)+'" x2="'+(W-pR)+'" y2="'+(H-pB)+'" stroke="rgba(255,255,255,.22)"/>';
@@ -269,7 +273,7 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
    var sh=shareOf(m);
    return '<b>'+esc(m.label)+'</b><br>'+num(m.total_rev)+' ₸'
      +'<br><span class="m">в день '+mln(m.perDay)+' ₸'+(d===null?'':' · '+spc(d)+' к '+dat(p.label)+' по темпу')+'</span>'
-     +(m.partial?'<br><span class="m">прогноз на месяц '+mln(m.fc)+' ₸</span>':'')
+     +(m.showFc?'<br><span class="m">прогноз на месяц '+mln(m.fc)+' ₸</span>':'')
      +'<br><span class="m">позиций '+num(m.items.length)+(sh===null?'':' · доля в продажах завода '+pc(sh)+'%')+'</span>';
  }
 
@@ -383,16 +387,16 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
  /* ── блоки ──────────────────────────────────────────────────────────── */
  function heroHtml(){
    var growth = MS[0].total_rev ? LAST.perDay/ (MS[0].perDay||1) : 0;
-   var fcTxt = LAST.partial ? mln(LAST.fc) : mln(LAST.total_rev);
+   var fcTxt = LAST.showFc ? mln(LAST.fc) : mln(LAST.total_rev);
    var vsPrev = PREV && PREV.perDay ? (LAST.perDay-PREV.perDay)/PREV.perDay*100 : null;
    var sh = shareOf(LAST), sh0 = shareOf(MS[0]);
    var k=[
      {l:'Выручка за месяц', v:mln(LAST.total_rev)+' ₸',
-      s: LAST.partial
+      s: LAST.showFc
          ? ('за '+LAST.days+' '+plw(LAST.days,'день','дня','дней')+' · темп '+mln(LAST.perDay)+' ₸/день')
          : (vsPrev===null?LAST.label:'<span class="'+(vsPrev>=0?'up':'down')+'">'+spc(vsPrev)+'</span> к '+dat(PREV.label))},
      {l:'Прогноз на месяц', v:fcTxt+' ₸',
-      s: LAST.partial
+      s: LAST.showFc
          ? ('по темпу '+LAST.days+' '+plw(LAST.days,'дня','дней','дней')+'; '
             + (PREV? '<span class="'+(LAST.fc>=PREV.fc?'up':'down')+'">'
                + spc((LAST.fc-PREV.fc)/(PREV.fc||1)*100)+'</span> к '+dat(PREV.label) : ''))
@@ -424,12 +428,12 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
      + '<div class="hero-h">Сколько Olive приносит заводу и чем это обеспечено</div>'
      + '<div class="hero-s">Выручка, деньги и ассортимент по одному контрагенту. В «Продажах ФУД ЗАВОД» '
      + 'этих сумм нет — направление вынесено целиком, чтобы не смазывать картину по заводу.</div></div>'
-     + '<div class="hero-big"><div class="l">'+(LAST.partial?'Прогноз месяца':'Выручка месяца')+'</div>'
+     + '<div class="hero-big"><div class="l">'+(LAST.showFc?'Прогноз месяца':'Выручка месяца')+'</div>'
      + '<div class="v">'+fcTxt+' ₸</div><div class="s">'+esc(LAST.label)+'</div></div></div>'
      + '<div class="hero-k">'+k.map(function(x){ return '<div class="hk"><div class="l">'+x.l+'</div>'
          + '<div class="v">'+x.v+'</div><div class="s">'+x.s+'</div></div>'; }).join('')+'</div>'
      + '<div class="hero-v"><div style="font-size:19px;line-height:1.2">🧭</div><div>'
-     + '<div class="t">ВЗГЛЯД ФИНДИРЕКТОРА</div><div class="p">'+vp+'</div></div></div></div>';
+     + '<div class="vt">ВЗГЛЯД ФИНДИРЕКТОРА</div><div class="p">'+vp+'</div></div></div></div>';
  }
 
  function moneyHtml(){
