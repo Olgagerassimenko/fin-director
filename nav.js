@@ -7,7 +7,7 @@
     {href:'дашборд_гугл_live.html',icon:'🗓️',label:'План оплат'},
     {href:'дашборд_ддс.html',icon:'🏦',label:'Про деньги'},
     {href:'дз_кз.html',icon:'⚖️',label:'ДЗ / КЗ'},
-    {href:'продажи_2026.html',icon:'🛒',label:'Продажи'},
+    {href:'продажи_2026.html',icon:'🛒',label:'Продажи ФУД ЗАВОД'},
     {href:'закуп.html',icon:'📦',label:'Закуп'},
     {href:'производство.html',icon:'🏭',label:'Производство'},
     {href:'sku360.html',icon:'🧩',label:'SKU 360'},
@@ -17,7 +17,9 @@
     {href:'опиу_2026.html',icon:'📊',label:'ОПиУ 2026'},
     {href:'опиу_аудит.html',icon:'🔎',label:'Аудит ОПиУ'},
 {href:'nalogi_%D0%BE%D1%82%D1%87%D1%91%D1%82.html',icon:'🧾',label:'Налоги'},
-    {href:'%D0%BA%D0%B0%D0%BB%D1%8C%D0%BA%D1%83%D0%BB%D1%8F%D1%82%D0%BE%D1%80.html',icon:'🧮',label:'Калькулятор'}
+    {href:'%D0%BA%D0%B0%D0%BB%D1%8C%D0%BA%D1%83%D0%BB%D1%8F%D1%82%D0%BE%D1%80.html',icon:'🧮',label:'Калькулятор'},
+    {href:'olive.html',icon:'🥒',label:'Продажи Olive'},
+    {href:'%D0%B6%D1%83%D1%80%D0%BD%D0%B0%D0%BB.html',icon:'🗂',label:'Журнал изменений'}
   ];
   var cur=location.pathname.split('/').pop()||'index.html';
   var s=document.createElement('style');
