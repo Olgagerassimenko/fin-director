@@ -1,25 +1,30 @@
 name: iiko — какие поля отдаёт OLAP
 
-# Разведка перед «журналом изменений» в ДДС. В OLAP автора нет, зато есть
-# /resto/api/events: события с пользователем и временем. Смотрим, какие
-# типы событий бывают и что внутри у денежных. Ничего не пишет.
+# Разведка перед «журналом изменений» в ДДС.
+# 1) /resto/api/v2/reports/olap/columns — полный список полей OLAP по каждому типу отчёта,
+#    ищем всё, что похоже на автора/пользователя.
+# 2) /resto/api/events — журнал событий: там есть пользователь и время.
+# Результат кладётся в репозиторий файлом _отладка/iiko_поля.md (иначе его не прочитать).
 on:
   workflow_dispatch: {}
+
+permissions:
+  contents: write
 
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - run: pip install -r requirements.txt
-      - name: Типы событий в журнале iiko
+      - name: Поля OLAP и журнал событий
         run: |
           python - <<'PY'
-          import os, warnings, hashlib, requests, sys, datetime, re, collections
+          import os, warnings, hashlib, requests, sys, datetime, re, collections, json, pathlib
           import xml.etree.ElementTree as ET
           warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
           from iiko_export import URL, LOGIN, PASS
@@ -27,68 +32,125 @@ jobs:
           tok = s.get(f"{URL}/resto/api/auth",
                       params={"login": LOGIN, "pass": hashlib.sha1(PASS.encode()).hexdigest()},
                       verify=False, timeout=60).text.strip().strip('"')
-          today = datetime.date.today()
-          frm = (today - datetime.timedelta(days=7)).isoformat()
-          to = (today + datetime.timedelta(days=1)).isoformat()
-          r = s.get(URL + "/resto/api/events", params={"key": tok, "from": frm, "to": to},
-                    verify=False, timeout=180)
-          root = ET.fromstring(r.text)
-          evs = root.findall("event")
-          out = ["# Журнал событий iiko за %s — %s" % (frm, to), "",
-                 "событий получено: **%d**, размер ответа %d КБ" % (len(evs), len(r.text)//1024), ""]
+          out = ["# iiko: есть ли автор операции", ""]
+          AUTH = re.compile(r"user|author|employ|person|login|creat|ответств|автор|пользоват|"
+                            r"сотрудн|созда|провед|измен|редакт", re.I)
 
-          # справочник сотрудников: id -> имя
-          emp = {}
-          er = s.get(URL + "/resto/api/employees", params={"key": tok}, verify=False, timeout=180)
-          for e in ET.fromstring(er.text).findall("employee"):
-              i = e.findtext("id"); n = (e.findtext("name") or "").strip()
-              if i: emp[i] = n
-          out.append("сотрудников в справочнике: **%d**" % len(emp)); out.append("")
-
-          def attrs(ev):
-              d = {}
-              for a in ev.findall("attribute"):
-                  d[a.findtext("name") or ""] = (a.findtext("value") or "", a.findtext("type") or "")
-              return d
-
-          cnt = collections.Counter(ev.findtext("type") or "?" for ev in evs)
-          out.append("## типы событий")
-          out.append("| тип | сколько |")
-          out.append("|---|---|")
-          for t, c in cnt.most_common(60):
-              out.append("| `%s` | %d |" % (t, c))
-          out.append("")
-
-          # события, похожие на деньги и документы
-          MONEY = re.compile(r"doc|pay|cash|invoice|money|account|transact|writeoff|incom|outgo|"
-                             r"store|order|price|product", re.I)
-          out.append("## примеры денежных и документных событий")
-          shown = 0
-          for ev in evs:
-              t = ev.findtext("type") or ""
-              if not MONEY.search(t): continue
-              a = attrs(ev)
-              u = a.get("user", ("", ""))[0]
-              out.append("### `%s` · %s · пользователь: **%s**"
-                         % (t, ev.findtext("date"), emp.get(u, u or "—")))
-              out.append("| поле | значение | тип |")
-              out.append("|---|---|---|")
-              for k, (v, tp) in list(a.items())[:16]:
-                  vv = emp.get(v, v)
-                  out.append("| %s | %s | %s |" % (k, str(vv)[:90].replace("|", "/"), tp))
+          # ---------- 1. поля OLAP ----------
+          for rt in ("TRANSACTIONS", "SALES", "DELIVERIES"):
+              out.append("## OLAP · %s" % rt)
+              try:
+                  r = s.get(URL + "/resto/api/v2/reports/olap/columns",
+                            params={"key": tok, "reportType": rt}, verify=False, timeout=180)
+                  if r.status_code != 200:
+                      out.append("ответ %d: `%s`" % (r.status_code, r.text[:200])); out.append(""); continue
+                  cols = r.json()
+                  items = cols.items() if isinstance(cols, dict) else [(c.get("id"), c) for c in cols]
+                  items = list(items)
+                  out.append("всего полей: **%d**" % len(items)); out.append("")
+                  hits = [(k, v) for k, v in items
+                          if AUTH.search(str(k)) or AUTH.search(str((v or {}).get("name", "")))]
+                  if hits:
+                      out.append("### похоже на автора — %d шт." % len(hits))
+                      out.append("| поле | название | тип | агрегируемое |")
+                      out.append("|---|---|---|---|")
+                      for k, v in hits:
+                          v = v or {}
+                          out.append("| `%s` | %s | %s | %s |" % (
+                              k, v.get("name", ""), v.get("type", ""), v.get("aggregationAllowed", "")))
+                  else:
+                      out.append("### полей про автора НЕТ")
+                  out.append("")
+                  out.append("<details><summary>все поля</summary>")
+                  out.append("")
+                  out.append("| поле | название | тип |")
+                  out.append("|---|---|---|")
+                  for k, v in sorted(items, key=lambda x: str(x[0])):
+                      v = v or {}
+                      out.append("| `%s` | %s | %s |" % (k, str(v.get("name", ""))[:60], v.get("type", "")))
+                  out.append("")
+                  out.append("</details>")
+              except Exception as e:
+                  out.append("ошибка: `%s`" % e)
               out.append("")
-              shown += 1
-              if shown >= 8: break
-          if not shown:
-              out.append("таких событий за неделю нет — показываю любые пять:")
-              for ev in evs[:5]:
+
+          # ---------- 2. журнал событий ----------
+          today = datetime.date.today()
+          frm = (today - datetime.timedelta(days=14)).isoformat()
+          to = (today + datetime.timedelta(days=1)).isoformat()
+          emp = {}
+          try:
+              er = s.get(URL + "/resto/api/employees", params={"key": tok}, verify=False, timeout=180)
+              for e in ET.fromstring(er.text).findall("employee"):
+                  i = e.findtext("id"); n = (e.findtext("name") or "").strip()
+                  if i: emp[i] = n
+          except Exception as e:
+              out.append("справочник сотрудников не прочитался: `%s`" % e)
+
+          out.append("## Журнал событий %s — %s" % (frm, to))
+          try:
+              r = s.get(URL + "/resto/api/events", params={"key": tok, "from": frm, "to": to},
+                        verify=False, timeout=240)
+              root = ET.fromstring(r.text)
+              evs = root.findall("event") or root.findall(".//event")
+              out.append("событий: **%d**, сотрудников в справочнике: **%d**" % (len(evs), len(emp)))
+              out.append("")
+              def attrs(ev):
+                  d = {}
+                  for a in ev.findall("attribute"):
+                      d[a.findtext("name") or ""] = (a.findtext("value") or "", a.findtext("type") or "")
+                  return d
+              cnt = collections.Counter(ev.findtext("type") or "?" for ev in evs)
+              out.append("| тип события | сколько | есть пользователь |")
+              out.append("|---|---|---|")
+              hasu = {}
+              for ev in evs:
+                  t = ev.findtext("type") or "?"
                   a = attrs(ev)
-                  out.append("### `%s` · %s" % (ev.findtext("type"), ev.findtext("date")))
-                  out.append("```")
-                  out.append(", ".join("%s=%s" % (k, emp.get(v[0], v[0])[:40]) for k, v in a.items()))
-                  out.append("```")
+                  if any(AUTH.search(k) for k in a): hasu[t] = hasu.get(t, 0) + 1
+              for t, c in cnt.most_common(80):
+                  out.append("| `%s` | %d | %s |" % (t, c, "да (%d)" % hasu[t] if t in hasu else "нет"))
+              out.append("")
+              MONEY = re.compile(r"doc|pay|cash|invoice|money|account|transact|writeoff|incom|outgo|"
+                                 r"store|order|price|product|balance", re.I)
+              out.append("## примеры документных и денежных событий")
+              shown = 0
+              for ev in evs:
+                  t = ev.findtext("type") or ""
+                  if not MONEY.search(t): continue
+                  a = attrs(ev)
+                  u = ""
+                  for k, (v, tp) in a.items():
+                      if AUTH.search(k): u = emp.get(v, v); break
+                  out.append("### `%s` · %s · пользователь: **%s**" % (t, ev.findtext("date"), u or "—"))
+                  out.append("| поле | значение | тип |")
+                  out.append("|---|---|---|")
+                  for k, (v, tp) in list(a.items())[:20]:
+                      out.append("| %s | %s | %s |" % (k, str(emp.get(v, v))[:90].replace("|", "/"), tp))
+                  out.append("")
+                  shown += 1
+                  if shown >= 10: break
+              if not shown:
+                  out.append("за две недели таких событий нет. любые пять:")
+                  for ev in evs[:5]:
+                      a = attrs(ev)
+                      out.append("- `%s` · %s · %s" % (ev.findtext("type"), ev.findtext("date"),
+                                 ", ".join("%s=%s" % (k, str(emp.get(v[0], v[0]))[:40]) for k, v in a.items())))
+          except Exception as e:
+              out.append("ошибка журнала: `%s`" % e)
+
           txt = "\n".join(out)
-          print(txt[:4000])
+          pathlib.Path("_отладка").mkdir(exist_ok=True)
+          open("_отладка/iiko_поля.md", "w", encoding="utf-8").write(txt + "\n")
+          print(txt[:3000])
           p2 = os.environ.get("GITHUB_STEP_SUMMARY")
           if p2: open(p2, "a", encoding="utf-8").write(txt + "\n")
           PY
+      - name: Положить отчёт в репозиторий
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse-bot@users.noreply.github.com"
+          git add -A "_отладка/iiko_поля.md"
+          git commit -m "разведка: поля iiko (автор операции)" || exit 0
+          git pull --rebase || true
+          git push
