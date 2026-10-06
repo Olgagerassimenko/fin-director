@@ -1014,7 +1014,7 @@ render();
  }
 
  // ── styles (market theme: amber→red glow) ──
- var mkstyle='<style>'+
+ var mkstyle='<style>'+'.mkb{background:#16233a;border:1px solid #2a3b55;color:#c3d0e2;border-radius:999px;padding:6px 13px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}.mkb:hover{border-color:#fdba74;color:#fff}.mkb.on{background:linear-gradient(135deg,#fdba74,#c2610c);color:#231405;border-color:#fdba74}'+
   '@keyframes mkglow{0%,100%{box-shadow:0 14px 40px -24px rgba(0,0,0,.7),0 0 0 0 rgba(249,115,22,0)}50%{box-shadow:0 14px 46px -18px rgba(249,115,22,.5),0 0 46px 6px rgba(249,115,22,.38)}}'+
   '@keyframes mkshine{0%{transform:translateX(-140%) skewX(-18deg)}55%,100%{transform:translateX(320%) skewX(-18deg)}}'+
   '.mkbn{animation:mkglow 3.8s ease-in-out infinite}'+
@@ -1051,6 +1051,84 @@ render();
   '.mktag{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;background:rgba(249,115,22,.16);border:1px solid rgba(249,115,22,.4);color:#fdba74}'+
   '</style>';
 
+
+ /* ── 📅 Что закупили с рынка помесячно ──────────────────────────────────
+    Матрица «товар × месяц» за весь год: видно не только сколько потратили
+    на рынке, но и что именно брали и в каком месяце. Период сверху тут не
+    действует намеренно — отчёт всегда с начала года, иначе помесячная
+    картина теряет смысл. */
+ var MXMODE='sum', MXONLY=1, MXSORT=-1;
+ function mxRows(){
+   var map={};
+   MO.forEach(function(mk){
+     ((((TVM[mk]||{}).rows))||[]).forEach(function(r){
+       if(r.supplier!==SUP) return;
+       if(MXONLY && !edible(r.product)) return;
+       var o=map[r.product]||(map[r.product]={n:r.product,m:{},sum:0,qty:0});
+       var c=o.m[mk]||(o.m[mk]={s:0,q:0});
+       c.s+=r.sum||0; c.q+=r.qty||0; o.sum+=r.sum||0; o.qty+=r.qty||0;
+     });
+   });
+   var out=[]; for(var k in map) out.push(map[k]);
+   out.sort(function(a,b){ return MXSORT*( (MXMODE==='qty'? a.qty-b.qty : a.sum-b.sum) ); });
+   return out;
+ }
+ function mxCell(v){ return v? (MXMODE==='qty'? fmt(v) : fmt(v)) : '<span style="color:#3b4860">·</span>'; }
+ function mxCard(){
+   var rows=mxRows(), mons=MO;
+   var tot={}, gt=0;
+   rows.forEach(function(r){ mons.forEach(function(mk){
+     var c=r.m[mk]; if(!c) return; var v=(MXMODE==='qty'? c.q : c.s);
+     tot[mk]=(tot[mk]||0)+v; gt+=v; }); });
+   var head='<tr><th class="mkth" style="text-align:left;position:sticky;left:0;background:#0f1a2a;z-index:2">Товар</th>'
+     + mons.map(function(mk){ var l=((MM[mk]&&MM[mk].ru)||mk).replace(/ 20\d\d/,'');
+         return '<th class="mkth" style="text-align:right">'+esc(l.slice(0,3))+'</th>'; }).join('')
+     + '<th class="mkth" style="text-align:right">Итого</th></tr>';
+   var trTot='<tr style="background:rgba(253,186,116,.10);font-weight:800">'
+     + '<td style="text-align:left;position:sticky;left:0;background:#1a1a14;font-weight:800">ВСЕГО</td>'
+     + mons.map(function(mk){ return '<td style="text-align:right;color:#fdba74">'+(tot[mk]?fmt(tot[mk]):'·')+'</td>'; }).join('')
+     + '<td style="text-align:right;color:#fdba74">'+fmt(gt)+'</td></tr>';
+   var body=rows.map(function(r){
+     var v=(MXMODE==='qty'? r.qty : r.sum);
+     return '<tr><td style="text-align:left;white-space:normal;max-width:300px;font-weight:600;position:sticky;left:0;background:#0d1626">'
+       + '🥕 '+esc(clean(r.n))+'</td>'
+       + mons.map(function(mk){ var c=r.m[mk];
+           return '<td style="text-align:right">'+mxCell(c?(MXMODE==='qty'?c.q:c.s):0)+'</td>'; }).join('')
+       + '<td style="text-align:right;font-weight:800;color:#f1f5f9">'+fmt(v)+'</td></tr>';
+   }).join('');
+   var sub = (MXMODE==='qty' ? 'в количестве' : 'в тенге') + ' · '
+     + (MXONLY ? 'только съедобное сырьё' : 'всё, что брали на рынке') + ' · '
+     + rows.length + ' поз.';
+   return '<div class="card" id="mk_mx"><div class="hd"><h3>📅 Что закупили с рынка помесячно</h3>'
+     + '<span class="sub">с начала года, независимо от периода сверху · '+sub+'</span></div>'
+     + '<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
+     + mxBtn('sum','₸ сумма', MXMODE==='sum') + mxBtn('qty','кол-во', MXMODE==='qty')
+     + '<span style="width:10px"></span>'
+     + mxBtn2(1,'только съедобное', MXONLY===1) + mxBtn2(0,'всё с рынка', MXONLY===0)
+     + '<input class="search" style="margin:0 0 0 auto;max-width:260px" oninput="mkFilter(\'mk_mx_t\',this.value)" placeholder="🔍 поиск по товару…">'
+     + '<button class="mkb" onclick="mkMxCsv()">⤓ CSV</button></div>'
+     + '<div style="overflow-x:auto;max-height:620px"><table class="z" id="mk_mx_t">'
+     + '<thead>'+head+'</thead><tbody>'+trTot+body+'</tbody></table></div>'
+     + '<div class="mknote">Строка <b>ВСЕГО</b> — сумма по месяцу целиком. Точка значит, что в этом '
+     + 'месяце позицию на рынке не брали. Переключатель «кол-во» показывает натуральные объёмы: '
+     + 'по ним видно, что покупка выросла в объёме, а не только подорожала.</div></div>';
+ }
+ function mxBtn(m,t,on){ return '<button class="mkb'+(on?' on':'')+'" onclick="mkMxMode(\''+m+'\')">'+t+'</button>'; }
+ function mxBtn2(v,t,on){ return '<button class="mkb'+(on?' on':'')+'" onclick="mkMxOnly('+v+')">'+t+'</button>'; }
+ window.mkMxMode=function(m){ MXMODE=m; var e=document.getElementById('mk_mx'); if(e) e.outerHTML=mxCard(); };
+ window.mkMxOnly=function(v){ MXONLY=+v;  var e=document.getElementById('mk_mx'); if(e) e.outerHTML=mxCard(); };
+ window.mkMxCsv=function(){
+   var rows=mxRows(), mons=MO;
+   var head=['Товар'].concat(mons.map(function(mk){ return ((MM[mk]&&MM[mk].ru)||mk); })).concat(['Итого']);
+   var lines=[head.join(';')].concat(rows.map(function(r){
+     return ['"'+clean(r.n).replace(/"/g,'""')+'"'].concat(
+       mons.map(function(mk){ var c=r.m[mk]; return c? Math.round(MXMODE==='qty'?c.q:c.s) : 0; })
+     ).concat([Math.round(MXMODE==='qty'?r.qty:r.sum)]).join(';'); }));
+   var blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+   var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+   a.download='Рынок сырья — помесячно ('+(MXMODE==='qty'?'количество':'сумма')+').csv';
+   a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); },1500);
+ };
  window.renderMK=function(){
   // ── данные за ВЫБРАННЫЙ период (привязка к переключателю сверху) ──
   var PR=mkPeriodRows();
@@ -1219,7 +1297,7 @@ render();
    +'• <b>Синяя линия</b> на графике = доля «'+esc(SUP)+'» в общем закупе каждого месяца.<br>'
    +'<b>Источник:</b> iiko, обновляется автоматически (дата — в шапке).'
    +'</div></details>';
-  return mkstyle+'<div style="position:relative">'+banner+strip+kpi+explCard+chart+topCard+catCard+note+ovCard+onCard+'</div>';
+  return mkstyle+'<div style="position:relative">'+banner+strip+kpi+explCard+chart+mxCard()+topCard+catCard+note+ovCard+onCard+'</div>';
  };
 
  // ── interactions (global) ──
