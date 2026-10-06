@@ -1,0 +1,586 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Налоговый калькулятор · Фуд Завод</title>
+<!-- Фуд Завод · © 2026. Все права защищены. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- Налоги РК 2026: каждый налог отдельной плашкой, параметры вводятся,
+     расчёт считается сразу. Сохранённые расчёты лежат в воркере (общие
+     для всех) и показываются в свёрнутой «Истории расчётов». -->
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070c17; --card:#0d1526; --line:#1c2740; --line2:#26334d;
+  --ink:#eef3fb; --ink2:#c3d0e2; --mut:#7b8ca6; --dim:#546279;
+  --red:#f87171; --amb:#fbbf24; --grn:#4ade80; --vio:#22d3ee; --brn:#f59e0b;
+}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(940px 520px at 8% -10%, rgba(217,139,58,.16), transparent 60%),
+    radial-gradient(820px 460px at 96% 0%, rgba(34,211,238,.12), transparent 60%),
+    radial-gradient(700px 500px at 55% 112%, rgba(56,189,248,.06), transparent 62%),
+    var(--bg);
+  background-attachment:fixed}
+
+.topbar{display:flex;align-items:center;gap:16px;padding:15px 30px;position:sticky;top:0;z-index:60;
+  background:rgba(10,16,29,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+  box-shadow:0 10px 30px -24px #000}
+.backbtn{display:inline-flex;align-items:center;flex-shrink:0;background:#16203a;color:var(--ink2);
+  border:1px solid var(--line2);font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;
+  text-decoration:none;transition:.18s;white-space:nowrap}
+.backbtn:hover{background:var(--vio);color:#05202a;border-color:var(--vio)}
+.topbar h1{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;font-size:11.5px;color:#fde68a;background:rgba(217,139,58,.13);
+  border:1px solid rgba(217,139,58,.45);border-radius:999px;padding:6px 13px;font-weight:700;white-space:nowrap}
+
+.section{padding:22px 30px 50px;max-width:1500px;margin:0 auto}
+.lead{font-size:12.5px;color:var(--mut);line-height:1.65;margin-bottom:16px;max-width:980px}
+.lead b{color:var(--ink2)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px;align-items:start}
+.c{background:linear-gradient(180deg,#111c31,#0e1728);border:1px solid var(--line);border-radius:18px;
+  padding:16px 18px 15px;box-shadow:0 18px 40px -28px #000, inset 0 1px 0 rgba(255,255,255,.035);
+  border-left:3px solid var(--ac,#d98b3a)}
+.c-h{display:flex;align-items:center;gap:9px;margin-bottom:3px}
+.c-i{font-size:19px;line-height:1}
+.c-t{font-size:14.5px;font-weight:800;color:#f1f5f9}
+.c-s{font-size:11.5px;color:var(--mut);line-height:1.55;margin-bottom:12px}
+.c-s b{color:var(--ink2)}
+
+.f{display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;margin-bottom:7px}
+.f label{font-size:12px;color:var(--ink2)}
+.f .hint{font-size:10.5px;color:var(--dim);grid-column:1/-1;margin-top:-4px}
+input[type=number],input[type=text],select{background:#0a1222;border:1px solid var(--line2);color:var(--ink);
+  border-radius:9px;padding:7px 10px;font-size:13px;font-family:inherit;width:148px;text-align:right;
+  font-weight:700;font-variant-numeric:tabular-nums;transition:.15s}
+select{text-align:left;font-weight:600}
+input:focus,select:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3px rgba(34,211,238,.18)}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.seg button{background:#101a2f;border:1px solid var(--line2);color:var(--ink2);border-radius:9px;
+  padding:6px 11px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.seg button.on{background:linear-gradient(135deg,#d98b3a,#b56a1f);border-color:transparent;color:#1a1204}
+
+.out{margin-top:11px;border-top:1px solid var(--line);padding-top:11px}
+.r{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:3.5px 0;color:var(--ink2)}
+.r span:last-child{font-variant-numeric:tabular-nums;font-weight:700;color:#e8eef6;white-space:nowrap}
+.r.dim{color:var(--mut);font-size:11.5px}
+.r.dim span:last-child{color:var(--mut);font-weight:600}
+.r.big{font-size:15px;font-weight:800;color:#fff;border-top:1px solid var(--line);margin-top:6px;padding-top:9px}
+.r.big span:last-child{font-size:19px;font-weight:900;color:var(--ac,#fcd34d)}
+.r.neg span:last-child{color:#fca5a5}
+.r.pos span:last-child{color:#86efac}
+
+.act{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.btn{background:#16233c;border:1px solid var(--line2);color:var(--ink2);border-radius:10px;padding:7px 12px;
+  font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+.btn:hover{background:#1e2f4d;color:#fff}
+.btn.pri{background:linear-gradient(135deg,#16a34a,#065f46);border-color:transparent;color:#eafff2}
+.btn.pri:hover{filter:brightness(1.12)}
+
+/* история */
+.hist{margin-top:18px;background:linear-gradient(180deg,#111c31,#0e1728);border:1px solid var(--line);
+  border-radius:18px;overflow:hidden}
+.hist-h{display:flex;align-items:center;gap:11px;padding:14px 18px;cursor:pointer;user-select:none}
+.hist-h:hover{background:rgba(255,255,255,.02)}
+.hist-h .ar{font-size:12px;color:var(--mut);transition:.2s}
+.hist.open .hist-h .ar{transform:rotate(90deg)}
+.hist-t{font-size:14px;font-weight:800;color:#f1f5f9}
+.hist-n{font-size:11.5px;color:var(--mut);margin-left:auto}
+.hist-b{display:none;padding:0 18px 16px}
+.hist.open .hist-b{display:block}
+.hrow{border:1px solid var(--line);border-radius:13px;padding:11px 14px;margin-bottom:8px;background:#0d1626}
+.hrow-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hrow-k{font-size:12.5px;font-weight:800;color:#e8eef6}
+.hrow-d{font-size:11px;color:var(--dim)}
+.hrow-v{margin-left:auto;font-size:15px;font-weight:900;color:#fcd34d;font-variant-numeric:tabular-nums}
+.hrow-p{font-size:11.5px;color:var(--mut);margin-top:5px;line-height:1.6}
+.hrow-x{background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:0 2px;font-family:inherit}
+.hrow-x:hover{color:#fca5a5}
+.empty{text-align:center;color:var(--dim);font-size:12.5px;padding:18px}
+
+.note{font-size:11px;color:var(--dim);line-height:1.6;margin-top:9px}
+.warn{color:#fcd9a0}
+@media(max-width:700px){.section{padding:16px 14px 40px}.topbar{padding:12px 14px}
+  .grid{grid-template-columns:1fr}input,select{width:130px}}
+</style></head>
+<body>
+
+<div class="topbar">
+  <a class="backbtn" href="index.html">← Пульс</a>
+  <div><h1>🧮 Налоговый калькулятор</h1><p>Налоги и платежи РК — ставки 2026 года</p></div>
+  <div class="live" id="live">МРП 4 325 ₸ · МЗП 85 000 ₸</div>
+</div>
+
+<div class="section">
+  <div class="lead">
+    Каждый налог — отдельной плашкой: вводите параметры, расчёт считается сразу. Любой результат можно
+    <b>сохранить</b> — он ляжет в «Историю расчётов» внизу, она свёрнута и раскрывается по нажатию.
+    Ставки и показатели (МРП, МЗП, проценты) собраны в последней плашке и редактируются — поменяется закон,
+    поправите там, пересчитается везде.
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="hist" id="hist">
+    <div class="hist-h" id="hist-h">
+      <span class="ar">▶</span>
+      <span class="hist-t">История расчётов</span>
+      <span class="hist-n" id="hist-n">—</span>
+    </div>
+    <div class="hist-b" id="hist-b"><div class="empty">Загружаю…</div></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var API = '/api/calc';
+
+  /* ── Ставки и показатели 2026. Лежат в воркере, здесь — значения по
+     умолчанию на случай, если в хранилище пусто. ───────────────────── */
+  var DEF = {
+    mrp: 4325, mzp: 85000,
+    nds: 16, ndsLgot: 5, ndsPorog: 10000,
+    ipn: 10, ipnHi: 15, ipnHiMrp: 8500, vychetMrp: 30,
+    opv: 10, opvLimMzp: 50,
+    vosms: 2, vosmsLimMzp: 20,
+    opvr: 3.5, opvrLimMzp: 50,
+    so: 5, soLimMzp: 7,
+    oosms: 3, oosmsLimMzp: 40,
+    sn: 6, snMinMrp: 14,
+    kpn: 20, kpnBank: 25, kpnAgro: 3, kpnSoc: 5,
+    divRez: 5, divRezHi: 15, divRezPorogMrp: 230000, divNerez: 15, divNerezOff: 20,
+    imush: 1.5, roznica: 4, uprosh: 4,
+    peny: 1.25, bazStavka: 16
+  };
+  var R = Object.assign({}, DEF);
+  var HIST = [];
+
+  function f0(x){ if(x==null||!isFinite(x)) return '—';
+    return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+  function f2(x){ if(x==null||!isFinite(x)) return '—';
+    return (Math.round(x*100)/100).toString().replace('.',',').replace(/\B(?=(\d{3})+(?!\d|,))/g,' '); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function num(id){ var el=document.getElementById(id); return el ? (parseFloat(String(el.value).replace(',','.'))||0) : 0; }
+  function val(id){ var el=document.getElementById(id); return el ? el.value : ''; }
+  function plw(n,a,b,c){ var m=n%100; if(m>=11&&m<=14) return c; m=n%10;
+    return m===1?a:(m>=2&&m<=4)?b:c; }
+
+  function toast(msg, ms){
+    var t=document.getElementById('toast');
+    if(!t){ t=document.createElement('div'); t.id='toast';
+      t.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:95;'
+       +'background:#13233f;border:1px solid #2a3a5c;color:#e8eef6;border-radius:12px;padding:11px 16px;'
+       +'font-size:12.5px;font-weight:600;box-shadow:0 10px 40px -12px rgba(0,0,0,.8)';
+      document.body.appendChild(t); }
+    t.innerHTML=msg; t.style.display='';
+    clearTimeout(toast.t); toast.t=setTimeout(function(){ t.style.display='none'; }, ms||3000);
+  }
+
+  /* ── ОПИСАНИЕ ПЛАШЕК ────────────────────────────────────────────────
+     Каждая плашка: поля ввода, функция расчёта и строки результата.
+     calc() возвращает {rows:[[подпись, значение, класс]], total:[подпись,
+     значение], params:'что ввели' } — на этом же строится запись истории. */
+  var CARDS = [
+
+  { id:'nds', icon:'🧾', ac:'#d98b3a', title:'НДС',
+    sub:'Основная ставка <b>16%</b> с 2026 года, 5% — лекарства и медуслуги. Порог постановки на учёт — 10 000 МРП.',
+    modes:[['add','Начислить сверху'],['out','Выделить из суммы'],['pay','НДС к уплате']],
+    fields:function(m){
+      if(m==='pay') return [
+        ['nds_real','Оборот по реализации, с НДС',1000000],
+        ['nds_zach','Покупки с НДС (в зачёт)',600000],
+        ['nds_st','Ставка, %',R.nds]];
+      return [['nds_sum', m==='add' ? 'Сумма без НДС' : 'Сумма с НДС', 1000000],
+              ['nds_st','Ставка, %',R.nds]];
+    },
+    calc:function(m){
+      var st=num('nds_st')/100;
+      if(m==='pay'){
+        var real=num('nds_real'), zach=num('nds_zach');
+        var nReal=real-real/(1+st), nZach=zach-zach/(1+st), pay=nReal-nZach;
+        return { rows:[
+            ['НДС с реализации', f0(nReal)+' ₸'],
+            ['НДС в зачёт', f0(nZach)+' ₸'],
+            ['Оборот без НДС', f0(real/(1+st))+' ₸','dim']],
+          total:[pay>=0?'К уплате в бюджет':'К возврату из бюджета', f0(Math.abs(pay))+' ₸'],
+          params:'реализация '+f0(real)+' ₸, зачёт '+f0(zach)+' ₸, ставка '+f2(st*100)+'%' };
+      }
+      var s=num('nds_sum');
+      if(m==='add') return { rows:[['Сумма без НДС', f0(s)+' ₸'],['НДС '+f2(st*100)+'%', f0(s*st)+' ₸']],
+        total:['Итого с НДС', f0(s*(1+st))+' ₸'], params:'без НДС '+f0(s)+' ₸, ставка '+f2(st*100)+'%' };
+      var bez=s/(1+st);
+      return { rows:[['Сумма с НДС', f0(s)+' ₸'],['Сумма без НДС', f0(bez)+' ₸']],
+        total:['В том числе НДС', f0(s-bez)+' ₸'], params:'с НДС '+f0(s)+' ₸, ставка '+f2(st*100)+'%' };
+    }},
+
+  { id:'zp', icon:'👥', ac:'#60a5fa', title:'Зарплата и зарплатные налоги',
+    sub:'Полный расчёт по ОУР: что удержат у работника и сколько сверху платит компания. '
+       +'Вычет <b>30 МРП</b>, социальный налог больше не уменьшается на соцотчисления.',
+    modes:[['gross','От оклада (начислено)'],['net','От суммы на руки']],
+    fields:function(){ return [
+      ['zp_sum','Сумма, ₸',500000],
+      ['zp_vych','Применять вычет 30 МРП','check',true],
+      ['zp_opvr','Считать ОПВР (род. после 1975)','check',true]]; },
+    calc:function(m){
+      var mzp=R.mzp, mrp=R.mrp;
+      function fromGross(g){
+        var opv=Math.min(g, mzp*R.opvLimMzp)*R.opv/100;
+        var vosms=Math.min(g, mzp*R.vosmsLimMzp)*R.vosms/100;
+        var vych=document.getElementById('zp_vych').checked ? mrp*R.vychetMrp : 0;
+        var baza=Math.max(0, g-opv-vosms-vych);
+        var ipn=baza*R.ipn/100;
+        var net=g-opv-vosms-ipn;
+        var opvr=document.getElementById('zp_opvr').checked
+          ? Math.min(Math.max(g, mzp), mzp*R.opvrLimMzp)*R.opvr/100 : 0;
+        var soBase=Math.min(Math.max(g-opv, mzp), mzp*R.soLimMzp);
+        var so=soBase*R.so/100;
+        var oosms=Math.min(g, mzp*R.oosmsLimMzp)*R.oosms/100;
+        var snBase=Math.max(g-opv-vosms, 0);
+        var sn=Math.max(snBase*R.sn/100, mrp*R.snMinMrp*R.sn/100);
+        return {g:g,opv:opv,vosms:vosms,vych:vych,ipn:ipn,net:net,opvr:opvr,so:so,oosms:oosms,sn:sn};
+      }
+      var r;
+      if(m==='gross') r=fromGross(num('zp_sum'));
+      else {
+        /* «на руки» → оклад: подбираем половинным делением, формула
+           нелинейна из-за вычета и потолков. */
+        var target=num('zp_sum'), lo=target, hi=target*3+1000000;
+        for(var i=0;i<60;i++){ var mid=(lo+hi)/2; if(fromGross(mid).net<target) lo=mid; else hi=mid; }
+        r=fromGross(Math.round((lo+hi)/2));
+      }
+      var uderzh=r.opv+r.vosms+r.ipn, rabot=r.opvr+r.so+r.oosms+r.sn;
+      return { rows:[
+          ['Начислено (оклад)', f0(r.g)+' ₸'],
+          ['ОПВ '+f2(R.opv)+'%', '−'+f0(r.opv)+' ₸','neg'],
+          ['ВОСМС '+f2(R.vosms)+'%', '−'+f0(r.vosms)+' ₸','neg'],
+          ['Вычет по ИПН', f0(r.vych)+' ₸','dim'],
+          ['ИПН '+f2(R.ipn)+'%', '−'+f0(r.ipn)+' ₸','neg'],
+          ['Удержано всего', f0(uderzh)+' ₸','dim'],
+          ['ОПВР '+f2(R.opvr)+'% (работодатель)', f0(r.opvr)+' ₸','dim'],
+          ['СО '+f2(R.so)+'% (работодатель)', f0(r.so)+' ₸','dim'],
+          ['ООСМС '+f2(R.oosms)+'% (работодатель)', f0(r.oosms)+' ₸','dim'],
+          ['Соцналог '+f2(R.sn)+'% (работодатель)', f0(r.sn)+' ₸','dim'],
+          ['Платит компания сверх оклада', f0(rabot)+' ₸'],
+          ['На руки', f0(r.net)+' ₸','pos']],
+        total:['Полная стоимость для компании', f0(r.g+rabot)+' ₸'],
+        params:(m==='gross'?'оклад ':'на руки ')+f0(num('zp_sum'))+' ₸ → на руки '+f0(r.net)
+               +' ₸, стоимость '+f0(r.g+rabot)+' ₸' };
+    }},
+
+  { id:'kpn', icon:'🏢', ac:'#4ade80', title:'КПН — корпоративный подоходный',
+    sub:'Ставка зависит от вида деятельности: общая <b>20%</b>, банки и игорный бизнес 25%, '
+       +'сельхозпроизводители 3%, социальная сфера 5%.',
+    modes:[['dohod','От прибыли'],['oborot','От дохода и вычетов']],
+    fields:function(m){
+      var base=[['kpn_st','Ставка, %',R.kpn]];
+      if(m==='oborot') return [['kpn_dohod','Совокупный годовой доход',120000000],
+                               ['kpn_vych','Вычеты (расходы)',95000000],
+                               ['kpn_ubytok','Убытки прошлых лет',0]].concat(base);
+      return [['kpn_nod','Налогооблагаемый доход',25000000]].concat(base);
+    },
+    calc:function(m){
+      var st=num('kpn_st')/100, nod, rows=[];
+      if(m==='oborot'){
+        var d=num('kpn_dohod'), v=num('kpn_vych'), u=num('kpn_ubytok');
+        nod=Math.max(0, d-v-u);
+        rows.push(['Совокупный годовой доход', f0(d)+' ₸']);
+        rows.push(['Вычеты', '−'+f0(v)+' ₸','neg']);
+        if(u) rows.push(['Убытки прошлых лет', '−'+f0(u)+' ₸','neg']);
+        rows.push(['Налогооблагаемый доход', f0(nod)+' ₸']);
+      } else { nod=num('kpn_nod'); rows.push(['Налогооблагаемый доход', f0(nod)+' ₸']); }
+      var kpn=nod*st;
+      rows.push(['Ставка', f2(st*100)+'%','dim']);
+      rows.push(['Чистая прибыль после КПН', f0(nod-kpn)+' ₸','pos']);
+      return { rows:rows, total:['КПН к уплате', f0(kpn)+' ₸'],
+        params:'база '+f0(nod)+' ₸, ставка '+f2(st*100)+'%' };
+    }},
+
+  { id:'div', icon:'💰', ac:'#c084fc', title:'Дивиденды',
+    sub:'С 2026 года для резидента <b>5%</b> до 230 000 МРП за год и 15% сверх того. '
+       +'Нерезидент — 15%, из страны с льготным налогообложением — 20%.',
+    modes:[['rez','Резидент РК'],['nerez','Нерезидент'],['off','Нерезидент (льготная юрисдикция)']],
+    fields:function(m){
+      var f=[['div_sum','Сумма дивидендов',10000000]];
+      if(m==='rez') f.push(['div_god','Уже выплачено дивидендов за год',0]);
+      return f;
+    },
+    calc:function(m){
+      var s=num('div_sum'), rows=[], nal;
+      if(m==='rez'){
+        var было=num('div_god'), porog=R.divRezPorogMrp*R.mrp;
+        var ost=Math.max(0, porog-было);
+        var po5=Math.min(s, ost), po15=s-po5;
+        nal=po5*R.divRez/100 + po15*R.divRezHi/100;
+        rows.push(['Порог '+f0(R.divRezPorogMrp)+' МРП', f0(porog)+' ₸','dim']);
+        rows.push(['По ставке '+f2(R.divRez)+'%', f0(po5)+' ₸ → '+f0(po5*R.divRez/100)+' ₸']);
+        if(po15) rows.push(['По ставке '+f2(R.divRezHi)+'%', f0(po15)+' ₸ → '+f0(po15*R.divRezHi/100)+' ₸']);
+      } else {
+        var st = m==='off' ? R.divNerezOff : R.divNerez;
+        nal=s*st/100;
+        rows.push(['Ставка', f2(st)+'%','dim']);
+        rows.push(['Если есть соглашение об избежании двойного налогообложения — ставка может быть ниже',
+                   '','dim']);
+      }
+      rows.push(['На руки получателю', f0(s-nal)+' ₸','pos']);
+      return { rows:rows, total:['Налог у источника', f0(nal)+' ₸'],
+        params:'дивиденды '+f0(s)+' ₸, '+(m==='rez'?'резидент':'нерезидент') };
+    }},
+
+  { id:'imush', icon:'🏠', ac:'#38bdf8', title:'Налог на имущество',
+    sub:'Юридические лица — <b>1,5%</b> от среднегодовой балансовой стоимости зданий и сооружений. '
+       +'Платится авансом ежеквартально.',
+    modes:null,
+    fields:function(){ return [
+      ['im_nach','Стоимость на начало года',150000000],
+      ['im_kon','Стоимость на конец года',140000000],
+      ['im_st','Ставка, %',R.imush]]; },
+    calc:function(){
+      var a=num('im_nach'), b=num('im_kon'), st=num('im_st')/100;
+      var sred=(a+b)/2, nal=sred*st;
+      return { rows:[
+          ['Среднегодовая стоимость', f0(sred)+' ₸'],
+          ['Ставка', f2(st*100)+'%','dim'],
+          ['Авансовый платёж в квартал', f0(nal/4)+' ₸','dim']],
+        total:['Налог за год', f0(nal)+' ₸'],
+        params:'среднегодовая '+f0(sred)+' ₸, ставка '+f2(st*100)+'%' };
+    }},
+
+  { id:'spec', icon:'🛒', ac:'#fbbf24', title:'Спецрежимы — упрощёнка и розничный налог',
+    sub:'Упрощённый режим с 2026 года — <b>4%</b> с оборота (местные власти могут менять ±50%). '
+       +'Розничный налог — 4% с дохода, для отдельных видов деятельности.',
+    modes:null,
+    fields:function(){ return [
+      ['sp_ob','Доход (оборот) за период',30000000],
+      ['sp_st','Ставка, %',R.uprosh],
+      ['sp_zp','Фонд оплаты труда за период',0]]; },
+    calc:function(){
+      var ob=num('sp_ob'), st=num('sp_st')/100, fot=num('sp_zp');
+      var nal=ob*st;
+      /* По упрощёнке налог уменьшается на 1,5% за каждого работника,
+         но не более чем на 70% — считаем от ФОТ как ориентир. */
+      var skidka=Math.min(nal*0.7, fot*0.015);
+      return { rows:[
+          ['Доход за период', f0(ob)+' ₸'],
+          ['Ставка', f2(st*100)+'%','dim'],
+          ['Налог до корректировки', f0(nal)+' ₸'],
+          ['Уменьшение за работников (1,5% ФОТ, не более 70%)', '−'+f0(skidka)+' ₸','neg']],
+        total:['К уплате', f0(Math.max(0, nal-skidka))+' ₸'],
+        params:'оборот '+f0(ob)+' ₸, ставка '+f2(st*100)+'%' };
+    }},
+
+  { id:'peny', icon:'⏱', ac:'#f87171', title:'Пеня за просрочку налога',
+    sub:'За каждый день просрочки — <b>1,25 × базовая ставка НБРК ÷ 365</b> от суммы недоимки. '
+       +'Начисляется со следующего дня после срока уплаты.',
+    modes:null,
+    fields:function(){ return [
+      ['pn_sum','Сумма недоимки',5000000],
+      ['pn_days','Дней просрочки',30],
+      ['pn_baz','Базовая ставка НБРК, %',R.bazStavka],
+      ['pn_k','Коэффициент',R.peny]]; },
+    calc:function(){
+      var s=num('pn_sum'), d=num('pn_days'), baz=num('pn_baz')/100, k=num('pn_k');
+      var vDen=s*baz*k/365, peny=vDen*d;
+      return { rows:[
+          ['Недоимка', f0(s)+' ₸'],
+          ['Ставка пени в день', f2(baz*k/365*100)+'%','dim'],
+          ['Пеня за день', f0(vDen)+' ₸','dim'],
+          ['Дней просрочки', f0(d),'dim'],
+          ['Недоимка с пеней', f0(s+peny)+' ₸']],
+        total:['Пеня', f0(peny)+' ₸'],
+        params:'недоимка '+f0(s)+' ₸, '+f0(d)+' '+plw(d,'день','дня','дней') };
+    }},
+
+  { id:'cena', icon:'🏷', ac:'#2dd4bf', title:'Цена, наценка и маржа',
+    sub:'Себестоимость → цена с наценкой и НДС, и обратно: какая маржа остаётся в цене.',
+    modes:[['nacenka','От себестоимости'],['marja','От цены продажи']],
+    fields:function(m){
+      if(m==='marja') return [['cn_cena','Цена продажи с НДС',1500],
+                              ['cn_seb','Себестоимость',900],
+                              ['cn_nds','Ставка НДС, %',R.nds]];
+      return [['cn_seb','Себестоимость',900],
+              ['cn_nac','Наценка, %',45],
+              ['cn_nds','Ставка НДС, %',R.nds]];
+    },
+    calc:function(m){
+      var seb=num('cn_seb'), nds=num('cn_nds')/100;
+      if(m==='marja'){
+        var cena=num('cn_cena'), bez=cena/(1+nds);
+        var pribyl=bez-seb;
+        return { rows:[
+            ['Цена с НДС', f0(cena)+' ₸'],
+            ['Цена без НДС', f0(bez)+' ₸'],
+            ['Себестоимость', f0(seb)+' ₸'],
+            ['Прибыль в цене', f0(pribyl)+' ₸','pos'],
+            ['Наценка к себестоимости', (seb? f2(pribyl/seb*100):'—')+'%','dim']],
+          total:['Маржа от цены без НДС', (bez? f2(pribyl/bez*100):'—')+'%'],
+          params:'цена '+f0(cena)+' ₸, себестоимость '+f0(seb)+' ₸' };
+      }
+      var nac=num('cn_nac')/100, bez2=seb*(1+nac), s2=bez2*(1+nds);
+      return { rows:[
+          ['Себестоимость', f0(seb)+' ₸'],
+          ['Наценка '+f2(nac*100)+'%', f0(bez2-seb)+' ₸'],
+          ['Цена без НДС', f0(bez2)+' ₸'],
+          ['НДС '+f2(nds*100)+'%', f0(s2-bez2)+' ₸','dim'],
+          ['Маржа от цены без НДС', (bez2? f2((bez2-seb)/bez2*100):'—')+'%','dim']],
+        total:['Цена продажи с НДС', f0(s2)+' ₸'],
+        params:'себестоимость '+f0(seb)+' ₸, наценка '+f2(nac*100)+'%' };
+    }},
+
+  { id:'rates', icon:'📋', ac:'#94a3b8', title:'Справочник ставок 2026',
+    sub:'Все показатели в одном месте. Поменяется закон — поправьте здесь, '
+       +'и все плашки начнут считать по-новому. Значения сохраняются на сайте для всех.',
+    modes:null, noSave:true,
+    fields:function(){ return [
+      ['r_mrp','МРП, ₸',R.mrp], ['r_mzp','МЗП, ₸',R.mzp],
+      ['r_nds','НДС, %',R.nds], ['r_ipn','ИПН, %',R.ipn],
+      ['r_vychet','Вычет по ИПН, МРП',R.vychetMrp],
+      ['r_opv','ОПВ, %',R.opv], ['r_vosms','ВОСМС, %',R.vosms],
+      ['r_opvr','ОПВР, %',R.opvr], ['r_so','СО, %',R.so],
+      ['r_oosms','ООСМС, %',R.oosms], ['r_sn','Соцналог, %',R.sn],
+      ['r_kpn','КПН, %',R.kpn], ['r_imush','Налог на имущество, %',R.imush],
+      ['r_baz','Базовая ставка НБРК, %',R.bazStavka]]; },
+    calc:function(){
+      return { rows:[
+          ['Вычет по ИПН в тенге', f0(num('r_vychet')*num('r_mrp'))+' ₸'],
+          ['Потолок ОПВ и ОПВР (50 МЗП)', f0(50*num('r_mzp'))+' ₸','dim'],
+          ['Потолок СО (7 МЗП)', f0(7*num('r_mzp'))+' ₸','dim'],
+          ['Потолок ВОСМС (20 МЗП)', f0(20*num('r_mzp'))+' ₸','dim'],
+          ['Порог постановки на учёт по НДС (10 000 МРП)', f0(10000*num('r_mrp'))+' ₸','dim'],
+          ['Порог ИПН 15% (8 500 МРП в год)', f0(8500*num('r_mrp'))+' ₸','dim']],
+        total:['Нагрузка на 1 ₸ оклада сверху',
+               f2(num('r_opvr')+num('r_so')+num('r_oosms')+num('r_sn'))+'%'],
+        params:'МРП '+f0(num('r_mrp'))+', МЗП '+f0(num('r_mzp')) };
+    }}
+  ];
+
+  /* ── Отрисовка плашек ──────────────────────────────────────────────── */
+  var MODE = {};
+  function fieldHtml(f){
+    if(f[2]==='check')
+      return '<label style="grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:12px;'
+        +'color:var(--ink2);cursor:pointer"><input type="checkbox" id="'+f[0]+'"'+(f[3]?' checked':'')
+        +' style="width:16px;height:16px;accent-color:#d98b3a;cursor:pointer">'+esc(f[1])+'</label>';
+    return '<label for="'+f[0]+'">'+esc(f[1])+'</label>'
+      + '<input type="number" id="'+f[0]+'" value="'+f[2]+'" step="any">';
+  }
+  function cardHtml(c){
+    var m = MODE[c.id] || (c.modes ? c.modes[0][0] : '');
+    return '<div class="c" id="card-'+c.id+'" style="--ac:'+c.ac+'">'
+      + '<div class="c-h"><span class="c-i">'+c.icon+'</span><span class="c-t">'+esc(c.title)+'</span></div>'
+      + '<div class="c-s">'+c.sub+'</div>'
+      + (c.modes ? '<div class="seg">' + c.modes.map(function(x){
+            return '<button data-mode="'+x[0]+'" class="'+(x[0]===m?'on':'')+'">'+esc(x[1])+'</button>';
+          }).join('') + '</div>' : '')
+      + '<div class="f">' + c.fields(m).map(fieldHtml).join('') + '</div>'
+      + '<div class="out" id="out-'+c.id+'"></div>'
+      + '<div class="act">'
+      +   (c.noSave ? '<button class="btn pri" data-saverates="1">Сохранить ставки</button>'
+                    : '<button class="btn pri" data-save="'+c.id+'">💾 Сохранить расчёт</button>')
+      + '</div></div>';
+  }
+  function render(){
+    document.getElementById('grid').innerHTML = CARDS.map(cardHtml).join('');
+    CARDS.forEach(function(c){
+      var card=document.getElementById('card-'+c.id);
+      card.querySelectorAll('input').forEach(function(i){
+        i.oninput=function(){ recalc(c); }; i.onchange=function(){ recalc(c); };
+      });
+      card.querySelectorAll('[data-mode]').forEach(function(b){
+        b.onclick=function(){ MODE[c.id]=b.getAttribute('data-mode'); render(); };
+      });
+      var sv=card.querySelector('[data-save]');
+      if(sv) sv.onclick=function(){ saveCalc(c); };
+      var sr=card.querySelector('[data-saverates]');
+      if(sr) sr.onclick=saveRates;
+      recalc(c);
+    });
+    document.getElementById('live').textContent='МРП '+f0(R.mrp)+' ₸ · МЗП '+f0(R.mzp)+' ₸';
+  }
+  function lastResult(c){
+    try { return c.calc(MODE[c.id] || (c.modes ? c.modes[0][0] : '')); }
+    catch(e){ return { rows:[['Ошибка в расчёте', String(e)]], total:['—','—'], params:'' }; }
+  }
+  function recalc(c){
+    var r=lastResult(c);
+    document.getElementById('out-'+c.id).innerHTML =
+      r.rows.map(function(x){ return '<div class="r '+(x[2]||'')+'"><span>'+x[0]+'</span><span>'+(x[1]||'')+'</span></div>'; }).join('')
+      + '<div class="r big"><span>'+r.total[0]+'</span><span>'+r.total[1]+'</span></div>';
+  }
+
+  /* ── Сохранение расчётов и ставок ──────────────────────────────────── */
+  function saveCalc(c){
+    var r=lastResult(c);
+    var rec={ kind:c.title, icon:c.icon, mode:(MODE[c.id]||''), params:r.params,
+              total:r.total[0]+': '+r.total[1],
+              rows:r.rows.map(function(x){ return x[0]+' — '+x[1]; }) };
+    fetch(API+'?a=save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(rec)})
+      .then(function(x){ return x.json(); })
+      .then(function(j){
+        if(j&&j.ok){ toast('Расчёт сохранён в историю'); load(true); }
+        else toast('Не сохранилось: '+esc((j&&j.error)||'нет связи'));
+      }).catch(function(e){ toast('Не сохранилось: '+esc(String(e))); });
+  }
+  function saveRates(){
+    var map={ r_mrp:'mrp', r_mzp:'mzp', r_nds:'nds', r_ipn:'ipn', r_vychet:'vychetMrp',
+      r_opv:'opv', r_vosms:'vosms', r_opvr:'opvr', r_so:'so', r_oosms:'oosms', r_sn:'sn',
+      r_kpn:'kpn', r_imush:'imush', r_baz:'bazStavka' };
+    Object.keys(map).forEach(function(k){ var v=num(k); if(isFinite(v)) R[map[k]]=v; });
+    fetch(API+'?a=rates',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(R)})
+      .then(function(x){ return x.json(); })
+      .then(function(j){ if(j&&j.ok){ toast('Ставки сохранены — пересчитал все плашки'); render(); }
+                         else toast('Не сохранилось: '+esc((j&&j.error)||'нет связи')); })
+      .catch(function(e){ toast('Не сохранилось: '+esc(String(e))); });
+  }
+
+  /* ── История (свёрнута, раскрывается по нажатию) ───────────────────── */
+  function renderHist(){
+    document.getElementById('hist-n').textContent = HIST.length
+      ? HIST.length+' '+plw(HIST.length,'расчёт','расчёта','расчётов')+' · нажмите, чтобы раскрыть'
+      : 'пока пусто';
+    var b=document.getElementById('hist-b');
+    if(!HIST.length){ b.innerHTML='<div class="empty">Сохранённых расчётов нет. '
+      + 'Посчитайте что-нибудь и нажмите «Сохранить расчёт».</div>'; return; }
+    b.innerHTML = HIST.map(function(h){
+      var d=new Date(h.at);
+      return '<div class="hrow"><div class="hrow-h">'
+        + '<span class="hrow-k">'+(h.icon||'')+' '+esc(h.kind)+'</span>'
+        + '<span class="hrow-d">'+d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit',
+            hour:'2-digit',minute:'2-digit'})+'</span>'
+        + '<span class="hrow-v">'+esc(String(h.total||'').split(': ').slice(1).join(': ')||h.total||'')+'</span>'
+        + '<button class="hrow-x" data-del="'+esc(h.id)+'" title="удалить">✕</button></div>'
+        + '<div class="hrow-p">'+esc(h.params||'')+'</div></div>';
+    }).join('');
+    b.querySelectorAll('[data-del]').forEach(function(x){
+      x.onclick=function(){
+        fetch(API+'?a=del&id='+encodeURIComponent(x.getAttribute('data-del')),{method:'POST'})
+          .then(function(r){ return r.json(); })
+          .then(function(){ load(true); toast('Удалено'); })
+          .catch(function(){ toast('Не удалилось'); });
+      };
+    });
+  }
+  document.getElementById('hist-h').onclick=function(){
+    document.getElementById('hist').classList.toggle('open');
+  };
+
+  function load(keepOpen){
+    return fetch(API+'?a=list').then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){
+        if(!j) return;
+        if(j.rates) R=Object.assign({}, DEF, j.rates);
+        HIST=j.hist||[];
+        render(); renderHist();
+        if(keepOpen) document.getElementById('hist').classList.add('open');
+      }).catch(function(){ render(); renderHist(); });
+  }
+
+  render();
+  load();
+})();
+</script>
+<script src="nav.js"></script>
+</body></html>
