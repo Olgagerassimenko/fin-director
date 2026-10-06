@@ -1,25 +1,26 @@
 name: iiko — какие поля отдаёт OLAP
 
-# Разведка перед «аналитикой изменений» в ДДС. В OLAP TRANSACTIONS автора
-# нет (проверено: 116 полей, ни одного про пользователя), поэтому ищем его
-# в журнале событий и в API документов. Ничего не пишет, только печатает.
+# Разведка перед «журналом изменений» в ДДС. В OLAP автора нет, зато есть
+# /resto/api/events: события с пользователем и временем. Смотрим, какие
+# типы событий бывают и что внутри у денежных. Ничего не пишет.
 on:
   workflow_dispatch: {}
 
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - run: pip install -r requirements.txt
-      - name: Где в iiko лежит автор операции
+      - name: Типы событий в журнале iiko
         run: |
           python - <<'PY'
-          import json, os, warnings, hashlib, requests, sys, datetime
+          import os, warnings, hashlib, requests, sys, datetime, re, collections
+          import xml.etree.ElementTree as ET
           warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
           from iiko_export import URL, LOGIN, PASS
           s = requests.Session()
@@ -27,38 +28,67 @@ jobs:
                       params={"login": LOGIN, "pass": hashlib.sha1(PASS.encode()).hexdigest()},
                       verify=False, timeout=60).text.strip().strip('"')
           today = datetime.date.today()
-          frm = (today - datetime.timedelta(days=3)).isoformat()
-          to = today.isoformat()
-          out = ["# Где в iiko есть автор и время правки", ""]
-          cand = [
-            ("журнал событий", "/resto/api/events", {"from": frm, "to": to}),
-            ("журнал событий v2", "/resto/api/v2/events", {"from": frm, "to": to}),
-            ("типы событий", "/resto/api/events/metadata/types", {}),
-            ("кассовые смены", "/resto/api/v2/cashShifts/list",
-             {"openDateFrom": frm, "openDateTo": to}),
-            ("пользователи", "/resto/api/employees", {}),
-            ("платёжные документы", "/resto/api/v2/documents/paymentDocument",
-             {"dateFrom": frm, "dateTo": to}),
-            ("кассовые операции", "/resto/api/v2/documents/cashIncome",
-             {"dateFrom": frm, "dateTo": to}),
-          ]
-          for name, path, extra in cand:
-              p = dict(extra); p["key"] = tok
-              try:
-                  r = s.get(URL + path, params=p, verify=False, timeout=90)
-                  body = r.text or ""
-                  out.append("## %s — `%s` → HTTP %d, %d байт" % (name, path, r.status_code, len(body)))
-                  if r.status_code == 200 and body.strip():
-                      out.append("```")
-                      out.append(body[:1200].replace("`", "'"))
-                      out.append("```")
-                  elif body:
-                      out.append("`%s`" % body[:200].replace("`", "'").replace("\n", " "))
-              except Exception as e:
-                  out.append("## %s — `%s` → ошибка: %s" % (name, path, str(e)[:160]))
+          frm = (today - datetime.timedelta(days=7)).isoformat()
+          to = (today + datetime.timedelta(days=1)).isoformat()
+          r = s.get(URL + "/resto/api/events", params={"key": tok, "from": frm, "to": to},
+                    verify=False, timeout=180)
+          root = ET.fromstring(r.text)
+          evs = root.findall("event")
+          out = ["# Журнал событий iiko за %s — %s" % (frm, to), "",
+                 "событий получено: **%d**, размер ответа %d КБ" % (len(evs), len(r.text)//1024), ""]
+
+          # справочник сотрудников: id -> имя
+          emp = {}
+          er = s.get(URL + "/resto/api/employees", params={"key": tok}, verify=False, timeout=180)
+          for e in ET.fromstring(er.text).findall("employee"):
+              i = e.findtext("id"); n = (e.findtext("name") or "").strip()
+              if i: emp[i] = n
+          out.append("сотрудников в справочнике: **%d**" % len(emp)); out.append("")
+
+          def attrs(ev):
+              d = {}
+              for a in ev.findall("attribute"):
+                  d[a.findtext("name") or ""] = (a.findtext("value") or "", a.findtext("type") or "")
+              return d
+
+          cnt = collections.Counter(ev.findtext("type") or "?" for ev in evs)
+          out.append("## типы событий")
+          out.append("| тип | сколько |")
+          out.append("|---|---|")
+          for t, c in cnt.most_common(60):
+              out.append("| `%s` | %d |" % (t, c))
+          out.append("")
+
+          # события, похожие на деньги и документы
+          MONEY = re.compile(r"doc|pay|cash|invoice|money|account|transact|writeoff|incom|outgo|"
+                             r"store|order|price|product", re.I)
+          out.append("## примеры денежных и документных событий")
+          shown = 0
+          for ev in evs:
+              t = ev.findtext("type") or ""
+              if not MONEY.search(t): continue
+              a = attrs(ev)
+              u = a.get("user", ("", ""))[0]
+              out.append("### `%s` · %s · пользователь: **%s**"
+                         % (t, ev.findtext("date"), emp.get(u, u or "—")))
+              out.append("| поле | значение | тип |")
+              out.append("|---|---|---|")
+              for k, (v, tp) in list(a.items())[:16]:
+                  vv = emp.get(v, v)
+                  out.append("| %s | %s | %s |" % (k, str(vv)[:90].replace("|", "/"), tp))
               out.append("")
+              shown += 1
+              if shown >= 8: break
+          if not shown:
+              out.append("таких событий за неделю нет — показываю любые пять:")
+              for ev in evs[:5]:
+                  a = attrs(ev)
+                  out.append("### `%s` · %s" % (ev.findtext("type"), ev.findtext("date")))
+                  out.append("```")
+                  out.append(", ".join("%s=%s" % (k, emp.get(v[0], v[0])[:40]) for k, v in a.items()))
+                  out.append("```")
           txt = "\n".join(out)
-          print(txt)
+          print(txt[:4000])
           p2 = os.environ.get("GITHUB_STEP_SUMMARY")
           if p2: open(p2, "a", encoding="utf-8").write(txt + "\n")
           PY
