@@ -55,6 +55,8 @@
  <div id="exec_summary"></div>
  <div class="tabs" id="tabs"></div><div id="openbadge"></div>
 
+ <div id="ind_cf"></div>
+
  <div class="card">
    <h3 id="wm_title">💰 Где застряли деньги</h3>
    <div class="sub" id="wm_sub">Сколько у компании живых денег и где «заморожено» остальное — на конец месяца.</div>
@@ -122,9 +124,7 @@
    <div id="mv_drv"></div>
  </div>
 
- <details><summary>▸ Подробно: как прибыль превращается в живые деньги</summary>
-   <div class="card" style="margin-top:8px"><div class="sub">Прибыль ± изменения сырья, долгов покупателей и наших долгов → сколько реально денег принесла работа.</div><div id="ind_drv"></div></div>
- </details>
+ <div id="ind_drv" style="display:none"></div>
  <div class="foot">Система «Пульс» · © 2026 · <span id="prov"></span></div>
 </div>
 <script>
@@ -606,4 +606,340 @@ render('YEAR');
  todo.push('Основные деньги сосредоточены в <b>'+nn(top3[0].n)+'</b> ('+Math.round(top3[0].v/totC*100)+'%) — следить за оборачиваемостью крупнейших складов.');
  set('wa_todo','\uD83E\uDDED <b>Что делать:</b><ol style="margin:8px 0 0 18px;padding:0;line-height:1.7">'+todo.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ol>');
 })();
-</script></body></html>
+</script><script>
+/* ─────────────────────────────────────────────────────────────────────────────
+   ДДС косвенным методом — главный блок «Про деньги».
+   Самостоятельный скрипт: подвешивается к render(), ничего в нём не меняя.
+   ──────────────────────────────────────────────────────────────────────────── */
+(function(){
+ if(!window.DDS||!DDS.months) return;
+ var M=DDS.months, KS=Object.keys(M).sort();
+ if(!KS.length) return;
+
+ var CSS=''
+ +'.icf{position:relative;margin:0 0 18px;padding:2px;border-radius:22px;'
+ +'background:linear-gradient(135deg,#b8902f,#f4e2a1 26%,#d4af37 52%,#8e6f22 78%,#e8c766);'
+ +'box-shadow:0 26px 60px -26px rgba(0,0,0,.8);background-size:180% 180%;'
+ +'animation:icfIn .7s cubic-bezier(.2,.75,.25,1) both,icfGold 9s ease-in-out infinite}'
+ +'.icf::after{content:"";position:absolute;inset:2px;border-radius:20px;'
+ +'background:radial-gradient(130% 120% at 0% 0%,#13202f,#0a1420 55%,#0b1726);z-index:0}'
+ +'.icf>*{position:relative;z-index:1}'
+ +'@keyframes icfIn{from{opacity:0;transform:translateY(18px) scale(.99)}to{opacity:1;transform:none}}'
+ +'@keyframes icfGold{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}'
+ +'.icf-top{display:flex;gap:18px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;padding:21px 24px 8px}'
+ +'.icf-tag{font-size:10.5px;letter-spacing:.2em;font-weight:800;background:linear-gradient(90deg,#e8c766,#f8f0d2);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}'
+ +'.icf-h{margin:8px 0 3px;font-size:23px;font-weight:800;color:#f7f9fc;letter-spacing:.2px;line-height:1.15}'
+ +'.icf-sub{font-size:12.5px;color:#9fb0c4;line-height:1.5;max-width:560px}'
+ +'.icf-net{text-align:right;min-width:190px}'
+ +'.icf-net .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#9fb0c4;font-weight:800}'
+ +'.icf-net .v{font-size:34px;font-weight:800;line-height:1.05;margin-top:3px;font-variant-numeric:tabular-nums}'
+ +'.icf-net .s{font-size:12px;color:#8697aa;margin-top:4px;font-variant-numeric:tabular-nums}'
+ +'.icf-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;padding:8px 22px 4px}'
+ +'.icf-k{border:1px solid rgba(212,175,55,.2);border-radius:14px;padding:13px 15px;'
+ +'background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015));transition:.22s}'
+ +'.icf-k:hover{transform:translateY(-3px);border-color:rgba(232,199,102,.55);box-shadow:0 14px 30px -14px rgba(212,175,55,.5)}'
+ +'.icf-k .ic{font-size:16px;line-height:1}'
+ +'.icf-k .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#9fb0c4;font-weight:800;margin-top:7px}'
+ +'.icf-k .v{font-size:19px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums;color:#f6f7fb}'
+ +'.icf-k .s{font-size:11px;color:#8697aa;margin-top:3px;line-height:1.4}'
+ +'.icf-wf{padding:6px 14px 0;overflow-x:auto}'
+ +'.icf-body{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(0,1fr);gap:16px;padding:10px 22px 20px;align-items:start}'
+ +'.icf-st{border:1px solid rgba(212,175,55,.18);border-radius:16px;overflow:hidden}'
+ +'.icf-st .cap{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:11px 15px;'
+ +'background:linear-gradient(120deg,rgba(232,199,102,.13),rgba(232,199,102,.03));border-bottom:1px solid rgba(212,175,55,.2)}'
+ +'.icf-st .cap b{font-size:12.5px;color:#f2dd9e;letter-spacing:.03em}'
+ +'.icf-st .cap span{font-size:11px;color:#93a2b5}'
+ +'.r{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:baseline;padding:8px 15px;border-bottom:1px solid rgba(255,255,255,.055)}'
+ +'.icf-st .r:last-child{border-bottom:0}'
+ +'.icf-st .r .nm{font-size:13px;color:#cdd8e5;line-height:1.35}'
+ +'.icf-st .r .hint{display:block;font-size:11px;color:#7f8fa3;margin-top:2px;line-height:1.4}'
+ +'.icf-st .r .am{font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}'
+ +'.icf-st .r.sec{background:rgba(255,255,255,.028);padding:7px 15px}'
+ +'.icf-st .r.sec .nm{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#93a2b5;font-weight:800}'
+ +'.icf-st .r.sub .nm{padding-left:13px;position:relative}'
+ +'.icf-st .r.sub .nm::before{content:"";position:absolute;left:2px;top:7px;width:5px;height:5px;border-radius:2px;background:rgba(232,199,102,.5)}'
+ +'.icf-st .r.tot{background:linear-gradient(120deg,rgba(232,199,102,.1),rgba(232,199,102,.02));border-top:1px solid rgba(212,175,55,.3)}'
+ +'.icf-st .r.tot .nm{font-weight:800;color:#f4f7fb;font-size:13.5px}'
+ +'.icf-st .r.tot .am{font-size:16px}'
+ +'.icf-st .r.fin{background:linear-gradient(120deg,rgba(232,199,102,.2),rgba(232,199,102,.05));border-top:1px solid rgba(212,175,55,.45)}'
+ +'.icf-st .r.fin .nm{font-weight:800;color:#f8f1d8;font-size:14px}.icf-st .r.fin .am{font-size:18px}'
+ +'.icf-st .r.ctl{background:rgba(52,211,153,.07)}.icf-st .r.ctl.bad{background:rgba(251,113,133,.09)}'
+ +'.icf-st .r.ctl .nm,.icf-st .r.ctl .am{font-size:12px;font-weight:700}'
+ +'.icf-side{display:flex;flex-direction:column;gap:12px}'
+ +'.icf-v{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:15px;'
+ +'background:linear-gradient(120deg,rgba(232,199,102,.11),rgba(232,199,102,.025));border:1px solid rgba(212,175,55,.24);border-left:3px solid #e8c766}'
+ +'.icf-v .t{font-size:11.5px;font-weight:800;letter-spacing:.05em;color:#f2dd9e;margin-bottom:4px}'
+ +'.icf-v .p{font-size:12.5px;line-height:1.62;color:#d5deea}.icf-v .p b{color:#f6f7fb}'
+ +'.icf-gap{border:1px solid rgba(212,175,55,.2);border-radius:15px;padding:14px 16px 12px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(255,255,255,.012))}'
+ +'.icf-gap .t{font-size:11.5px;font-weight:800;letter-spacing:.05em;color:#f2dd9e}'
+ +'.icf-gap .s{font-size:11.5px;color:#8697aa;margin:3px 0 11px;line-height:1.45}'
+ +'.icf-gap .g{margin-bottom:9px}'
+ +'.icf-gap .gl{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#c9d4e2;margin-bottom:4px}'
+ +'.icf-gap .gl b{font-variant-numeric:tabular-nums;font-weight:800}'
+ +'.icf-gap .gb{height:7px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden}'
+ +'.icf-gap .gb i{display:block;height:100%;border-radius:4px;animation:gapGrow .8s cubic-bezier(.2,.8,.3,1) both}'
+ +'@keyframes gapGrow{from{width:0!important}}'
+ +'.icf-gap .gn{font-size:11px;color:#7f8fa3;margin-top:8px}'
+ +'.icf-warn{display:flex;gap:11px;align-items:flex-start;padding:13px 15px;border-radius:14px;'
+ +'background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.38)}'
+ +'.icf-warn .p{font-size:12px;line-height:1.6;color:#fbc488}.icf-warn .p b{color:#ffdcae}'
+ +'.icf-how{border:1px dashed rgba(212,175,55,.3);border-radius:14px;padding:0 15px}'
+ +'.icf-how summary{list-style:none;cursor:pointer;color:#e8c766;font-size:12px;font-weight:800;padding:11px 0}'
+ +'.icf-how summary::-webkit-details-marker{display:none}'
+ +'.icf-how summary::before{content:"▸ ";transition:.2s}'
+ +'.icf-how[open] summary::before{content:"▾ "}'
+ +'.icf-how .txt{font-size:12px;line-height:1.65;color:#bdc9d8;padding:0 0 13px}'
+ +'.icf-how .txt b{color:#f2dd9e}.icf-how .txt code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#f2dd9e}'
+ +'.icf-k .v,.icf-net .v{white-space:nowrap}'
+ +'@media(max-width:900px){.icf-body{grid-template-columns:1fr}.icf-kpi{grid-template-columns:repeat(2,1fr)}}'
+ +'@media(max-width:768px){#ind_cf .icf-wf svg{max-width:none;min-width:600px}'
+ +'#ind_cf .icf-wf{-webkit-overflow-scrolling:touch}'
+ +'#ind_cf .icf-k .v{font-size:17px}#ind_cf .icf-h{font-size:19px}}'
+ +'@media(max-width:640px){.icf-h{font-size:19px}.icf-net{text-align:left;min-width:0}.icf-net .v{font-size:27px}'
+ +'.icf-top{padding:17px 16px 6px}.icf-kpi{padding:8px 15px 4px}.icf-body{padding:10px 15px 18px}}'
+ +'@media(prefers-reduced-motion:reduce){.icf{animation:none}}';
+
+ var st=document.createElement('style'); st.id='icf-css'; st.textContent=CSS;
+ document.head.appendChild(st);
+
+ /* ── числа ─────────────────────────────────────────────────────────────── */
+ function abs(v){return Math.round(Math.abs(v)).toLocaleString('ru-RU');}
+ function sg(v){return (Math.round(v)===0?'':(v<0?'−':'+'))+abs(v);}   // со знаком
+ function pl(v){return abs(v);}                                            // без знака
+ function m6(v){var s=v<0?'−':'';v=Math.abs(v);
+   return s+(v>=1e6?(v/1e6).toFixed(1).replace('.',',')+' млн':Math.round(v).toLocaleString('ru-RU'));}
+ function sm6(v){return (v>0?'+':v<0?'−':'')+m6(Math.abs(v));}
+ function cl(v){return v<0?'neg':v>0?'pos':'';}
+
+ /* ── водопад ───────────────────────────────────────────────────────────── */
+ function waterfall(start,flows,end){
+  var W=940,H=232,pL=54,pR=18,pT=28,pB=50;
+  var cols=[{l1:'Было денег',l2:'на начало периода',abs:start,ic:'🏁'}];
+  flows.forEach(function(f){cols.push({l1:f.l1,l2:f.l2,v:f.v,ic:f.ic});});
+  cols.push({l1:'Стало денег',l2:'на конец периода',abs:end,ic:'🎯'});
+  var run=start,vals=[0,start,end];
+  cols.forEach(function(c){ if(c.v!=null){c.from=run;run+=c.v;c.to=run;vals.push(c.from,c.to);} });
+  var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
+  var pad=(hi-lo)*.14||1; lo-=pad; hi+=pad;
+  function Y(v){return pT+(H-pT-pB)*(hi-v)/((hi-lo)||1);}
+  var cw=(W-pL-pR)/cols.length, bw=Math.min(96,cw*.54);
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:600px;display:block">';
+  s+='<defs><linearGradient id="icfG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4e2a1"/><stop offset="1" stop-color="#c79a28"/></linearGradient>'
+   +'<linearGradient id="icfP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ade9f"/><stop offset="1" stop-color="#17a06a"/></linearGradient>'
+   +'<linearGradient id="icfN" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb7185"/><stop offset="1" stop-color="#c8384f"/></linearGradient></defs>';
+  // нулевая линия и сетка
+  var y0=Y(0);
+  s+='<line x1="'+pL+'" y1="'+y0.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y0.toFixed(1)+'" stroke="rgba(255,255,255,.26)" stroke-width="1"/>';
+  s+='<text x="'+(pL-8)+'" y="'+(y0+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#6f7f93">0</text>';
+  cols.forEach(function(c,i){
+   var cx=pL+cw*i+cw/2, x=cx-bw/2, isAbs=(c.v==null);
+   var top,h,fill,v;
+   if(isAbs){ v=c.abs; top=Y(Math.max(0,v)); h=Math.abs(Y(v)-Y(0)); fill='url(#icfG)'; }
+   else { v=c.v; top=Y(Math.max(c.from,c.to)); h=Math.abs(Y(c.to)-Y(c.from)); fill=Math.abs(v)<1?'rgba(255,255,255,.3)':(v>0?'url(#icfP)':'url(#icfN)'); }
+   h=Math.max(h,2.5);
+   s+='<rect x="'+x.toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="4" fill="'+fill+'"'
+     +(isAbs?' stroke="rgba(232,199,102,.8)" stroke-width="1"':'')+'/>';
+   // соединитель к следующему столбцу
+   if(i<cols.length-1){
+    var lv=isAbs?c.abs:c.to, ly=Y(lv), nx=pL+cw*(i+1)+cw/2-bw/2;
+    s+='<line x1="'+(x+bw).toFixed(1)+'" y1="'+ly.toFixed(1)+'" x2="'+nx.toFixed(1)+'" y2="'+ly.toFixed(1)
+      +'" stroke="rgba(232,199,102,.42)" stroke-width="1" stroke-dasharray="3 3"/>';
+   }
+   // подпись суммы
+   var lab=isAbs?m6(v):(Math.abs(v)<1?'0':sm6(v)), col=isAbs?'#f2dd9e':(Math.abs(v)<1?'#8c9bae':(v>0?'#6ee7b7':'#fda4af'));
+   var ty=top-8; if(ty<pT-14) ty=top+h+16;
+   s+='<text x="'+cx.toFixed(1)+'" y="'+ty.toFixed(1)+'" text-anchor="middle" font-size="12.5" font-weight="800" fill="'+col+'">'+lab+'</text>';
+   // подпись столбца
+   s+='<text x="'+cx.toFixed(1)+'" y="'+(H-26)+'" text-anchor="middle" font-size="11.5" font-weight="800" fill="#e7eef7">'+c.ic+' '+c.l1+'</text>';
+   if(c.l2) s+='<text x="'+cx.toFixed(1)+'" y="'+(H-11)+'" text-anchor="middle" font-size="10.5" fill="#8c9bae">'+c.l2+'</text>';
+  });
+  s+='</svg>';
+  return s;
+ }
+
+ /* ── сам отчёт ─────────────────────────────────────────────────────────── */
+ function icf(mk){
+  var el=document.getElementById('ind_cf'); if(!el) return;
+  var closed=KS.filter(function(k){return M[k].closed;});
+  var isYear=(mk==='YEAR'||!mk||!M[mk]);
+  var D={},per,perShort,openNote='',scope='';
+
+  if(isYear){
+   var use=closed.length?closed:KS, F=M[use[0]], L=M[use[use.length-1]];
+   var sum=function(f){return use.reduce(function(s,k){return s+(f(M[k])||0);},0);};
+   D={prof:sum(function(m){return m.prof;}),amort:sum(function(m){return m.amort;}),
+      nonCash:sum(function(m){return m.nonCash;}),dInv:sum(function(m){return m.dInv;}),
+      dRec:sum(function(m){return m.dRec;}),dPay:sum(function(m){return m.dPay;}),
+      op:sum(function(m){return m.op;}),inv:sum(function(m){return m.inv;}),
+      fin:sum(function(m){return m.fin;}),start:F.start,end:L.end,closed:true};
+   var lm=(L.ru||'').replace(' 2026','');
+   per='2026 год · январь — '+lm; perShort='за год';
+   scope='Накоплено по '+use.length+' мес.';
+   if(KS.length>use.length) openNote='В годовой итог входят только закрытые месяцы (январь — '+lm
+     +'). Незакрытых месяцев: '+(KS.length-use.length)+' — они не учтены, чтобы итог не «плавал» после закрытия.';
+  }else{
+   var d=M[mk];
+   D={prof:d.prof,amort:d.amort||0,nonCash:d.nonCash,dInv:d.dInv,dRec:d.dRec,dPay:d.dPay,
+      op:d.op,inv:d.inv,fin:d.fin,start:d.start,end:d.end,closed:d.closed};
+   per=(d.ru||mk); perShort='за '+(d.ru||'').replace(' 2026','');
+   scope=d.closed?'Период закрыт':'Период не закрыт';
+   if(!d.closed) openNote=d.closeNote||'период не закрыт — данные предварительные';
+  }
+
+  var net=D.op+D.inv+D.fin, netReal=D.end-D.start;
+  var opCalc=D.prof+D.amort+D.nonCash+D.dInv+D.dRec+D.dPay;
+  var dOp=Math.round(opCalc-D.op), dNet=Math.round(netReal-net);
+  var ok=(Math.abs(dOp)<2&&Math.abs(dNet)<2);
+  var wc=D.dInv+D.dRec+D.dPay;                       // оборотный капитал суммарно
+  var noisy=Math.abs(D.nonCash)>Math.abs(D.prof)*0.9&&Math.abs(D.nonCash)>5e6;
+
+  /* ── шапка ── */
+  var h=''
+  +'<div class="icf">'
+  +' <div class="icf-top">'
+  +'  <div><div class="icf-tag">ОТЧЁТ О ДВИЖЕНИИ ДЕНЕЖНЫХ СРЕДСТВ · КОСВЕННЫЙ МЕТОД</div>'
+  +'   <div class="icf-h">Куда ушла прибыль: от прибыли к живым деньгам</div>'
+  +'   <div class="icf-sub">'+per+' · прибыль по ОПиУ, остатки и деньги из iiko. '
+  +'Строки читаются сверху вниз: прибыль → поправки → оборотный капитал → реальные деньги.</div></div>'
+  +'  <div class="icf-net"><div class="l">Чистое изменение денег</div>'
+  +'   <div class="v '+cl(net)+'">'+sm6(net)+' ₸</div>'
+  +'   <div class="s">'+m6(D.start)+' → '+m6(D.end)+' ₸</div></div>'
+  +' </div>';
+
+  /* ── 4 плитки ── */
+  var k=[
+   {ic:'🔧',l:'Операционный поток',v:sm6(D.op)+' ₸',c:cl(D.op),
+    s:D.op>=0?'основная работа принесла деньги':'основная работа забрала деньги'},
+   {ic:'🏗',l:'Инвестиционный',v:sm6(D.inv)+' ₸',c:cl(D.inv),
+    s:Math.abs(D.inv)<1?'вложений не было':(D.inv<0?'вложено в оборудование':'продажа активов')},
+   {ic:'🏦',l:'Финансовый',v:sm6(D.fin)+' ₸',c:cl(D.fin),
+    s:Math.abs(D.fin)<1?'движений не было':(D.fin>0?'приток: кредиты / учредители':'отток: погашения, выплаты')},
+   {ic:ok?'✅':'⚠️',l:'Сходимость',v:ok?'сходится':sg(dNet||dOp)+' ₸',c:ok?'pos':'neg',
+    s:ok?'прибыль + поправки = факт денег':'есть расхождение в данных'}
+  ];
+  h+=' <div class="icf-kpi">'+k.map(function(x){
+    return '<div class="icf-k"><div class="ic">'+x.ic+'</div><div class="l">'+x.l+'</div>'
+      +'<div class="v '+x.c+'">'+x.v+'</div><div class="s">'+x.s+'</div></div>';}).join('')+'</div>';
+
+  /* ── водопад ── */
+  h+=' <div class="icf-wf">'+waterfall(D.start,[
+    {l1:'Основная работа',l2:'операционный поток',v:D.op,ic:'🔧'},
+    {l1:'Вложения',l2:'оборудование, активы',v:D.inv,ic:'🏗'},
+    {l1:'Кредиты и учредители',l2:'финансовый поток',v:D.fin,ic:'🏦'}],D.end)+'</div>';
+
+  /* ── таблица ── */
+  function row(nm,hint,v,klass){
+   return '<div class="r '+(klass||'')+'"><span class="nm">'+nm
+     +(hint?'<span class="hint">'+hint+'</span>':'')+'</span>'
+     +'<span class="am '+(v===null?'':cl(v))+'">'+(v===null?'':sg(v)+' ₸')+'</span></div>';
+  }
+  var W=[];
+  W.push('<div class="r sec"><span class="nm">Операционная деятельность</span><span class="am"></span></div>');
+  W.push(row('Чистая прибыль (убыток) '+perShort,
+    D.closed?'из управленческого ОПиУ — начисленный результат, не деньги'
+            :'предварительно: период не закрыт',D.prof));
+  if(Math.abs(D.amort)>0.5)
+   W.push(row('+ Амортизация','расход в прибыли, но деньги не уходили',D.amort,'sub'));
+  W.push(row('± Неденежные операции и прочие корректировки',
+    'переоценки, внутренние проводки, прочие статьи баланса — балансирующая величина между ОПиУ и фактом денег',
+    D.nonCash,'sub'));
+  W.push('<div class="r sec"><span class="nm">Изменения оборотного капитала</span><span class="am">'
+    +'<span class="'+cl(wc)+'" style="font-size:12px;font-weight:800">'+sg(wc)+' ₸</span></span></div>');
+  W.push(row('± Запасы: сырьё, материалы, продукция',
+    D.dInv>=0?'запасы уменьшились — деньги высвободились':'запасы выросли — деньги заморожены в складе',
+    D.dInv,'sub'));
+  W.push(row('± Дебиторская задолженность (нам должны)',
+    D.dRec>=0?'покупатели заплатили — деньги пришли':'отгрузили в долг — деньги зависли у покупателей',
+    D.dRec,'sub'));
+  W.push(row('± Кредиторская задолженность (мы должны)',
+    D.dPay>=0?'выросла отсрочка — деньги пока остались у нас':'погасили долги поставщикам — деньги ушли',
+    D.dPay,'sub'));
+  W.push(row('= Денежный поток от операционной деятельности',
+    'сколько реально денег принесла или забрала основная работа',D.op,'tot'));
+  W.push('<div class="r sec"><span class="nm">Инвестиционная и финансовая деятельность</span><span class="am"></span></div>');
+  W.push(row('Инвестиционная деятельность','покупка и продажа оборудования, зданий, долгосрочных активов',D.inv));
+  W.push(row('Финансовая деятельность','кредиты, займы, расчёты с учредителями',D.fin));
+  W.push(row('= Чистое изменение денежных средств','операционный + инвестиционный + финансовый потоки',net,'fin'));
+  W.push('<div class="r"><span class="nm">Денежные средства на начало периода</span>'
+    +'<span class="am">'+pl(D.start)+' ₸</span></div>');
+  W.push('<div class="r"><span class="nm">Денежные средства на конец периода</span>'
+    +'<span class="am" style="color:#f2dd9e">'+pl(D.end)+' ₸</span></div>');
+  W.push('<div class="r ctl'+(ok?'':' bad')+'"><span class="nm">'+(ok?'✅ ':'⚠️ ')
+    +pl(D.start)+' '+(net<0?'−':'+')+' '+pl(net)+' = '+pl(D.end)+'</span>'
+    +'<span class="am '+(ok?'pos':'neg')+'">'+(ok?'сходится до тенге':'расхождение '+sg(dNet||dOp)+' ₸')+'</span></div>');
+
+  /* ── вердикт ── */
+  var vp;
+  if(D.op>=0&&net>=0) vp='Работа приносит деньги: операционный поток <b class="pos">'+sm6(D.op)
+    +' ₸</b>, и по итогу денег стало больше на <b class="pos">'+m6(net)+' ₸</b>.';
+  else if(D.op>=0&&net<0) vp='Основная работа денег принесла (<b class="pos">'+sm6(D.op)
+    +' ₸</b>), но деньги всё равно убыли на <b class="neg">'+m6(net)
+    +' ₸</b> — забрали вложения и расчёты по кредитам.';
+  else if(D.op<0&&net>=0) vp='Основная работа денег не принесла (<b class="neg">'+sm6(D.op)
+    +' ₸</b>) — дыру закрыли внешними деньгами: кредиты и учредители дали <b>'+sm6(D.fin)
+    +' ₸</b>. Так жить можно недолго.';
+  else vp='Деньги уходят с двух сторон: работа дала <b class="neg">'+sm6(D.op)
+    +' ₸</b>, итог по деньгам <b class="neg">'+sm6(net)+' ₸</b>. Нужен план по платежам.';
+
+  var gap=D.prof-D.op;
+  vp+=' Разрыв между прибылью и деньгами — <b>'+m6(Math.abs(gap))+' ₸</b>: ';
+  var drv=[{n:'запасы',v:D.dInv},{n:'долги покупателей',v:D.dRec},
+           {n:'долги поставщикам',v:D.dPay},{n:'неденежные поправки',v:D.nonCash}]
+          .sort(function(a,b){return Math.abs(b.v)-Math.abs(a.v);});
+  vp+='главное — <b>'+drv[0].n+'</b> ('+sm6(drv[0].v)+' ₸), затем '+drv[1].n+' ('+sm6(drv[1].v)+' ₸).';
+  if(D.op<0&&D.dPay>0) vp+=' Отдельно: деньги держатся на отсрочках поставщикам — это долг, его придётся платить.';
+
+  h+=' <div class="icf-body"><div class="icf-st">'
+   +'  <div class="cap"><b>ДДС КОСВЕННЫМ МЕТОДОМ · '+per.toUpperCase()+'</b><span>'+scope+'</span></div>'
+   +W.join('')+'</div><div class="icf-side">'
+   +'  <div class="icf-v"><div style="font-size:19px;line-height:1.2">🧭</div>'
+   +'   <div><div class="t">ЧТО ЭТО ЗНАЧИТ</div><div class="p">'+vp+'</div></div></div>';
+
+  var gaps=[{n:'Запасы на складе',v:D.dInv},{n:'Долги покупателей',v:D.dRec},
+            {n:'Долги поставщикам',v:D.dPay},{n:'Неденежные поправки',v:D.nonCash+D.amort}]
+           .sort(function(a,b){return Math.abs(b.v)-Math.abs(a.v);});
+  var gmax=Math.abs(gaps[0].v)||1;
+  h+='  <div class="icf-gap"><div class="t">ПОЧЕМУ ПРИБЫЛЬ ≠ ДЕНЬГИ</div>'
+   +'<div class="s">Что встало между прибылью ('+sm6(D.prof)+' ₸) и деньгами от работы ('+sm6(D.op)+' ₸)</div>'
+   +gaps.map(function(g){var w=Math.max(2,Math.abs(g.v)/gmax*100);
+     return '<div class="g"><div class="gl"><span>'+g.n+'</span><b class="'+cl(g.v)+'">'+sm6(g.v)+' ₸</b></div>'
+      +'<div class="gb"><i style="width:'+w.toFixed(1)+'%;background:'+(g.v>=0?'linear-gradient(90deg,#17a06a,#4ade9f)':'linear-gradient(90deg,#c8384f,#fb7185)')+'"></i></div></div>';
+    }).join('')
+   +'<div class="gn">Зелёное добавило денег, красное — забрало.</div></div>';
+
+  if(openNote) h+='  <div class="icf-warn"><div style="font-size:16px;line-height:1.2">⏳</div>'
+   +'<div class="p">'+openNote+'</div></div>';
+  if(noisy) h+='  <div class="icf-warn"><div style="font-size:16px;line-height:1.2">⚠️</div><div class="p">'
+   +'<b>Поправка больше самой прибыли.</b> Прибыль по ОПиУ '+sm6(D.prof)
+   +' ₸, а неденежная корректировка '+sm6(D.nonCash)
+   +' ₸ — то есть в прибыль попали начисления и внутренние проводки, которых в деньгах нет. '
+   +'Операционный поток в этом периоде считайте ориентировочным: сверьте ОПиУ за период.</div></div>';
+
+  h+='  <details class="icf-how"><summary>Как читать косвенный метод</summary><div class="txt">'
+   +'Косвенный метод начинает не с кассы, а с <b>прибыли</b>, и шаг за шагом снимает с неё всё, '
+   +'что не было деньгами.<br><br>'
+   +'<b>Правило знаков.</b> Запасы и долги покупателей выросли → деньги ушли в них, ставим минус. '
+   +'Уменьшились → деньги высвободились, плюс. С нашими долгами поставщикам наоборот: '
+   +'выросли → деньги пока у нас, плюс; погасили → минус.<br><br>'
+   +'<b>Формула блока:</b> <code>прибыль + поправки ± запасы ± дебиторка ± кредиторка = '
+   +'операционный поток</code>, далее <code>+ инвестиции + финансы = изменение денег</code>, '
+   +'и оно обязано совпасть с «было → стало» по счетам. Эта проверка — строка «Контроль» внизу таблицы.<br><br>'
+   +'<b>Зачем это ФД.</b> Прибыльная компания может остаться без денег: прибыль оседает в складе '
+   +'и в долгах покупателей. Блок сразу показывает, в какой именно статье застряли деньги.'
+   +'</div></details>';
+
+  h+=' </div></div></div>';
+  el.innerHTML=h;
+ }
+
+ /* подвешиваемся к render, не меняя его */
+ var r0=window.render;
+ if(typeof r0==='function'){
+  window.render=function(mk){ r0(mk); try{ icf(mk); }catch(e){ console.error('ДДС косвенный:',e); } };
+ }
+ var act=document.querySelector('.tab.active');
+ icf(act?act.dataset.m:'YEAR');
+})();
+
+</script>
+</body></html>
