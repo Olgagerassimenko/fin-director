@@ -40,6 +40,36 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .lead b{color:var(--ink2)}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px;align-items:start}
+/* ── Период оплаты ──────────────────────────────────────────────────── */
+.c-pay{border:1px solid var(--line2);border-radius:12px;background:rgba(255,255,255,.022);
+  padding:9px 11px;margin:-4px 0 12px}
+.c-pay .pr{display:grid;grid-template-columns:74px 1fr;gap:8px;align-items:baseline;
+  font-size:11.5px;line-height:1.5;padding:2px 0}
+.c-pay .pr .k{color:var(--dim);font-weight:700;white-space:nowrap}
+.c-pay .pr .v{color:var(--ink2)}
+.c-pay .pr .v b{color:var(--ink);font-weight:700}
+.c-pay .nx{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px;padding-top:7px;
+  border-top:1px dashed var(--line2);font-size:11.5px;color:var(--mut)}
+.c-pay .nx .dt{font-weight:800;color:var(--ink)}
+.c-pay .cd{font-weight:800;font-size:11px;border-radius:999px;padding:2.5px 9px;white-space:nowrap;
+  background:rgba(34,211,238,.13);color:#67e8f9;border:1px solid rgba(34,211,238,.35)}
+.c-pay .cd.w{background:rgba(251,191,36,.13);color:#fcd34d;border-color:rgba(251,191,36,.4)}
+.c-pay .cd.d{background:rgba(248,113,113,.14);color:#fca5a5;border-color:rgba(248,113,113,.45)}
+.c-pay .note{font-size:11.5px;color:var(--mut);line-height:1.55}
+
+.duebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 16px;padding:11px 14px;
+  border:1px solid var(--line2);border-radius:14px;background:linear-gradient(100deg,rgba(217,139,58,.08),rgba(34,211,238,.05))}
+.duebar .t{font-size:11px;font-weight:800;letter-spacing:.07em;color:#fcd34d;white-space:nowrap}
+.duebar .ch{display:flex;align-items:baseline;gap:7px;font-size:12px;background:rgba(255,255,255,.04);
+  border:1px solid var(--line2);border-radius:999px;padding:5px 12px}
+.duebar .ch .d{font-weight:800;color:var(--ink);white-space:nowrap}
+.duebar .ch .n{color:var(--ink2)}
+.duebar .ch .c{font-weight:800;font-size:10.5px;color:#67e8f9;white-space:nowrap}
+.duebar .ch.w .c{color:#fcd34d}.duebar .ch.d7 .c{color:#fca5a5}
+.duebar .hint{font-size:11px;color:var(--dim);margin-left:auto}
+@media(max-width:780px){.duebar .hint{display:none}.c-pay .pr{grid-template-columns:1fr}
+  .c-pay .pr .k{margin-bottom:-2px}}
+
 .c{background:linear-gradient(180deg,#111c31,#0e1728);border:1px solid var(--line);border-radius:18px;
   padding:16px 18px 15px;box-shadow:0 18px 40px -28px #000, inset 0 1px 0 rgba(255,255,255,.035);
   border-left:3px solid var(--ac,#d98b3a)}
@@ -120,6 +150,8 @@ input:focus,select:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3
     Ставки и показатели (МРП, МЗП, проценты) собраны в последней плашке и редактируются — поменяется закон,
     поправите там, пересчитается везде.
   </div>
+
+  <div class="duebar" id="duebar" style="display:none"></div>
 
   <div class="grid" id="grid"></div>
 
@@ -457,6 +489,117 @@ input:focus,select:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3
     }}
   ];
 
+  /* ── СРОКИ УПЛАТЫ ───────────────────────────────────────────────────
+     Налоговый кодекс РК, редакция 2026 года. Если срок приходится на
+     субботу или воскресенье — он переносится на ближайший рабочий день;
+     государственные праздники здесь не учитываются, их надо смотреть
+     в производственном календаре. */
+  var MES = ['января','февраля','марта','апреля','мая','июня',
+             'июля','августа','сентября','октября','ноября','декабря'];
+  function bizDay(d){ while(d.getDay()===0 || d.getDay()===6) d.setDate(d.getDate()+1); return d; }
+  function dmk(y,m,day){ return bizDay(new Date(y,m,day)); }
+  function today0(){ var t=new Date(); t.setHours(0,0,0,0); return t; }
+
+  /* генераторы дат по правилу; возвращают список на этот и следующий год */
+  var RULES = {
+    m25:  function(y){ var a=[],i; for(i=0;i<24;i++) a.push(dmk(y+(i>11?1:0), i%12, 25)); return a; },
+    q25:  function(y){ return [dmk(y,1,25),dmk(y,4,25),dmk(y,7,25),dmk(y,10,25),dmk(y+1,1,25)]; },
+    h25:  function(y){ return [dmk(y,1,25),dmk(y,7,25),dmk(y+1,1,25)]; },
+    apr10:function(y){ return [dmk(y,3,10),dmk(y+1,3,10)]; },
+    q15:  function(y){ return [dmk(y,1,15),dmk(y,4,15),dmk(y,7,15),dmk(y,10,15),dmk(y+1,1,15)]; },
+    mar31:function(y){ return [dmk(y,2,31),dmk(y+1,2,31)]; },
+    feb15:function(y){ return [dmk(y,1,15),dmk(y+1,1,15)]; },
+    h15:  function(y){ return [dmk(y,1,15),dmk(y,7,15),dmk(y+1,1,15)]; }
+  };
+  function nextDue(rule){
+    if(!rule || !RULES[rule]) return null;
+    var t=today0(), list=RULES[rule](t.getFullYear()), i;
+    for(i=0;i<list.length;i++) if(list[i]>=t) return list[i];
+    return null;
+  }
+  function dmRu(d){ return d.getDate()+' '+MES[d.getMonth()]; }
+  function daysTo(d){ return Math.round((d-today0())/86400000); }
+  function daysWord(n){ return plw(n,'день','дня','дней'); }
+
+  /* справочник: период · срок уплаты · форма и срок отчётности */
+  var PAY_INFO = {
+    nds: { per:'Квартал',
+           due:'до 25 числа 2-го месяца после квартала', rule:'q25',
+           rep:'ф.300.00 — до 15 числа 2-го месяца после квартала', rrule:'q15',
+           short:'НДС' },
+    zp:  { per:'Месяц',
+           due:'до 25 числа месяца, следующего за выплатой зарплаты', rule:'m25',
+           rep:'ф.200.00 — ежеквартально, до 15 числа 2-го месяца', rrule:'q15',
+           short:'зарплатные налоги',
+           note:'Один срок на всё: ИПН, соцналог, ОПВ, ОПВР, ВОСМС, ООСМС и соцотчисления.' },
+    kpn: { per:'Календарный год',
+           due:'итог — до 10 апреля следующего года', rule:'apr10',
+           rep:'ф.100.00 — до 31 марта следующего года', rrule:'mar31',
+           short:'КПН за год',
+           note:'Авансовые платежи — только если доход за прошлый период превысил 600 000 МРП '
+               +'(2,595 млрд ₸ в 2026). Тогда ежемесячно до 25 числа, расчёт ф.101.02 — до 20 апреля.' },
+    div: { per:'Месяц выплаты',
+           due:'до 25 числа месяца, следующего за выплатой', rule:'m25',
+           rep:'резидентам — в ф.200.00; нерезидентам — ф.101.04, до 15 числа 2-го месяца', rrule:'q15',
+           short:'налог с дивидендов',
+           note:'Налог удерживается у источника — платит компания, а не получатель.' },
+    imush:{ per:'Год, платежи — поквартально',
+           due:'текущие платежи 25 февраля, 25 мая, 25 августа и 25 ноября', rule:'q25',
+           rep:'расчёт ф.701.01 — до 15 февраля; декларация ф.700.00 — до 31 марта', rrule:'feb15',
+           short:'налог на имущество',
+           note:'Окончательный расчёт за год — до 10 апреля следующего года.' },
+    spec:{ per:'Упрощёнка — полугодие, розничный налог — квартал',
+           due:'упрощёнка: до 25 августа и 25 февраля; розничный: до 25 числа 2-го месяца после квартала',
+           rule:'h25',
+           rep:'ф.910.00 — до 15 августа и 15 февраля; ф.913.00 — до 15 числа 2-го месяца', rrule:'h15',
+           short:'упрощёнка' },
+    peny:{ noDate:true,
+           note:'Пеня начисляется со следующего дня после срока уплаты и по день погашения '
+               +'включительно — считать надо от даты из плашки соответствующего налога.' }
+  };
+
+  function payHtml(id){
+    var p = PAY_INFO[id]; if(!p) return '';
+    var h = '<div class="c-pay">';
+    if(p.per) h += '<div class="pr"><span class="k">Период</span><span class="v">'+p.per+'</span></div>';
+    if(p.due) h += '<div class="pr"><span class="k">Уплата</span><span class="v">'+p.due+'</span></div>';
+    if(p.rep) h += '<div class="pr"><span class="k">Отчётность</span><span class="v">'+p.rep+'</span></div>';
+    if(p.note) h += '<div class="pr"><span class="k">Важно</span><span class="v">'+p.note+'</span></div>';
+    var d = nextDue(p.rule);
+    if(d){
+      var n = daysTo(d), k = n<=7 ? 'd' : (n<=21 ? 'w' : '');
+      var r = nextDue(p.rrule);
+      h += '<div class="nx">📅 Ближайшая уплата: <span class="dt">'+dmRu(d)+'</span>'
+         + '<span class="cd '+k+'">'+(n===0?'сегодня':(n===1?'завтра':'через '+n+' '+daysWord(n)))+'</span>'
+         + (r ? '<span style="color:var(--dim)">· отчёт '+dmRu(r)+'</span>' : '')
+         + '</div>';
+    }
+    return h + '</div>';
+  }
+
+  /* строка «Ближайшие платежи» вверху страницы */
+  function drawDueBar(){
+    var el = document.getElementById('duebar'); if(!el) return;
+    var items = [];
+    Object.keys(PAY_INFO).forEach(function(id){
+      var p = PAY_INFO[id], d = nextDue(p.rule);
+      if(d && p.short) items.push({ d:d, k:+d, nm:p.short });
+    });
+    if(!items.length) return;
+    var by = {};
+    items.forEach(function(x){ (by[x.k] = by[x.k] || { d:x.d, nm:[] }).nm.push(x.nm); });
+    var keys = Object.keys(by).sort(function(a,b){ return a-b; }).slice(0,4);
+    el.innerHTML = '<span class="t">БЛИЖАЙШИЕ ПЛАТЕЖИ</span>'
+      + keys.map(function(k){
+          var g = by[k], n = daysTo(g.d), c = n<=7 ? 'd7' : (n<=21 ? 'w' : '');
+          return '<span class="ch '+c+'"><span class="d">'+dmRu(g.d)+'</span>'
+               + '<span class="n">'+g.nm.join(', ')+'</span>'
+               + '<span class="c">'+(n===0?'сегодня':(n===1?'завтра':'через '+n+' '+daysWord(n)))+'</span></span>';
+        }).join('')
+      + '<span class="hint">срок с выходных переносится на рабочий день; праздники не учтены</span>';
+    el.style.display = 'flex';
+  }
+
   /* ── Отрисовка плашек ──────────────────────────────────────────────── */
   var MODE = {};
   function fieldHtml(f){
@@ -472,6 +615,7 @@ input:focus,select:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3
     return '<div class="c" id="card-'+c.id+'" style="--ac:'+c.ac+'">'
       + '<div class="c-h"><span class="c-i">'+c.icon+'</span><span class="c-t">'+esc(c.title)+'</span></div>'
       + '<div class="c-s">'+c.sub+'</div>'
+      + payHtml(c.id)
       + (c.modes ? '<div class="seg">' + c.modes.map(function(x){
             return '<button data-mode="'+x[0]+'" class="'+(x[0]===m?'on':'')+'">'+esc(x[1])+'</button>';
           }).join('') + '</div>' : '')
@@ -573,7 +717,8 @@ input:focus,select:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3
         if(!j) return;
         if(j.rates) R=Object.assign({}, DEF, j.rates);
         HIST=j.hist||[];
-        render(); renderHist();
+        render();
+        drawDueBar(); renderHist();
         if(keepOpen) document.getElementById('hist').classList.add('open');
       }).catch(function(){ render(); renderHist(); });
   }
