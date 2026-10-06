@@ -3,7 +3,7 @@
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta charset="UTF-8">
-<title>Продажи 2026 · Фуд Завод</title>
+<title>Продажи ФУД ЗАВОД · Пульс</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
@@ -386,7 +386,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 <body>
 <div class="header">
   <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;background:rgba(124,58,237,.18);border:1px solid rgba(139,92,246,.45);color:#c4b5fd;text-decoration:none;font-weight:700;font-size:13.5px;white-space:nowrap">← На Пульс</a>
-  <div class="logo" id="page-title">📊 Продажи 2026</div>
+  <div class="logo" id="page-title">🛒 Продажи ФУД ЗАВОД</div>
   <div class="header-sub">Фуд завод</div>
   <div id="upd-badge" class="upd-badge">
     <span class="upd-src">🔄 данные из iiko</span>
@@ -2529,17 +2529,24 @@ window.DS = DS;
 (function(){                       // заголовок по году из данных
   var mk = Object.keys(DS).filter(function(k){return /^\d{4}-\d{2}$/.test(k);}).sort();
   var el = document.getElementById('page-title');
-  if(el && mk.length) el.textContent = '📊 Продажи ' + mk[0].slice(0,4);
+  if(el && mk.length) el.textContent = '🛒 Продажи ФУД ЗАВОД ' + mk[0].slice(0,4);
 })();
 /* contractors.js остался от прежнего генератора (parse_contractors.py) и
    перестал обновляться на июле 2026 — из-за него блок «кто покупает» за
    август и сентябрь был пустым. Свежий и полный источник — window.CTR
    из contractor_items.js, поэтому CONTRACTORS всегда пересобираем из него. */
+/* Olive (контрагент 98) вынесена в отдельный отчёт «Продажи Olive» 06.10.2026:
+   её нет ни в выручке этой страницы, ни в категориях, ни в топе товаров —
+   значит, и в списке покупателей ей тут не место. Доли пересчитываем по
+   оставшимся, иначе проценты не сложатся в сотню. */
+var OLIV_NUM = '98';
 if (window.CTR) {
   window.CONTRACTORS = {};
   Object.keys(window.CTR).forEach(function(mk){
-    window.CONTRACTORS[mk] = (window.CTR[mk]||[]).map(function(c){
-      return { name: c.name, rev: c.rev, pct: c.pct,
+    var list = (window.CTR[mk]||[]).filter(function(c){ return String(c.num) !== OLIV_NUM; });
+    var tot = list.reduce(function(a,c){ return a + (c.rev||0); }, 0) || 1;
+    window.CONTRACTORS[mk] = list.map(function(c){
+      return { name: c.name, rev: c.rev, pct: Math.round(c.rev/tot*1000)/10,
                top_items: (c.items||[]).slice(0,5).map(function(i){
                  return { name: i.n, rev: i.r }; }) };
     });
