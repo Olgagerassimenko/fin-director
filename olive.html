@@ -1,0 +1,352 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Продажи Olive · Пульс</title>
+<!-- Фуд Завод · © 2026. Все права защищены.
+     Страница статическая, данные приезжают в oliv_data.js — его собирает
+     rebuild_sales.py из тех же выгрузок «I Отчет ПРОДАЖИ», что и продажи
+     Фуд Завода, тем же классификатором категорий. Контрагент 98 (Olive)
+     в «Продажах ФУД ЗАВОД» не участвует, он весь здесь. -->
+<script src="nav.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070c17; --card:#0d1526; --line:#1c2740; --line2:#26334d;
+  --ink:#eef3fb; --ink2:#c3d0e2; --mut:#7b8ca6; --dim:#546279;
+  --oliv:#9ec948; --oliv2:#6f9c22; --fz:#a78bfa; --good:#4ade80; --bad:#f87171;
+}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
+  -webkit-font-smoothing:antialiased;background:
+   radial-gradient(900px 520px at 6% -8%,rgba(158,201,72,.13),transparent 60%),
+   radial-gradient(780px 460px at 97% 0%,rgba(167,139,250,.09),transparent 60%),var(--bg);
+  background-attachment:fixed}
+.topbar{display:flex;align-items:center;gap:16px;padding:15px 30px;position:sticky;top:0;z-index:60;
+  background:rgba(10,16,29,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.backbtn{display:inline-flex;align-items:center;background:#16203a;color:var(--ink2);border:1px solid var(--line2);
+  font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;text-decoration:none;transition:.18s;white-space:nowrap}
+.backbtn:hover{background:var(--oliv);color:#13200a;border-color:var(--oliv)}
+.topbar h1{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;font-size:11.5px;color:#d7eda6;background:rgba(158,201,72,.12);
+  border:1px solid rgba(158,201,72,.4);border-radius:999px;padding:6px 13px;font-weight:700;white-space:nowrap}
+.section{padding:20px 30px 56px;max-width:1240px;margin:0 auto}
+.lead{font-size:12.5px;color:var(--mut);line-height:1.65;margin-bottom:15px;max-width:900px}
+.lead b{color:var(--ink2)}
+
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.k{border:1px solid var(--line2);border-radius:16px;padding:14px 16px;
+  background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015))}
+.k .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:800}
+.k .v{font-size:26px;font-weight:900;margin-top:4px;letter-spacing:-.6px;font-variant-numeric:tabular-nums}
+.k .s{font-size:11.5px;color:var(--dim);margin-top:4px;line-height:1.45}
+.up{color:var(--good);font-weight:800}.down{color:var(--bad);font-weight:800}
+
+.card{background:linear-gradient(170deg,#0e1828,#0b1320);border:1px solid var(--line);
+  border-radius:18px;padding:18px 20px;margin-bottom:14px}
+.card h2{font-size:14.5px;font-weight:800;margin-bottom:2px}
+.card .sub{font-size:12px;color:var(--mut);line-height:1.5;margin-bottom:14px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);margin-bottom:10px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px}
+.chip{background:#121c30;border:1px solid var(--line2);color:var(--ink2);border-radius:999px;
+  padding:6px 13px;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap}
+.chip:hover{border-color:var(--oliv);color:var(--ink)}
+.chip.on{background:linear-gradient(135deg,var(--oliv),var(--oliv2));color:#13200a;border-color:var(--oliv)}
+
+.wrapx{overflow-x:auto}
+svg{display:block}
+.tt{position:fixed;pointer-events:none;z-index:200;background:#0b1422;border:1px solid var(--line2);
+  border-radius:10px;padding:9px 12px;font-size:12px;color:var(--ink);box-shadow:0 18px 38px -16px #000;
+  opacity:0;transition:opacity .12s;max-width:290px;line-height:1.5}
+.tt b{color:#fff}.tt .m{color:var(--mut);font-size:11px}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);
+  font-weight:800;padding:8px 10px;border-bottom:1px solid var(--line2);cursor:pointer;white-space:nowrap}
+th:hover{color:var(--ink)}
+td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--ink2)}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink);font-weight:700}
+tbody tr:hover td{background:rgba(255,255,255,.03)}
+.inp{background:#0e1728;border:1px solid var(--line2);border-radius:999px;color:var(--ink);
+  font:inherit;font-size:12.5px;padding:8px 15px;min-width:240px;outline:none}
+.inp:focus{border-color:var(--oliv)}
+.btn{background:#121c30;border:1px solid var(--line2);color:var(--ink2);border-radius:999px;
+  padding:8px 14px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.btn:hover{border-color:var(--oliv);color:var(--ink)}
+.ins{background:linear-gradient(120deg,rgba(158,201,72,.1),rgba(158,201,72,.02));
+  border:1px solid rgba(158,201,72,.25);border-left:3px solid var(--oliv);border-radius:14px;
+  padding:14px 17px;font-size:13px;line-height:1.6;color:#dfe7f1;margin-top:14px}
+.ins b{color:#d7eda6}
+.foot{text-align:center;color:var(--dim);font-size:11.5px;padding:24px 0 0}
+.err{padding:40px;text-align:center;color:var(--dim);font-size:13px}
+@media(max-width:860px){.section{padding:16px 14px 44px}.kpi{grid-template-columns:repeat(2,1fr)}
+  .topbar{padding:13px 14px}}
+</style></head>
+<body>
+<div class="topbar">
+  <a class="backbtn" href="index.html">← Пульс</a>
+  <div><h1>🫒 Продажи Olive</h1><p>Контрагент Olive отдельно от продаж Фуд Завода</p></div>
+  <div class="live" id="live">—</div>
+</div>
+<div class="section" id="root">
+  <div class="err" id="boot">Загружаю данные…</div>
+</div>
+<div class="tt" id="tt"></div>
+
+<script src="oliv_data.js" onerror="window.OLIV=null"></script>
+<script src="sales_meta.js" onerror="0"></script>
+<script>
+(function(){
+ var D = window.OLIV;
+ var root = document.getElementById('root');
+ if(!D || !D.months || !D.months.length){
+   root.innerHTML = '<div class="err">Данные по Olive ещё не собраны.<br>'
+     + 'Файл <code>oliv_data.js</code> появится после ближайшей пересборки продаж.</div>';
+   return;
+ }
+
+ /* ── формат ─────────────────────────────────────────────────────────── */
+ function num(v){ return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+ function mln(v){ var a=Math.abs(v);
+   if(a>=1e9) return (v/1e9).toFixed(2).replace('.',',')+' млрд';
+   if(a>=1e6) return (v/1e6).toFixed(1).replace('.',',')+' млн';
+   if(a>=1e3) return Math.round(v/1e3)+' тыс';
+   return num(v); }
+ function pc(v){ return String(Math.round(v*10)/10).replace('.',','); }
+ function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+ function plw(n,a,b,c){ n=Math.abs(n)%100; var m=n%10;
+   if(n>10&&n<20) return c; if(m>1&&m<5) return b; if(m===1) return a; return c; }
+ function shortM(l){ return String(l||'').split(' ')[0]; }
+ /* «к сентябрь» режет глаз — держим дательный падеж, как на главной */
+ var DAT={'Январь':'январю','Февраль':'февралю','Март':'марту','Апрель':'апрелю','Май':'маю',
+          'Июнь':'июню','Июль':'июлю','Август':'августу','Сентябрь':'сентябрю','Октябрь':'октябрю',
+          'Ноябрь':'ноябрю','Декабрь':'декабрю'};
+ function dat(l){ var k=shortM(l); return DAT[k]||String(l||'').toLowerCase(); }
+
+ var MS = D.months, LAST = MS[MS.length-1], PREV = MS.length>1 ? MS[MS.length-2] : null;
+ var YEAR = D.year;
+
+ /* ── подсказка ──────────────────────────────────────────────────────── */
+ var tt = document.getElementById('tt');
+ function tipOn(e, html){
+   tt.innerHTML = html; tt.style.opacity = 1;
+   var x = e.clientX + 14, y = e.clientY + 14;
+   if(x + tt.offsetWidth > innerWidth - 10) x = e.clientX - tt.offsetWidth - 14;
+   if(y + tt.offsetHeight > innerHeight - 10) y = e.clientY - tt.offsetHeight - 14;
+   tt.style.left = x+'px'; tt.style.top = y+'px';
+ }
+ function tipOff(){ tt.style.opacity = 0; }
+ function bindTip(el, html){
+   el.addEventListener('mousemove', function(e){ tipOn(e, html); });
+   el.addEventListener('mouseleave', tipOff);
+ }
+
+ /* ── показатели ─────────────────────────────────────────────────────── */
+ var chg = PREV && PREV.total_rev ? (LAST.total_rev - PREV.total_rev)/PREV.total_rev*100 : null;
+ var first = MS[0], growth = first.total_rev ? LAST.total_rev/first.total_rev : 0;
+ var kpi = [
+   {l:'Выручка за месяц', v:mln(LAST.total_rev)+' ₸',
+    s:(chg===null ? LAST.label
+       : '<span class="'+(chg>=0?'up':'down')+'">'+(chg>=0?'+':'−')+pc(Math.abs(chg))+'%</span> к '
+         + dat(PREV.label)+' · '+LAST.label.toLowerCase())},
+   {l:'С начала года', v:mln(D.yearRev)+' ₸', s:MS.length+' '+plw(MS.length,'месяц','месяца','месяцев')
+     +' · в среднем '+mln(D.yearRev/MS.length)+' ₸ в месяц'},
+   {l:'Доля в общих продажах', v:pc(D.share)+'%', s:'продажи Фуд Завода за год — '+mln(D.fzYearRev)+' ₸'},
+   {l:'Позиций в ассортименте', v:num(LAST.items.length), s:'за '+LAST.label.toLowerCase()
+     +' · за год — '+num(YEAR.items.length)}
+ ];
+
+ /* ── график по месяцам: один ряд, один цвет ─────────────────────────── */
+ function monthsChart(){
+   var W=980,H=300,pL=62,pR=18,pT=34,pB=52;
+   var mx=Math.max.apply(null, MS.map(function(m){return m.total_rev;}))||1;
+   var hi=mx*1.14, bw=Math.min(66,(W-pL-pR)/MS.length*0.6);
+   function X(i){ return pL+(W-pL-pR)*(i+0.5)/MS.length; }
+   function Y(v){ return pT+(H-pT-pB)*(1-v/hi); }
+   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:640px">';
+   /* сетка — приглушённая */
+   for(var g=0; g<=4; g++){
+     var v=hi*g/4, y=Y(v);
+     s+='<line x1="'+pL+'" y1="'+y.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y.toFixed(1)
+       +'" stroke="rgba(255,255,255,.07)"/>'
+       +'<text x="'+(pL-9)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="#6f7f93">'
+       + (g? mln(v):'0')+'</text>';
+   }
+   var maxI = MS.reduce(function(b,m,i){ return m.total_rev>MS[b].total_rev?i:b; },0);
+   MS.forEach(function(m,i){
+     var x=X(i)-bw/2, y=Y(m.total_rev), h=Math.max(2,H-pB-y);
+     /* 4px скруглённый торец, посаженный на базовую линию */
+     s+='<path class="bar" data-i="'+i+'" d="M'+x.toFixed(1)+' '+(y+4).toFixed(1)
+       +' a4 4 0 0 1 4 -4 h'+(bw-8).toFixed(1)+' a4 4 0 0 1 4 4 v'+(h-4).toFixed(1)
+       +' h'+(-bw)+' Z" fill="'+(m.partial?'url(#oliHatch)':'#9ec948')+'"/>';
+     /* подписи выборочно: первый, максимум и последний */
+     if(i===0 || i===maxI || i===MS.length-1)
+       s+='<text x="'+X(i).toFixed(1)+'" y="'+(y-9).toFixed(1)+'" text-anchor="middle" font-size="12" '
+         +'font-weight="800" fill="#d7eda6">'+mln(m.total_rev)+'</text>';
+     s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-30)+'" text-anchor="middle" font-size="11" fill="#c3d0e2">'
+       + shortM(m.label).slice(0,3)+'</text>';
+     if(m.partial)
+       s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-16)+'" text-anchor="middle" font-size="9.5" fill="#6f7f93">неполный</text>';
+   });
+   s+='<defs><pattern id="oliHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
+     +'<rect width="7" height="7" fill="#9ec948" opacity=".35"/><rect width="3" height="7" fill="#9ec948"/></pattern></defs>';
+   s+='<line x1="'+pL+'" y1="'+(H-pB)+'" x2="'+(W-pR)+'" y2="'+(H-pB)+'" stroke="rgba(255,255,255,.22)"/>';
+   return s+'</svg>';
+ }
+
+ /* ── ранжированные полосы (категории и позиции) ─────────────────────── */
+ function ranked(rows, opt){
+   opt = opt || {};
+   var n=rows.length; if(!n) return '<div class="err">нет данных</div>';
+   var W=980,rowH=opt.rowH||30,pL=opt.pL||210,pR=132,H=n*rowH+6;
+   var mx=Math.max.apply(null, rows.map(function(r){return r.v;}))||1;
+   var barW=W-pL-pR;
+   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:620px">';
+   rows.forEach(function(r,i){
+     var y=i*rowH+8, h=rowH-15, w=Math.max(3,barW*r.v/mx);
+     /* один тон, светлее к низу рейтинга — величина, а не идентичность */
+     var op=(1-i/Math.max(n,1)*0.55).toFixed(2);
+     s+='<path d="M0 '+y+' h'+(w-4).toFixed(1)+' a4 4 0 0 1 4 4 v'+(h-8)
+       +' a4 4 0 0 1 -4 4 h'+(-(w-4)).toFixed(1)+' Z" transform="translate('+pL+',0)" fill="#9ec948" opacity="'+op+'"/>';
+     s+='<text x="'+(pL-12)+'" y="'+(y+h/2+4)+'" text-anchor="end" font-size="11.5" fill="#dbe4ee">'
+       + esc(String(r.n).length>30?String(r.n).slice(0,29)+'…':r.n)+'</text>';
+     s+='<text x="'+(pL+w+9).toFixed(1)+'" y="'+(y+h/2+4)+'" font-size="11.5" font-weight="800" fill="#f4f7fb">'
+       + mln(r.v)+'</text>';
+     if(r.p!=null)
+       s+='<text x="'+(W-6)+'" y="'+(y+h/2+4)+'" text-anchor="end" font-size="11" font-weight="700" fill="#7b8ca6">'
+         + pc(r.p)+'%</text>';
+   });
+   return s+'</svg>';
+ }
+
+ /* ── разметка ───────────────────────────────────────────────────────── */
+ var SEL = 'year';     // выбранный период: 'year' или mk месяца
+ function cur(){ return SEL==='year' ? YEAR : MS.filter(function(m){return m.mk===SEL;})[0] || YEAR; }
+
+ function chipsHtml(){
+   return '<div class="chips">'
+     + '<button class="chip'+(SEL==='year'?' on':'')+'" data-k="year">весь год</button>'
+     + MS.map(function(m){ return '<button class="chip'+(SEL===m.mk?' on':'')+'" data-k="'+m.mk+'">'
+         + esc(shortM(m.label))+'</button>'; }).join('')
+     + '</div>';
+ }
+
+ function insight(){
+   var c=cur(), cats=c.categories||[], top=(c.top20||[]);
+   var top3=top.slice(0,3).reduce(function(s,x){return s+x.rev;},0);
+   var share3=c.total_rev? top3/c.total_rev*100 : 0;
+   var txt='💡 За '+ (SEL==='year'?'год':c.label.toLowerCase()) +' Olive купила на <b>'+mln(c.total_rev)
+     +' ₸</b>, позиций — <b>'+num((c.items||[]).length)+'</b>. ';
+   if(cats[0]) txt+='Больше всего в категории <b>'+esc(cats[0].cat)+'</b> — '+mln(cats[0].rev)
+     +' ₸ ('+pc(cats[0].pct)+'% заказа). ';
+   if(top[0]) txt+='Главная позиция — <b>'+esc(top[0].name)+'</b>, '+mln(top[0].rev)+' ₸. ';
+   txt+='Три верхние позиции дают <b>'+pc(share3)+'%</b> выручки — '
+     + (share3>50?'заказ сильно сконцентрирован.':'заказ достаточно разложен по ассортименту.');
+   return '<div class="ins">'+txt+'</div>';
+ }
+
+ function render(){
+   var c=cur();
+   var cats=(c.categories||[]).map(function(x){ return {n:x.cat, v:x.rev, p:x.pct}; });
+   var top=(c.top20||[]).slice(0,15).map(function(x){ return {n:x.name, v:x.rev,
+     p:c.total_rev? x.rev/c.total_rev*100 : 0}; });
+
+   root.innerHTML =
+     '<div class="lead">Olive — отдельное направление: в отчёте «Продажи ФУД ЗАВОД» его нет ни в выручке, '
+   + 'ни в категориях, ни в топе товаров. Здесь всё, что эта сеть взяла у завода: '
+   + '<b>по месяцам, категориям и позициям</b>. Источник и метод расчёта те же, что в продажах завода, '
+   + 'поэтому цифры сопоставимы.</div>'
+
+   + '<div class="kpi">' + kpi.map(function(k){
+       return '<div class="k"><div class="l">'+k.l+'</div><div class="v">'+k.v+'</div>'
+         + '<div class="s">'+k.s+'</div></div>'; }).join('') + '</div>'
+
+   + '<div class="card"><h2>Выручка Olive по месяцам</h2>'
+   + '<div class="sub">Сколько Olive покупала каждый месяц. Подписаны первый месяц, лучший и последний — '
+   + 'остальные суммы появляются при наведении и есть в таблице ниже.</div>'
+   + '<div class="legend"><span><i style="background:#9ec948"></i>выручка Olive</span>'
+   + '<span><i style="background:#9ec948;opacity:.5"></i>штриховка — месяц неполный</span></div>'
+   + '<div class="wrapx" id="ch-m">'+monthsChart()+'</div></div>'
+
+   + '<div class="card"><h2>Что именно покупают</h2>'
+   + '<div class="sub">Выберите период — категории и позиции пересчитаются.</div>'
+   + chipsHtml()
+   + '<div style="font-size:12.5px;font-weight:800;color:#b9c5d3;margin:10px 0 6px">Категории</div>'
+   + '<div class="wrapx">'+ranked(cats)+'</div>'
+   + '<div style="font-size:12.5px;font-weight:800;color:#b9c5d3;margin:20px 0 6px">Топ-15 позиций</div>'
+   + '<div class="wrapx">'+ranked(top,{pL:280,rowH:28})+'</div>'
+   + insight() + '</div>'
+
+   + '<div class="card"><h2>Все позиции</h2>'
+   + '<div class="sub">Полный список за выбранный период. Клик по заголовку — сортировка.</div>'
+   + '<div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px">'
+   + '<input class="inp" id="q" placeholder="Поиск по названию…">'
+   + '<button class="btn" id="csv">⤓ Выгрузить в Excel (CSV)</button></div>'
+   + '<div class="wrapx"><table id="tbl"><thead><tr>'
+   + '<th data-s="n">Позиция</th><th data-s="q" style="text-align:right">Количество</th>'
+   + '<th data-s="r" style="text-align:right">Сумма, ₸</th>'
+   + '<th data-s="r" style="text-align:right">Доля</th></tr></thead><tbody></tbody></table></div></div>'
+
+   + '<div class="foot">Система «Пульс» · © 2026 · данные из тех же выгрузок iiko, что и продажи завода</div>';
+
+   /* подсказки по столбикам */
+   root.querySelectorAll('#ch-m .bar').forEach(function(b){
+     var m=MS[+b.dataset.i], p=MS[+b.dataset.i-1];
+     var d=p&&p.total_rev?((m.total_rev-p.total_rev)/p.total_rev*100):null;
+     bindTip(b, '<b>'+esc(m.label)+'</b><br>'+num(m.total_rev)+' ₸'
+       + (d===null?'':'<br><span class="m">к прошлому месяцу '+(d>=0?'+':'−')+pc(Math.abs(d))+'%</span>')
+       + '<br><span class="m">позиций: '+num(m.items.length)+'</span>'
+       + (m.partial?'<br><span class="m">месяц ещё не закончился</span>':''));
+   });
+   root.querySelectorAll('.chip').forEach(function(b){
+     b.onclick=function(){ SEL=b.dataset.k; render(); };
+   });
+   drawTable();
+   document.getElementById('q').oninput=drawTable;
+   document.getElementById('csv').onclick=exportCsv;
+   document.querySelectorAll('#tbl th').forEach(function(th){
+     th.onclick=function(){ var k=th.dataset.s;
+       if(TS.k===k) TS.d=-TS.d; else { TS.k=k; TS.d=(k==='n'?1:-1); }
+       drawTable(); };
+   });
+ }
+
+ var TS={k:'r',d:-1};
+ function rowsNow(){
+   var c=cur(), q=(document.getElementById('q')||{}).value||'';
+   var rs=(c.items||[]).slice();
+   if(q) { q=q.toLowerCase(); rs=rs.filter(function(x){ return x.n.toLowerCase().indexOf(q)>=0; }); }
+   rs.sort(function(a,b){
+     var x=a[TS.k], y=b[TS.k];
+     if(TS.k==='n') return TS.d*String(x).localeCompare(String(y),'ru');
+     return TS.d*(x-y); });
+   return rs;
+ }
+ function drawTable(){
+   var c=cur(), rs=rowsNow(), tot=c.total_rev||1;
+   document.querySelector('#tbl tbody').innerHTML = rs.length
+     ? rs.map(function(x){ return '<tr><td>'+esc(x.n)+'</td><td class="n">'+num(x.q)
+         +'</td><td class="n">'+num(x.r)+'</td><td class="n" style="color:#7b8ca6;font-weight:600">'
+         + pc(x.r/tot*100)+'%</td></tr>'; }).join('')
+     : '<tr><td colspan="4" style="color:#546279;padding:22px;text-align:center">ничего не нашлось</td></tr>';
+ }
+ function exportCsv(){
+   var c=cur(), rs=rowsNow();
+   var lines=['Позиция;Количество;Сумма, ₸'].concat(rs.map(function(x){
+     return '"'+String(x.n).replace(/"/g,'""')+'";'+x.q+';'+x.r; }));
+   var blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+   var a=document.createElement('a');
+   a.href=URL.createObjectURL(blob);
+   a.download='Продажи Olive — '+(SEL==='year'?'год':c.label)+'.csv';
+   a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
+ }
+
+ document.getElementById('live').textContent =
+   'обновлено ' + (((window.SALES_META||{}).updated) || 'ежедневно из iiko');
+ render();
+})();
+</script>
+</body></html>
