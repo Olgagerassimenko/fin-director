@@ -19,7 +19,8 @@
 {href:'nalogi_%D0%BE%D1%82%D1%87%D1%91%D1%82.html',icon:'🧾',label:'Налоги'},
     {href:'%D0%BA%D0%B0%D0%BB%D1%8C%D0%BA%D1%83%D0%BB%D1%8F%D1%82%D0%BE%D1%80.html',icon:'🧮',label:'Калькулятор'},
     {href:'olive.html',icon:'🥒',label:'Продажи Olive'},
-    {href:'%D0%B6%D1%83%D1%80%D0%BD%D0%B0%D0%BB.html',icon:'🗂',label:'Журнал изменений'}
+    {href:'%D0%B6%D1%83%D1%80%D0%BD%D0%B0%D0%BB.html',icon:'🗂',label:'Журнал изменений'},
+    {href:'%D0%B7%D0%B0%D1%80%D0%BF%D0%BB%D0%B0%D1%82%D0%B0.html',icon:'👥',label:'Зарплата'}
   ];
   var cur=location.pathname.split('/').pop()||'index.html';
   var s=document.createElement('style');
