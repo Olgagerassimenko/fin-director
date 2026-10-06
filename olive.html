@@ -3,18 +3,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Продажи Olive · Пульс</title>
 <!-- Фуд Завод · © 2026. Все права защищены.
-     Страница статическая, данные приезжают в oliv_data.js — его собирает
-     rebuild_sales.py из тех же выгрузок «I Отчет ПРОДАЖИ», что и продажи
-     Фуд Завода, тем же классификатором категорий. Контрагент 98 (Olive)
-     в «Продажах ФУД ЗАВОД» не участвует, он весь здесь. -->
+     Страница статическая, данные приезжают сами:
+       oliv_data.js  — продажи Olive (rebuild_sales.py, контрагент 98)
+       sales_sum.js  — продажи Фуд Завода, чтобы считать долю направления
+       dz_kz.js      — долг, отгрузки и оплаты по неделям
+     Контрагент 98 в «Продажах ФУД ЗАВОД» не участвует, он весь здесь. -->
 <script src="nav.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#070c17; --card:#0d1526; --line:#1c2740; --line2:#26334d;
+  --bg:#070c17; --line:#1c2740; --line2:#26334d;
   --ink:#eef3fb; --ink2:#c3d0e2; --mut:#7b8ca6; --dim:#546279;
-  --oliv:#9ec948; --oliv2:#6f9c22; --fz:#a78bfa; --good:#4ade80; --bad:#f87171;
+  --oliv:#9ec948; --oliv2:#6f9c22; --fz:#a78bfa; --good:#4ade80; --bad:#f87171; --warn:#fbbf24;
 }
 body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
   -webkit-font-smoothing:antialiased;background:
@@ -30,24 +31,56 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
 .live{margin-left:auto;font-size:11.5px;color:#d7eda6;background:rgba(158,201,72,.12);
   border:1px solid rgba(158,201,72,.4);border-radius:999px;padding:6px 13px;font-weight:700;white-space:nowrap}
-.section{padding:20px 30px 56px;max-width:1240px;margin:0 auto}
-.lead{font-size:12.5px;color:var(--mut);line-height:1.65;margin-bottom:15px;max-width:900px}
-.lead b{color:var(--ink2)}
+.section{padding:20px 30px 56px;max-width:1260px;margin:0 auto}
 
-.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
-.k{border:1px solid var(--line2);border-radius:16px;padding:14px 16px;
-  background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015))}
-.k .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:800}
-.k .v{font-size:26px;font-weight:900;margin-top:4px;letter-spacing:-.6px;font-variant-numeric:tabular-nums}
-.k .s{font-size:11.5px;color:var(--dim);margin-top:4px;line-height:1.45}
-.up{color:var(--good);font-weight:800}.down{color:var(--bad);font-weight:800}
+/* ── вердикт ───────────────────────────────────────────────────────────── */
+.hero{position:relative;padding:2px;border-radius:22px;margin-bottom:16px;
+  background:linear-gradient(135deg,#6f9c22,#d7eda6 28%,#9ec948 55%,#4e7214 80%,#c3e07a);
+  background-size:180% 180%;box-shadow:0 26px 60px -26px rgba(0,0,0,.8);
+  animation:hIn .7s cubic-bezier(.2,.75,.25,1) both,hGold 10s ease-in-out infinite}
+.hero::after{content:"";position:absolute;inset:2px;border-radius:20px;
+  background:radial-gradient(130% 120% at 0% 0%,#15202c,#0a1420 55%,#101c1a);z-index:0}
+.hero>*{position:relative;z-index:1}
+@keyframes hIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes hGold{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.hero-top{display:flex;gap:18px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;padding:20px 24px 6px}
+.hero-tag{font-size:10.5px;letter-spacing:.2em;font-weight:800;color:#c3e07a}
+.hero-h{margin:8px 0 3px;font-size:23px;font-weight:900;letter-spacing:-.4px;line-height:1.15}
+.hero-s{font-size:12.5px;color:#9fb0c4;line-height:1.5;max-width:580px}
+.hero-big{text-align:right;min-width:200px}
+.hero-big .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#9fb0c4;font-weight:800}
+.hero-big .v{font-size:34px;font-weight:900;line-height:1.05;margin-top:3px;color:#d7eda6;letter-spacing:-1px}
+.hero-big .s{font-size:12px;color:#8697aa;margin-top:4px}
+.hero-k{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;padding:8px 22px 4px}
+.hk{border:1px solid rgba(158,201,72,.22);border-radius:14px;padding:13px 15px;
+  background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015));transition:.22s}
+.hk:hover{transform:translateY(-3px);border-color:rgba(158,201,72,.6)}
+.hk .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#9fb0c4;font-weight:800}
+.hk .v{font-size:21px;font-weight:900;margin-top:4px;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.hk .s{font-size:11px;color:#8697aa;margin-top:4px;line-height:1.45}
+.hero-v{display:flex;gap:12px;align-items:flex-start;margin:12px 22px 20px;padding:14px 16px;border-radius:15px;
+  background:linear-gradient(120deg,rgba(158,201,72,.11),rgba(158,201,72,.025));
+  border:1px solid rgba(158,201,72,.25);border-left:3px solid var(--oliv)}
+.hero-v .t{font-size:11.5px;font-weight:800;letter-spacing:.05em;color:#c3e07a;margin-bottom:4px}
+.hero-v .p{font-size:13px;line-height:1.65;color:#d5deea}.hero-v .p b{color:#f1f6ff}
 
 .card{background:linear-gradient(170deg,#0e1828,#0b1320);border:1px solid var(--line);
   border-radius:18px;padding:18px 20px;margin-bottom:14px}
-.card h2{font-size:14.5px;font-weight:800;margin-bottom:2px}
+.card h2{font-size:15px;font-weight:800;margin-bottom:2px}
 .card .sub{font-size:12px;color:var(--mut);line-height:1.5;margin-bottom:14px}
+.hh{font-size:12.5px;font-weight:800;color:#b9c5d3;margin:20px 0 7px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);margin-bottom:10px}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:6px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.t{border:1px solid var(--line2);border-radius:14px;padding:12px 14px;
+  background:linear-gradient(160deg,rgba(255,255,255,.04),rgba(255,255,255,.012))}
+.t .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);font-weight:800}
+.t .v{font-size:20px;font-weight:900;margin-top:3px;font-variant-numeric:tabular-nums}
+.t .s{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.45}
+.up{color:var(--good);font-weight:800}.down{color:var(--bad);font-weight:800}.warn{color:var(--warn);font-weight:800}
 
 .chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px}
 .chip{background:#121c30;border:1px solid var(--line2);color:var(--ink2);border-radius:999px;
@@ -59,7 +92,7 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 svg{display:block}
 .tt{position:fixed;pointer-events:none;z-index:200;background:#0b1422;border:1px solid var(--line2);
   border-radius:10px;padding:9px 12px;font-size:12px;color:var(--ink);box-shadow:0 18px 38px -16px #000;
-  opacity:0;transition:opacity .12s;max-width:290px;line-height:1.5}
+  opacity:0;transition:opacity .12s;max-width:300px;line-height:1.5}
 .tt b{color:#fff}.tt .m{color:var(--mut);font-size:11px}
 
 table{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -77,30 +110,39 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
 .btn:hover{border-color:var(--oliv);color:var(--ink)}
 .ins{background:linear-gradient(120deg,rgba(158,201,72,.1),rgba(158,201,72,.02));
   border:1px solid rgba(158,201,72,.25);border-left:3px solid var(--oliv);border-radius:14px;
-  padding:14px 17px;font-size:13px;line-height:1.6;color:#dfe7f1;margin-top:14px}
+  padding:13px 16px;font-size:12.5px;line-height:1.6;color:#dfe7f1;margin-top:13px}
 .ins b{color:#d7eda6}
+.ins.alert{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.35);border-left-color:var(--warn);color:#fbd99a}
+.ins.alert b{color:#fde8b4}
+.lst{display:flex;flex-direction:column;gap:6px}
+.li{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:baseline;
+  padding:7px 11px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.02);font-size:12.5px}
+.li .nm{color:var(--ink2);line-height:1.35}
+.li .a{font-variant-numeric:tabular-nums;font-weight:800;white-space:nowrap}
+.li .d{font-size:11px;color:var(--dim);white-space:nowrap;min-width:54px;text-align:right}
 .foot{text-align:center;color:var(--dim);font-size:11.5px;padding:24px 0 0}
 .err{padding:40px;text-align:center;color:var(--dim);font-size:13px}
-@media(max-width:860px){.section{padding:16px 14px 44px}.kpi{grid-template-columns:repeat(2,1fr)}
-  .topbar{padding:13px 14px}}
+@media(max-width:980px){.hero-k{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}
+  .grid4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:860px){.section{padding:16px 14px 44px}.topbar{padding:13px 14px}
+  .grid3{grid-template-columns:1fr}.hero-big{text-align:left;min-width:0}.hero-h{font-size:19px}}
 </style></head>
 <body>
 <div class="topbar">
   <a class="backbtn" href="index.html">← Пульс</a>
-  <div><h1>🫒 Продажи Olive</h1><p>Контрагент Olive отдельно от продаж Фуд Завода</p></div>
+  <div><h1>🫒 Продажи Olive</h1><p>Отдельное направление: выручка, деньги и ассортимент</p></div>
   <div class="live" id="live">—</div>
 </div>
-<div class="section" id="root">
-  <div class="err" id="boot">Загружаю данные…</div>
-</div>
+<div class="section" id="root"><div class="err">Загружаю данные…</div></div>
 <div class="tt" id="tt"></div>
 
 <script src="oliv_data.js" onerror="window.OLIV=null"></script>
+<script src="sales_sum.js" onerror="0"></script>
+<script src="dz_kz.js?v=3" onerror="0"></script>
 <script src="sales_meta.js" onerror="0"></script>
 <script>
 (function(){
- var D = window.OLIV;
- var root = document.getElementById('root');
+ var D = window.OLIV, root = document.getElementById('root');
  if(!D || !D.months || !D.months.length){
    root.innerHTML = '<div class="err">Данные по Olive ещё не собраны.<br>'
      + 'Файл <code>oliv_data.js</code> появится после ближайшей пересборки продаж.</div>';
@@ -114,234 +156,503 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
    if(a>=1e6) return (v/1e6).toFixed(1).replace('.',',')+' млн';
    if(a>=1e3) return Math.round(v/1e3)+' тыс';
    return num(v); }
+ function smln(v){ return (v>0?'+':v<0?'−':'')+mln(Math.abs(v)); }
  function pc(v){ return String(Math.round(v*10)/10).replace('.',','); }
+ function spc(v){ return (v>0?'+':v<0?'−':'')+pc(Math.abs(v))+'%'; }
  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
  function plw(n,a,b,c){ n=Math.abs(n)%100; var m=n%10;
    if(n>10&&n<20) return c; if(m>1&&m<5) return b; if(m===1) return a; return c; }
  function shortM(l){ return String(l||'').split(' ')[0]; }
- /* «к сентябрь» режет глаз — держим дательный падеж, как на главной */
  var DAT={'Январь':'январю','Февраль':'февралю','Март':'марту','Апрель':'апрелю','Май':'маю',
           'Июнь':'июню','Июль':'июлю','Август':'августу','Сентябрь':'сентябрю','Октябрь':'октябрю',
           'Ноябрь':'ноябрю','Декабрь':'декабрю'};
- function dat(l){ var k=shortM(l); return DAT[k]||String(l||'').toLowerCase(); }
+ function dat(l){ return DAT[shortM(l)] || String(l||'').toLowerCase(); }
+ var PRE={'Январь':'январе','Февраль':'феврале','Март':'марте','Апрель':'апреле','Май':'мае',
+          'Июнь':'июне','Июль':'июле','Август':'августе','Сентябрь':'сентябре','Октябрь':'октябре',
+          'Ноябрь':'ноябре','Декабрь':'декабре'};
+ function pre(l){ return PRE[shortM(l)] || String(l||'').toLowerCase(); }
+ function cut(s,n){ s=String(s||''); return s.length>n ? s.slice(0,n-1)+'…' : s; }
 
- var MS = D.months, LAST = MS[MS.length-1], PREV = MS.length>1 ? MS[MS.length-2] : null;
- var YEAR = D.year;
-
- /* ── подсказка ──────────────────────────────────────────────────────── */
- var tt = document.getElementById('tt');
- function tipOn(e, html){
-   tt.innerHTML = html; tt.style.opacity = 1;
-   var x = e.clientX + 14, y = e.clientY + 14;
-   if(x + tt.offsetWidth > innerWidth - 10) x = e.clientX - tt.offsetWidth - 14;
-   if(y + tt.offsetHeight > innerHeight - 10) y = e.clientY - tt.offsetHeight - 14;
-   tt.style.left = x+'px'; tt.style.top = y+'px';
+ /* ── дни периода: «Октябрь (1–6)» → 6, «Август» → 31 ────────────────── */
+ function daysOf(m){
+   var f=/\((\d+)\s*[–-]\s*(\d+)\)/.exec(m.label||'');
+   if(f) return +f[2]-(+f[1])+1;
+   var p=(m.mk||'2026-01').split('-');
+   return new Date(+p[0], +p[1], 0).getDate();
  }
- function tipOff(){ tt.style.opacity = 0; }
- function bindTip(el, html){
-   el.addEventListener('mousemove', function(e){ tipOn(e, html); });
-   el.addEventListener('mouseleave', tipOff);
- }
+ function dimOf(m){ var p=(m.mk||'2026-01').split('-'); return new Date(+p[0], +p[1], 0).getDate(); }
 
- /* ── показатели ─────────────────────────────────────────────────────── */
- var chg = PREV && PREV.total_rev ? (LAST.total_rev - PREV.total_rev)/PREV.total_rev*100 : null;
- var first = MS[0], growth = first.total_rev ? LAST.total_rev/first.total_rev : 0;
- var kpi = [
-   {l:'Выручка за месяц', v:mln(LAST.total_rev)+' ₸',
-    s:(chg===null ? LAST.label
-       : '<span class="'+(chg>=0?'up':'down')+'">'+(chg>=0?'+':'−')+pc(Math.abs(chg))+'%</span> к '
-         + dat(PREV.label)+' · '+LAST.label.toLowerCase())},
-   {l:'С начала года', v:mln(D.yearRev)+' ₸', s:MS.length+' '+plw(MS.length,'месяц','месяца','месяцев')
-     +' · в среднем '+mln(D.yearRev/MS.length)+' ₸ в месяц'},
-   {l:'Доля в общих продажах', v:pc(D.share)+'%', s:'продажи Фуд Завода за год — '+mln(D.fzYearRev)+' ₸'},
-   {l:'Позиций в ассортименте', v:num(LAST.items.length), s:'за '+LAST.label.toLowerCase()
-     +' · за год — '+num(YEAR.items.length)}
- ];
+ var MS=D.months, YEAR=D.year;
+ MS.forEach(function(m){ m.days=daysOf(m); m.dim=dimOf(m); m.perDay=m.days?m.total_rev/m.days:0;
+                         m.fc = m.partial ? m.perDay*m.dim : m.total_rev; });
+ var LAST=MS[MS.length-1], PREV=MS.length>1?MS[MS.length-2]:null;
+ /* «последний полный» — где закрыто хотя бы 90% дней: сентябрь (1–29) по сути
+    целый месяц, и в тексте честнее опираться на него, а не на август */
+ var LASTFULL=null; for(var q=MS.length-1;q>=0;q--){ if(MS[q].days/MS[q].dim>=0.9){ LASTFULL=MS[q]; break; } }
 
- /* ── график по месяцам: один ряд, один цвет ─────────────────────────── */
+ /* ── деньги: долг, отгрузки и оплаты ────────────────────────────────── */
+ var DZ=null;
+ (function(){
+   var S=window.DZ_KZ; if(!S||!S.dz) return;
+   function find(list){ return (list||[]).filter(function(r){
+     return /o-?live/i.test(r.name||''); })[0] || null; }
+   var top=find(S.dz.top)||find(S.dz.excluded), cg=find(S.dz.consign);
+   if(!top && !cg) return;
+   DZ={ debt:(top&&top.debt)||(cg&&cg.dz)||0, prev:(top&&top.prev)||0,
+        date:S.dz.date||'', prevDate:S.dz.prevDate||'',
+        ships:(cg&&cg.ships)||[], pays:(cg&&cg.pays)||[],
+        weeks:((S.dz.consignMeta||{}).weeks)||[] };
+   DZ.shipSum=DZ.ships.reduce(function(a,b){return a+b;},0);
+   DZ.paySum=DZ.pays.reduce(function(a,b){return a+b;},0);
+   DZ.perDay=DZ.ships.length?DZ.shipSum/(DZ.ships.length*7):0;
+   DZ.dso=DZ.perDay?DZ.debt/DZ.perDay:0;
+ })();
+
+ /* ── доля в продажах завода по месяцам ──────────────────────────────── */
+ var FZ={}; (function(){
+   var S=window.SALES_SUM; if(!S||!S.months) return;
+   S.months.forEach(function(x){ FZ[x.k]=x.rev; });
+ })();
+ function shareOf(m){ var f=FZ[m.mk]; return f? m.total_rev/(m.total_rev+f)*100 : null; }
+
+ /* ── подсказки ──────────────────────────────────────────────────────── */
+ var tt=document.getElementById('tt');
+ function tipOn(e,html){ tt.innerHTML=html; tt.style.opacity=1;
+   var x=e.clientX+14,y=e.clientY+14;
+   if(x+tt.offsetWidth>innerWidth-10) x=e.clientX-tt.offsetWidth-14;
+   if(y+tt.offsetHeight>innerHeight-10) y=e.clientY-tt.offsetHeight-14;
+   tt.style.left=x+'px'; tt.style.top=y+'px'; }
+ function tipOff(){ tt.style.opacity=0; }
+ function bindTips(sel){ root.querySelectorAll(sel).forEach(function(el){
+   var h=el.getAttribute('data-tip'); if(!h) return;
+   el.addEventListener('mousemove',function(e){ tipOn(e,h); });
+   el.addEventListener('mouseleave',tipOff); }); }
+
+ /* ── график выручки по месяцам с прогнозом ──────────────────────────── */
  function monthsChart(){
-   var W=980,H=300,pL=62,pR=18,pT=34,pB=52;
-   var mx=Math.max.apply(null, MS.map(function(m){return m.total_rev;}))||1;
-   var hi=mx*1.14, bw=Math.min(66,(W-pL-pR)/MS.length*0.6);
+   var W=1000,H=310,pL=64,pR=18,pT=38,pB=54;
+   var mx=Math.max.apply(null,MS.map(function(m){return Math.max(m.total_rev,m.fc);}))||1;
+   var hi=mx*1.16, bw=Math.min(62,(W-pL-pR)/MS.length*0.58);
    function X(i){ return pL+(W-pL-pR)*(i+0.5)/MS.length; }
    function Y(v){ return pT+(H-pT-pB)*(1-v/hi); }
-   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:640px">';
-   /* сетка — приглушённая */
-   for(var g=0; g<=4; g++){
-     var v=hi*g/4, y=Y(v);
-     s+='<line x1="'+pL+'" y1="'+y.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y.toFixed(1)
-       +'" stroke="rgba(255,255,255,.07)"/>'
-       +'<text x="'+(pL-9)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="#6f7f93">'
-       + (g? mln(v):'0')+'</text>';
-   }
-   var maxI = MS.reduce(function(b,m,i){ return m.total_rev>MS[b].total_rev?i:b; },0);
+   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:660px">';
+   for(var g=0;g<=4;g++){ var v=hi*g/4,y=Y(v);
+     s+='<line x1="'+pL+'" y1="'+y.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y.toFixed(1)+'" stroke="rgba(255,255,255,.07)"/>'
+       +'<text x="'+(pL-9)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="#6f7f93">'+(g?mln(v):'0')+'</text>'; }
+   var maxI=MS.reduce(function(b,m,i){ return m.total_rev>MS[b].total_rev?i:b; },0);
    MS.forEach(function(m,i){
      var x=X(i)-bw/2, y=Y(m.total_rev), h=Math.max(2,H-pB-y);
-     /* 4px скруглённый торец, посаженный на базовую линию */
-     s+='<path class="bar" data-i="'+i+'" d="M'+x.toFixed(1)+' '+(y+4).toFixed(1)
-       +' a4 4 0 0 1 4 -4 h'+(bw-8).toFixed(1)+' a4 4 0 0 1 4 4 v'+(h-4).toFixed(1)
-       +' h'+(-bw)+' Z" fill="'+(m.partial?'url(#oliHatch)':'#9ec948')+'"/>';
-     /* подписи выборочно: первый, максимум и последний */
-     if(i===0 || i===maxI || i===MS.length-1)
+     if(m.partial){ /* прогноз — лёгкий контур поверх факта */
+       var yf=Y(m.fc), hf=Math.max(2,H-pB-yf);
+       s+='<rect x="'+x.toFixed(1)+'" y="'+yf.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+hf.toFixed(1)
+         +'" rx="4" fill="none" stroke="#9ec948" stroke-width="1.5" stroke-dasharray="5 4" opacity=".75"/>'
+         +'<text x="'+X(i).toFixed(1)+'" y="'+(yf-9).toFixed(1)+'" text-anchor="middle" font-size="11.5" '
+         +'font-weight="800" fill="#c3e07a">'+mln(m.fc)+'<tspan fill="#7b8ca6" font-size="10"> прогноз</tspan></text>';
+     }
+     s+='<path class="bar" data-i="'+i+'" data-tip="'+esc(tipMonth(m,i))+'" d="M'+x.toFixed(1)+' '+(y+4).toFixed(1)
+       +' a4 4 0 0 1 4 -4 h'+(bw-8).toFixed(1)+' a4 4 0 0 1 4 4 v'+(h-4).toFixed(1)+' h'+(-bw)+' Z" fill="#9ec948"/>';
+     if(i===0||i===maxI||i===MS.length-1)
        s+='<text x="'+X(i).toFixed(1)+'" y="'+(y-9).toFixed(1)+'" text-anchor="middle" font-size="12" '
          +'font-weight="800" fill="#d7eda6">'+mln(m.total_rev)+'</text>';
      s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-30)+'" text-anchor="middle" font-size="11" fill="#c3d0e2">'
        + shortM(m.label).slice(0,3)+'</text>';
-     if(m.partial)
-       s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-16)+'" text-anchor="middle" font-size="9.5" fill="#6f7f93">неполный</text>';
+     if(m.partial) s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-16)+'" text-anchor="middle" font-size="9.5" fill="#6f7f93">'
+       + m.days+' '+plw(m.days,'день','дня','дней')+'</text>';
    });
-   s+='<defs><pattern id="oliHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
-     +'<rect width="7" height="7" fill="#9ec948" opacity=".35"/><rect width="3" height="7" fill="#9ec948"/></pattern></defs>';
+   s+='<line x1="'+pL+'" y1="'+(H-pB)+'" x2="'+(W-pR)+'" y2="'+(H-pB)+'" stroke="rgba(255,255,255,.22)"/>';
+   return s+'</svg>';
+ }
+ function tipMonth(m,i){
+   var p=i>0?MS[i-1]:null;
+   var d=p&&p.perDay?((m.perDay-p.perDay)/p.perDay*100):null;
+   var sh=shareOf(m);
+   return '<b>'+esc(m.label)+'</b><br>'+num(m.total_rev)+' ₸'
+     +'<br><span class="m">в день '+mln(m.perDay)+' ₸'+(d===null?'':' · '+spc(d)+' к '+dat(p.label)+' по темпу')+'</span>'
+     +(m.partial?'<br><span class="m">прогноз на месяц '+mln(m.fc)+' ₸</span>':'')
+     +'<br><span class="m">позиций '+num(m.items.length)+(sh===null?'':' · доля в продажах завода '+pc(sh)+'%')+'</span>';
+ }
+
+ /* ── доля направления: линия по месяцам ─────────────────────────────── */
+ function shareChart(){
+   var pts=MS.map(function(m){ return {m:m, v:shareOf(m)}; }).filter(function(x){ return x.v!==null; });
+   if(pts.length<2) return '';
+   var W=1000,H=190,pL=50,pR=18,pT=26,pB=36;
+   var mx=Math.max.apply(null,pts.map(function(x){return x.v;}))*1.25||1;
+   function X(i){ return pL+(W-pL-pR)*i/(pts.length-1); }
+   function Y(v){ return pT+(H-pT-pB)*(1-v/mx); }
+   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:620px">';
+   [0,mx/2,mx].forEach(function(v){ var y=Y(v);
+     s+='<line x1="'+pL+'" y1="'+y.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y.toFixed(1)+'" stroke="rgba(255,255,255,.07)"/>'
+       +'<text x="'+(pL-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#6f7f93">'+pc(v)+'%</text>'; });
+   var d='M'+pts.map(function(x,i){ return X(i).toFixed(1)+' '+Y(x.v).toFixed(1); }).join(' L');
+   s+='<path d="'+d+'" fill="none" stroke="#9ec948" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+   pts.forEach(function(x,i){
+     s+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(x.v).toFixed(1)+'" r="4" fill="#9ec948" stroke="#0b1320" stroke-width="2"/>';
+     if(i===0||i===pts.length-1)
+       s+='<text x="'+X(i).toFixed(1)+'" y="'+(Y(x.v)-11).toFixed(1)+'" text-anchor="'+(i?'end':'start')
+         +'" font-size="11.5" font-weight="800" fill="#d7eda6">'+pc(x.v)+'%</text>';
+     s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-12)+'" text-anchor="middle" font-size="10.5" fill="#c3d0e2">'
+       + shortM(x.m.label).slice(0,3)+'</text>';
+   });
+   return s+'</svg>';
+ }
+
+ /* ── отгрузки и оплаты по неделям: две серии ────────────────────────── */
+ function moneyChart(){
+   if(!DZ || !DZ.ships.length) return '';
+   var w=DZ.weeks.slice().reverse(), sh=DZ.ships.slice().reverse(), pa=DZ.pays.slice().reverse();
+   var W=1000,H=250,pL=62,pR=18,pT=30,pB=48, n=sh.length;
+   var mx=Math.max(Math.max.apply(null,sh),Math.max.apply(null,pa))*1.18||1;
+   var step=(W-pL-pR)/n, bw=Math.min(22,step*0.3);
+   function Y(v){ return pT+(H-pT-pB)*(1-v/mx); }
+   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:660px">';
+   for(var g=0;g<=3;g++){ var v=mx*g/3,y=Y(v);
+     s+='<line x1="'+pL+'" y1="'+y.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y.toFixed(1)+'" stroke="rgba(255,255,255,.07)"/>'
+       +'<text x="'+(pL-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#6f7f93">'+(g?mln(v):'0')+'</text>'; }
+   for(var i=0;i<n;i++){
+     var cx=pL+step*(i+0.5);
+     /* 2px зазор между соседними заливками */
+     [[sh[i],'#9ec948',-bw-1],[pa[i],'#a78bfa',1]].forEach(function(p){
+       var y=Y(p[0]), h=Math.max(2,H-pB-y), x=cx+p[2];
+       s+='<path d="M'+x.toFixed(1)+' '+(y+4).toFixed(1)+' a4 4 0 0 1 4 -4 h'+(bw-8).toFixed(1)
+         +' a4 4 0 0 1 4 4 v'+(h-4).toFixed(1)+' h'+(-bw)+' Z" fill="'+p[1]+'"/>';
+     });
+     s+='<text x="'+cx.toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle" font-size="10" fill="#9fb0c4">'
+       + esc((w[i]||'').split('–')[0])+'</text>';
+     var d=sh[i]-pa[i];
+     s+='<text x="'+cx.toFixed(1)+'" y="'+(H-30)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="'
+       + (d>0?'#fca5a5':'#86efac')+'">'+smln(-d)+'</text>';
+   }
    s+='<line x1="'+pL+'" y1="'+(H-pB)+'" x2="'+(W-pR)+'" y2="'+(H-pB)+'" stroke="rgba(255,255,255,.22)"/>';
    return s+'</svg>';
  }
 
- /* ── ранжированные полосы (категории и позиции) ─────────────────────── */
- function ranked(rows, opt){
-   opt = opt || {};
-   var n=rows.length; if(!n) return '<div class="err">нет данных</div>';
-   var W=980,rowH=opt.rowH||30,pL=opt.pL||210,pR=132,H=n*rowH+6;
-   var mx=Math.max.apply(null, rows.map(function(r){return r.v;}))||1;
-   var barW=W-pL-pR;
-   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:620px">';
+ /* ── ранжированные полосы ───────────────────────────────────────────── */
+ function ranked(rows,opt){
+   opt=opt||{}; var n=rows.length; if(!n) return '<div class="err">нет данных</div>';
+   var W=1000,rowH=opt.rowH||30,pL=opt.pL||210,pR=opt.pR||136,H=n*rowH+6;
+   var mx=Math.max.apply(null,rows.map(function(r){return Math.abs(r.v);}))||1, barW=W-pL-pR;
+   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:640px">';
    rows.forEach(function(r,i){
-     var y=i*rowH+8, h=rowH-15, w=Math.max(3,barW*r.v/mx);
-     /* один тон, светлее к низу рейтинга — величина, а не идентичность */
-     var op=(1-i/Math.max(n,1)*0.55).toFixed(2);
-     s+='<path d="M0 '+y+' h'+(w-4).toFixed(1)+' a4 4 0 0 1 4 4 v'+(h-8)
-       +' a4 4 0 0 1 -4 4 h'+(-(w-4)).toFixed(1)+' Z" transform="translate('+pL+',0)" fill="#9ec948" opacity="'+op+'"/>';
-     s+='<text x="'+(pL-12)+'" y="'+(y+h/2+4)+'" text-anchor="end" font-size="11.5" fill="#dbe4ee">'
-       + esc(String(r.n).length>30?String(r.n).slice(0,29)+'…':r.n)+'</text>';
+     var y=i*rowH+8,h=rowH-15,w=Math.max(3,barW*Math.abs(r.v)/mx);
+     var col=r.c||'#9ec948', op=r.c?1:(1-i/Math.max(n,1)*0.55).toFixed(2);
+     s+='<path d="M0 '+y+' h'+(w-4).toFixed(1)+' a4 4 0 0 1 4 4 v'+(h-8)+' a4 4 0 0 1 -4 4 h'
+       +(-(w-4)).toFixed(1)+' Z" transform="translate('+pL+',0)" fill="'+col+'" opacity="'+op+'"/>';
+     s+='<text x="'+(pL-12)+'" y="'+(y+h/2+4)+'" text-anchor="end" font-size="11.5" fill="#dbe4ee">'+esc(cut(r.n,32))+'</text>';
      s+='<text x="'+(pL+w+9).toFixed(1)+'" y="'+(y+h/2+4)+'" font-size="11.5" font-weight="800" fill="#f4f7fb">'
-       + mln(r.v)+'</text>';
-     if(r.p!=null)
-       s+='<text x="'+(W-6)+'" y="'+(y+h/2+4)+'" text-anchor="end" font-size="11" font-weight="700" fill="#7b8ca6">'
-         + pc(r.p)+'%</text>';
+       + (r.t||mln(r.v))+'</text>';
+     if(r.p!=null) s+='<text x="'+(W-6)+'" y="'+(y+h/2+4)+'" text-anchor="end" font-size="11" font-weight="700" fill="#7b8ca6">'
+       + pc(r.p)+'%</text>';
    });
    return s+'</svg>';
  }
 
- /* ── разметка ───────────────────────────────────────────────────────── */
- var SEL = 'year';     // выбранный период: 'year' или mk месяца
- function cur(){ return SEL==='year' ? YEAR : MS.filter(function(m){return m.mk===SEL;})[0] || YEAR; }
+ /* ── ассортимент: ABC, появились / ушли, выросли / упали ────────────── */
+ function abcOf(items,total){
+   var a=0,b=0,c=0,cum=0,t=total||1;
+   items.forEach(function(x){ var before=cum; cum+=x.r;
+     if(before/t<0.8) a++; else if(before/t<0.95) b++; else c++; });
+   var aRev=0,k=0,run=0;
+   for(k=0;k<items.length;k++){ if(run/t>=0.8) break; run+=items[k].r; aRev+=items[k].r; }
+   return {a:a,b:b,c:c,aCount:k,aRev:aRev};
+ }
+ function cmpItems(cur,prev){
+   var P={}; (prev.items||[]).forEach(function(x){ P[x.n]=x.r; });
+   var C={}; (cur.items||[]).forEach(function(x){ C[x.n]=x.r; });
+   var news=[],gone=[],grew=[],fell=[];
+   /* неполный месяц сравниваем по темпу в день, иначе всё «упало» */
+   var k=(cur.partial||prev.partial) ? (prev.days/ (cur.days||1)) : 1;
+   (cur.items||[]).forEach(function(x){
+     if(P[x.n]==null){ news.push({n:x.n,r:x.r}); return; }
+     var d=x.r*k-P[x.n];
+     (d>=0?grew:fell).push({n:x.n,d:d,from:P[x.n],to:x.r});
+   });
+   (prev.items||[]).forEach(function(x){ if(C[x.n]==null) gone.push({n:x.n,r:x.r}); });
+   news.sort(function(a,b){return b.r-a.r;}); gone.sort(function(a,b){return b.r-a.r;});
+   grew.sort(function(a,b){return b.d-a.d;}); fell.sort(function(a,b){return a.d-b.d;});
+   return {news:news,gone:gone,grew:grew,fell:fell,k:k};
+ }
+
+ /* ── состояние ──────────────────────────────────────────────────────── */
+ var SEL='year';
+ function cur(){ return SEL==='year' ? YEAR : (MS.filter(function(m){return m.mk===SEL;})[0]||YEAR); }
+ function prevOf(){ if(SEL==='year') return null;
+   var i=MS.map(function(m){return m.mk;}).indexOf(SEL); return i>0?MS[i-1]:null; }
+
+ /* ── блоки ──────────────────────────────────────────────────────────── */
+ function heroHtml(){
+   var growth = MS[0].total_rev ? LAST.perDay/ (MS[0].perDay||1) : 0;
+   var fcTxt = LAST.partial ? mln(LAST.fc) : mln(LAST.total_rev);
+   var vsPrev = PREV && PREV.perDay ? (LAST.perDay-PREV.perDay)/PREV.perDay*100 : null;
+   var sh = shareOf(LAST), sh0 = shareOf(MS[0]);
+   var k=[
+     {l:'Выручка за месяц', v:mln(LAST.total_rev)+' ₸',
+      s: LAST.partial
+         ? ('за '+LAST.days+' '+plw(LAST.days,'день','дня','дней')+' · темп '+mln(LAST.perDay)+' ₸/день')
+         : (vsPrev===null?LAST.label:'<span class="'+(vsPrev>=0?'up':'down')+'">'+spc(vsPrev)+'</span> к '+dat(PREV.label))},
+     {l:'Прогноз на месяц', v:fcTxt+' ₸',
+      s: LAST.partial
+         ? ('по темпу '+LAST.days+' '+plw(LAST.days,'дня','дней','дней')+'; '
+            + (PREV? '<span class="'+(LAST.fc>=PREV.fc?'up':'down')+'">'
+               + spc((LAST.fc-PREV.fc)/(PREV.fc||1)*100)+'</span> к '+dat(PREV.label) : ''))
+         : 'месяц закрыт'},
+     {l:'С начала года', v:mln(D.yearRev)+' ₸',
+      s: MS.length+' '+plw(MS.length,'месяц','месяца','месяцев')+' · в среднем '+mln(D.yearRev/MS.length)+' ₸/мес'},
+     {l:'Доля в продажах завода', v:(sh===null?pc(D.share):pc(sh))+'%',
+      s: (sh0===null?'':'было '+pc(sh0)+'% в январе · ')+'за год '+pc(D.share)+'%'}
+   ];
+   var vp='Olive выросла с <b>'+mln(MS[0].total_rev)+' ₸</b> в '+pre(MS[0].label)
+     +' до <b>'+mln(LASTFULL?LASTFULL.total_rev:LAST.total_rev)+' ₸</b> в '
+     + pre((LASTFULL||LAST).label)+' — это <b>×'+Math.round(growth)+'</b> по дневному темпу. ';
+   if(sh!==null&&sh0!==null) vp+='Доля направления в продажах завода поднялась с <b>'+pc(sh0)+'%</b> до <b>'+pc(sh)+'%</b>. ';
+   if(DZ){
+     var dd=DZ.debt-DZ.prev;
+     vp+='Долг на '+DZ.date+' — <b>'+mln(DZ.debt)+' ₸</b> ('+(dd>=0?'вырос':'снизился')+' за неделю на '
+       + mln(Math.abs(dd))+'), это <b>'+Math.round(DZ.dso)+' '+plw(Math.round(DZ.dso),'день','дня','дней')
+       +'</b> отгрузок. ';
+     var rs=DZ.ships.slice(0,2).reduce(function(a,b){return a+b;},0),
+         rp=DZ.pays.slice(0,2).reduce(function(a,b){return a+b;},0);
+     vp += (DZ.paySum>=DZ.shipSum)
+       ? 'За восемь недель оплачено больше, чем отгружено.'
+       : 'За восемь недель отгружено на <b>'+mln(DZ.shipSum-DZ.paySum)+' ₸</b> больше, чем оплачено.';
+     if(rs>rp) vp+=' Но последние две недели платят меньше, чем берут (<b>'+mln(rp)+'</b> против <b>'
+       + mln(rs)+'</b>) — отсюда и рост долга.';
+   }
+   return '<div class="hero">'
+     + '<div class="hero-top"><div><div class="hero-tag">НАПРАВЛЕНИЕ OLIVE · '+esc(LAST.label.toUpperCase())+'</div>'
+     + '<div class="hero-h">Сколько Olive приносит заводу и чем это обеспечено</div>'
+     + '<div class="hero-s">Выручка, деньги и ассортимент по одному контрагенту. В «Продажах ФУД ЗАВОД» '
+     + 'этих сумм нет — направление вынесено целиком, чтобы не смазывать картину по заводу.</div></div>'
+     + '<div class="hero-big"><div class="l">'+(LAST.partial?'Прогноз месяца':'Выручка месяца')+'</div>'
+     + '<div class="v">'+fcTxt+' ₸</div><div class="s">'+esc(LAST.label)+'</div></div></div>'
+     + '<div class="hero-k">'+k.map(function(x){ return '<div class="hk"><div class="l">'+x.l+'</div>'
+         + '<div class="v">'+x.v+'</div><div class="s">'+x.s+'</div></div>'; }).join('')+'</div>'
+     + '<div class="hero-v"><div style="font-size:19px;line-height:1.2">🧭</div><div>'
+     + '<div class="t">ВЗГЛЯД ФИНДИРЕКТОРА</div><div class="p">'+vp+'</div></div></div></div>';
+ }
+
+ function moneyHtml(){
+   if(!DZ) return '';
+   var dd=DZ.debt-DZ.prev, gap=DZ.shipSum-DZ.paySum;
+   var t=[
+     {l:'Долг на '+DZ.date, v:mln(DZ.debt)+' ₸',
+      s:'<span class="'+(dd>0?'down':'up')+'">'+smln(dd)+'</span> за неделю (с '+DZ.prevDate+')'},
+     {l:'Оборачиваемость долга', v:Math.round(DZ.dso)+' '+plw(Math.round(DZ.dso),'день','дня','дней'),
+      s:'столько дней отгрузок «зависло» в долге'},
+     {l:'Отгружено за 8 недель', v:mln(DZ.shipSum)+' ₸', s:'в среднем '+mln(DZ.shipSum/8)+' ₸ в неделю'},
+     {l:'Оплачено за 8 недель', v:mln(DZ.paySum)+' ₸',
+      s: gap>0 ? '<span class="down">на '+mln(gap)+' меньше отгрузок</span>'
+               : '<span class="up">на '+mln(-gap)+' больше отгрузок</span>'}
+   ];
+   var r4s=DZ.ships.slice(0,4).reduce(function(a,b){return a+b;},0),
+       r4p=DZ.pays.slice(0,4).reduce(function(a,b){return a+b;},0), r4=r4s-r4p;
+   var ins = gap>0
+     ? '⚠️ За восемь недель Olive забрала товара на <b>'+mln(gap)+' ₸</b> больше, чем заплатила — именно на эту '
+       +'сумму вырос долг. При текущем темпе отгрузок он равен <b>'+Math.round(DZ.dso)+' '
+       + plw(Math.round(DZ.dso),'дню','дням','дням')+'</b> поставок. Если отсрочка по договору короче — пора напомнить об оплате.'
+     : '✅ За восемь недель оплачено <b>'+mln(DZ.paySum)+' ₸</b> против <b>'+mln(DZ.shipSum)
+       +' ₸</b> отгрузок — в целом направление платит за себя.';
+   if(r4>0) ins += ' <b>Но последние четыре недели оплата отстаёт на '+mln(r4)+' ₸</b> — долг вырос до '
+     + mln(DZ.debt)+' ₸ и продолжает расти. Это <b>'+Math.round(DZ.dso)+' '
+     + plw(Math.round(DZ.dso),'день','дня','дней')+'</b> отгрузок: сверьте с отсрочкой по договору.';
+   if(r4>0) ins = ins.replace('✅','⚠️');
+   return '<div class="card"><h2>💰 Деньги: сколько должны и как платят</h2>'
+     + '<div class="sub">Долг и движение по неделям — из того же источника, что и раздел «ДЗ/КЗ». '
+     + 'Выручка выше — это отгрузки, а здесь видно, доходят ли они до счёта.</div>'
+     + '<div class="grid4">'+t.map(function(x){ return '<div class="t"><div class="l">'+x.l+'</div>'
+         + '<div class="v">'+x.v+'</div><div class="s">'+x.s+'</div></div>'; }).join('')+'</div>'
+     + '<div class="hh">Отгрузки и оплаты по неделям</div>'
+     + '<div class="legend"><span><i style="background:#9ec948"></i>отгрузили</span>'
+     + '<span><i style="background:#a78bfa"></i>оплатили</span>'
+     + '<span style="color:#7b8ca6">под столбиками — на сколько оплата отстала (красным) или опередила (зелёным)</span></div>'
+     + '<div class="wrapx">'+moneyChart()+'</div>'
+     + '<div class="ins'+((gap>0||r4>0)?' alert':'')+'">'+ins+'</div></div>';
+ }
+
+ function assortHtml(){
+   var c=cur(), p=prevOf(), items=(c.items||[]).slice().sort(function(a,b){return b.r-a.r;});
+   var abc=abcOf(items,c.total_rev);
+   var cats=(c.categories||[]).map(function(x){ return {n:x.cat,v:x.rev,p:x.pct}; });
+   var tail=items.filter(function(x){ return x.r < c.total_rev*0.001; }).length;
+
+   /* сдвиг структуры: доля категории в первом месяце против последнего полного */
+   var A=MS[0], B=LASTFULL||LAST, shift=[];
+   (function(){
+     var f={},l={};
+     (A.categories||[]).forEach(function(x){ f[x.cat]=x.pct; });
+     (B.categories||[]).forEach(function(x){ l[x.cat]=x.pct; });
+     Object.keys(l).forEach(function(k){ shift.push({n:k, was:f[k]||0, now:l[k], d:(l[k]-(f[k]||0))}); });
+     shift.sort(function(a,b){ return Math.abs(b.d)-Math.abs(a.d); });
+   })();
+
+   var t=[
+     {l:'Позиций в периоде', v:num(items.length), s:'за год — '+num((YEAR.items||[]).length)},
+     {l:'Дают 80% выручки', v:num(abc.aCount), s:abc.aCount? pc(abc.aCount/items.length*100)+'% ассортимента' : '—'},
+     {l:'Категорий в заказе', v:num(cats.length), s: cats[0]? 'крупнейшая — '+cats[0].n+', '+pc(cats[0].p)+'%' : '—'},
+     {l:'Длинный хвост', v:num(tail), s:'позиций меньше 0,1% выручки — кандидаты на вывод'}
+   ];
+
+   var h='<div class="card"><h2>🧺 Анализ ассортимента</h2>'
+     + '<div class="sub">Что именно берут, насколько заказ сконцентрирован и как он меняется. '
+     + 'Выберите период — всё пересчитается.</div>'
+     + chipsHtml()
+     + '<div class="grid4">'+t.map(function(x){ return '<div class="t"><div class="l">'+x.l+'</div>'
+         + '<div class="v">'+x.v+'</div><div class="s">'+x.s+'</div></div>'; }).join('')+'</div>'
+
+     + '<div class="hh">ABC: на чём держится выручка</div>'
+     + '<div class="wrapx">'+ranked([
+         {n:'A — первые 80% выручки', v:abc.aRev, p:abc.aRev/(c.total_rev||1)*100,
+          t:num(abc.a)+' '+plw(abc.a,'позиция','позиции','позиций')},
+         {n:'B — следующие 15%', v:c.total_rev*0.15, p:15, t:num(abc.b)+' '+plw(abc.b,'позиция','позиции','позиций')},
+         {n:'C — последние 5%', v:c.total_rev*0.05, p:5, t:num(abc.c)+' '+plw(abc.c,'позиция','позиции','позиций')}
+       ],{pL:240,rowH:34})+'</div>'
+     + '<div class="ins">💡 <b>'+num(abc.a)+'</b> '+plw(abc.a,'позиция','позиции','позиций')+' из <b>'+num(items.length)
+       + '</b> делают 80% выручки Olive. Остальные <b>'+num(abc.b+abc.c)+'</b> — это '
+       + pc((abc.b+abc.c)/items.length*100)+'% ассортимента ради '+pc(20)+'% денег: по ним держится склад, '
+       + 'упаковка и работа комплектовщика.</div>'
+
+     + '<div class="hh">Категории</div>'
+     + '<div class="wrapx">'+ranked(cats)+'</div>';
+
+   if(shift.length){
+     h+='<div class="hh">Как изменилась структура заказа: '+shortM(A.label).toLowerCase()+' → '
+       + shortM(B.label).toLowerCase()+'</div><div class="lst">'
+       + shift.slice(0,6).map(function(x){
+           return '<div class="li"><span class="nm">'+esc(x.n)+'</span>'
+             + '<span class="a '+(x.d>=0?'up':'down')+'">'+(x.d>0?'+':x.d<0?'−':'')+pc(Math.abs(x.d))+' п.п.</span>'
+             + '<span class="d">'+pc(x.was)+'% → '+pc(x.now)+'%</span></div>'; }).join('')
+       + '</div>';
+   }
+
+   if(p){
+     var cm=cmpItems(c,p), note = (c.partial||p.partial)
+       ? ' Сравнение приведено к одному числу дней, иначе неполный месяц выглядел бы падением.' : '';
+     h+='<div class="hh">Что изменилось к '+dat(p.label)+'</div>'
+       + '<div class="sub" style="margin-bottom:10px">Берём позиции '+esc(c.label)+' и сравниваем с '+esc(p.label)+'.'+note+'</div>'
+       + '<div class="g2">'
+       + col('📈 Выросли', cm.grew.slice(0,7), 'up', function(x){ return smln(x.d)+' ₸'; },
+             function(x){ return mln(x.from)+' → '+mln(x.to); })
+       + col('📉 Просели', cm.fell.slice(0,7), 'down', function(x){ return smln(x.d)+' ₸'; },
+             function(x){ return mln(x.from)+' → '+mln(x.to); })
+       + '</div><div class="g2" style="margin-top:12px">'
+       + col('🆕 Новые позиции', cm.news.slice(0,7), 'up', function(x){ return mln(x.r)+' ₸'; }, function(){ return 'впервые'; })
+       + col('⛔ Перестали брать', cm.gone.slice(0,7), 'down', function(x){ return mln(x.r)+' ₸'; },
+             function(){ return 'было в '+shortM(p.label).toLowerCase(); })
+       + '</div>';
+     var lostSum=cm.gone.reduce(function(a,x){return a+x.r;},0), newSum=cm.news.reduce(function(a,x){return a+x.r;},0);
+     h+='<div class="ins">💡 Пришло <b>'+num(cm.news.length)+'</b> '+plw(cm.news.length,'новая позиция','новые позиции','новых позиций')
+       + ' на <b>'+mln(newSum)+' ₸</b>, ушло <b>'+num(cm.gone.length)+'</b> на <b>'+mln(lostSum)+' ₸</b>'
+       + (lostSum>newSum ? ' — выпавшие позиции пока не замещены, это прямая потеря выручки.'
+                         : ' — замена идёт с плюсом.')+'</div>';
+   }
+   return h+'</div>';
+ }
+ function col(title,rows,cls,fa,fd){
+   if(!rows.length) return '<div><div class="hh" style="margin-top:0">'+title+'</div>'
+     + '<div class="t" style="color:#546279;font-size:12px">ничего не изменилось</div></div>';
+   return '<div><div class="hh" style="margin-top:0">'+title+'</div><div class="lst">'
+     + rows.map(function(x){ return '<div class="li"><span class="nm">'+esc(cut(x.n,38))+'</span>'
+         + '<span class="a '+cls+'">'+fa(x)+'</span><span class="d">'+fd(x)+'</span></div>'; }).join('')
+     + '</div></div>';
+ }
 
  function chipsHtml(){
    return '<div class="chips">'
      + '<button class="chip'+(SEL==='year'?' on':'')+'" data-k="year">весь год</button>'
      + MS.map(function(m){ return '<button class="chip'+(SEL===m.mk?' on':'')+'" data-k="'+m.mk+'">'
-         + esc(shortM(m.label))+'</button>'; }).join('')
-     + '</div>';
+         + esc(shortM(m.label))+'</button>'; }).join('')+'</div>';
  }
 
- function insight(){
-   var c=cur(), cats=c.categories||[], top=(c.top20||[]);
-   var top3=top.slice(0,3).reduce(function(s,x){return s+x.rev;},0);
-   var share3=c.total_rev? top3/c.total_rev*100 : 0;
-   var txt='💡 За '+ (SEL==='year'?'год':c.label.toLowerCase()) +' Olive купила на <b>'+mln(c.total_rev)
-     +' ₸</b>, позиций — <b>'+num((c.items||[]).length)+'</b>. ';
-   if(cats[0]) txt+='Больше всего в категории <b>'+esc(cats[0].cat)+'</b> — '+mln(cats[0].rev)
-     +' ₸ ('+pc(cats[0].pct)+'% заказа). ';
-   if(top[0]) txt+='Главная позиция — <b>'+esc(top[0].name)+'</b>, '+mln(top[0].rev)+' ₸. ';
-   txt+='Три верхние позиции дают <b>'+pc(share3)+'%</b> выручки — '
-     + (share3>50?'заказ сильно сконцентрирован.':'заказ достаточно разложен по ассортименту.');
-   return '<div class="ins">'+txt+'</div>';
+ function topHtml(){
+   var c=cur(), top=(c.top20||[]).slice(0,15).map(function(x){
+     return {n:x.name, v:x.rev, p:c.total_rev? x.rev/c.total_rev*100 : 0}; });
+   return '<div class="card"><h2>🏆 Топ позиций · '+esc(SEL==='year'?'весь год':c.label)+'</h2>'
+     + '<div class="sub">Пятнадцать позиций с наибольшей выручкой за выбранный период.</div>'
+     + '<div class="wrapx">'+ranked(top,{pL:300,rowH:28})+'</div></div>';
  }
 
+ function tableHtml(){
+   return '<div class="card"><h2>📋 Все позиции</h2>'
+     + '<div class="sub">Полный список за выбранный период с динамикой к прошлому месяцу. '
+     + 'Клик по заголовку — сортировка.</div>'
+     + '<div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px">'
+     + '<input class="inp" id="q" placeholder="Поиск по названию…">'
+     + '<button class="btn" id="csv">⤓ Выгрузить в Excel (CSV)</button></div>'
+     + '<div class="wrapx"><table id="tbl"><thead><tr>'
+     + '<th data-s="n">Позиция</th><th data-s="q" style="text-align:right">Количество</th>'
+     + '<th data-s="r" style="text-align:right">Сумма, ₸</th>'
+     + '<th data-s="r" style="text-align:right">Доля</th>'
+     + '<th data-s="d" style="text-align:right">Δ к прошлому мес.</th></tr></thead><tbody></tbody></table></div></div>';
+ }
+
+ /* ── сборка ─────────────────────────────────────────────────────────── */
  function render(){
-   var c=cur();
-   var cats=(c.categories||[]).map(function(x){ return {n:x.cat, v:x.rev, p:x.pct}; });
-   var top=(c.top20||[]).slice(0,15).map(function(x){ return {n:x.name, v:x.rev,
-     p:c.total_rev? x.rev/c.total_rev*100 : 0}; });
+   root.innerHTML = heroHtml()
+     + '<div class="card"><h2>📈 Выручка по месяцам</h2>'
+     + '<div class="sub">Факт по месяцам; у неполного месяца пунктиром показан прогноз по текущему темпу — '
+     + 'сравнивать «шесть дней» с целым месяцем нельзя.</div>'
+     + '<div class="legend"><span><i style="background:#9ec948"></i>факт</span>'
+     + '<span><i style="border:1.5px dashed #9ec948;background:transparent"></i>прогноз на месяц</span></div>'
+     + '<div class="wrapx" id="ch-m">'+monthsChart()+'</div>'
+     + (shareChart() ? ('<div class="hh">Доля Olive в продажах завода, %</div>'
+         + '<div class="sub" style="margin-bottom:8px">Какую часть всех продаж завода даёт это направление.</div>'
+         + '<div class="wrapx">'+shareChart()+'</div>') : '')
+     + '</div>'
+     + moneyHtml()
+     + assortHtml()
+     + topHtml()
+     + tableHtml()
+     + '<div class="foot">Система «Пульс» · © 2026 · выручка и ассортимент — из выгрузок iiko, '
+     + 'долг и оплаты — из раздела ДЗ/КЗ</div>';
 
-   root.innerHTML =
-     '<div class="lead">Olive — отдельное направление: в отчёте «Продажи ФУД ЗАВОД» его нет ни в выручке, '
-   + 'ни в категориях, ни в топе товаров. Здесь всё, что эта сеть взяла у завода: '
-   + '<b>по месяцам, категориям и позициям</b>. Источник и метод расчёта те же, что в продажах завода, '
-   + 'поэтому цифры сопоставимы.</div>'
-
-   + '<div class="kpi">' + kpi.map(function(k){
-       return '<div class="k"><div class="l">'+k.l+'</div><div class="v">'+k.v+'</div>'
-         + '<div class="s">'+k.s+'</div></div>'; }).join('') + '</div>'
-
-   + '<div class="card"><h2>Выручка Olive по месяцам</h2>'
-   + '<div class="sub">Сколько Olive покупала каждый месяц. Подписаны первый месяц, лучший и последний — '
-   + 'остальные суммы появляются при наведении и есть в таблице ниже.</div>'
-   + '<div class="legend"><span><i style="background:#9ec948"></i>выручка Olive</span>'
-   + '<span><i style="background:#9ec948;opacity:.5"></i>штриховка — месяц неполный</span></div>'
-   + '<div class="wrapx" id="ch-m">'+monthsChart()+'</div></div>'
-
-   + '<div class="card"><h2>Что именно покупают</h2>'
-   + '<div class="sub">Выберите период — категории и позиции пересчитаются.</div>'
-   + chipsHtml()
-   + '<div style="font-size:12.5px;font-weight:800;color:#b9c5d3;margin:10px 0 6px">Категории</div>'
-   + '<div class="wrapx">'+ranked(cats)+'</div>'
-   + '<div style="font-size:12.5px;font-weight:800;color:#b9c5d3;margin:20px 0 6px">Топ-15 позиций</div>'
-   + '<div class="wrapx">'+ranked(top,{pL:280,rowH:28})+'</div>'
-   + insight() + '</div>'
-
-   + '<div class="card"><h2>Все позиции</h2>'
-   + '<div class="sub">Полный список за выбранный период. Клик по заголовку — сортировка.</div>'
-   + '<div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px">'
-   + '<input class="inp" id="q" placeholder="Поиск по названию…">'
-   + '<button class="btn" id="csv">⤓ Выгрузить в Excel (CSV)</button></div>'
-   + '<div class="wrapx"><table id="tbl"><thead><tr>'
-   + '<th data-s="n">Позиция</th><th data-s="q" style="text-align:right">Количество</th>'
-   + '<th data-s="r" style="text-align:right">Сумма, ₸</th>'
-   + '<th data-s="r" style="text-align:right">Доля</th></tr></thead><tbody></tbody></table></div></div>'
-
-   + '<div class="foot">Система «Пульс» · © 2026 · данные из тех же выгрузок iiko, что и продажи завода</div>';
-
-   /* подсказки по столбикам */
-   root.querySelectorAll('#ch-m .bar').forEach(function(b){
-     var m=MS[+b.dataset.i], p=MS[+b.dataset.i-1];
-     var d=p&&p.total_rev?((m.total_rev-p.total_rev)/p.total_rev*100):null;
-     bindTip(b, '<b>'+esc(m.label)+'</b><br>'+num(m.total_rev)+' ₸'
-       + (d===null?'':'<br><span class="m">к прошлому месяцу '+(d>=0?'+':'−')+pc(Math.abs(d))+'%</span>')
-       + '<br><span class="m">позиций: '+num(m.items.length)+'</span>'
-       + (m.partial?'<br><span class="m">месяц ещё не закончился</span>':''));
-   });
-   root.querySelectorAll('.chip').forEach(function(b){
-     b.onclick=function(){ SEL=b.dataset.k; render(); };
-   });
+   bindTips('.bar');
+   root.querySelectorAll('.chip').forEach(function(b){ b.onclick=function(){ SEL=b.dataset.k; render(); }; });
    drawTable();
    document.getElementById('q').oninput=drawTable;
    document.getElementById('csv').onclick=exportCsv;
-   document.querySelectorAll('#tbl th').forEach(function(th){
+   root.querySelectorAll('#tbl th').forEach(function(th){
      th.onclick=function(){ var k=th.dataset.s;
        if(TS.k===k) TS.d=-TS.d; else { TS.k=k; TS.d=(k==='n'?1:-1); }
-       drawTable(); };
-   });
+       drawTable(); }; });
  }
 
  var TS={k:'r',d:-1};
  function rowsNow(){
-   var c=cur(), q=(document.getElementById('q')||{}).value||'';
-   var rs=(c.items||[]).slice();
-   if(q) { q=q.toLowerCase(); rs=rs.filter(function(x){ return x.n.toLowerCase().indexOf(q)>=0; }); }
+   var c=cur(), p=prevOf(), q=((document.getElementById('q')||{}).value||'').toLowerCase();
+   var P={}; if(p) (p.items||[]).forEach(function(x){ P[x.n]=x.r; });
+   var k=(p && (c.partial||p.partial)) ? (p.days/(c.days||1)) : 1;
+   var rs=(c.items||[]).map(function(x){
+     return {n:x.n,q:x.q,r:x.r, d:(p? (P[x.n]==null? null : x.r*k-P[x.n]) : null)}; });
+   if(q) rs=rs.filter(function(x){ return x.n.toLowerCase().indexOf(q)>=0; });
    rs.sort(function(a,b){
-     var x=a[TS.k], y=b[TS.k];
+     var x=a[TS.k],y=b[TS.k];
      if(TS.k==='n') return TS.d*String(x).localeCompare(String(y),'ru');
+     if(x==null) return 1; if(y==null) return -1;
      return TS.d*(x-y); });
    return rs;
  }
  function drawTable(){
-   var c=cur(), rs=rowsNow(), tot=c.total_rev||1;
+   var c=cur(), rs=rowsNow(), tot=c.total_rev||1, p=prevOf();
    document.querySelector('#tbl tbody').innerHTML = rs.length
-     ? rs.map(function(x){ return '<tr><td>'+esc(x.n)+'</td><td class="n">'+num(x.q)
-         +'</td><td class="n">'+num(x.r)+'</td><td class="n" style="color:#7b8ca6;font-weight:600">'
-         + pc(x.r/tot*100)+'%</td></tr>'; }).join('')
-     : '<tr><td colspan="4" style="color:#546279;padding:22px;text-align:center">ничего не нашлось</td></tr>';
+     ? rs.map(function(x){
+         var dd = x.d==null ? (p?'<span style="color:#546279">новая</span>':'—')
+                : '<span class="'+(x.d>=0?'up':'down')+'">'+smln(x.d)+'</span>';
+         return '<tr><td>'+esc(x.n)+'</td><td class="n">'+num(x.q)+'</td><td class="n">'+num(x.r)
+           + '</td><td class="n" style="color:#7b8ca6;font-weight:600">'+pc(x.r/tot*100)+'%</td>'
+           + '<td class="n">'+dd+'</td></tr>'; }).join('')
+     : '<tr><td colspan="5" style="color:#546279;padding:22px;text-align:center">ничего не нашлось</td></tr>';
  }
  function exportCsv(){
    var c=cur(), rs=rowsNow();
-   var lines=['Позиция;Количество;Сумма, ₸'].concat(rs.map(function(x){
-     return '"'+String(x.n).replace(/"/g,'""')+'";'+x.q+';'+x.r; }));
+   var lines=['Позиция;Количество;Сумма, ₸;Доля, %;Δ к прошлому месяцу, ₸'].concat(rs.map(function(x){
+     return '"'+String(x.n).replace(/"/g,'""')+'";'+x.q+';'+x.r+';'
+       + String(Math.round(x.r/(c.total_rev||1)*1000)/10).replace('.',',')+';'+(x.d==null?'':Math.round(x.d)); }));
    var blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
    var a=document.createElement('a');
    a.href=URL.createObjectURL(blob);
    a.download='Продажи Olive — '+(SEL==='year'?'год':c.label)+'.csv';
-   a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
+   a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); },1500);
  }
 
  document.getElementById('live').textContent =
