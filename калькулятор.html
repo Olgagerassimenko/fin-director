@@ -362,25 +362,6 @@ input:focus,select:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3
         params:'дивиденды '+f0(s)+' ₸, '+(m==='rez'?'резидент':'нерезидент') };
     }},
 
-  { id:'imush', icon:'🏠', ac:'#38bdf8', title:'Налог на имущество',
-    sub:'Юридические лица — <b>1,5%</b> от среднегодовой балансовой стоимости зданий и сооружений. '
-       +'Платится авансом ежеквартально.',
-    modes:null,
-    fields:function(){ return [
-      ['im_nach','Стоимость на начало года',150000000],
-      ['im_kon','Стоимость на конец года',140000000],
-      ['im_st','Ставка, %',R.imush]]; },
-    calc:function(){
-      var a=num('im_nach'), b=num('im_kon'), st=num('im_st')/100;
-      var sred=(a+b)/2, nal=sred*st;
-      return { rows:[
-          ['Среднегодовая стоимость', f0(sred)+' ₸'],
-          ['Ставка', f2(st*100)+'%','dim'],
-          ['Авансовый платёж в квартал', f0(nal/4)+' ₸','dim']],
-        total:['Налог за год', f0(nal)+' ₸'],
-        params:'среднегодовая '+f0(sred)+' ₸, ставка '+f2(st*100)+'%' };
-    }},
-
   { id:'spec', icon:'🛒', ac:'#fbbf24', title:'Спецрежимы — упрощёнка и розничный налог',
     sub:'Упрощённый режим с 2026 года — <b>4%</b> с оборота (местные власти могут менять ±50%). '
        +'Розничный налог — 4% с дохода, для отдельных видов деятельности.',
@@ -404,64 +385,6 @@ input:focus,select:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3
         params:'оборот '+f0(ob)+' ₸, ставка '+f2(st*100)+'%' };
     }},
 
-  { id:'peny', icon:'⏱', ac:'#f87171', title:'Пеня за просрочку налога',
-    sub:'За каждый день просрочки — <b>1,25 × базовая ставка НБРК ÷ 365</b> от суммы недоимки. '
-       +'Начисляется со следующего дня после срока уплаты.',
-    modes:null,
-    fields:function(){ return [
-      ['pn_sum','Сумма недоимки',5000000],
-      ['pn_days','Дней просрочки',30],
-      ['pn_baz','Базовая ставка НБРК, %',R.bazStavka],
-      ['pn_k','Коэффициент',R.peny]]; },
-    calc:function(){
-      var s=num('pn_sum'), d=num('pn_days'), baz=num('pn_baz')/100, k=num('pn_k');
-      var vDen=s*baz*k/365, peny=vDen*d;
-      return { rows:[
-          ['Недоимка', f0(s)+' ₸'],
-          ['Ставка пени в день', f2(baz*k/365*100)+'%','dim'],
-          ['Пеня за день', f0(vDen)+' ₸','dim'],
-          ['Дней просрочки', f0(d),'dim'],
-          ['Недоимка с пеней', f0(s+peny)+' ₸']],
-        total:['Пеня', f0(peny)+' ₸'],
-        params:'недоимка '+f0(s)+' ₸, '+f0(d)+' '+plw(d,'день','дня','дней') };
-    }},
-
-  { id:'cena', icon:'🏷', ac:'#2dd4bf', title:'Цена, наценка и маржа',
-    sub:'Себестоимость → цена с наценкой и НДС, и обратно: какая маржа остаётся в цене.',
-    modes:[['nacenka','От себестоимости'],['marja','От цены продажи']],
-    fields:function(m){
-      if(m==='marja') return [['cn_cena','Цена продажи с НДС',1500],
-                              ['cn_seb','Себестоимость',900],
-                              ['cn_nds','Ставка НДС, %',R.nds]];
-      return [['cn_seb','Себестоимость',900],
-              ['cn_nac','Наценка, %',45],
-              ['cn_nds','Ставка НДС, %',R.nds]];
-    },
-    calc:function(m){
-      var seb=num('cn_seb'), nds=num('cn_nds')/100;
-      if(m==='marja'){
-        var cena=num('cn_cena'), bez=cena/(1+nds);
-        var pribyl=bez-seb;
-        return { rows:[
-            ['Цена с НДС', f0(cena)+' ₸'],
-            ['Цена без НДС', f0(bez)+' ₸'],
-            ['Себестоимость', f0(seb)+' ₸'],
-            ['Прибыль в цене', f0(pribyl)+' ₸','pos'],
-            ['Наценка к себестоимости', (seb? f2(pribyl/seb*100):'—')+'%','dim']],
-          total:['Маржа от цены без НДС', (bez? f2(pribyl/bez*100):'—')+'%'],
-          params:'цена '+f0(cena)+' ₸, себестоимость '+f0(seb)+' ₸' };
-      }
-      var nac=num('cn_nac')/100, bez2=seb*(1+nac), s2=bez2*(1+nds);
-      return { rows:[
-          ['Себестоимость', f0(seb)+' ₸'],
-          ['Наценка '+f2(nac*100)+'%', f0(bez2-seb)+' ₸'],
-          ['Цена без НДС', f0(bez2)+' ₸'],
-          ['НДС '+f2(nds*100)+'%', f0(s2-bez2)+' ₸','dim'],
-          ['Маржа от цены без НДС', (bez2? f2((bez2-seb)/bez2*100):'—')+'%','dim']],
-        total:['Цена продажи с НДС', f0(s2)+' ₸'],
-        params:'себестоимость '+f0(seb)+' ₸, наценка '+f2(nac*100)+'%' };
-    }},
-
   { id:'rates', icon:'📋', ac:'#94a3b8', title:'Справочник ставок 2026',
     sub:'Все показатели в одном месте. Поменяется закон — поправьте здесь, '
        +'и все плашки начнут считать по-новому. Значения сохраняются на сайте для всех.',
@@ -473,7 +396,7 @@ input:focus,select:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3
       ['r_opv','ОПВ, %',R.opv], ['r_vosms','ВОСМС, %',R.vosms],
       ['r_opvr','ОПВР, %',R.opvr], ['r_so','СО, %',R.so],
       ['r_oosms','ООСМС, %',R.oosms], ['r_sn','Соцналог, %',R.sn],
-      ['r_kpn','КПН, %',R.kpn], ['r_imush','Налог на имущество, %',R.imush],
+      ['r_kpn','КПН, %',R.kpn],
       ['r_baz','Базовая ставка НБРК, %',R.bazStavka]]; },
     calc:function(){
       return { rows:[
@@ -543,19 +466,11 @@ input:focus,select:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3
            rep:'резидентам — в ф.200.00; нерезидентам — ф.101.04, до 15 числа 2-го месяца', rrule:'q15',
            short:'налог с дивидендов',
            note:'Налог удерживается у источника — платит компания, а не получатель.' },
-    imush:{ per:'Год, платежи — поквартально',
-           due:'текущие платежи 25 февраля, 25 мая, 25 августа и 25 ноября', rule:'q25',
-           rep:'расчёт ф.701.01 — до 15 февраля; декларация ф.700.00 — до 31 марта', rrule:'feb15',
-           short:'налог на имущество',
-           note:'Окончательный расчёт за год — до 10 апреля следующего года.' },
     spec:{ per:'Упрощёнка — полугодие, розничный налог — квартал',
            due:'упрощёнка: до 25 августа и 25 февраля; розничный: до 25 числа 2-го месяца после квартала',
            rule:'h25',
            rep:'ф.910.00 — до 15 августа и 15 февраля; ф.913.00 — до 15 числа 2-го месяца', rrule:'h15',
-           short:'упрощёнка' },
-    peny:{ noDate:true,
-           note:'Пеня начисляется со следующего дня после срока уплаты и по день погашения '
-               +'включительно — считать надо от даты из плашки соответствующего налога.' }
+           short:'упрощёнка' }
   };
 
   function payHtml(id){
@@ -671,7 +586,7 @@ input:focus,select:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3
   function saveRates(){
     var map={ r_mrp:'mrp', r_mzp:'mzp', r_nds:'nds', r_ipn:'ipn', r_vychet:'vychetMrp',
       r_opv:'opv', r_vosms:'vosms', r_opvr:'opvr', r_so:'so', r_oosms:'oosms', r_sn:'sn',
-      r_kpn:'kpn', r_imush:'imush', r_baz:'bazStavka' };
+      r_kpn:'kpn', r_baz:'bazStavka' };
     Object.keys(map).forEach(function(k){ var v=num(k); if(isFinite(v)) R[map[k]]=v; });
     fetch(API+'?a=rates',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(R)})
       .then(function(x){ return x.json(); })

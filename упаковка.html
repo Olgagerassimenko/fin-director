@@ -58,14 +58,28 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 
 /* ── УПРАВЛЕНИЕ ── */
 .ctl{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
-.ctl label{display:block;font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--dim);margin-bottom:7px}
-.ctl select,.ctl input[type=search],.ctl input[type=number]{background:#0a1222;border:1px solid var(--line2);
-  color:var(--ink);border-radius:11px;padding:9px 11px;font-size:12.5px;font-family:inherit;transition:.16s}
-.ctl select:focus,.ctl input:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3px rgba(34,211,238,.2)}
+.ctl label{display:block;font-size:10.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:#9fb4d0;margin-bottom:7px}
+.ctl select,.ctl input[type=search],.ctl input[type=number]{background:#15203a;border:1.5px solid #39507a;
+  color:var(--ink);border-radius:11px;padding:9px 12px;font-size:13px;font-weight:600;font-family:inherit;transition:.16s}
+.ctl select:hover,.ctl input:hover{border-color:#4d6898;background:#1a2745}
+.ctl select:focus,.ctl input:focus{outline:none;border-color:var(--vio);box-shadow:0 0 0 3px rgba(34,211,238,.25)}
+/* выбранный фильтр видно сразу: подсветка рамки и ярлыка */
+.ctl .fbox{position:relative}
+.ctl .fbox.on label{color:var(--brn)}
+.ctl .fbox.on select{border-color:var(--brn);background:#2a2008;color:#ffd27a;box-shadow:0 0 0 3px rgba(245,158,11,.14)}
+.ctl .fbox.on::after{content:"";position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;
+  background:var(--brn);box-shadow:0 0 8px 1px rgba(245,158,11,.9)}
 .ctl input[type=number]{width:78px;text-align:right;font-weight:800}
 .ctl input[type=search]{min-width:230px}
-.ctl.flt{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.ctl.flt{margin-top:16px;padding:14px 16px 14px;border-radius:14px;
+  background:linear-gradient(180deg,rgba(34,211,238,.055),rgba(13,21,38,0));
+  border:1.5px solid #2c3d5e}
+.ctl.flt::before{content:"Фильтры";position:absolute;margin-top:-26px;font-size:10px;font-weight:800;
+  letter-spacing:.14em;text-transform:uppercase;color:#7f94b3}
+.ctl.flt{position:relative}
+.ctl.flt.any{border-color:var(--brn);background:linear-gradient(180deg,rgba(245,158,11,.10),rgba(13,21,38,0))}
+.ctl.flt.any::before{content:"Фильтры включены";color:var(--brn)}
 /* Галочки по видам упаковки: этикетки, коробки, пакеты… Отбирают сразу
    по всем вкладкам, можно отметить несколько. */
 .kinds{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:14px 0 0}
@@ -87,8 +101,8 @@ body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);
 .ctl .adv{display:none}
 .ctl.open .adv{display:block}
 .ctl.flt select{max-width:230px}
-.fcount{margin-left:auto;padding-bottom:10px;font-size:11.5px;color:var(--mut)}
-.fcount b{color:#fcd34d}
+.fcount{margin-left:auto;padding-bottom:10px;font-size:12.5px;font-weight:600;color:#a9bbd4}
+.fcount b{color:#ffd27a;font-size:14px}
 .supl{cursor:pointer;border-bottom:1px dashed #3a4a68}
 .un{font-size:10px;color:#6b7f9c;font-weight:600}
 td.mn{color:#9fb2cc}
@@ -358,27 +372,27 @@ thead th.nm{text-align:left}
       <button class="btn urgbtn" id="urgbtn">🔴 Срочное</button>
     </div>
     <div class="ctl flt">
-      <div><label>Срочность</label><select id="f-urg">
+      <div class="fbox"><label>Срочность</label><select id="f-urg">
         <option value="">любая</option>
         <option value="срочно">только срочные</option>
         <option value="скоро">скоро</option>
         <option value="ниже минимума">ниже минимума</option></select></div>
-      <div><label>Поставщик</label><select id="f-sup"><option value="">все</option></select></div>
-      <div><label>Склад</label><select id="f-store"><option value="">все</option></select></div>
-      <div><label>Цена</label><select id="f-price">
+      <div class="fbox"><label>Поставщик</label><select id="f-sup"><option value="">все</option></select></div>
+      <div class="fbox"><label>Склад</label><select id="f-store"><option value="">все</option></select></div>
+      <div class="fbox"><label>Цена</label><select id="f-price">
         <option value="">любая</option>
         <option value="no">только без цены</option>
         <option value="yes">только с ценой</option></select></div>
-      <div><label>Зона запаса</label><select id="f-zone">
+      <div class="fbox"><label>Зона запаса</label><select id="f-zone">
         <option value="">любая</option>
         <option value="ниже неснижаемого">ниже неснижаемого</option>
         <option value="норма">норма</option>
         <option value="избыток">избыток</option></select></div>
-      <div><label>Стоп-лист</label><select id="f-stop">
+      <div class="fbox"><label>Стоп-лист</label><select id="f-stop">
         <option value="">не важно</option>
         <option value="no">без стопа</option>
         <option value="yes">только в стопе</option></select></div>
-      <button class="btn" id="f-reset">Сбросить</button>
+      <button class="btn" id="f-reset">✕ Сбросить фильтры</button>
       <div class="fcount" id="f-count"></div>
     </div>
     <div class="note" id="how"></div>
