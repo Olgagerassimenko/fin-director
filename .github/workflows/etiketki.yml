@@ -1,8 +1,9 @@
-name: iiko — этикетки и блюда
+name: iiko — этикетки и блюда (2)
 
-# Собирает связку «этикетка → в каких блюдах используется» из технологических
-# карт iiko. Пишет отчёт в репозиторий (_отладка/этикетки_блюда.md) и машинный
-# срез (etiketki.json), чтобы потом построить из него страницу.
+# Вдумчивый срез: только действующие техкарты и живые блюда, имена
+# разрешаются по полному справочнику (включая удалённые, чтобы отличить
+# «нет имени» от «блюдо снято»). Считает, сколько этикеток реально нужно
+# и какие блюда делят одну и ту же этикетку.
 on:
   workflow_dispatch: {}
 
@@ -12,110 +13,130 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - run: pip install -r requirements.txt
-      - name: Технологические карты
+      - name: Техкарты и этикетки
         run: |
           python - <<'PY'
           import os, warnings, hashlib, requests, sys, json, datetime, re, collections
-          import xml.etree.ElementTree as ET
           warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
           from iiko_export import URL, LOGIN, PASS
           s = requests.Session()
           tok = s.get(f"{URL}/resto/api/auth",
                       params={"login": LOGIN, "pass": hashlib.sha1(PASS.encode()).hexdigest()},
                       verify=False, timeout=60).text.strip().strip('"')
-          out = ["# Этикетки и блюда, где они используются", ""]
 
-          # ── справочник номенклатуры: id → имя, тип ──
-          prods = s.get(URL + "/resto/api/v2/entities/products/list",
-                        params={"key": tok, "includeDeleted": "false"}, verify=False, timeout=240).json()
-          NAME, TYPE = {}, {}
-          for p in prods:
-              NAME[p.get("id")] = (p.get("name") or "").strip()
-              TYPE[p.get("id")] = p.get("type") or ""
-          out.append("номенклатуры в справочнике: **%d**" % len(NAME))
-
-          ET_RE = re.compile(r"этикет|наклейк|стикер", re.I)
-          UPAK_RE = re.compile(r"^\s*У\*")
-          labels = {i: n for i, n in NAME.items() if ET_RE.search(n)}
-          out.append("позиций, похожих на этикетки: **%d**" % len(labels))
-          out.append("")
-
-          # ── технологические карты ──
-          today = datetime.date.today().isoformat()
-          charts, err = [], None
-          for path, par in (
-              ("/resto/api/v2/assemblyCharts/getAll", {"dateFrom": today, "dateTo": today}),
-              ("/resto/api/v2/assemblyCharts/getAll", {"date": today}),
-          ):
+          # ── справочник: и живые, и удалённые, чтобы имя нашлось всегда ──
+          P = {}
+          for dele in ("false", "true"):
               try:
-                  r = s.get(URL + path, params=dict(par, key=tok), verify=False, timeout=300)
-                  if r.status_code == 200:
-                      j = r.json()
-                      charts = j.get("assemblyCharts") if isinstance(j, dict) else j
-                      if charts: break
-                      err = "пусто: %s" % str(j)[:200]
-                  else:
-                      err = "%s → %d: %s" % (path, r.status_code, r.text[:200])
+                  r = s.get(URL + "/resto/api/v2/entities/products/list",
+                            params={"key": tok, "includeDeleted": dele}, verify=False, timeout=300)
+                  for p in r.json():
+                      i = p.get("id")
+                      if not i: continue
+                      if i not in P or dele == "false":
+                          P[i] = {"n": (p.get("name") or "").strip(),
+                                  "t": p.get("type") or "",
+                                  "del": bool(p.get("deleted")) or dele == "true" and i not in P,
+                                  "cat": (p.get("category") or p.get("mainUnit") or ""),
+                                  "num": p.get("num") or ""}
+                  if dele == "false":
+                      alive = set(P.keys())
               except Exception as e:
-                  err = "%s → %s" % (path, e)
-          if not charts:
-              out.append("## Технологические карты не отдались")
-              out.append("`%s`" % err)
-              charts = []
-          else:
-              out.append("технологических карт: **%d**" % len(charts))
-              out.append("")
+                  print("справочник", dele, "ошибка", e)
+          print("номенклатуры всего:", len(P), "| действующих:", len(alive))
 
-          # ── собираем: этикетка → блюда ──
-          use = collections.defaultdict(dict)       # label_id -> {dish_id: qty}
-          dish_labels = collections.defaultdict(set)
+          ET = re.compile(r"этикет|наклейк|стикер", re.I)
+          labels = {i: v["n"] for i, v in P.items() if ET.search(v["n"])}
+          print("позиций-этикеток:", len(labels))
+
+          # ── техкарты, действующие сегодня ──
+          today = datetime.date.today().isoformat()
+          r = s.get(URL + "/resto/api/v2/assemblyCharts/getAll",
+                    params={"key": tok, "dateFrom": today, "dateTo": today}, verify=False, timeout=600)
+          j = r.json()
+          charts = j.get("assemblyCharts") if isinstance(j, dict) else j
+          charts = charts or []
+          print("карт получено:", len(charts))
+
+          def eff(ch):
+              """карта действует сегодня?"""
+              df, dt = ch.get("dateFrom") or "", ch.get("dateTo") or ""
+              if df and df[:10] > today: return False
+              if dt and dt[:10] < today: return False
+              return True
+
+          # по блюду оставляем одну, самую свежую карту
+          best = {}
           for ch in charts:
-              dish = ch.get("assembledProductId") or ch.get("productId")
+              if not eff(ch): continue
+              d = ch.get("assembledProductId") or ch.get("productId")
+              if not d: continue
+              cur = best.get(d)
+              if not cur or (ch.get("dateFrom") or "") > (cur.get("dateFrom") or ""):
+                  best[d] = ch
+          print("блюд с действующей картой:", len(best))
+
+          lab_dish = collections.defaultdict(set)   # этикетка -> блюда
+          dish_lab = collections.defaultdict(set)   # блюдо -> этикетки
+          qty = {}
+          for d, ch in best.items():
               for it in (ch.get("items") or []):
                   pid = it.get("productId")
                   if pid in labels:
-                      q = it.get("amountMiddle") or it.get("amountIn") or it.get("amount") or 0
-                      use[pid][dish] = q
-                      dish_labels[dish].add(pid)
+                      lab_dish[pid].add(d); dish_lab[d].add(pid)
+                      qty[(pid, d)] = it.get("amountMiddle") or it.get("amountIn") or it.get("amount") or 0
 
-          rows = sorted(use.items(), key=lambda kv: -len(kv[1]))
-          out.append("## Этикетки: сколько блюд и каких")
+          def nm(i): return (P.get(i) or {}).get("n") or ""
+          def is_alive(i): return i in alive
+
+          rows = sorted(lab_dish.items(), key=lambda kv: -len(kv[1]))
+          out = ["# Этикетки и блюда — срез на %s" % today, "",
+                 "техкарт действует: **%d** · блюд с картой: **%d** · позиций-этикеток в номенклатуре: **%d**"
+                 % (sum(1 for c in charts if eff(c)), len(best), len(labels)), ""]
+          out.append("## Сколько этикеток реально используется")
           out.append("")
-          out.append("| этикетка | блюд | примеры |")
+          out.append("| этикетка | блюд всего | из них действующих |")
           out.append("|---|---|---|")
-          for lid, dishes in rows:
-              ex = ", ".join(sorted(NAME.get(d, "?") for d in dishes)[:4])
-              out.append("| %s | %d | %s |" % (labels[lid], len(dishes), ex[:160]))
-          if not rows:
-              out.append("| — | 0 | в картах этикеток не нашлось |")
+          used_alive = 0
+          for lid, ds in rows:
+              a = sum(1 for d in ds if is_alive(d))
+              if a: used_alive += 1
+              out.append("| %s | %d | %d |" % (labels[lid], len(ds), a))
+          out.append("")
+          out.append("**Итого этикеток в работе: %d** (есть хотя бы одно действующее блюдо)." % used_alive)
           out.append("")
 
-          out.append("## Полные списки")
-          for lid, dishes in rows:
+          # ── группы блюд с одинаковым набором этикеток ──
+          groups = collections.defaultdict(list)
+          for d, ls in dish_lab.items():
+              if not is_alive(d): continue
+              groups[tuple(sorted(labels[x] for x in ls))].append(nm(d))
+          gr = sorted(groups.items(), key=lambda kv: -len(kv[1]))
+          out.append("## Блюда, у которых этикетки одинаковые")
+          out.append("")
+          out.append("| набор этикеток | блюд |")
+          out.append("|---|---|")
+          for k, v in gr:
+              out.append("| %s | %d |" % (" + ".join(k), len(v)))
+          out.append("")
+          for k, v in gr:
               out.append("")
-              out.append("### %s — %d блюд" % (labels[lid], len(dishes)))
-              names = sorted(NAME.get(d, str(d)) for d in dishes)
-              for n in names[:400]:
-                  out.append("- %s" % n)
-              if len(names) > 400:
-                  out.append("- …и ещё %d" % (len(names) - 400))
+              out.append("### %s — %d блюд" % (" + ".join(k), len(v)))
+              for n in sorted(v): out.append("- %s" % n)
 
-          data = {
-              "updated": datetime.datetime.now().isoformat(timespec="minutes"),
-              "labels": [{"id": lid, "name": labels[lid],
-                          "dishes": sorted([{"id": d, "name": NAME.get(d, ""), "qty": q}
-                                            for d, q in dishes.items()],
-                                           key=lambda x: x["name"])}
-                         for lid, dishes in rows],
-              "charts": len(charts), "products": len(NAME),
-          }
+          data = {"date": today, "charts": len(best),
+                  "labels": [{"name": labels[l], "dishes":
+                              sorted([{"n": nm(d), "alive": is_alive(d), "q": qty.get((l, d), 0)}
+                                      for d in ds], key=lambda x: x["n"])}
+                             for l, ds in rows],
+                  "groups": [{"labels": list(k), "dishes": sorted(v)} for k, v in gr]}
           os.makedirs("_отладка", exist_ok=True)
           open("_отладка/этикетки_блюда.md", "w", encoding="utf-8").write("\n".join(out) + "\n")
           open("etiketki.json", "w", encoding="utf-8").write(json.dumps(data, ensure_ascii=False))
@@ -128,6 +149,6 @@ jobs:
           git config user.name "pulse-bot"
           git config user.email "pulse-bot@users.noreply.github.com"
           git add -A "_отладка/этикетки_блюда.md" etiketki.json
-          git commit -m "этикетки → блюда: выгрузка из техкарт iiko [skip ci]" || exit 0
+          git commit -m "этикетки → блюда: действующие карты [skip ci]" || exit 0
           git pull --rebase || true
           git push
