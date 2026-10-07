@@ -1,0 +1,283 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Этикетки · Пульс</title>
+<!-- Фуд Завод · © 2026. Все права защищены.
+     Страница статическая, данные в etiketki.json: его собирает workflow
+     «iiko — этикетки и блюда» из действующих технологических карт.
+     План по номенклатуре (создать / разнести) лежит в PLAN ниже и правится
+     руками — это решение, а не выгрузка. -->
+<script src="nav.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#070c17;--line:#1c2740;--line2:#26334d;--ink:#eef3fb;--ink2:#c3d0e2;
+  --mut:#7b8ca6;--dim:#546279;--ac:#f59e0b;--ac2:#b45309;--good:#4ade80;--bad:#f87171;--cy:#22d3ee}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
+  -webkit-font-smoothing:antialiased;background:
+   radial-gradient(900px 520px at 6% -8%,rgba(245,158,11,.13),transparent 60%),
+   radial-gradient(780px 460px at 97% 0%,rgba(34,211,238,.09),transparent 60%),var(--bg);
+  background-attachment:fixed}
+.topbar{display:flex;align-items:center;gap:16px;padding:15px 30px;position:sticky;top:0;z-index:60;
+  background:rgba(10,16,29,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.backbtn{display:inline-flex;align-items:center;background:#16203a;color:var(--ink2);border:1px solid var(--line2);
+  font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;text-decoration:none;transition:.18s;white-space:nowrap}
+.backbtn:hover{background:var(--ac);color:#1a1205;border-color:var(--ac)}
+.topbar h1{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;font-size:11.5px;color:#fde68a;background:rgba(245,158,11,.12);
+  border:1px solid rgba(245,158,11,.4);border-radius:999px;padding:6px 13px;font-weight:700;white-space:nowrap}
+.section{padding:20px 30px 56px;max-width:1320px;margin:0 auto}
+.lead{font-size:12.5px;color:var(--mut);line-height:1.65;margin-bottom:15px;max-width:980px}
+.lead b{color:var(--ink2)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:15px}
+.k{border:1px solid var(--line2);border-radius:15px;padding:13px 15px;
+  background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015))}
+.k .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:800}
+.k .v{font-size:25px;font-weight:900;margin-top:3px;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.k .s{font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.45}
+.k.warn{border-color:rgba(245,158,11,.45)}.k.warn .v{color:#fcd34d}
+
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.tab{background:#121c30;border:1px solid var(--line2);color:var(--ink2);border-radius:999px;
+  padding:7px 15px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap}
+.tab:hover{border-color:var(--ac);color:var(--ink)}
+.tab.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#1a1205;border-color:var(--ac)}
+.tab b{font-weight:800;opacity:.75;margin-left:5px}
+
+.card{background:linear-gradient(170deg,#0f1828,#0b1320);border:1px solid var(--line);
+  border-radius:18px;padding:17px 19px;margin-bottom:14px}
+.card h2{font-size:14.5px;font-weight:800;margin-bottom:2px}
+.card .sub{font-size:12px;color:var(--mut);line-height:1.5;margin-bottom:13px}
+.sec{display:none}.sec.on{display:block}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);
+  font-weight:800;padding:8px 9px;border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:8px 9px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--ink2);vertical-align:top}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink);font-weight:700}
+tbody tr:hover td{background:rgba(255,255,255,.03)}
+.tw{overflow-x:auto}
+.was{color:#fca5a5}
+.now{color:#86efac;font-weight:700}
+.arrow{color:var(--dim);padding:0 4px}
+.flag{background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.45);color:#fcd34d;
+  border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:800;white-space:nowrap;margin-left:6px}
+.dead{opacity:.55}
+.inp{background:#0e1728;border:1px solid var(--line2);border-radius:999px;color:var(--ink);
+  font:inherit;font-size:12.5px;padding:8px 15px;min-width:260px;outline:none}
+.inp:focus{border-color:var(--ac)}
+.btn{background:#121c30;border:1px solid var(--line2);color:var(--ink2);border-radius:999px;
+  padding:8px 14px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.btn:hover{border-color:var(--ac);color:var(--ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+details{border:1px solid var(--line);border-radius:12px;padding:0 13px;margin-bottom:7px;background:rgba(255,255,255,.015)}
+summary{list-style:none;cursor:pointer;padding:10px 0;font-size:13px;display:flex;gap:10px;align-items:baseline}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸";color:var(--ac);font-weight:800;width:12px;flex-shrink:0}
+details[open] summary::before{content:"▾"}
+summary .nm{flex:1;font-weight:700;color:var(--ink)}
+summary .ct{font-size:11.5px;color:var(--mut);white-space:nowrap}
+.dl{columns:2;column-gap:22px;font-size:12px;color:var(--ink2);line-height:1.75;padding:2px 0 12px}
+.dl div{break-inside:avoid}
+.dl .x{color:var(--dim)}
+.ins{background:linear-gradient(120deg,rgba(245,158,11,.1),rgba(245,158,11,.02));
+  border:1px solid rgba(245,158,11,.25);border-left:3px solid var(--ac);border-radius:13px;
+  padding:13px 16px;font-size:12.5px;line-height:1.6;color:#dfe7f1;margin-top:13px}
+.ins b{color:#fde68a}
+.foot{text-align:center;color:var(--dim);font-size:11.5px;padding:24px 0 0}
+.err{padding:40px;text-align:center;color:var(--dim);font-size:13px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.dl{columns:1}}
+@media(max-width:700px){.section{padding:16px 14px 44px}.topbar{padding:13px 14px}}
+</style></head>
+<body>
+<div class="topbar">
+  <a class="backbtn" href="index.html">← Пульс</a>
+  <div><h1>🏷 Этикетки</h1><p>Какая этикетка на каких блюдах и что завести в номенклатуре</p></div>
+  <div class="live" id="live">—</div>
+</div>
+<div class="section" id="root"><div class="err">Загружаю…</div></div>
+
+<script src="etiketki_data.js" onerror="0"></script>
+<script>
+/* ── РЕШЕНИЕ ПО НОМЕНКЛАТУРЕ ───────────────────────────────────────────
+   Это не выгрузка, а разбор: что из техкарт надо завести как отдельную
+   позицию, а что заводить нельзя — там в одну строку слиты лоток и
+   этикетка, и при заведении лоток посчитается дважды. Правится руками. */
+window.PLAN = {
+  create: [
+    {was:'У* Этикетка Сегодня девочка красная',   now:'У* Этикетка Сегодня девочка (красная)',   why:'цвет в скобки — как у «Супница (зеленая)»'},
+    {was:'У* Этикетка Магнум 17*6,5 п/ф',         now:'У* Этикетка Магнум 17*6,5 п/ф',           why:'отдельная от обычной «Магнум 17*6,5»'},
+    {was:'У* Этикетка Сегодня девочка зеленая',   now:'У* Этикетка Сегодня девочка (зеленая)',   why:'цвет в скобки'},
+    {was:'У* Стикер Сегодня это твой сэндвич',    now:'У* Стикер Сегодня это твой сэндвич',      why:'серия «это твоя еда» — имя оставляем'},
+    {was:'У* Этикетка Сегодня девочка оранжевая', now:'У* Этикетка Сегодня девочка (оранжевая)', why:'цвет в скобки'},
+    {was:'У* Этикетка фриз вареники',             now:'У* Этикетка фриз вареники',               why:'имя оставляем'}
+  ],
+  split: [
+    {was:'У* Лоток *50+этикетка оранж Olive',    now:['У*Лоток 187*137*50 (70*30)','У* Этикетка Olive 130*90 оранжевый']},
+    {was:'У* Лоток *50+этикетка красная Olive',  now:['У*Лоток 187*137*50 (70*30)','У* Этикетка Olive 130*90 красный']},
+    {was:'У* Лоток *350+этикетка d/100 Olive',   now:['У* Лоток круглый ПЗ 350 мл','У* Этикетка Olive d/100']},
+    {was:'У* Этикетка QR 80*30+ риббон',         now:['У* Этикетка QR 80*30 (д/печати штрих.кода+наименов)','У* Лента красящая д/принтера (ribbon)']},
+    {was:'У* Лоток *36+этикетка оранж Olive',    now:['У* Лоток 187*137*36','У* Этикетка Olive 130*90 оранжевый']},
+    {was:'У* Лоток 70*30+этикетка оранж Olive',  now:['У*Лоток 187*137*50 (70*30)','этикетка Olive 70*30 оранжевая'], flag:'такой этикетки в номенклатуре нет — завести'},
+    {was:'У* Лоток 70*30+этикетка красная Olive',now:['У*Лоток 187*137*50 (70*30)','У* Этикетка Olive 90*40 красный'], flag:'сверить размер с производством'},
+    {was:'У* Этикетка 90*40 Olive',              now:['У* Этикетка Olive 90*40 красный'], flag:'похоже, та же позиция, записана иначе'}
+  ]
+};
+</script>
+<script>
+(function(){
+ var D = window.ETIKETKI, root = document.getElementById('root');
+ if(!D || !D.labels){
+   root.innerHTML = '<div class="err">Данные ещё не собраны.<br>Запустите выгрузку «iiko — этикетки и блюда», '
+     + 'и страница наполнится.</div>';
+   return;
+ }
+ function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+ function num(v){ return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+ function plw(n,a,b,c){ n=Math.abs(n)%100; var m=n%10;
+   if(n>10&&n<20) return c; if(m>1&&m<5) return b; if(m===1) return a; return c; }
+
+ var L = D.labels.map(function(l){
+   var a = l.dishes.filter(function(x){ return x.alive; });
+   return { name:l.name, all:l.dishes.length, alive:a.length, dishes:l.dishes, live:a };
+ });
+ var work = L.filter(function(l){ return l.alive > 0; });
+ var zero = L.filter(function(l){ return l.alive === 0; });
+ var PLAN = window.PLAN || {create:[],split:[]};
+ var G = (D.groups||[]).slice().sort(function(a,b){ return b.dishes.length - a.dishes.length; });
+ var dishes = G.reduce(function(s,g){ return s + g.dishes.length; }, 0);
+
+ var TAB = 'plan', Q = '';
+ function tabsHtml(){
+   var t = [['plan','🧾 Что завести', PLAN.create.length + PLAN.split.length],
+            ['lab','🏷 Этикетка → блюда', work.length],
+            ['grp','🧩 Одинаковые наборы', G.length],
+            ['dead','🧊 Не используются', zero.length]];
+   return '<div class="tabs">' + t.map(function(x){
+     return '<button class="tab'+(TAB===x[0]?' on':'')+'" data-t="'+x[0]+'">'+x[1]+'<b>'+x[2]+'</b></button>';
+   }).join('') + '</div>';
+ }
+
+ function secPlan(){
+   return '<div class="card"><h2>Создать — '+PLAN.create.length+' '
+     + plw(PLAN.create.length,'позиция','позиции','позиций')+'</h2>'
+     + '<div class="sub">Этикетки, которые реально используются, но в номенклатуре упаковки их нет. '
+     + 'Имена приведены к тому виду, что уже принят на заводе.</div>'
+     + '<div class="tw"><table><thead><tr><th>Было — в техкарте</th><th>Стало — завести под именем</th>'
+     + '<th style="text-align:right">Блюд</th><th>Почему так</th></tr></thead><tbody>'
+     + PLAN.create.map(function(r){ var l = byName(r.was);
+         return '<tr><td class="was">'+esc(r.was)+'</td>'
+           + '<td class="now">'+esc(r.now)+'</td>'
+           + '<td class="n">'+(l?l.alive:'—')+'</td>'
+           + '<td style="color:#7b8ca6">'+esc(r.why||'')+'</td></tr>'; }).join('')
+     + '</tbody></table></div></div>'
+
+     + '<div class="card"><h2>Не создавать, разнести — '+PLAN.split.length+' '
+     + plw(PLAN.split.length,'позиция','позиции','позиций')+'</h2>'
+     + '<div class="sub">В техкарте в одну строку слиты лоток и этикетка. Если завести такую строку как SKU, '
+     + 'лоток попадёт в учёт дважды — отдельной позицией и внутри склейки. Их надо заменить на то, что уже есть.</div>'
+     + '<div class="tw"><table><thead><tr><th>Было — в техкарте</th><th>Стало — поставить вместо</th>'
+     + '<th style="text-align:right">Блюд</th></tr></thead><tbody>'
+     + PLAN.split.map(function(r){ var l = byName(r.was);
+         return '<tr><td class="was">'+esc(r.was)+(r.flag?'<span class="flag">⚠ '+esc(r.flag)+'</span>':'')+'</td>'
+           + '<td class="now">'+r.now.map(esc).join('<span class="arrow">+</span>')+'</td>'
+           + '<td class="n">'+(l?l.alive:'—')+'</td></tr>'; }).join('')
+     + '</tbody></table></div>'
+     + '<div class="ins">💡 Эти восемь склеек прикрывают <b>'
+     + num(PLAN.split.reduce(function(s,r){ var l=byName(r.was); return s+(l?l.alive:0); },0))
+     + '</b> блюд, и сейчас по ним не учитывается ни лоток, ни этикетка. После разнесения расход по лоткам '
+     + '187×137×50, 187×137×36 и круглому 350 мл вырастет на реальные объёмы — неснижаемый остаток по ним '
+     + 'сейчас занижен.</div></div>';
+ }
+ function byName(n){ return L.filter(function(l){ return l.name === n; })[0]; }
+
+ function secLab(){
+   var list = work.filter(function(l){ return !Q || match(l.name) || l.live.some(function(d){ return match(d.n); }); });
+   return '<div class="card"><h2>Этикетка → блюда</h2>'
+     + '<div class="sub">Только действующие блюда. Разверните строку, чтобы увидеть список.</div>'
+     + '<div class="row"><input class="inp" id="q" placeholder="🔍 поиск по этикетке или блюду…" value="'+esc(Q)+'">'
+     + '<button class="btn" id="csv">⤓ Скачать связки</button></div>'
+     + (list.length ? list.map(function(l){
+         return '<details><summary><span class="nm">'+esc(l.name)+'</span>'
+           + '<span class="ct">'+l.alive+' '+plw(l.alive,'блюдо','блюда','блюд')
+           + (l.all>l.alive ? ' <span class="x" style="color:#546279">· снято '+(l.all-l.alive)+'</span>' : '')
+           + '</span></summary><div class="dl">'
+           + l.live.map(function(d){ return '<div>'+esc(d.n)+'</div>'; }).join('')
+           + '</div></details>'; }).join('')
+       : '<div class="err">Ничего не нашлось.</div>')
+     + '</div>';
+ }
+ function match(s){ return String(s).toLowerCase().indexOf(Q.toLowerCase()) >= 0; }
+
+ function secGrp(){
+   var list = G.filter(function(g){ return !Q || g.labels.some(match) || g.dishes.some(match); });
+   return '<div class="card"><h2>Блюда, у которых набор этикеток одинаковый</h2>'
+     + '<div class="sub">'+num(dishes)+' действующих блюд укладываются всего в '+G.length+' наборов. '
+     + 'Это и есть ответ на вопрос «сколько разных этикеток нужно».</div>'
+     + '<div class="row"><input class="inp" id="q2" placeholder="🔍 поиск по этикетке или блюду…" value="'+esc(Q)+'"></div>'
+     + (list.length ? list.map(function(g){
+         return '<details><summary><span class="nm">'+g.labels.map(esc).join('<span class="arrow">+</span>')+'</span>'
+           + '<span class="ct">'+g.dishes.length+' '+plw(g.dishes.length,'блюдо','блюда','блюд')+'</span></summary>'
+           + '<div class="dl">'+g.dishes.map(function(d){ return '<div>'+esc(d)+'</div>'; }).join('')+'</div></details>';
+       }).join('') : '<div class="err">Ничего не нашлось.</div>')
+     + '</div>';
+ }
+
+ function secDead(){
+   return '<div class="card"><h2>Этикетки без единого действующего блюда</h2>'
+     + '<div class="sub">Встречаются в техкартах, но все блюда под ними сняты. Закупать их не нужно; '
+     + 'если лежат на складе — это замороженные деньги.</div>'
+     + '<div class="tw"><table><thead><tr><th>Этикетка</th><th style="text-align:right">Блюд было</th>'
+     + '</tr></thead><tbody>'
+     + zero.map(function(l){ return '<tr class="dead"><td>'+esc(l.name)+'</td><td class="n">'+l.all+'</td></tr>'; }).join('')
+     + '</tbody></table></div></div>';
+ }
+
+ function csv(){
+   var lines = ['Этикетка;Блюдо;Действующее'];
+   L.forEach(function(l){ l.dishes.forEach(function(d){
+     lines.push('"'+l.name.replace(/"/g,'""')+'";"'+String(d.n).replace(/"/g,'""')+'";'+(d.alive?'да':'нет')); }); });
+   var blob = new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+   var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+   a.download = 'Этикетки и блюда ' + D.date + '.csv'; a.click();
+   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
+ }
+
+ function render(){
+   var k = [
+     {l:'Этикеток в работе', v:work.length, s:'встречаются в техкартах действующих блюд'},
+     {l:'Заведено в упаковке', v:work.length - (PLAN.create.length + PLAN.split.length), s:'учитываются и заказываются'},
+     {l:'Надо завести', v:PLAN.create.length, s:'новых позиций номенклатуры', w:1},
+     {l:'Надо разнести', v:PLAN.split.length, s:'склейки «лоток + этикетка»', w:1}
+   ];
+   root.innerHTML =
+     '<div class="lead">Срез из технологических карт iiko на <b>'+esc(D.date)+'</b>: берутся только карты, '
+   + 'действующие сегодня, и по каждому блюду — самая свежая. Видно, какая этикетка на каких блюдах стоит, '
+   + 'у каких блюд набор этикеток одинаковый и что из этого надо завести в номенклатуре упаковки.</div>'
+   + '<div class="kpis">' + k.map(function(x){
+       return '<div class="k'+(x.w?' warn':'')+'"><div class="l">'+x.l+'</div><div class="v">'+x.v+'</div>'
+         + '<div class="s">'+x.s+'</div></div>'; }).join('') + '</div>'
+   + tabsHtml()
+   + '<div class="sec'+(TAB==='plan'?' on':'')+'">'+(TAB==='plan'?secPlan():'')+'</div>'
+   + '<div class="sec'+(TAB==='lab'?' on':'')+'">'+(TAB==='lab'?secLab():'')+'</div>'
+   + '<div class="sec'+(TAB==='grp'?' on':'')+'">'+(TAB==='grp'?secGrp():'')+'</div>'
+   + '<div class="sec'+(TAB==='dead'?' on':'')+'">'+(TAB==='dead'?secDead():'')+'</div>'
+   + '<div class="foot">Система «Пульс» · © 2026 · источник — технологические карты iiko</div>';
+
+   root.querySelectorAll('.tab').forEach(function(b){
+     b.onclick = function(){ TAB = b.dataset.t; Q=''; render(); }; });
+   ['q','q2'].forEach(function(id){
+     var e = document.getElementById(id);
+     if (e) e.oninput = function(){ Q = e.value; render();
+       var n = document.getElementById(id); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } };
+   });
+   var c = document.getElementById('csv'); if (c) c.onclick = csv;
+ }
+ document.getElementById('live').textContent = 'карт в разборе: ' + num(D.charts);
+ render();
+})();
+</script>
+</body></html>
