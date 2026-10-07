@@ -1,0 +1,133 @@
+name: iiko — этикетки и блюда
+
+# Собирает связку «этикетка → в каких блюдах используется» из технологических
+# карт iiko. Пишет отчёт в репозиторий (_отладка/этикетки_блюда.md) и машинный
+# срез (etiketki.json), чтобы потом построить из него страницу.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - name: Технологические карты
+        run: |
+          python - <<'PY'
+          import os, warnings, hashlib, requests, sys, json, datetime, re, collections
+          import xml.etree.ElementTree as ET
+          warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
+          from iiko_export import URL, LOGIN, PASS
+          s = requests.Session()
+          tok = s.get(f"{URL}/resto/api/auth",
+                      params={"login": LOGIN, "pass": hashlib.sha1(PASS.encode()).hexdigest()},
+                      verify=False, timeout=60).text.strip().strip('"')
+          out = ["# Этикетки и блюда, где они используются", ""]
+
+          # ── справочник номенклатуры: id → имя, тип ──
+          prods = s.get(URL + "/resto/api/v2/entities/products/list",
+                        params={"key": tok, "includeDeleted": "false"}, verify=False, timeout=240).json()
+          NAME, TYPE = {}, {}
+          for p in prods:
+              NAME[p.get("id")] = (p.get("name") or "").strip()
+              TYPE[p.get("id")] = p.get("type") or ""
+          out.append("номенклатуры в справочнике: **%d**" % len(NAME))
+
+          ET_RE = re.compile(r"этикет|наклейк|стикер", re.I)
+          UPAK_RE = re.compile(r"^\s*У\*")
+          labels = {i: n for i, n in NAME.items() if ET_RE.search(n)}
+          out.append("позиций, похожих на этикетки: **%d**" % len(labels))
+          out.append("")
+
+          # ── технологические карты ──
+          today = datetime.date.today().isoformat()
+          charts, err = [], None
+          for path, par in (
+              ("/resto/api/v2/assemblyCharts/getAll", {"dateFrom": today, "dateTo": today}),
+              ("/resto/api/v2/assemblyCharts/getAll", {"date": today}),
+          ):
+              try:
+                  r = s.get(URL + path, params=dict(par, key=tok), verify=False, timeout=300)
+                  if r.status_code == 200:
+                      j = r.json()
+                      charts = j.get("assemblyCharts") if isinstance(j, dict) else j
+                      if charts: break
+                      err = "пусто: %s" % str(j)[:200]
+                  else:
+                      err = "%s → %d: %s" % (path, r.status_code, r.text[:200])
+              except Exception as e:
+                  err = "%s → %s" % (path, e)
+          if not charts:
+              out.append("## Технологические карты не отдались")
+              out.append("`%s`" % err)
+              charts = []
+          else:
+              out.append("технологических карт: **%d**" % len(charts))
+              out.append("")
+
+          # ── собираем: этикетка → блюда ──
+          use = collections.defaultdict(dict)       # label_id -> {dish_id: qty}
+          dish_labels = collections.defaultdict(set)
+          for ch in charts:
+              dish = ch.get("assembledProductId") or ch.get("productId")
+              for it in (ch.get("items") or []):
+                  pid = it.get("productId")
+                  if pid in labels:
+                      q = it.get("amountMiddle") or it.get("amountIn") or it.get("amount") or 0
+                      use[pid][dish] = q
+                      dish_labels[dish].add(pid)
+
+          rows = sorted(use.items(), key=lambda kv: -len(kv[1]))
+          out.append("## Этикетки: сколько блюд и каких")
+          out.append("")
+          out.append("| этикетка | блюд | примеры |")
+          out.append("|---|---|---|")
+          for lid, dishes in rows:
+              ex = ", ".join(sorted(NAME.get(d, "?") for d in dishes)[:4])
+              out.append("| %s | %d | %s |" % (labels[lid], len(dishes), ex[:160]))
+          if not rows:
+              out.append("| — | 0 | в картах этикеток не нашлось |")
+          out.append("")
+
+          out.append("## Полные списки")
+          for lid, dishes in rows:
+              out.append("")
+              out.append("### %s — %d блюд" % (labels[lid], len(dishes)))
+              names = sorted(NAME.get(d, str(d)) for d in dishes)
+              for n in names[:400]:
+                  out.append("- %s" % n)
+              if len(names) > 400:
+                  out.append("- …и ещё %d" % (len(names) - 400))
+
+          data = {
+              "updated": datetime.datetime.now().isoformat(timespec="minutes"),
+              "labels": [{"id": lid, "name": labels[lid],
+                          "dishes": sorted([{"id": d, "name": NAME.get(d, ""), "qty": q}
+                                            for d, q in dishes.items()],
+                                           key=lambda x: x["name"])}
+                         for lid, dishes in rows],
+              "charts": len(charts), "products": len(NAME),
+          }
+          os.makedirs("_отладка", exist_ok=True)
+          open("_отладка/этикетки_блюда.md", "w", encoding="utf-8").write("\n".join(out) + "\n")
+          open("etiketki.json", "w", encoding="utf-8").write(json.dumps(data, ensure_ascii=False))
+          print("\n".join(out)[:3000])
+          p2 = os.environ.get("GITHUB_STEP_SUMMARY")
+          if p2: open(p2, "a", encoding="utf-8").write("\n".join(out)[:60000] + "\n")
+          PY
+      - name: Положить в репозиторий
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse-bot@users.noreply.github.com"
+          git add -A "_отладка/этикетки_блюда.md" etiketki.json
+          git commit -m "этикетки → блюда: выгрузка из техкарт iiko [skip ci]" || exit 0
+          git pull --rebase || true
+          git push
