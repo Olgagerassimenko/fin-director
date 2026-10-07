@@ -332,31 +332,6 @@ thead th.nm{text-align:left}
 .pin{width:78px;background:#0d1626;border:1px solid var(--line2);color:#e8eef6;border-radius:7px;
   padding:4px 6px;font-size:11.5px;font-family:inherit;text-align:right}
 .hint{font-size:11.5px;color:#7f93b0;line-height:1.6;margin-top:3px}
-
-.skuwrap{position:fixed;inset:0;z-index:400;display:none;align-items:center;justify-content:center;
-  background:rgba(5,9,17,.9);backdrop-filter:blur(7px);padding:18px}
-.skuwrap.on{display:flex}
-.skubox{width:min(880px,100%);max-height:90vh;overflow:auto;background:linear-gradient(170deg,#101a2b,#0b1320);
-  border:1px solid #26334d;border-radius:20px;padding:22px 24px}
-.skubox h3{font-size:17px;font-weight:900;margin-bottom:4px}
-.skubox .s{font-size:12.5px;color:#7b8ca6;line-height:1.55;margin-bottom:16px}
-.skuf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}
-.skuf label{display:block;font-size:11.5px;color:#c3d0e2;font-weight:700;margin-bottom:4px}
-.skuf label span{color:#7b8ca6;font-weight:500}
-.skuf input,.skuf select{width:100%;background:#0b1422;border:1px solid #26334d;border-radius:10px;
-  color:#eef3fb;font:inherit;font-size:13px;padding:8px 11px;outline:none}
-.skuf input:focus,.skuf select:focus{border-color:#f59e0b}
-.skuf .w{grid-column:1/-1}
-.skurow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
-.skulist{margin-top:18px;border-top:1px solid #1c2740;padding-top:14px}
-.skulist table{width:100%;border-collapse:collapse;font-size:12.5px}
-.skulist th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#7b8ca6;
-  font-weight:800;padding:7px 8px;border-bottom:1px solid #26334d}
-.skulist td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.05);color:#c3d0e2}
-.skulist td.n{text-align:right;font-variant-numeric:tabular-nums;color:#eef3fb;font-weight:700}
-.skulist .x{color:#546279;cursor:pointer;font-weight:800}.skulist .x:hover{color:#f87171}
-.badge-man{background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.45);color:#fcd34d;
-  border-radius:999px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:6px;white-space:nowrap}
 </style></head>
 <body>
 
@@ -392,7 +367,6 @@ thead th.nm{text-align:left}
       <div style="flex:1;min-width:190px"><label>Поиск</label>
         <input type="search" id="q" placeholder="позиция, поставщик, склад…"></div>
       <button class="btn pri" id="xls">📥 Всё в Excel</button>
-      <button class="btn" id="skubtn">➕ Добавить SKU</button>
       <button class="btn" id="xlsin">📤 Импорт из Excel</button>
       <button class="btn" id="fotobulk">📷 Фото пачкой</button>
       <button class="btn urgbtn" id="urgbtn">🔴 Срочное</button>
@@ -433,7 +407,6 @@ thead th.nm{text-align:left}
     <button class="tab" data-s="mx">🏬 Где что лежит<b id="t-mx"></b></button>
     <button class="tab" data-s="all">📋 Вся упаковка<b id="t-all"></b></button>
     <button class="tab" data-s="dead">🧊 Не используется<b id="t-dead"></b></button>
-    <button class="tab" data-s="sku">➕ Добавить SKU<b id="t-sku"></b></button>
   </div>
 
   <div class="sec on" id="s-rep"></div>
@@ -442,7 +415,6 @@ thead th.nm{text-align:left}
   <div class="sec" id="s-mx"></div>
   <div class="sec" id="s-all"></div>
   <div class="sec" id="s-dead"></div>
-  <div class="sec" id="s-sku"></div>
 </div>
 
 <input type="file" id="f-one" accept="image/*" style="display:none">
@@ -550,8 +522,7 @@ thead th.nm{text-align:left}
       .replace(/ё/g,'е').replace(/[^0-9a-zа-я]+/g,' ').trim().replace(/\s+/g,' ');
   }
 
-  var IT = [];
-  function buildIT(){ IT = D.items.map(function (r) {
+  var IT = D.items.map(function (r) {
     var stRaw = 0, stSum = 0, st = {};
     Object.keys(r.st || {}).forEach(function (s) {
       if (skipStore(s)) return;
@@ -611,8 +582,6 @@ thead th.nm{text-align:left}
              m3:m3, out3:out3, in3:in3, outAll:outAll, last:lastMove, curMv:curMv, byStore:byStore,
              stores:Object.keys(st) };
   });
-  }
-  buildIT();
 
   function leadOf(it){ var l=P.lead; it.sups.forEach(function(s){ if(LONG[s]) l=Math.max(l,P.long); }); return l; }
 
@@ -633,182 +602,6 @@ thead th.nm{text-align:left}
       if (cap < w) return { m:cap, why:'расход падает — считаем по последнему месяцу' };
     }
     return { m:w, why:'' };
-  }
-
-  /* ── СВОИ ПОЗИЦИИ УПАКОВКИ ─────────────────────────────────────────
-     Не всё, что заказывается, заведено в iiko: новая упаковка, пробная
-     партия, позиция другого юрлица. Такую позицию можно завести здесь —
-     она ляжет в облако и дальше считается наравне с остальными: попадает
-     в неснижаемый остаток, в заявку, в фильтры и в выгрузку. Пометка
-     «вручную» остаётся, чтобы было видно, что цифры пришли не из iiko. */
-  var CUSTOM = {}, CUSTOM_ADDED = [];
-  function skuRec(k, v){
-    var price = +v.price || 0, qty = +v.qty || 0, per = +v.per || 0;
-    var sup = {}, last = null;
-    if (v.sup) { sup[v.sup] = [price * qty, qty]; last = [price, MON[MON.length-1], v.sup, qty]; }
-    else if (price) { last = [price, MON[MON.length-1], '', 0]; }
-    var st = {}; if (qty) st[v.store || 'Основной склад (несъедобное) ФЗ'] = [qty, qty * price];
-    var mc = {}, mv = {};
-    LAST3.forEach(function(m){ mc[m] = [0, per]; });
-    if (per) { var s2 = {}; s2[v.store || 'Основной склад (несъедобное) ФЗ'] = [0, per];
-               LAST3.forEach(function(m){ mv[m] = s2; }); }
-    return { n: k, u: v.u || 'шт', st: st, mv: mv, mc: mc, sup: sup, last: last, _man: 1 };
-  }
-  function applyCustom(){
-    /* убираем прошлые свои позиции и кладём заново — так правка видна сразу */
-    if (CUSTOM_ADDED.length)
-      D.items = D.items.filter(function(r){ return CUSTOM_ADDED.indexOf(r.n) < 0; });
-    CUSTOM_ADDED = Object.keys(CUSTOM || {});
-    CUSTOM_ADDED.forEach(function(k){ D.items.push(skuRec(k, CUSTOM[k])); });
-    buildIT();
-  }
-  function skuSave(k, v){
-    return fetch(API + '?a=sku', { method:'POST', headers:{'content-type':'application/json'},
-      body: JSON.stringify({ k:k, v:v }) }).then(function(r){
-        if (!r.ok) throw new Error('не сохранилось'); return r.json(); });
-  }
-  function skuOpen(){                      /* кнопка в панели — просто переход */
-    var t = document.querySelector('#tabs .tab[data-s="sku"]');
-    if (t) { t.click(); t.scrollIntoView({block:'nearest', inline:'center'}); }
-  }
-  function skuStore(){
-    var pref = (D.stores||[]).filter(function(s){ return /несъедоб/i.test(s); })[0];
-    return (D.stores||[]).filter(function(s){ return !skipStore(s); })
-      .map(function(s){ return '<option'+(s===pref?' selected':'')+'>'+esc(s)+'</option>'; }).join('');
-  }
-  /* ── РАЗДЕЛ «ДОБАВИТЬ SKU» ────────────────────────────────────────
-     Список того, что надо завести в номенклатуре iiko. Позиция живёт
-     здесь и одновременно считается в остальных вкладках, а галочка
-     «заведено» помечает, что номенклатура уже создана. */
-  function secSku(){
-    var el = document.getElementById('s-sku'); if (!el) return;
-    var ks = Object.keys(CUSTOM||{}).sort(function(a,b){
-      var A=(CUSTOM[a].done?1:0), B=(CUSTOM[b].done?1:0);
-      return A-B || a.localeCompare(b,'ru'); });
-    var todo = ks.filter(function(k){ return !CUSTOM[k].done; });
-    var sumQ = todo.reduce(function(a,k){ return a + (+CUSTOM[k].per||0); }, 0);
-    var sumM = todo.reduce(function(a,k){ return a + (+CUSTOM[k].per||0)*(+CUSTOM[k].price||0); }, 0);
-
-    var list = !ks.length
-      ? '<div style="color:#546279;font-size:13px;padding:22px 0">Список пуст. Заполните форму ниже — '
-        + 'позиция появится здесь и сразу начнёт считаться в остальных вкладках.</div>'
-      : '<div class="tw"><table><thead><tr>'
-        + '<th style="width:34px"></th><th style="text-align:left">Позиция</th>'
-        + '<th style="text-align:left">Артикул</th><th>Вид</th><th>Ед.</th>'
-        + '<th style="text-align:right">Остаток</th><th style="text-align:right">Цена, ₸</th>'
-        + '<th style="text-align:right">Расход/мес</th><th style="text-align:right">Нужно на месяц, ₸</th>'
-        + '<th style="text-align:left">Поставщик</th><th style="text-align:left">Склад</th>'
-        + '<th style="text-align:left">Комментарий</th><th></th></tr></thead><tbody>'
-        + ks.map(function(k){ var v=CUSTOM[k], dn=!!v.done;
-            return '<tr'+(dn?' style="opacity:.5"':'')+'>'
-              + '<td style="text-align:center"><input type="checkbox" data-skudone="'+esc(k)+'"'
-              + (dn?' checked':'')+' title="заведено в iiko" style="width:16px;height:16px;accent-color:#f59e0b;cursor:pointer"></td>'
-              + '<td style="text-align:left;font-weight:700'+(dn?';text-decoration:line-through':'')+'">'+esc(k)+'</td>'
-              + '<td style="text-align:left;color:#9fb0c4;font-family:ui-monospace,Menlo,monospace">'
-              + esc(v.code||'—')+'</td>'
-              + '<td>'+esc(v.kind||'—')+'</td><td>'+esc(v.u||'шт')+'</td>'
-              + '<td style="text-align:right">'+f1(+v.qty||0)+'</td><td class="num">'+f1(+v.price||0)+'</td>'
-              + '<td style="text-align:right">'+f1(+v.per||0)+'</td>'
-              + '<td style="text-align:right">'+f0((+v.per||0)*(+v.price||0))+'</td>'
-              + '<td style="text-align:left">'+esc(v.sup||'—')+'</td>'
-              + '<td style="text-align:left;color:#7b8ca6">'+esc(v.store||'—')+'</td>'
-              + '<td style="text-align:left;color:#7b8ca6">'+esc(v.note||'')+'</td>'
-              + '<td class="x" data-skudel="'+esc(k)+'" style="cursor:pointer;color:#546279;font-weight:800">✕</td></tr>';
-          }).join('')
-        + '</tbody></table></div>';
-
-    el.innerHTML =
-      '<div class="card"><div class="card-t" style="font-size:14px;font-weight:800;margin-bottom:4px">➕ Что надо завести в iiko</div>'
-      + '<div class="hint">Упаковка, которой ещё нет в номенклатуре: новая, пробная партия, позиция другого '
-      + 'юрлица. Позиция из этого списка сразу считается наравне с остальными — попадает в неснижаемый '
-      + 'остаток, в заявку и в выгрузки. Галочка слева помечает, что номенклатуру уже создали.</div>'
-      + '<div class="kpis" style="margin:14px 0 4px">'
-      + '<div class="kpi"><div class="l">НАДО ЗАВЕСТИ</div><div class="v">'+todo.length+'</div>'
-      + '<div class="s">всего в списке — '+ks.length+'</div></div>'
-      + '<div class="kpi"><div class="l">РАСХОД В МЕСЯЦ</div><div class="v">'+f0(sumQ)+'</div>'
-      + '<div class="s">единиц по незаведённым</div></div>'
-      + '<div class="kpi"><div class="l">НА СУММУ В МЕСЯЦ</div><div class="v">'+f0(sumM)+' ₸</div>'
-      + '<div class="s">по вписанным ценам</div></div></div>'
-      + '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px">'
-      + '<button class="btn pri" id="sku-csv">⤓ Задание в Excel</button></div>'
-      + list + '</div>'
-
-      + '<div class="card"><div class="card-t" style="font-size:14px;font-weight:800;margin-bottom:4px">Добавить позицию</div>'
-      + '<div class="hint">«У*» к названию подставится само. Расход в месяц нужен, чтобы посчитать '
-      + 'неснижаемый остаток: без него позиция попадёт в список, но не в заявку.</div>'
-      + '<div class="skuf" style="margin-top:14px">'
-      + '<div class="w"><label>Название</label><input type="text" id="sku-n" placeholder="например: Этикетка Яндекс 58*40"></div>'
-      + '<div><label>Артикул / код <span>— под каким заводить в iiko</span></label>'
-      + '<input type="text" id="sku-code" placeholder="если есть"></div>'
-      + '<div><label>Единица измерения</label><input type="text" id="sku-u" value="шт"></div>'
-      + '<div><label>Вид <span>— для галочек-фильтров</span></label><select id="sku-kind">'
-      + '<option value="">не указан</option><option>Этикетки</option><option>Коробки</option>'
-      + '<option>Пакеты</option><option>Лотки и контейнеры</option><option>Плёнка</option>'
-      + '<option>Приборы и салфетки</option><option>Прочее</option></select></div>'
-      + '<div><label>Остаток сейчас</label><input type="number" id="sku-qty" step="any" placeholder="0"></div>'
-      + '<div><label>Цена за единицу, ₸</label><input type="number" id="sku-price" step="any" placeholder="0"></div>'
-      + '<div><label>Расход в месяц</label><input type="number" id="sku-per" step="any" placeholder="0"></div>'
-      + '<div><label>Поставщик</label><input type="text" id="sku-sup" placeholder="не обязательно"></div>'
-      + '<div><label>Склад</label><select id="sku-store">'+skuStore()+'</select></div>'
-      + '<div><label>Комментарий</label><input type="text" id="sku-note" placeholder="не обязательно"></div>'
-      + '</div><div style="margin-top:14px"><button class="btn pri" id="sku-add">＋ Добавить в список</button></div>'
-      + '</div>';
-
-    var ad=document.getElementById('sku-add'); if(ad) ad.onclick=skuAdd;
-    var cs=document.getElementById('sku-csv'); if(cs) cs.onclick=skuXlsx;
-    el.querySelectorAll('[data-skudel]').forEach(function(t){
-      t.onclick=function(){
-        var k=t.getAttribute('data-skudel');
-        skuSave(k,null).then(function(){ delete CUSTOM[k]; applyCustom(); redraw();
-          toast('Позиция убрана из списка'); }).catch(function(e){ toast(String(e)); });
-      };
-    });
-    el.querySelectorAll('[data-skudone]').forEach(function(c){
-      c.onchange=function(){
-        var k=c.getAttribute('data-skudone'), v=Object.assign({}, CUSTOM[k], {done:c.checked?1:0});
-        c.disabled=true;
-        skuSave(k,v).then(function(){ CUSTOM[k]=v; c.disabled=false; secSku(); head();
-          toast(v.done?'Отмечено: заведено в iiko':'Снова в списке'); })
-          .catch(function(e){ c.disabled=false; c.checked=!c.checked; toast(String(e)); });
-      };
-    });
-  }
-  function skuXlsx(){
-    var all = Object.keys(CUSTOM||{}).sort();
-    var ks = all.filter(function(k){ return !CUSTOM[k].done; });
-    if (!ks.length) ks = all;
-    if (!ks.length) { toast('Сначала добавьте хотя бы одну позицию'); return; }
-    var head = ['№','Название позиции','Артикул / код','Ед. изм.','Вид упаковки','Поставщик',
-                'Цена за ед., ₸','Остаток на дату','Расход в месяц','Склад',
-                'Комментарий','Создано в iiko (да/нет)'];
-    var rows = [head.map(function(h){ return {v:h,s:1}; })];
-    ks.forEach(function(k,i){ var v=CUSTOM[k];
-      rows.push([{v:i+1,s:3},{v:k,s:2},{v:v.code||'',s:2},{v:v.u||'шт',s:2},{v:v.kind||'',s:2},{v:v.sup||'',s:2},
-        {v:+v.price||0,s:3},{v:+v.qty||0,s:3},{v:+v.per||0,s:3},{v:v.store||'',s:9},
-        {v:v.note||'',s:9},{v:'',s:10}]);
-    });
-    rows.push([{v:'Итого',s:6},{v:ks.length+' поз.',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},
-      {v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6},{v:'',s:6}]);
-    saveXlsx([{ name:'Задание на SKU', first:true, total:true, rows:rows,
-      cols:W([5,46,16,8,20,24,13,14,14,30,32,18]), hRows:{0:30} }],
-      'Задание на создание SKU упаковки ' + dmy(TH).replace(/\./g,'-') + '.xlsx');
-  }
-  function skuAdd(){
-    function V(id){ var e=document.getElementById(id); return e? e.value.trim() : ''; }
-    function N(id){ var e=document.getElementById(id); return e? (+e.value||0) : 0; }
-    var name = V('sku-n');
-    if (!name) { toast('Без названия не сохранить'); return; }
-    if (name.indexOf('У*') !== 0) name = 'У* ' + name;
-    var dup = IT.filter(function(i){ return nkey(i.n) === nkey(name) && !CUSTOM[i.n]; })[0];
-    if (dup) { toast('Такая позиция уже есть в iiko: ' + dup.n); return; }
-    var v = { code:V('sku-code'), u:V('sku-u')||'шт', kind:V('sku-kind'), qty:N('sku-qty'), price:N('sku-price'),
-              per:N('sku-per'), sup:V('sku-sup'), store:V('sku-store'), note:V('sku-note') };
-    skuSave(name, v).then(function(){
-      CUSTOM[name] = v; applyCustom(); redraw();
-      ['sku-n','sku-code','sku-qty','sku-price','sku-per','sku-sup','sku-note'].forEach(function(id){
-        var e=document.getElementById(id); if (e) e.value=''; });
-      toast('Добавлено: ' + name);
-    }).catch(function(e){ toast('Не сохранилось: ' + String(e)); });
   }
 
   function calc() {
@@ -1020,9 +813,6 @@ thead th.nm{text-align:left}
     document.getElementById('t-dead').textContent = IT.filter(function(i){return i.dead;}).length
       ? '· ' + IT.filter(function(i){return i.dead;}).length : '';
     document.getElementById('t-mx').textContent = '· ' + STORES.length;
-    var _ts=document.getElementById('t-sku');
-    if(_ts){ var _n=Object.keys(CUSTOM||{}).filter(function(k){ return !CUSTOM[k].done; }).length;
-             _ts.textContent = _n ? ('· ' + _n) : ''; }
     document.getElementById('how').innerHTML =
       'Расход берётся прямой — сколько упаковки ушло со склада, а не разница остатков. ' +
       'Дневной расход считаем по трём последним полным месяцам, но <b>последний месяц весит втрое</b>, ' +
@@ -1307,7 +1097,6 @@ thead th.nm{text-align:left}
       .then(function (j) {
         if (!j) return;
         FOTO = j.foto || {}; PRICE_MAN = j.prices || {}; STOPS = j.stops || {}; WEEKS_MAN = j.weeks || {};
-        CUSTOM = j.sku || {}; applyCustom();
       }).catch(function () {});
   }
 
@@ -2494,7 +2283,7 @@ thead th.nm{text-align:left}
   };
 
   /* ── ЗАПУСК ────────────────────────────────────────────────────── */
-  function redraw(){ calc(); head(); secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); secSku(); }
+  function redraw(){ calc(); head(); secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); }
   ['p-weeks','p-lead','p-long','p-safe','p-thr','p-over'].forEach(function (id) {
     document.getElementById(id).oninput = function () {
       P.weeks = +document.getElementById('p-weeks').value || 4;
@@ -2506,7 +2295,7 @@ thead th.nm{text-align:left}
       redraw();
     };
   });
-  function redrawSecs(){ head(); secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); secSku(); }
+  function redrawSecs(){ head(); secBuy(); secRep(); secOrd(); secMx(); secAll(); secDead(); }
   document.getElementById('q').oninput = redrawSecs;
   fillFilters();
   renderKinds();
@@ -2640,7 +2429,6 @@ thead th.nm{text-align:left}
   /* Фото и ручные цены приходят из воркера: страница рисуется сразу,
      а когда список дойдёт — перерисовываем. */
   fotoLoad().then(function () {
-    var _sb=document.getElementById('skubtn'); if(_sb) _sb.onclick=skuOpen;
     if (Object.keys(FOTO).length || Object.keys(PRICE_MAN).length
         || Object.keys(STOPS).length || Object.keys(WEEKS_MAN).length) redraw();
   });
@@ -2648,5 +2436,4 @@ thead th.nm{text-align:left}
 
 </script>
 <script src="nav.js"></script>
-
 </body></html>
