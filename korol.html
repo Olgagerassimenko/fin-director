@@ -1392,11 +1392,30 @@ ___, специалист по контролю качества, Фуд зав�
         }
       };
     }
-    /* первичное наполнение снимком */
+    /* Наполнение снимком. Снимок versioned: когда в страницу добавляются новые
+       рекламации, у всех, кто уже открывал сайт, они тоже появляются.
+       Записи, которые завели или изменили люди, не трогаем. */
+    var SEED_VER = "s" + SNAPSHOT.length + "-" +
+      SNAPSHOT.reduce(function(m,x){ return Math.max(m, x.updatedAt||0); }, 0);
     var cur = read();
-    if(!cur.cases || !Object.keys(cur.cases).length){
-      cur.cases = {};
-      SNAPSHOT.forEach(function(b){ var c = Object.assign({}, b); var id = c.id; delete c.id; cur.cases[id] = c; });
+    if(cur.seedVer !== SEED_VER){
+      var old = cur.cases || {};
+      var next = {};
+      /* всё, что люди завели сами, остаётся как есть */
+      Object.keys(old).forEach(function(id){
+        if(!/^(ol|wa|demo)/.test(id)) next[id] = old[id];
+      });
+      SNAPSHOT.forEach(function(b){
+        var c = Object.assign({}, b), id = c.id; delete c.id;
+        var was = old[id];
+        /* если по записи уже работали — сохраняем работу */
+        var touched = was && (was.owner || was.ownerText || was.reply || was.cause ||
+                      was.action || was.prevention || was.control || was.cost ||
+                      was.status !== b.status || (was.culprit && was.culprit !== b.culprit));
+        next[id] = touched ? was : c;
+      });
+      cur.cases = next;
+      cur.seedVer = SEED_VER;
       write(cur);
     }
     return {collection: col, doc: function(path){ var p = String(path).split("/"); return docRef(p[0], p[1]); }};
