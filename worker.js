@@ -158,6 +158,10 @@ const UPF_STOP_KEY = "upf:stops";
 // Срок запаса по отдельной позиции: общий «минимальный запас, недель» —
 // умолчание, но по конкретной SKU его можно задать свой.
 const UPF_WEEKS_KEY = "upf:weeks";
+// Позиции упаковки, заведённые руками: их нет в номенклатуре iiko, но
+// заказывать и держать неснижаемый остаток по ним надо. Хранятся отдельно
+// и подмешиваются к данным из iiko уже на странице.
+const UPF_SKU_KEY = "upf:sku";
 
 // ── Налоговый калькулятор: ставки и история расчётов ────────────────────────
 //  Ставки держим в KV, а не в коде: меняется МРП, МЗП или сама ставка —
@@ -292,7 +296,9 @@ async function handleUpak(request, env, url) {
     try { prices = JSON.parse((await env.PLAN.get(UPF_PRICE_KEY)) || "{}") || {}; } catch (e) {}
     try { stops = JSON.parse((await env.PLAN.get(UPF_STOP_KEY)) || "{}") || {}; } catch (e) {}
     try { weeks = JSON.parse((await env.PLAN.get(UPF_WEEKS_KEY)) || "{}") || {}; } catch (e) {}
-    return jsonResp({ foto, prices, stops, weeks, count: Object.keys(foto).length });
+    let sku = {};
+    try { sku = JSON.parse((await env.PLAN.get(UPF_SKU_KEY)) || "{}") || {}; } catch (e) {}
+    return jsonResp({ foto, prices, stops, weeks, sku });
   }
 
   if (act === "foto") {
@@ -320,6 +326,18 @@ async function handleUpak(request, env, url) {
     if (!key) return jsonResp({ error: "нет названия позиции" }, 400);
     await env.PLAN.delete(UPF_PREFIX + key);
     return jsonResp({ ok: true });
+  }
+
+  if (act === "sku" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const k = String((body && body.k) || "").slice(0, 160).trim();
+    if (!k) return jsonResp({ error: "нет названия" }, 400);
+    let p = {};
+    try { p = JSON.parse((await env.PLAN.get(UPF_SKU_KEY)) || "{}") || {}; } catch (e) {}
+    if (body && body.v) p[k] = body.v; else delete p[k];
+    await env.PLAN.put(UPF_SKU_KEY, JSON.stringify(p).slice(0, 400000));
+    return jsonResp({ ok: true, count: Object.keys(p).length });
   }
 
   if (act === "price" && request.method === "POST") {
