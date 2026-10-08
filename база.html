@@ -1,0 +1,386 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>База компании · Фуд Завод</title>
+<!-- Фуд Завод · © 2026. Все права защищены. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Единая база компании. Заготовка карточек собирается из айко (baza_seed.js),
+     вписанное руками живёт в воркере (/api/baza) и перекрывает заготовку. -->
+<script src="baza_seed.js" onerror="window.BAZA_SEED=null"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f6f2ea; --card:#fff; --line:#e9e2d6; --line2:#d9d0c0;
+  --ink:#2a2724; --ink2:#554f48; --mut:#8b8275; --dim:#a79d8e;
+  --acc:#f0a73a; --acc2:#d4890f; --accbg:#fdf2dd;
+  --grn:#2e9b6f; --grnbg:#e6f5ee; --red:#d2543f; --redbg:#fbeae7;
+  --blu:#3a72c4; --blubg:#eaf1fb;
+}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);background:var(--bg);
+  -webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:inherit}
+.top{background:#fff;border-bottom:1px solid var(--line);padding:11px 20px;display:flex;align-items:center;
+  gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+.logo{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#f6b73c,#e2860f);
+  display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.brand{font-size:15px;font-weight:800;letter-spacing:-.2px}
+.brand b{color:var(--acc2)}
+.tnav{display:flex;gap:4px;flex-wrap:wrap;margin-left:6px}
+.tnav a{font-size:13px;font-weight:600;color:var(--ink2);text-decoration:none;padding:7px 13px;
+  border-radius:9px;transition:.15s;white-space:nowrap}
+.tnav a:hover{background:#f4efe6}
+.tnav a.on{background:var(--accbg);color:var(--acc2);box-shadow:inset 0 0 0 1px #f2d8a4}
+.me{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink2)}
+.av{width:30px;height:30px;border-radius:50%;background:#efe8da;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:800;color:var(--acc2)}
+.layout{display:grid;grid-template-columns:238px 1fr;gap:0;align-items:start}
+.side{background:#fff;border-right:1px solid var(--line);min-height:calc(100vh - 53px);padding:16px 12px 30px;
+  position:sticky;top:53px}
+.side h3{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
+  padding:0 10px;margin:4px 0 9px}
+.side a{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;text-decoration:none;
+  font-size:13.5px;font-weight:600;color:var(--ink2);cursor:pointer;transition:.12s;margin-bottom:2px}
+.side a:hover{background:#f6f2ea}
+.side a.on{background:var(--accbg);color:var(--acc2)}
+.side a i{font-style:normal;width:19px;text-align:center;font-size:14px}
+.side a b{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--dim)}
+.side a.on b{color:var(--acc2)}
+.side .gap{height:14px}
+.main{padding:22px 26px 60px;min-width:0}
+.crumb{font-size:12px;color:var(--mut);margin-bottom:4px}
+h1{font-size:25px;font-weight:800;letter-spacing:-.5px;margin-bottom:5px}
+.lede{font-size:13.5px;color:var(--ink2);line-height:1.7;max-width:860px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px;margin:18px 0}
+.kc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kc .v{font-size:26px;font-weight:800;letter-spacing:-.6px;line-height:1.1}
+.kc .l{font-size:12.5px;font-weight:700;margin-top:5px}
+.kc .s{font-size:11.5px;color:var(--mut);margin-top:3px;line-height:1.5}
+.kc.ok .v{color:var(--grn)}.kc.warn .v{color:var(--acc2)}.kc.bad .v{color:var(--red)}
+.bar{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px;display:flex;gap:9px;
+  flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.q{flex:1;min-width:210px;border:1px solid var(--line2);border-radius:10px;padding:9px 13px;font:inherit;
+  font-size:13.5px;color:var(--ink);background:#fcfaf6}
+.q:focus{outline:0;border-color:var(--acc);background:#fff}
+.btn{border:1px solid var(--line2);background:#fff;color:var(--ink2);border-radius:10px;padding:9px 14px;
+  font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{background:#f6f2ea;color:var(--ink)}
+.btn.pri{background:linear-gradient(180deg,#f6b73c,#eb9c18);border-color:#e09412;color:#3a2704;font-weight:700}
+.btn.pri:hover{filter:brightness(1.04)}
+.btn.on{background:var(--accbg);border-color:#f0cf93;color:var(--acc2)}
+.row{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:8px;overflow:hidden}
+.row.open{border-color:#f0cf93;box-shadow:0 2px 14px -6px rgba(224,148,18,.35)}
+.rh{display:flex;gap:12px;align-items:center;padding:12px 16px;cursor:pointer;flex-wrap:wrap}
+.rh:hover{background:#fdfbf7}
+.rh .nm{font-size:14px;font-weight:700;flex:1;min-width:190px}
+.rh .nm small{display:block;font-size:11.5px;font-weight:500;color:var(--mut);margin-top:2px;line-height:1.5}
+.rh .code{font-size:11.5px;color:var(--dim);font-weight:700;background:#f4efe6;border-radius:6px;
+  padding:2px 7px}
+.tag{font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 8px;white-space:nowrap}
+.t-ok{background:var(--grnbg);color:var(--grn)}
+.t-no{background:var(--redbg);color:var(--red)}
+.t-src{background:var(--blubg);color:var(--blu)}
+.t-pl{background:#f1ece2;color:var(--mut)}
+.t-arch{background:#eceae6;color:var(--dim)}
+.rb{border-top:1px solid var(--line);padding:16px;background:#fdfbf7}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.fld label{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:5px}
+.fld input,.fld select,.fld textarea{width:100%;border:1px solid var(--line2);border-radius:9px;
+  padding:8px 11px;font:inherit;font-size:13px;color:var(--ink);background:#fff}
+.fld textarea{min-height:66px;resize:vertical;line-height:1.6}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:0;border-color:var(--acc)}
+.wide{grid-column:1/-1}
+.need{background:#fff8e9;border:1px solid #f3dfb2;border-radius:10px;padding:10px 13px;font-size:12.5px;
+  color:#8a6520;line-height:1.7;margin-top:12px}
+.need b{color:#6b4c12}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.rel{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.rel span{background:#f4efe6;border-radius:7px;padding:3px 9px;font-size:11.5px;color:var(--ink2);cursor:pointer}
+.rel span:hover{background:var(--accbg);color:var(--acc2)}
+.how{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px}
+.how h2{font-size:15px;font-weight:800;margin-bottom:9px}
+.how ol{margin:0;padding-left:19px}
+.how li{font-size:13px;color:var(--ink2);line-height:1.85;margin-bottom:4px}
+.how li b{color:var(--ink)}
+.empty{background:#fff;border:1px dashed var(--line2);border-radius:14px;padding:34px 20px;text-align:center;
+  color:var(--mut);font-size:13.5px;line-height:1.7}
+.toast{position:fixed;right:18px;bottom:18px;background:#2a2724;color:#fff;border-radius:11px;padding:11px 16px;
+  font-size:13px;font-weight:600;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;z-index:90}
+.toast.on{opacity:1;transform:none}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.side{position:static;min-height:0;border-right:0;
+  border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px;padding:11px}
+  .side h3,.side .gap{display:none}.side a{width:auto}.side a b{margin-left:6px}.main{padding:16px 13px 50px}}
+</style></head>
+<body>
+<div class="top">
+  <div class="logo">🍲</div>
+  <div class="brand">Food Zavod <b>База компании</b></div>
+  <div class="tnav">
+    <a href="index.html">Пульс</a>
+    <a href="https://zavod.erp-system-fz.kz/" target="_blank" rel="noopener">Завод</a>
+    <a href="https://hr.erp-system-fz.kz/" target="_blank" rel="noopener">HR</a>
+    <a href="https://catalog.erp-system-fz.kz/" target="_blank" rel="noopener">Каталог</a>
+    <a class="on" href="#">База</a>
+  </div>
+  <div class="me"><span id="who">Фуд Завод</span><div class="av">ФЗ</div></div>
+</div>
+
+<div class="layout">
+  <nav class="side" id="side"></nav>
+  <main class="main" id="main"></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+var SEED = (window.BAZA_SEED && window.BAZA_SEED.rows) || [];
+var MAN = {};                       /* вписанное руками, из воркера */
+var main = document.getElementById('main'), side = document.getElementById('side');
+
+var T = [
+  ['ur',    '🏢', 'Юрлица',              'Компании группы: реквизиты, система налогообложения, банки.'],
+  ['obj',   '🏭', 'Точки и склады',      'Где физически стоит товар и идёт производство.'],
+  ['pod',   '🗂', 'Подразделения',       'Отделы и должности: кто за какой участок отвечает.'],
+  ['people','👤', 'Люди',                'Сотрудники, их роли и доступы в системы.'],
+  ['ctr',   '🤝', 'Контрагенты',         'Поставщики и покупатели, условия работы.'],
+  ['dog',   '📄', 'Договоры',            'С кем, на что, до какого числа, где лежит файл.'],
+  ['acc',   '🧾', 'Счета учёта',         'План счетов айко: что на каком счёте и кто за него отвечает.'],
+  ['sys',   '🔌', 'Системы и доступы',   'Какие программы используем, кто администратор.'],
+  ['proc',  '⚙️', 'Процессы',            'Как что делается и через какую служебную записку.'],
+  ['eq',    '🔧', 'Оборудование',        'Что стоит на заводе, чьё и когда обслуживали.'],
+  ['kpi',   '📊', 'Показатели',          'Какая цифра где живёт, кто за неё отвечает.'],
+  ['truth', '🧭', 'Где чья правда',      'Какая система — первоисточник по каждому виду данных. Чтобы не вести одно и то же в двух местах.']
+];
+var TM = {}; T.forEach(function(x){ TM[x[0]] = x; });
+
+var TAB = 'all', Q = '', OPEN = null, ONLYGAP = 0;
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function toast(t){ var e=document.getElementById('toast'); e.textContent=t; e.classList.add('on');
+  clearTimeout(e._t); e._t=setTimeout(function(){ e.classList.remove('on'); }, 2200); }
+
+/* карточка = заготовка из айко + то, что вписали руками, поверх */
+function all(){
+  var byId = {};
+  SEED.forEach(function(r){ byId[r.id] = Object.assign({}, r); });
+  Object.keys(MAN).forEach(function(id){
+    var m = MAN[id];
+    if (byId[id]) byId[id] = Object.assign({}, byId[id], m, {man:1});
+    else { var t = id.split(':')[0];
+      byId[id] = Object.assign({id:id, t: TM[t] ? t : 'ctr'}, m, {man:1, own_:1}); }
+  });
+  return Object.keys(byId).map(function(k){ return byId[k]; });
+}
+function gap(r){ return !(r.own && String(r.own).trim()); }
+function live(r){ return (r.st || 'live') !== 'arch'; }
+
+function counts(){
+  var c = {}, a = all();
+  a.forEach(function(r){ if (live(r)) c[r.t] = (c[r.t]||0)+1; });
+  c.all = a.filter(live).length;
+  return c;
+}
+
+function nav(){
+  var c = counts();
+  side.innerHTML = '<h3>База</h3>'
+    + '<a data-t="all" class="' + (TAB==='all'?'on':'') + '"><i>📚</i>Всё<b>' + (c.all||0) + '</b></a>'
+    + '<div class="gap"></div><h3>Разделы</h3>'
+    + T.map(function(x){
+        return '<a data-t="' + x[0] + '" class="' + (TAB===x[0]?'on':'') + '"><i>' + x[1] + '</i>'
+          + x[2] + '<b>' + (c[x[0]]||0) + '</b></a>'; }).join('');
+  side.querySelectorAll('[data-t]').forEach(function(b){
+    b.onclick = function(){ TAB = b.getAttribute('data-t'); Q=''; OPEN=null; draw(); }; });
+}
+
+function how(){
+  if (TAB !== 'all') return '';
+  return '<div class="how"><h2>Как эта база устроена</h2><ol>'
+    + '<li><b>Одна карточка — один объект.</b> Юрлицо, склад, человек, договор, счёт, система, процесс, '
+    + 'показатель. У карточки есть ключ, и он не меняется.</li>'
+    + '<li><b>У каждой карточки один хозяин.</b> Человек, не отдел. Карточка без хозяина считается '
+    + 'незакрытой и светится в счётчике.</li>'
+    + '<li><b>У каждой карточки один источник истины.</b> Если данные уже есть в айко, HR или Каталоге — '
+    + 'база на них ссылается и не заводит второй экземпляр. Сюда вписывают только то, чего нет нигде: '
+    + 'кто отвечает, где договор, какой регламент.</li>'
+    + '<li><b>Заготовка обновляется сама.</b> Склады, счета, люди и системы приезжают из айко и платформы; '
+    + 'вписанное руками лежит отдельно и поверх — пересборка его не затирает.</li>'
+    + '<li><b>Ничего не удаляется.</b> Отжившее уходит в архив и остаётся видимым.</li>'
+    + '<li><b>Из карточки — в ERP.</b> Если по объекту нужно решение, из него заводится служебная записка '
+    + 'на платформе; база хранит объект, ERP — движение по нему, Пульс — цифры.</li>'
+    + '</ol></div>';
+}
+
+function head(){
+  var a = all().filter(live), g = a.filter(gap).length, man = a.filter(function(r){ return r.man; }).length;
+  var t = TAB === 'all' ? null : TM[TAB];
+  var pct = a.length ? Math.round((a.length - g) / a.length * 100) : 0;
+  return '<div class="crumb">Фуд Завод · База компании' + (t ? ' · ' + t[2] : '') + '</div>'
+    + '<h1>' + (t ? t[1] + ' ' + t[2] : '📚 Вся база') + '</h1>'
+    + '<div class="lede">' + (t ? t[3]
+        : 'Единый список всего, из чего состоит компания. Айко и платформа отвечают на вопрос «сколько», '
+          + 'а база — на вопрос «что это и кто за это отвечает». Часть карточек уже заведена '
+          + 'автоматически, остальное вписывается руками.') + '</div>'
+    + '<div class="cards">'
+    + '<div class="kc"><div class="v">' + a.length + '</div><div class="l">карточек</div>'
+    + '<div class="s">' + man + ' дополнены руками</div></div>'
+    + '<div class="kc ' + (pct>=80?'ok':pct>=40?'warn':'bad') + '"><div class="v">' + pct + '%</div>'
+    + '<div class="l">с хозяином</div><div class="s">карточка без хозяина считается незакрытой</div></div>'
+    + '<div class="kc ' + (g?'bad':'ok') + '"><div class="v">' + g + '</div><div class="l">без хозяина</div>'
+    + '<div class="s">' + (g ? 'надо назначить ответственного' : 'все закрыты') + '</div></div>'
+    + '<div class="kc"><div class="v">' + T.length + '</div><div class="l">разделов</div>'
+    + '<div class="s">обновлено ' + esc((window.BAZA_SEED||{}).updated || '—') + '</div></div>'
+    + '</div>';
+}
+
+function bar(){
+  return '<div class="bar">'
+    + '<input class="q" id="q" placeholder="🔍 поиск по названию, коду, заметке, хозяину…" value="' + esc(Q) + '">'
+    + '<button class="btn' + (ONLYGAP?' on':'') + '" id="gapb">Только без хозяина</button>'
+    + '<button class="btn pri" id="add">＋ Новая карточка</button>'
+    + '<button class="btn" id="csv">⤓ Выгрузить</button></div>';
+}
+
+function rowHtml(r){
+  var op = OPEN === r.id, t = TM[r.t] || ['','📌','—',''];
+  var need = (r.need || []).filter(function(x){
+    return !(r.own && /ответствен|владел|хозя/i.test(x)); });
+  var h = '<div class="row' + (op?' open':'') + '"><div class="rh" data-id="' + esc(r.id) + '">'
+    + '<span style="font-size:17px">' + t[1] + '</span>'
+    + '<div class="nm">' + esc(r.n || '(без названия)')
+    + (r.note ? '<small>' + esc(String(r.note).slice(0,160)) + '</small>' : '') + '</div>'
+    + (r.code ? '<span class="code">' + esc(r.code) + '</span>' : '')
+    + (r.src ? '<span class="tag t-src">' + esc(r.src) + '</span>' : '')
+    + (r.own ? '<span class="tag t-ok">' + esc(r.own) + '</span>'
+             : '<span class="tag t-no">нет хозяина</span>')
+    + ((r.st||'live')==='arch' ? '<span class="tag t-arch">архив</span>' : '')
+    + ((r.st||'live')==='draft' ? '<span class="tag t-pl">черновик</span>' : '')
+    + '<span style="color:var(--dim);font-size:12px">' + (op?'▾':'▸') + '</span></div>';
+  if (op) {
+    h += '<div class="rb"><div class="grid">'
+      + fld('Название', 'n', r.n, 'wide')
+      + fld('Код', 'code', r.code)
+      + fld('Хозяин — кто отвечает', 'own', r.own)
+      + fld('Источник истины — где первичные данные', 'src', r.src)
+      + sel('Состояние', 'st', r.st || 'live')
+      + fld('Ссылка', 'link', r.link, 'wide')
+      + txt('Описание — что это и зачем', 'note', r.note)
+      + fld('Связано с (ключи через запятую)', 'rel', (r.rel||[]).join(', '), 'wide')
+      + '</div>'
+      + (need.length ? '<div class="need"><b>Чего не хватает:</b> ' + need.map(esc).join(' · ') + '</div>' : '')
+      + (r.rel && r.rel.length ? '<div class="rel">' + r.rel.map(function(x){
+          return '<span data-go="' + esc(x) + '">' + esc(nameOf(x)) + '</span>'; }).join('') + '</div>' : '')
+      + '<div class="acts">'
+      + '<button class="btn pri" data-save="' + esc(r.id) + '">Сохранить</button>'
+      + (r.link ? '<a class="btn" href="' + esc(r.link) + '" target="_blank" rel="noopener">Открыть ссылку</a>' : '')
+      + '<a class="btn" href="https://zavod.erp-system-fz.kz/crm/memos/new/" target="_blank" rel="noopener">'
+      + 'Служебная записка по этому</a>'
+      + (r.man ? '<button class="btn" data-del="' + esc(r.id) + '">Сбросить правки</button>' : '')
+      + '<span style="font-size:11.5px;color:var(--dim);margin-left:auto">ключ ' + esc(r.id)
+      + (r.upd ? ' · правлено ' + esc(r.upd) : '') + '</span>'
+      + '</div></div>';
+  }
+  return h + '</div>';
+}
+function fld(l, k, v, cls){
+  return '<div class="fld ' + (cls||'') + '"><label>' + l + '</label>'
+    + '<input id="f-' + k + '" value="' + esc(v||'') + '"></div>'; }
+function txt(l, k, v){
+  return '<div class="fld wide"><label>' + l + '</label>'
+    + '<textarea id="f-' + k + '">' + esc(v||'') + '</textarea></div>'; }
+function sel(l, k, v){
+  var O = [['live','Действует'],['draft','Черновик'],['arch','Архив']];
+  return '<div class="fld"><label>' + l + '</label><select id="f-' + k + '">'
+    + O.map(function(o){ return '<option value="' + o[0] + '"' + (v===o[0]?' selected':'') + '>'
+        + o[1] + '</option>'; }).join('') + '</select></div>'; }
+function nameOf(id){
+  var r = all().filter(function(x){ return x.id === id; })[0];
+  return r ? r.n : id;
+}
+
+function list(){
+  var a = all().filter(function(r){
+    if (TAB !== 'all' && r.t !== TAB) return false;
+    if (ONLYGAP && !gap(r)) return false;
+    if (!Q) return true;
+    return (r.n + ' ' + (r.code||'') + ' ' + (r.note||'') + ' ' + (r.own||'') + ' ' + (r.src||'') + ' ' + r.id)
+      .toLowerCase().indexOf(Q) >= 0;
+  });
+  a.sort(function(x,y){
+    var ax = (x.st==='arch'?1:0) - (y.st==='arch'?1:0); if (ax) return ax;
+    var g2 = (gap(y)?1:0) - (gap(x)?1:0); if (g2) return g2;
+    return String(x.n).localeCompare(String(y.n), 'ru'); });
+  if (!a.length)
+    return '<div class="empty">Здесь пока пусто.<br>Нажмите «Новая карточка» — и впишите первый объект '
+      + 'этого раздела.</div>';
+  return a.map(rowHtml).join('');
+}
+
+function save(id){
+  var r = {id:id};
+  ['n','code','own','src','st','link','note'].forEach(function(k){
+    var e = document.getElementById('f-' + k); if (e) r[k] = e.value.trim(); });
+  var re = document.getElementById('f-rel');
+  if (re) r.rel = re.value.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  fetch('/api/baza?a=save', { method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ r:r }) })
+    .then(function(x){ if(!x.ok) throw new Error('не сохранилось'); return x.json(); })
+    .then(function(j){ MAN[id] = j.r || r; toast('Сохранено'); draw(); })
+    .catch(function(e){ toast('Не сохранилось: ' + e.message); });
+}
+function del(id){
+  fetch('/api/baza?a=del', { method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ id:id }) })
+    .then(function(){ delete MAN[id]; toast('Правки сброшены'); draw(); })
+    .catch(function(){ toast('Не получилось'); });
+}
+function add(){
+  var t = TAB === 'all' ? 'ctr' : TAB;
+  var id = t + ':' + Date.now().toString(36);
+  MAN[id] = {n:'', st:'draft'};
+  OPEN = id; TAB = t; draw();
+  var e = document.getElementById('f-n'); if (e) e.focus();
+}
+function csv(){
+  var rows = [['Ключ','Раздел','Название','Код','Хозяин','Источник','Состояние','Ссылка','Описание','Связи']];
+  all().forEach(function(r){
+    rows.push([r.id, (TM[r.t]||[])[2]||r.t, r.n||'', r.code||'', r.own||'', r.src||'',
+      r.st==='arch'?'архив':r.st==='draft'?'черновик':'действует', r.link||'',
+      (r.note||'').replace(/\s+/g,' '), (r.rel||[]).join(' ')]); });
+  var txt2 = '﻿' + rows.map(function(x){ return x.map(function(c){
+    return /[;"\n]/.test(String(c)) ? '"' + String(c).replace(/"/g,'""') + '"' : c; }).join(';'); }).join('\r\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt2], {type:'text/csv;charset=utf-8'}));
+  a.download = 'база_компании.csv'; document.body.appendChild(a); a.click(); a.remove();
+}
+
+function draw(){
+  nav();
+  main.innerHTML = head() + how() + bar() + list();
+  var q = document.getElementById('q');
+  if (q) q.oninput = function(){ var p = q.selectionStart; Q = q.value.trim().toLowerCase(); draw();
+    var n = document.getElementById('q'); if(n){ n.focus(); try{ n.setSelectionRange(p,p); }catch(e){} } };
+  var g = document.getElementById('gapb'); if (g) g.onclick = function(){ ONLYGAP = ONLYGAP?0:1; draw(); };
+  var ad = document.getElementById('add'); if (ad) ad.onclick = add;
+  var cs = document.getElementById('csv'); if (cs) cs.onclick = csv;
+  main.querySelectorAll('[data-id]').forEach(function(b){
+    b.onclick = function(){ var i = b.getAttribute('data-id'); OPEN = OPEN===i?null:i; draw(); }; });
+  main.querySelectorAll('[data-save]').forEach(function(b){
+    b.onclick = function(e){ e.stopPropagation(); save(b.getAttribute('data-save')); }; });
+  main.querySelectorAll('[data-del]').forEach(function(b){
+    b.onclick = function(e){ e.stopPropagation(); del(b.getAttribute('data-del')); }; });
+  main.querySelectorAll('[data-go]').forEach(function(b){
+    b.onclick = function(){ var i = b.getAttribute('data-go');
+      TAB = i.split(':')[0]; OPEN = i; Q=''; draw();
+      var el = document.querySelector('[data-id="' + i.replace(/"/g,'') + '"]');
+      if (el) el.scrollIntoView({block:'center'}); }; });
+}
+
+draw();
+fetch('/api/baza?a=list').then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(j){ if (j && j.rows) { MAN = j.rows; draw(); } })
+  .catch(function(){});
+})();
+</script>
+</body></html>
