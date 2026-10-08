@@ -166,6 +166,10 @@ const UPF_SKU_KEY = "upf:sku";
    только увидеть расхождение, но и закрыть его: кто разобрал, что выяснил.
    Ключ отметки — счёт+месяц+момент сверки либо блюдо+момент. */
 const AIKA_MARKS_KEY = "aika:marks";
+/* База компании. Заготовка карточек лежит в baza_seed.js и пересобирается
+   из айко; здесь — только то, что вписали руками, по ключу карточки.
+   Поэтому заготовку можно обновлять сколько угодно: ручное не затрётся. */
+const BAZA_KEY = "baza:rows";
 
 // ── Налоговый калькулятор: ставки и история расчётов ────────────────────────
 //  Ставки держим в KV, а не в коде: меняется МРП, МЗП или сама ставка —
@@ -284,6 +288,49 @@ async function handleZp(request, env, url) {
   return jsonResp({ error: "неизвестный запрос" }, 404);
 }
 
+
+
+async function handleBaza(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  async function rows() {
+    try { return JSON.parse((await env.PLAN.get(BAZA_KEY)) || "{}") || {}; } catch (e) { return {}; }
+  }
+  if (act === "list") return jsonResp({ rows: await rows() });
+
+  if (act === "save" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const r = body && body.r;
+    const id = String((r && r.id) || "").slice(0, 160).trim();
+    if (!id) return jsonResp({ error: "нет ключа карточки" }, 400);
+    const all = await rows();
+    const clean = {};
+    ["n", "code", "own", "src", "st", "link", "note", "who"].forEach((k) => {
+      if (r[k] != null) clean[k] = String(r[k]).slice(0, 1200);
+    });
+    ["tags", "rel"].forEach((k) => {
+      if (Array.isArray(r[k])) clean[k] = r[k].slice(0, 40).map((x) => String(x).slice(0, 160));
+    });
+    clean.upd = new Date().toISOString().slice(0, 16).replace("T", " ");
+    all[id] = clean;
+    const s = JSON.stringify(all);
+    if (s.length > 900000) return jsonResp({ error: "база переполнена" }, 413);
+    await env.PLAN.put(BAZA_KEY, s);
+    return jsonResp({ ok: true, count: Object.keys(all).length, r: clean });
+  }
+
+  if (act === "del" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const id = String((body && body.id) || "").slice(0, 160).trim();
+    if (!id) return jsonResp({ error: "нет ключа карточки" }, 400);
+    const all = await rows();
+    delete all[id];
+    await env.PLAN.put(BAZA_KEY, JSON.stringify(all));
+    return jsonResp({ ok: true, count: Object.keys(all).length });
+  }
+  return jsonResp({ error: "неизвестное действие" }, 400);
+}
 
 async function handleAika(request, env, url) {
   const act = url.searchParams.get("a") || "";
@@ -798,6 +845,8 @@ export default {
     if (url.pathname === "/api/upak") return handleUpak(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/aika") return handleAika(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/baza") return handleBaza(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/calc") return handleCalc(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
