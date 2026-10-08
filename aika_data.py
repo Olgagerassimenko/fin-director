@@ -46,16 +46,18 @@ CH_F  = os.path.join(DIR, "техкарты.json")
 CFIX_F= os.path.join(DIR, "правки_карт.json")
 NAM_F = os.path.join(DIR, "имена.json")
 NAM_TS= os.path.join(DIR, "имена_когда.json")
+RUNS_F= os.path.join(DIR, "сверки.json")
 OUT   = os.path.join(HERE, "aika_data.js")
 YEAR  = TODAY.year
 
-# события, которые нас интересуют: всё, что меняет учёт или номенклатуру
-KEEP = {"documentCreated", "documentModified", "documentDeleted", "documentProcessed",
-        "documentUnprocessed", "accountingTransactionUpdated", "accountingTransactionCreated",
-        "accountingTransactionDeleted", "productCreated", "productUpdated", "productDeleted",
-        "backLogin", "backLogout", "pinAuthorization", "priceUpdated", "employeeUpdated"}
-# шум репликации и обменов не копим: он ничего не говорит о деньгах
+# Копим ВСЁ, кроме явного шума. Раньше здесь стоял «белый список», и событие
+# неизвестного типа выбрасывалось навсегда — для контроля это недопустимо:
+# именно незнакомое событие и может оказаться тем самым.
 DROP = {"dataReplicationResult", "customersExchangeEvent", "nomenclatureExportEvent"}
+# что считаем вмешательством в учёт — по этому списку страница красит строки
+HOT = {"documentCreated", "documentModified", "documentDeleted", "documentProcessed",
+       "documentUnprocessed", "accountingTransactionUpdated", "accountingTransactionCreated",
+       "accountingTransactionDeleted"}
 
 DOCRU = {
     "INCOMING_INVOICE": "Приходная накладная", "OUTGOING_INVOICE": "Расходная накладная",
@@ -68,6 +70,16 @@ DOCRU = {
     "ACCOUNT_TRANSACTION": "Проводка вручную", "MENU_CHANGE_DOCUMENT": "Изменение меню",
     "RETURNED_INVOICE_COST_AFFECTED": "Возврат с себестоимостью",
 }
+
+
+def _now():
+    """Время завода. Раннер живёт по UTC, а журнал айко — по Алматы: если
+    штамповать сверки временем раннера, события и правки разъедутся на 5 часов
+    и связку «кто в это время работал» построить будет нельзя."""
+    try:
+        return almaty.now()
+    except Exception:
+        return datetime.datetime.now()
 
 
 def log(*a):
@@ -149,7 +161,7 @@ def pull_events(s, tok, emp):
     rev = root.findtext("revision")
     for ev in root.iter("event"):
         t = (ev.findtext("type") or "").strip()
-        if t in DROP or (KEEP and t not in KEEP):
+        if t in DROP:
             continue
         a = {}
         for at in ev.findall("attribute"):
@@ -304,7 +316,7 @@ def product_names(s, tok, force=False):
         except Exception as e:
             log("справочник номенклатуры (%s): %s" % (dele, e))
     save(NAM_F, names)
-    save(NAM_TS, {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "n": len(names)})
+    save(NAM_TS, {"ts": _now().isoformat(timespec="seconds"), "n": len(names)})
     return names
 
 
@@ -354,7 +366,7 @@ def collect_charts(s, tok, year, today):
 
 def diff_charts(prev, cur, names, closed):
     """Что изменилось в действующих картах со времени прошлого снимка."""
-    found, stamp = [], datetime.datetime.now().isoformat(timespec="seconds")
+    found, stamp = [], _now().isoformat(timespec="seconds")
     ciso = closed.isoformat()
 
     def nm(i):
@@ -439,7 +451,7 @@ def chart_stats(allv, eff, names, year, closed, today):
 # ──────────────────────────────────────────────────────────────────────────
 def diff_snapshots(prev, cur, meta, closed_mons):
     """Любое изменение оборота закрытого месяца — правка задним числом."""
-    found, stamp = [], datetime.datetime.now().isoformat(timespec="seconds")
+    found, stamp = [], _now().isoformat(timespec="seconds")
     keys = set(prev) | set(cur)
     for k in sorted(keys):
         pm, cm = prev.get(k) or {}, cur.get(k) or {}
@@ -476,7 +488,7 @@ def main():
     store["ev"] = (store.get("ev", []) + added)
     store["ev"].sort(key=lambda e: e.get("d") or "")
     store["rev"] = rev
-    store["last"] = datetime.datetime.now().isoformat(timespec="seconds")
+    store["last"] = _now().isoformat(timespec="seconds")
     save(EV_F, store)
     log("журнал: пришло %d, новых %d, всего в копилке %d" % (len(new_ev), len(added), len(store["ev"])))
 
@@ -532,14 +544,22 @@ def main():
         accounts.append(r)
     accounts.sort(key=lambda r: -(sum(abs(v[0]) + abs(v[1]) for v in r["m"].values())))
 
+    runs = load(RUNS_F, [])
+    runs.append({"when": _now().isoformat(timespec="seconds"),
+                 "ev": len(added), "fix": len(new_fix), "card": len(chfix_new or []),
+                 "acc": len(meta), "charts": (chstat or {}).get("eff", 0)})
+    runs = runs[-800:]
+    save(RUNS_F, runs)
+
     ev = store["ev"][-4000:]
     data = {
-        "updated": datetime.datetime.now().strftime("%d.%m.%Y %H:%M"),
+        "updated": _now().strftime("%d.%m.%Y %H:%M"),
         "today": TODAY.isoformat(), "year": YEAR,
         "closed": closed.isoformat(), "months": mons, "closedMonths": closed_mons,
         "accounts": accounts, "cf": cf, "tt": tt,
         "fixes": fixes[-2000:], "events": ev,
         "chartFixes": chfix[-1500:], "charts": chstat,
+        "runs": runs[-200:],
         "fixFrom": (fixes[0]["when"][:10] if fixes else TODAY.isoformat()),
         "cfixFrom": (chfix[0]["when"][:10] if chfix else TODAY.isoformat()),
         "evTotal": len(store["ev"]),
@@ -556,7 +576,7 @@ def main():
     try:
         hour = almaty.now().hour
     except Exception:
-        hour = datetime.datetime.now().hour
+        hour = _now().hour
     closed_card = sum(1 for f in (chfix_new or []) if f.get('closed'))
     publish = bool(new_fix) or bool(closed_card) or hour in (6, 7)
     gh = os.environ.get("GITHUB_OUTPUT")
