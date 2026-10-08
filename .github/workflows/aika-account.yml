@@ -1,0 +1,140 @@
+name: Айка — разбор счёта
+
+# Точечная разведка по одному счёту: все проводки за всю историю с датой,
+# документом, контрагентом и корр.счётом. Нужна, когда по счёту висит
+# необъяснимый остаток.
+on:
+  workflow_dispatch:
+    inputs:
+      account:
+        description: "Название счёта как в iiko"
+        required: true
+        default: "Кристал Каспии"
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - name: Проводки по счёту
+        env:
+          ACC: ${{ github.event.inputs.account }}
+        run: |
+          python - <<'PY'
+          import os, sys, json, hashlib, warnings, requests
+          warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
+          from iiko_export import URL, LOGIN, PASS
+          ACC = os.environ.get("ACC") or "Кристал Каспии"
+          s = requests.Session()
+          tok = s.get(f"{URL}/resto/api/auth",
+                      params={"login": LOGIN, "pass": hashlib.sha1(PASS.encode()).hexdigest()},
+                      verify=False, timeout=60).text.strip().strip('"')
+          H = {"Cookie": f"key={tok}", "Content-Type": "application/json"}
+
+          def olap(group, extra=None, a="2010-01-01", b="2027-01-01"):
+              flt = {"DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                                            "from": a, "to": b, "includeLow": True, "includeHigh": False},
+                     "Account.Name": {"filterType": "IncludeValues", "values": [ACC]}}
+              if extra: flt.update(extra)
+              body = {"reportType": "TRANSACTIONS", "buildSummary": "true",
+                      "groupByRowFields": group,
+                      "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"], "filters": flt}
+              r = s.post(f"{URL}/resto/api/v2/reports/olap", headers=H, data=json.dumps(body),
+                         verify=False, timeout=600)
+              if r.status_code != 200:
+                  raise RuntimeError("OLAP %d: %s" % (r.status_code, r.text[:400]))
+              return r.json().get("data", [])
+
+          out = ["# Разбор счёта «%s»" % ACC, ""]
+          G = ["DateTime.DateTyped", "TransactionType", "Document", "Counteragent.Name",
+               "Contr-Account.Name", "CashFlowCategory", "Department", "Employee.Name"]
+          try:
+              rows = olap(G)
+          except Exception as e:
+              out.append("с Employee.Name не вышло: %s" % e)
+              G = ["DateTime.DateTyped", "TransactionType", "Document", "Counteragent.Name",
+                   "Contr-Account.Name", "CashFlowCategory"]
+              rows = olap(G)
+          rows.sort(key=lambda x: str(x.get("DateTime.DateTyped") or ""))
+          out.append("проводок за всю историю: **%d**" % len(rows))
+          out.append("")
+          out.append("| дата | тип | документ | контрагент | корр.счёт | статья ДДС | приход | расход |")
+          out.append("|---|---|---|---|---|---|---:|---:|")
+          ti = to = 0
+          for x in rows:
+              i = x.get("Sum.Incoming") or 0; o = x.get("Sum.Outgoing") or 0
+              ti += i; to += o
+              out.append("| %s | %s | %s | %s | %s | %s | %.0f | %.0f |" % (
+                  str(x.get("DateTime.DateTyped") or "")[:10], x.get("TransactionType") or "",
+                  x.get("Document") or "", x.get("Counteragent.Name") or "",
+                  x.get("Contr-Account.Name") or "", x.get("CashFlowCategory") or "", i, o))
+          out.append("")
+          out.append("**итого приход %.0f, расход %.0f, сальдо %.0f**" % (ti, to, ti - to))
+          out.append("")
+          for extra_field in ("Employee.Name", "Department", "Department.JurPerson", "Session.CashRegister"):
+              try:
+                  r2 = olap([extra_field])
+                  vals = [(str(x.get(extra_field) or "—"), x.get("Sum.Incoming") or 0, x.get("Sum.Outgoing") or 0) for x in r2]
+                  out.append("- **%s**: %s" % (extra_field, "; ".join("%s (прих %.0f, расх %.0f)" % v for v in vals)))
+              except Exception as e:
+                  out.append("- %s — недоступно (%s)" % (extra_field, str(e)[:80]))
+          out.append("")
+
+          # похожие по названию счета — нет ли парного
+          allacc = s.post(f"{URL}/resto/api/v2/reports/olap", headers=H, verify=False, timeout=600,
+                          data=json.dumps({"reportType": "TRANSACTIONS", "buildSummary": "true",
+                            "groupByRowFields": ["Account.Name", "Account.AccountHierarchySecond"],
+                            "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
+                            "filters": {"DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                              "from": "2010-01-01", "to": "2027-01-01", "includeLow": True, "includeHigh": False}}})).json().get("data", [])
+          key = ACC.split()[0].lower()[:5]
+          sim = [x for x in allacc if key in str(x.get("Account.Name") or "").lower()]
+          out.append("## Счета с похожим названием")
+          for x in sim:
+              out.append("- %s (%s): приход %.0f, расход %.0f" % (
+                  x.get("Account.Name"), x.get("Account.AccountHierarchySecond") or "",
+                  x.get("Sum.Incoming") or 0, x.get("Sum.Outgoing") or 0))
+          out.append("")
+
+          # кто ещё получил «Оплату труда» в тот же день
+          d0 = str(rows[0].get("DateTime.DateTyped"))[:10] if rows else ""
+          if d0:
+              same = s.post(f"{URL}/resto/api/v2/reports/olap", headers=H, verify=False, timeout=600,
+                data=json.dumps({"reportType": "TRANSACTIONS", "buildSummary": "true",
+                  "groupByRowFields": ["Account.Name", "Contr-Account.Name", "TransactionType", "Document", "Counteragent.Name"],
+                  "aggregateFields": ["Sum.Incoming", "Sum.Outgoing"],
+                  "filters": {"DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                    "from": d0, "to": d0, "includeLow": True, "includeHigh": True}}})).json().get("data", [])
+              same.sort(key=lambda x: -((x.get("Sum.Incoming") or 0) + (x.get("Sum.Outgoing") or 0)))
+              out.append("## Что ещё проводили %s (топ-40)" % d0)
+              out.append("")
+              out.append("| счёт | корр.счёт | тип | документ | контрагент | приход | расход |")
+              out.append("|---|---|---|---|---|---:|---:|")
+              for x in same[:40]:
+                  out.append("| %s | %s | %s | %s | %s | %.0f | %.0f |" % (
+                      x.get("Account.Name") or "", x.get("Contr-Account.Name") or "",
+                      x.get("TransactionType") or "", x.get("Document") or "",
+                      x.get("Counteragent.Name") or "", x.get("Sum.Incoming") or 0, x.get("Sum.Outgoing") or 0))
+
+          os.makedirs("_отладка", exist_ok=True)
+          open("_отладка/айка_счёт.md", "w", encoding="utf-8").write("\n".join(out) + "\n")
+          print("\n".join(out)[:6000])
+          p2 = os.environ.get("GITHUB_STEP_SUMMARY")
+          if p2: open(p2, "a", encoding="utf-8").write("\n".join(out)[:60000] + "\n")
+          PY
+      - name: Положить в репозиторий
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse-bot@users.noreply.github.com"
+          git add -A "_отладка"
+          git commit -m "айка: разбор счёта [skip ci]" || exit 0
+          git pull --rebase || true
+          git push
