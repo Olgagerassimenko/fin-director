@@ -83,6 +83,48 @@ tfoot td{padding:9px 10px;text-align:right;font-weight:800;background:#0d1526;bo
 tfoot td.nm{text-align:left}
 tbody td.dtl{text-align:left;padding:0;white-space:normal}
 .dtl .in{padding:11px 14px 14px;position:sticky;left:0;max-width:1080px}
+.rule{display:grid;grid-template-columns:34px 1fr auto;gap:13px;align-items:start;
+  background:#0b1322;border:1px solid var(--line);border-radius:14px;padding:13px 16px;margin-bottom:9px}
+.rule .dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:900;flex-shrink:0}
+.rule.ok .dot{background:rgba(34,197,94,.16);color:#86efac}
+.rule.bad .dot{background:rgba(239,68,68,.16);color:#fca5a5}
+.rule.warn .dot{background:rgba(251,191,36,.16);color:#fcd34d}
+.rule.off .dot{background:rgba(148,163,184,.12);color:#94a3b8}
+.rule .t{font-size:13.5px;font-weight:800;line-height:1.4}
+.rule .s{font-size:11.5px;color:var(--mut);margin-top:4px;line-height:1.65}
+.rule .n{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.rule.ok .n{color:#86efac}.rule.bad .n{color:#fca5a5}.rule.warn .n{color:#fcd34d}.rule.off .n{color:#64748b}
+.rule .nl{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+  text-align:right;margin-top:3px}
+.dev{border:1px solid var(--line);border-radius:14px;background:#0b1322;margin-bottom:9px;overflow:hidden}
+.dev.done{opacity:.62}
+.dev-h{display:flex;gap:12px;align-items:center;padding:11px 15px;cursor:pointer;flex-wrap:wrap}
+.dev-h:hover{background:rgba(47,163,154,.06)}
+.dev-h .w{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dev-h .t{font-size:13px;font-weight:800;flex:1;min-width:170px}
+.dev-h .m{font-size:11.5px;color:var(--mut)}
+.dev-b{padding:0 15px 15px;border-top:1px solid var(--line)}
+.flag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:9.5px;font-weight:800;
+  letter-spacing:.02em;white-space:nowrap}
+.f-money{background:rgba(239,68,68,.17);color:#fca5a5}
+.f-stock{background:rgba(96,165,250,.16);color:#93c5fd}
+.f-card{background:rgba(167,139,250,.18);color:#c4b5fd}
+.f-ok{background:rgba(34,197,94,.15);color:#86efac}
+.f-ask{background:rgba(251,191,36,.17);color:#fcd34d}
+.who{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.who span{background:#15223a;border:1px solid var(--line2);border-radius:8px;padding:3px 9px;font-size:11px;
+  color:var(--ink2)}
+.who span b{color:#fcd34d;margin-left:5px}
+.na{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:11px}
+.na input{background:#0d1626;border:1px solid var(--line2);border-radius:9px;color:var(--ink);
+  padding:7px 11px;font:inherit;font-size:12px;flex:1;min-width:190px}
+.na input:focus{outline:0;border-color:#2fa39a}
+.pulse{display:flex;gap:3px;align-items:flex-end;height:58px;margin:12px 0 6px;overflow-x:auto}
+.pulse .p{min-width:9px;flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
+.pulse .p i{display:block;border-radius:2px;min-height:3px;background:#1f4b52}
+.pulse .p.f i{background:linear-gradient(180deg,#f87171,#991b1b)}
+.pulse .p.e i{background:linear-gradient(180deg,#2fa39a,#14615f)}
 .sub-t{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px}
 .chip{display:inline-block;background:#15223a;border:1px solid var(--line2);border-radius:8px;
   padding:3px 9px;font-size:11px;color:var(--ink2);margin:2px 4px 2px 0;line-height:1.6}
@@ -331,7 +373,7 @@ function tabsHtml(){
            ['cash','💰 Деньги по счетам', CASHN.length],
            ['acc','📒 Все счета', ACC.length],
            ['log','🧾 Журнал айко', D.evTotal||0],
-           ['fix','🚨 Правки закрытого периода', FIX.length + (D.chartFixes||[]).length]];
+           ['fix','🛡 Контроль', FIX.length + (D.chartFixes||[]).length]];
   return '<div class="tabs" id="tabs">' + t.map(function(x){
     return '<button class="tab' + (TAB===x[0]?' on':'') + '" data-t="' + x[0] + '">' + x[1]
       + '<b>' + f0(x[2]) + '</b></button>'; }).join('') + '</div>';
@@ -574,84 +616,220 @@ function secLog(){
     + '</div>';
 }
 
-/* 5 — правки: отдельно счета, отдельно техкарты */
-var FKIND = 'all', FSIG = 1000, FQ = '', FSUB = 'acc';
+/* 5 — КОНТРОЛЬ: правило → отклонение → разбор → отметка */
+var FKIND = 'all', FSIG = 1000, FQ = '', FSUB = 'rules', FOPEN = null, FDONE = 0;
+var MARKS = {}, MBUSY = {};
 
-function fixSubs(){
-  var nc = (D.chartFixes||[]).length;
-  var t = [['acc','📊 По счетам', FIX.length], ['card','🧪 По техкартам', nc]];
-  return '<div class="sub-t">' + t.map(function(x){
-    return '<button class="btn' + (FSUB===x[0]?' on':'') + '" data-fs="' + x[0] + '">'
-      + x[1] + ' · ' + f0(x[2]) + '</button>'; }).join('') + '</div>';
+function mkey(f){ return 'a|' + f.when + '|' + f.acc + '|' + f.m; }
+function ckey(f){ return 'c|' + f.when + '|' + f.dish; }
+function markOf(k){ return MARKS[k] || null; }
+function isMoney(f){ return !!CASH[f.acc]; }
+
+function markSet(k, v){
+  MBUSY[k] = 1; draw();
+  fetch('/api/aika?a=mark', { method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ k:k, v:v }) })
+    .then(function(r){ if(!r.ok) throw new Error('не сохранилось'); return r.json(); })
+    .then(function(){ if (v) MARKS[k] = Object.assign({}, v, {when:'сейчас'}); else delete MARKS[k];
+      delete MBUSY[k]; draw(); })
+    .catch(function(e){ delete MBUSY[k]; alert('Отметка не сохранилась: ' + e); draw(); });
 }
 
-/* 5а — счета */
-function fixAcc(){
-  if (!FIX.length)
-    return '<div class="card"><div class="card-t">📊 Правки по счетам</div>'
-      + '<div class="hint">Каждые три часа «Айка» снимает обороты по всем счетам за каждый закрытый месяц и '
-      + 'сравнивает со снимком трёхчасовой давности. Если кто-то проведёт, изменит или удалит документ задним '
-      + 'числом — оборот месяца сдвинется, и это попадёт сюда. Запись остаётся навсегда, даже если потом '
-      + 'вернут как было.</div>'
-      + '<div class="good"><b>Пока чисто.</b> Обороты закрытых месяцев ни разу не менялись.</div></div>';
+/* окна сверок: между предыдущей и этой сверкой кто-то работал в айко */
+function runList(){
+  var r = (D.runs || []).map(function(x){ return x.when; });
+  if (!r.length) {
+    var seen = {};
+    FIX.forEach(function(f){ seen[f.when] = 1; });
+    (D.chartFixes||[]).forEach(function(f){ seen[f.when] = 1; });
+    r = Object.keys(seen);
+  }
+  return r.sort();
+}
+function prevRun(w){
+  var r = runList(), i = r.indexOf(w);
+  if (i > 0) return r[i-1];
+  for (var k = r.length-1; k >= 0; k--) if (r[k] < w) return r[k];
+  return '';
+}
+var HOTEV = {documentCreated:1, documentModified:1, documentDeleted:1, documentProcessed:1,
+  documentUnprocessed:1, accountingTransactionUpdated:1, accountingTransactionCreated:1,
+  accountingTransactionDeleted:1};
+function whoIn(w){
+  var p = prevRun(w), out = {};
+  EV.forEach(function(e){
+    if (!HOTEV[e.t]) return;
+    if (p && e.d <= p) return;
+    if (e.d > w) return;
+    var u = e.u || '—';
+    var a = out[u] || (out[u] = {n:0, docs:{}});
+    a.n++; a.docs[D.docru[e.dt] || e.dt || '—'] = 1;
+  });
+  return Object.keys(out).sort(function(a,b){ return out[b].n - out[a].n; })
+    .map(function(u){ return {u:u, n:out[u].n, docs:Object.keys(out[u].docs)}; });
+}
 
+/* ── правила ── */
+function rules(){
+  var money = FIX.filter(isMoney), stock = FIX.filter(function(f){ return !isMoney(f); });
+  var cards = (D.chartFixes||[]).filter(function(f){ return f.closed; });
+  var runs = D.runs || [];
+  var last = runs.length ? runs[runs.length-1].when : (runList().slice(-1)[0] || '');
+  var lastMs = last ? (new Date(last.replace(' ','T')).getTime()) : 0;
+  var age = lastMs ? Math.round((Date.now() - lastMs) / 60000) : null;
+  var day = runs.filter(function(x){ return x.when.slice(0,10) === D.today; }).length;
+  function open(list, kf){ return list.filter(function(f){
+    var m = markOf(kf(f)); return !m || m.st !== 'ok'; }).length; }
+  var R = [
+    {k:'money', t:'Деньги закрытого периода не двигаются',
+     s:'Оборот по кассам и банковским счетам за закрытый месяц меняться не должен ни на тенге. '
+       + 'Если изменился — кто-то провёл, поправил или удалил платёж задним числом.',
+     n:money.length, nl:'правок', st: money.length ? 'bad' : 'ok',
+     open: open(money, mkey)},
+    {k:'stock', t:'Склады и себестоимость закрытого периода не пересчитываются',
+     s:'iiko считает себестоимость скользящей средней и пересчитывает её назад при любом документе '
+       + 'или правке техкарты. Пока период закрыт, этого быть не должно — иначе отчётность за месяц '
+       + 'меняется после того, как её сдали.',
+     n:stock.length, nl:'правок', st: stock.length ? 'warn' : 'ok',
+     open: open(stock, mkey)},
+    {k:'card', t:'Техкарты закрытого периода не меняются',
+     s:'Карта — это себестоимость блюда. Правка состава или новая карта с датой внутри закрытого '
+       + 'месяца переписывают его себестоимость, не оставляя проводок.',
+     n:cards.length, nl:'правок', st: cards.length ? 'bad' : 'ok',
+     open: open(cards, ckey)},
+    {k:'run', t:'Контроль работает по расписанию',
+     s: !runs.length ? 'Журнал сверок появится после следующего запуска сборщика — он ходит каждые три часа.'
+       : last ? ('Последняя сверка ' + esc(last.replace('T',' ').slice(0,16))
+         + (age != null ? ' — ' + (age < 90 ? age + ' мин назад' : Math.round(age/60) + ' ч назад') : '')
+         + '. Сегодня сверок: ' + day + ' из 8 по расписанию (каждые три часа).')
+       : 'Сверок ещё не было — страница смотрит на первый снимок.',
+     n: day, nl:'сверок сегодня',
+     st: !runs.length ? 'off' : (age != null && age > 260 ? 'bad' : 'ok'), open:0}
+  ];
+  return '<div class="card"><div class="card-t">🛡 Правила контроля</div>'
+    + '<div class="hint">Контроль — это не наблюдение, а правило и реакция на его нарушение. '
+    + 'Каждое правило проверяется автоматически каждые три часа. Нарушение не исчезает само: '
+    + 'оно висит открытым, пока его не разберут и не подпишут.</div><div style="margin-top:14px">'
+    + R.map(function(r){
+        return '<div class="rule ' + r.st + '" data-rl="' + r.k + '" style="cursor:pointer">'
+          + '<div class="dot">' + (r.st==='ok'?'✓':r.st==='off'?'—':'!') + '</div>'
+          + '<div><div class="t">' + r.t + '</div><div class="s">' + r.s
+          + (r.open ? ' <b style="color:#fcd34d">Не разобрано: ' + r.open + '.</b>' : '')
+          + (r.n && !r.open ? ' <b style="color:#86efac">Всё разобрано.</b>' : '') + '</div></div>'
+          + '<div><div class="n">' + f0(r.n) + '</div><div class="nl">' + r.nl + '</div></div></div>'; }).join('')
+    + '</div></div>';
+}
+
+/* ── пульс сверок ── */
+function pulse(){
+  var runs = (D.runs || []).slice(-80);
+  if (!runs.length)
+    return '<div class="card"><div class="card-t">📡 Пульс контроля</div>'
+      + '<div class="hint">Журнал сверок появится после следующего запуска сборщика.</div></div>';
+  var mx = Math.max.apply(null, runs.map(function(r){ return Math.max(r.ev||0, (r.fix||0)*3); }).concat([1]));
+  return '<div class="card"><div class="card-t">📡 Пульс контроля</div>'
+    + '<div class="hint">Каждая чёрточка — одна сверка. Красная — в этот раз закрытый период сдвинулся, '
+    + 'бирюзовая — в айко просто работали, тусклая — тихо. Если полоса обрывается, значит сбор встал '
+    + 'и контроля в этот момент не было.</div>'
+    + '<div class="pulse">' + runs.map(function(r){
+        var h = Math.max(3, Math.round((Math.max(r.ev||0,(r.fix||0)*3))/mx*48));
+        return '<div class="p ' + ((r.fix||r.card)?'f':(r.ev?'e':'')) + '" title="'
+          + esc(r.when.replace('T',' ').slice(0,16)) + ': событий ' + (r.ev||0)
+          + ', правок ' + ((r.fix||0)+(r.card||0)) + '">'
+          + '<i style="height:' + h + 'px"></i></div>'; }).join('') + '</div>'
+    + '<div class="hint">Показаны последние ' + runs.length + ' сверок, с '
+    + dmy(runs[0].when) + '.</div></div>';
+}
+
+/* ── отклонение ── */
+function devBlock(key, title, meta, flag, body, w){
+  var m = markOf(key), busy = MBUSY[key], op = FOPEN === key;
+  var st = m && m.st === 'ok' ? 'f-ok' : (m && m.st === 'ask' ? 'f-ask' : '');
+  return '<div class="dev' + (m && m.st==='ok' ? ' done' : '') + '">'
+    + '<div class="dev-h" data-dev="' + esc(key) + '">'
+    + '<span class="w">' + esc(String(w||'').replace('T',' ').slice(0,16)) + '</span>'
+    + '<span class="t">' + title + '</span>'
+    + '<span class="' + flag[0] + ' flag">' + flag[1] + '</span>'
+    + '<span class="m">' + meta + '</span>'
+    + (m ? '<span class="flag ' + st + '">' + (m.st==='ok'?'✓ разобрано':'? вопрос')
+        + (m.note ? ' · ' + esc(m.note.slice(0,40)) : '') + '</span>'
+      : '<span class="flag f-ask">не разобрано</span>')
+    + '<span style="color:var(--dim);font-size:11px">' + (op?'▾':'▸') + '</span></div>'
+    + (op ? '<div class="dev-b">' + body
+        + '<div class="na">'
+        + '<input id="nt-' + esc(key) + '" placeholder="что выяснили — попадёт в историю" value="'
+        + esc((m && m.note) || '') + '">'
+        + '<button class="btn' + (m && m.st==='ok'?' on':'') + '" data-mk="ok|' + esc(key) + '"'
+        + (busy?' disabled':'') + '>✓ Разобрано</button>'
+        + '<button class="btn' + (m && m.st==='ask'?' on':'') + '" data-mk="ask|' + esc(key) + '"'
+        + (busy?' disabled':'') + '>? Вопрос</button>'
+        + (m ? '<button class="btn" data-mk="del|' + esc(key) + '">✕ Снять отметку</button>' : '')
+        + '</div>'
+        + (m ? '<div class="hint" style="margin-top:7px">Отметил(а) ' + esc(m.when || '') + '</div>' : '')
+        + '</div>' : '')
+    + '</div>';
+}
+
+function whoHtml(w){
+  var ws = whoIn(w);
+  if (!ws.length)
+    return '<div class="dh">Кто работал в айко в это окно</div>'
+      + '<div class="hint">В журнале за этот промежуток действий нет. Либо правку сделали до того, '
+      + 'как журнал начали копить, либо её внесли не через бэк-офис.</div>';
+  return '<div class="dh">Кто работал в айко между прошлой и этой сверкой</div>'
+    + '<div class="who">' + ws.map(function(x){
+        return '<span>' + esc(x.u) + '<b>' + x.n + '</b>'
+          + '<span style="color:var(--dim);font-size:10px"> · ' + esc(x.docs.slice(0,3).join(', ')) + '</span>'
+          + '</span>'; }).join('') + '</div>';
+}
+
+/* 5а — отклонения по счетам */
+function devAcc(){
   var rows = FIX.filter(function(f){
-    var money = !!CASH[f.acc];
-    if (FKIND === 'money' && !money) return false;
-    if (FKIND === 'stock' && money) return false;
+    var m = markOf(mkey(f));
+    if (!FDONE && m && m.st === 'ok') return false;
+    if (FKIND === 'money' && !isMoney(f)) return false;
+    if (FKIND === 'stock' && isMoney(f)) return false;
     if (Math.abs(f.di) < FSIG && Math.abs(f.do) < FSIG) return false;
     if (FQ && (f.acc + ' ' + f.m).toLowerCase().indexOf(FQ) < 0) return false;
     return true;
-  });
-  var money = FIX.filter(function(f){ return CASH[f.acc]; }).length;
-  var runs = {};
-  rows.forEach(function(f){ (runs[f.when] || (runs[f.when]=[])).push(f); });
-  var keys = Object.keys(runs).sort().reverse();
+  }).sort(function(a,b){ return a.when < b.when ? 1 : a.when > b.when ? -1
+      : (Math.abs(b.di)+Math.abs(b.do)) - (Math.abs(a.di)+Math.abs(a.do)); });
 
-  var byM = {};
-  FIX.forEach(function(f){ byM[f.m] = (byM[f.m]||0)+1; });
-
-  var head = '<div class="card"><div class="card-t">📊 Правки по счетам — ' + FIX.length + '</div>'
-    + '<div class="hint">Обороты закрытых месяцев сверяются каждые три часа. Слежение идёт с '
-    + dlong(D.fixFrom || D.today) + '. '
-    + (money ? '<b style="color:#fca5a5">' + money + ' ' + plw(money,'правка','правки','правок')
-        + ' на денежных счетах</b> — это самое серьёзное: двигали уже закрытые деньги. '
-      : 'Денежные счета не трогали — двигались только склады и себестоимость, которые iiko пересчитывает '
-        + 'задним числом сама, как только проводят документ или меняют техкарту. ')
-    + 'Месяцы: ' + Object.keys(byM).sort().map(function(m){ return mlab(m) + ' — ' + byM[m]; }).join(', ') + '.</div>'
+  var head = '<div class="card"><div class="card-t">📊 Отклонения по счетам — ' + FIX.length + '</div>'
+    + '<div class="hint">Обороты закрытых месяцев сверяются каждые три часа со снимком трёхчасовой '
+    + 'давности. Любое расхождение — отклонение: оно открыто, пока не разобрано. Строка раскрывается — '
+    + 'внутри видно, кто работал в айко в это окно, и там же ставится отметка.</div>'
     + '<div class="row" style="margin-top:13px">'
-    + [['all','Все'],['money','Только деньги'],['stock','Склады и себестоимость']].map(function(x){
+    + [['all','Все'],['money','Деньги'],['stock','Склады и себестоимость']].map(function(x){
         return '<button class="btn' + (FKIND===x[0]?' on':'') + '" data-fk="' + x[0] + '">' + x[1] + '</button>'; }).join('')
-    + [[0,'Всё'],[1000,'от 1 000 ₸'],[100000,'от 100 000 ₸']].map(function(x){
+    + [[0,'Любая сумма'],[1000,'от 1 000 ₸'],[100000,'от 100 000 ₸']].map(function(x){
         return '<button class="btn' + (FSIG===x[0]?' on':'') + '" data-fv="' + x[0] + '">' + x[1] + '</button>'; }).join('')
-    + '<input class="q" id="q" placeholder="🔍 счёт…" value="' + esc(FQ) + '">'
-    + '</div>';
+    + '<button class="btn' + (FDONE?' on':'') + '" data-fd="1">Показывать разобранные</button>'
+    + '<input class="q" id="q" placeholder="🔍 счёт…" value="' + esc(FQ) + '"></div>';
+  if (!FIX.length)
+    return head + '<div class="good"><b>Отклонений нет.</b> Обороты закрытых месяцев не менялись.</div></div>';
+  if (!rows.length) return head + '<div class="empty">В этом отборе отклонений нет.</div></div>';
 
-  if (!rows.length)
-    return head + '<div class="empty">В этом отборе правок нет.</div></div>';
-
-  var body = keys.slice(0, 40).map(function(w){
-    var g = runs[w].slice().sort(function(a,b){
-      return (Math.abs(b.di)+Math.abs(b.do)) - (Math.abs(a.di)+Math.abs(a.do)); });
-    return '<div class="run"><div class="run-h">' + esc(w.replace('T',' ').slice(0,16)) + ' — '
-      + g.length + ' ' + plw(g.length,'изменение','изменения','изменений') + '</div>'
-      + '<div class="tw" style="margin-top:0"><table style="min-width:640px"><thead><tr>'
-      + '<th class="nm">Счёт</th><th>Месяц</th><th>Δ дебет</th><th>Δ кредит</th>'
-      + '<th>Оборот стал</th></tr></thead><tbody>'
-      + g.map(function(f){
-          return '<tr><td class="nm">' + esc(f.acc)
-            + (CASH[f.acc] ? '<span class="st s-cash">деньги</span>' : '') + '</td>'
-            + '<td>' + mlab(f.m) + '</td>'
-            + '<td class="' + (f.di>=0?'pos':'neg') + '">' + (f.di?sg(f.di):'—') + '</td>'
-            + '<td class="' + (f.do>=0?'pos':'neg') + '">' + (f.do?sg(f.do):'—') + '</td>'
-            + '<td>' + f0(f.now[0]) + ' / ' + f0(f.now[1]) + '</td></tr>'; }).join('')
-      + '</tbody></table></div></div>'; }).join('');
-  return head + body + (keys.length>40 ? '<div class="hint">Показаны последние 40 сверок.</div>' : '') + '</div>';
+  return head + '<div style="margin-top:12px">' + rows.slice(0,300).map(function(f){
+    var k = mkey(f), mny = isMoney(f);
+    return devBlock(k, esc(f.acc) + ' <span style="color:var(--mut);font-weight:600">· ' + mlab(f.m) + '</span>',
+      'Δ Дт ' + sg(f.di) + ' · Δ Кт ' + sg(f.do),
+      mny ? ['f-money','деньги'] : ['f-stock','склад/себестоимость'],
+      '<div class="dh">Что изменилось</div>'
+      + '<div class="hint">Оборот ' + mlab(f.m) + ' по счёту «' + esc(f.acc) + '»: '
+      + 'дебет ' + f0(f.was[0]) + ' → <b style="color:#fcd34d">' + f0(f.now[0]) + '</b>, '
+      + 'кредит ' + f0(f.was[1]) + ' → <b style="color:#fcd34d">' + f0(f.now[1]) + '</b>.'
+      + (mny ? ' Это денежный счёт — закрытые деньги двигаться не должны.' : '') + '</div>'
+      + whoHtml(f.when), f.when);
+  }).join('') + '</div>'
+  + (rows.length > 300 ? '<div class="hint">Показаны 300 из ' + rows.length + '.</div>' : '')
+  + '</div>';
 }
 
-/* 5б — технологические карты */
-function fixCard(){
-  var C = D.charts || {}, CFX = D.chartFixes || [];
+/* 5б — техкарты */
+function devCard(){
+  var C = D.charts || {}, CFX = (D.chartFixes||[]).slice();
   var bm = C.byMonth || {}, mk = Object.keys(bm).sort().slice(-30);
   var mx = Math.max.apply(null, mk.map(function(k){ return bm[k]; }).concat([1]));
   var cl0 = (D.closedMonths||[])[0] || '', cl1 = (D.closedMonths||[])[(D.closedMonths||[]).length-1] || '';
@@ -661,65 +839,73 @@ function fixCard(){
       + '<i style="height:' + Math.max(2, Math.round(bm[k]/mx*66)) + 'px"></i>'
       + '<span>' + mlab(k) + '</span></div>'; }).join('') + '</div>';
 
-  var inC = (C.inClosedTop||[]).filter(function(x){
-    return !FQ || x.dish.toLowerCase().indexOf(FQ) >= 0; });
-
   var kpi = '<div class="kpis">'
-    + '<div class="kpi" style="--c:#2fa39a"><div class="l">Действующих карт</div><div class="v">' + f0(C.eff||0) + '</div>'
-    + '<div class="s">всего версий за всё время — ' + f0(C.versions||0) + '</div></div>'
+    + '<div class="kpi" style="--c:#2fa39a"><div class="l">Карт под наблюдением</div><div class="v">' + f0(C.eff||0) + '</div>'
+    + '<div class="s">по одной действующей на позицию, включая полуфабрикаты и услуги; '
+    + 'версий за всё время — ' + f0(C.versions||0) + '</div></div>'
     + '<div class="kpi" style="--c:#fbbf24"><div class="l">Начали действовать внутри периода</div>'
     + '<div class="v">' + f0(C.inClosed||0) + '</div>'
-    + '<div class="s">карт с датой начала между 01.01 и ' + dmy(D.closed)
-    + ' — себестоимость закрытых месяцев считалась по ним</div></div>'
-    + '<div class="kpi" style="--c:' + (CFX.length?'#f87171':'#4ade80') + '"><div class="l">Правок карт</div>'
+    + '<div class="s">карт с датой начала между 01.01 и ' + dmy(D.closed) + '</div></div>'
+    + '<div class="kpi" style="--c:' + (CFX.length?'#f87171':'#4ade80') + '"><div class="l">Правок после закрытия</div>'
     + '<div class="v">' + f0(CFX.length) + '</div>'
     + '<div class="s">замечено с ' + dmy(D.cfixFrom || D.today) + '</div></div>'
     + '<div class="kpi" style="--c:#a78bfa"><div class="l">Карт без состава</div>'
     + '<div class="v">' + f0((C.empty||[]).length) + '</div>'
     + '<div class="s">обычно это услуги и нетоварные позиции</div></div></div>';
 
+  var KR = {'new':'новая карта', 'changed':'состав переписан', 'gone':'карта снята'};
   var log = !CFX.length
     ? '<div class="good"><b>Карты не трогали.</b> С ' + dlong(D.cfixFrom || D.today)
       + ' состав действующих технологических карт не менялся.</div>'
-    : CFX.slice().reverse().slice(0, 300).map(function(f){
-        var KR = {'new':'новая карта', 'changed':'состав переписан', 'gone':'карта снята'};
-        return '<div class="run"><div class="run-h">' + esc(f.dish)
-          + ' <span style="color:var(--mut);font-weight:600">· ' + (KR[f.kind]||f.kind)
-          + ' · действует с ' + dmy(f.df) + (f.closed ? ' — внутри закрытого периода' : '')
-          + ' · замечено ' + esc(f.when.replace('T',' ').slice(0,16)) + '</span></div>'
-          + '<div style="font-size:12px;color:var(--ink2);line-height:1.8">'
-          + 'строк в карте: ' + f.wasN + ' → ' + f.nowN
-          + (f.dfWas && f.dfWas !== f.df ? ' · дата начала: ' + dmy(f.dfWas) + ' → ' + dmy(f.df) : '')
+    : CFX.filter(function(f){
+        var m = markOf(ckey(f));
+        if (!FDONE && m && m.st === 'ok') return false;
+        return !FQ || f.dish.toLowerCase().indexOf(FQ) >= 0;
+      }).reverse().slice(0,200).map(function(f){
+        var k = ckey(f);
+        return devBlock(k, esc(f.dish),
+          'строк ' + f.wasN + ' → ' + f.nowN + ' · действует с ' + dmy(f.df),
+          f.closed ? ['f-card','закрытый период'] : ['f-stock','текущий период'],
+          '<div class="dh">' + (KR[f.kind]||f.kind) + '</div>'
+          + '<div class="hint">Действует с ' + dmy(f.df)
+          + (f.dfWas && f.dfWas !== f.df ? ' (было с ' + dmy(f.dfWas) + ')' : '')
+          + ' · строк в карте ' + f.wasN + ' → ' + f.nowN
           + (f.outWas != null && f.out != null && f.outWas !== f.out
-              ? ' · выход: ' + f.outWas + ' → ' + f.out : '') + '<br>'
-          + (f.add||[]).map(function(n){ return '<span class="chip add">+ ' + esc(n) + '</span>'; }).join('')
-          + (f.rem||[]).map(function(n){ return '<span class="chip rem">− ' + esc(n) + '</span>'; }).join('')
-          + (f.chg||[]).map(function(c){ return '<span class="chip chg">' + esc(c[0]) + ': ' + c[1] + ' → ' + c[2] + '</span>'; }).join('')
-          + '</div></div>'; }).join('');
+              ? ' · выход ' + f.outWas + ' → ' + f.out : '')
+          + (f.closed ? '. <b style="color:#fca5a5">Дата начала внутри закрытого периода — '
+              + 'себестоимость уже сданного месяца пересчиталась.</b>' : '.') + '</div>'
+          + ((f.add||[]).length || (f.rem||[]).length || (f.chg||[]).length
+             ? '<div class="dh">Состав</div><div>'
+               + (f.add||[]).map(function(n){ return '<span class="chip add">+ ' + esc(n) + '</span>'; }).join('')
+               + (f.rem||[]).map(function(n){ return '<span class="chip rem">− ' + esc(n) + '</span>'; }).join('')
+               + (f.chg||[]).map(function(c){ return '<span class="chip chg">' + esc(c[0]) + ': ' + c[1] + ' → ' + c[2] + '</span>'; }).join('')
+               + '</div>' : '')
+          + whoHtml(f.when), f.when); }).join('');
 
+  var inC = (C.inClosedTop||[]).filter(function(x){ return !FQ || x.dish.toLowerCase().indexOf(FQ) >= 0; });
   var inCTbl = inC.length
     ? '<div class="tw"><table style="min-width:560px"><thead><tr><th class="nm">Блюдо</th>'
       + '<th>Действует с</th><th>Строк в карте</th></tr></thead><tbody>'
-      + inC.slice(0, 200).map(function(x){
+      + inC.slice(0,200).map(function(x){
           return '<tr><td class="nm">' + esc(x.dish) + '</td><td>' + dmy(x.df) + '</td>'
             + '<td>' + x.n + '</td></tr>'; }).join('')
       + '</tbody></table></div>'
-      + ((C.inClosedTop||[]).length >= 200 ? '<div class="hint" style="margin-top:8px">'
-          + 'Показаны 200 самых свежих из ' + f0(C.inClosed||0) + '.</div>' : '')
     : '<div class="empty">Ничего не нашлось.</div>';
 
   var multi = (C.multi||[]).length
-    ? '<div class="tw"><table style="min-width:420px"><thead><tr><th class="nm">Блюдо</th>'
+    ? '<div class="card"><div class="card-t">Чаще всего переписывали</div>'
+      + '<div class="hint">Сколько версий карты накопилось у блюда за всю историю. Много версий — '
+      + 'рецептуру постоянно правят, и сравнивать себестоимость по месяцам надо с оглядкой.</div>'
+      + '<div class="tw"><table style="min-width:420px"><thead><tr><th class="nm">Блюдо</th>'
       + '<th>Версий карты</th></tr></thead><tbody>'
       + C.multi.map(function(x){ return '<tr><td class="nm">' + esc(x.dish) + '</td><td>' + x.n + '</td></tr>'; }).join('')
-      + '</tbody></table></div>' : '';
+      + '</tbody></table></div></div>' : '';
 
   return '<div class="card"><div class="card-t">🧪 Технологические карты</div>'
     + '<div class="hint">Карта — это и есть себестоимость блюда. Её можно переписать или завести заново '
     + 'с датой начала внутри уже закрытого месяца, и себестоимость пересчитается задним числом — без единой '
-    + 'проводки, поэтому по счетам такая правка не видна. «Айка» снимает состав всех действующих карт '
-    + 'каждые три часа и сравнивает.</div>'
-    + kpi
+    + 'проводки, поэтому по счетам такая правка не видна. Состав всех действующих карт снимается каждые '
+    + 'три часа и сравнивается.</div>' + kpi
     + '<div class="card-t" style="margin-top:16px">Когда карты начали действовать</div>'
     + '<div class="hint">По месяцу начала действия, последние 30 месяцев. Жёлтым — закрытый период.</div>'
     + bars
@@ -727,24 +913,35 @@ function fixCard(){
     + '<b>' + f0(C.inClosed||0) + ' ' + plw(C.inClosed||0,'карта начала','карты начали','карт начали')
     + ' действовать внутри закрытого периода.</b> Каждая такая карта меняет себестоимость того месяца, '
     + 'в котором она появилась: выпуск до неё посчитан по старому составу, после — по новому. '
-    + 'Это не ошибка сама по себе, но объясняет, почему себестоимость закрытых месяцев «плывёт».</div>'
-    + '</div>'
-    + '<div class="card"><div class="card-t">Что менялось в картах</div>'
-    + '<div class="hint">Состав действующих карт, строка за строкой: что добавили, что убрали, где поменяли '
-    + 'количество.</div>' + log + '</div>'
+    + 'Это не нарушение само по себе, но объясняет, почему себестоимость закрытых месяцев «плывёт».</div></div>'
+    + '<div class="card"><div class="card-t">Отклонения по картам</div>'
+    + '<div class="hint">Строка раскрывается: что изменилось в составе, кто работал в айко в это окно, '
+    + 'и там же отметка о разборе.</div>'
+    + '<div class="row" style="margin-top:12px">'
+    + '<button class="btn' + (FDONE?' on':'') + '" data-fd="1">Показывать разобранные</button>'
+    + '<input class="q" id="q" placeholder="🔍 блюдо…" value="' + esc(FQ) + '"></div>'
+    + '<div style="margin-top:12px">' + log + '</div></div>'
     + '<div class="card"><div class="card-t">Карты, действующие с даты внутри закрытого периода — '
     + f0(C.inClosed||0) + '</div>'
     + '<div class="hint">Отсортированы от самых свежих. Карта с датой начала 30 сентября меняет '
-    + 'себестоимость сентября.</div>'
-    + '<div class="row" style="margin-top:12px"><input class="q" id="q" placeholder="🔍 блюдо…" value="' + esc(FQ) + '"></div>'
-    + inCTbl + '</div>'
-    + (multi ? '<div class="card"><div class="card-t">Чаще всего переписывали</div>'
-        + '<div class="hint">Сколько версий карты накопилось у блюда за всю историю. Много версий — '
-        + 'рецептуру постоянно правят, и сравнивать себестоимость по месяцам надо с оглядкой.</div>'
-        + multi + '</div>' : '');
+    + 'себестоимость сентября.</div>' + inCTbl + '</div>' + multi;
 }
 
-function secFix(){ return fixSubs() + (FSUB==='acc' ? fixAcc() : fixCard()); }
+function fixSubs(){
+  var money = FIX.filter(isMoney).length;
+  var t = [['rules','🛡 Правила', ''], ['acc','📊 Счета', FIX.length],
+           ['card','🧪 Техкарты', (D.chartFixes||[]).length], ['pulse','📡 Пульс', (D.runs||[]).length]];
+  return '<div class="sub-t">' + t.map(function(x){
+    return '<button class="btn' + (FSUB===x[0]?' on':'') + '" data-fs="' + x[0] + '">'
+      + x[1] + (x[2]!=='' ? ' · ' + f0(x[2]) : '') + '</button>'; }).join('')
+    + (money ? '<span class="flag f-money" style="align-self:center">на денежных счетах: ' + money + '</span>' : '')
+    + '</div>';
+}
+
+function secFix(){
+  return fixSubs() + (FSUB==='rules' ? rules() + pulse()
+    : FSUB==='acc' ? devAcc() : FSUB==='card' ? devCard() : pulse());
+}
 
 /* ── CSV ────────────────────────────────────────────────────────────── */
 function csv(rows, name){
@@ -797,7 +994,23 @@ function draw(){
   app.querySelectorAll('[data-e]').forEach(function(b){
     b.onclick = function(){ EVT = b.getAttribute('data-e'); draw(); }; });
   app.querySelectorAll('[data-fs]').forEach(function(b){
-    b.onclick = function(){ FSUB = b.getAttribute('data-fs'); FQ=''; draw(); }; });
+    b.onclick = function(){ FSUB = b.getAttribute('data-fs'); FQ=''; FOPEN=null; draw(); }; });
+  app.querySelectorAll('[data-rl]').forEach(function(b){
+    b.onclick = function(){ var k = b.getAttribute('data-rl');
+      FSUB = k==='card' ? 'card' : k==='run' ? 'pulse' : 'acc';
+      FKIND = k==='money' ? 'money' : k==='stock' ? 'stock' : 'all';
+      if (k==='money' || k==='stock') FSIG = 0;
+      draw(); }; });
+  app.querySelectorAll('[data-fd]').forEach(function(b){
+    b.onclick = function(){ FDONE = FDONE ? 0 : 1; draw(); }; });
+  app.querySelectorAll('[data-dev]').forEach(function(b){
+    b.onclick = function(){ var k = b.getAttribute('data-dev'); FOPEN = FOPEN===k?null:k; draw(); }; });
+  app.querySelectorAll('[data-mk]').forEach(function(b){
+    b.onclick = function(e){ e.stopPropagation();
+      var v = b.getAttribute('data-mk'), i = v.indexOf('|');
+      var st = v.slice(0,i), k = v.slice(i+1);
+      var nt = document.getElementById('nt-' + k);
+      markSet(k, st==='del' ? null : {st:st, note: nt ? nt.value.slice(0,400) : ''}); }; });
   app.querySelectorAll('[data-fk]').forEach(function(b){
     b.onclick = function(){ FKIND = b.getAttribute('data-fk'); draw(); }; });
   app.querySelectorAll('[data-fv]').forEach(function(b){
@@ -811,6 +1024,10 @@ function draw(){
       if (SORT===k) DIR = -DIR; else { SORT = k; DIR = k==='name'?1:-1; } draw(); }; });
 }
 draw();
+/* отметки о разборе лежат в воркере — страница общая, и подпись видят все */
+fetch('/api/aika?a=list').then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(j){ if (j && j.marks) { MARKS = j.marks; draw(); } })
+  .catch(function(){});
 })();
 </script>
 <script src="nav.js"></script>
