@@ -39,11 +39,15 @@ jobs:
           AIKA_CLOSED: ${{ github.event.inputs.closed }}
         run: python3 aika_data.py
 
+      - name: Обновить заготовку базы компании
+        continue-on-error: true
+        run: python3 gen_baza_seed.py aika_data.js upak_data.js
+
       - name: Положить в репозиторий
         run: |
           git config user.name "pulse-bot"
           git config user.email "pulse-bot@users.noreply.github.com"
-          git add -A "_айка" aika_data.js
+          git add -A "_айка" aika_data.js baza_seed.js
           git commit -m "айка: +${{ steps.run.outputs.nev }} событий, правок по счетам ${{ steps.run.outputs.nfix }}, по техкартам ${{ steps.run.outputs.ncard }}${{ steps.run.outputs.skipci }}" || exit 0
           git pull --rebase || true
           git push
