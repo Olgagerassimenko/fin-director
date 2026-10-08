@@ -44,12 +44,12 @@ jobs:
           git config user.name "pulse-bot"
           git config user.email "pulse-bot@users.noreply.github.com"
           git add -A "_айка" aika_data.js
-          git commit -m "айка: +${{ steps.run.outputs.nev }} событий, правок закрытого периода ${{ steps.run.outputs.nfix }}${{ steps.run.outputs.skipci }}" || exit 0
+          git commit -m "айка: +${{ steps.run.outputs.nev }} событий, правок по счетам ${{ steps.run.outputs.nfix }}, по техкартам ${{ steps.run.outputs.ncard }}${{ steps.run.outputs.skipci }}" || exit 0
           git pull --rebase || true
           git push
 
       - name: Если правили закрытый период — сказать об этом в сводке
-        if: ${{ steps.run.outputs.nfix != '0' }}
+        if: ${{ steps.run.outputs.nfix != '0' || steps.run.outputs.ncard != '0' }}
         run: |
-          echo "## ⚠️ Закрытый период двигали: ${{ steps.run.outputs.nfix }} расхождений" >> $GITHUB_STEP_SUMMARY
+          echo "## ⚠️ Закрытый период двигали: ${{ steps.run.outputs.nfix }} расхождений по счетам, ${{ steps.run.outputs.ncard }} правок техкарт" >> $GITHUB_STEP_SUMMARY
           echo "Подробности — в разделе «Проба → Айка» на Пульсе." >> $GITHUB_STEP_SUMMARY
