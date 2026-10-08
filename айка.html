@@ -83,6 +83,22 @@ tfoot td{padding:9px 10px;text-align:right;font-weight:800;background:#0d1526;bo
 tfoot td.nm{text-align:left}
 tbody td.dtl{text-align:left;padding:0;white-space:normal}
 .dtl .in{padding:11px 14px 14px;position:sticky;left:0;max-width:1080px}
+.sub-t{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px}
+.chip{display:inline-block;background:#15223a;border:1px solid var(--line2);border-radius:8px;
+  padding:3px 9px;font-size:11px;color:var(--ink2);margin:2px 4px 2px 0;line-height:1.6}
+.chip.add{border-color:rgba(74,222,128,.45);color:#bbf7d0}
+.chip.rem{border-color:rgba(248,113,113,.45);color:#fecaca}
+.chip.chg{border-color:rgba(251,191,36,.45);color:#fde68a}
+.run{border-left:2px solid var(--line2);padding:2px 0 2px 13px;margin:0 0 14px}
+.run-h{font-size:12.5px;font-weight:800;color:#fcd34d;margin-bottom:6px}
+.bars{display:flex;gap:2px;align-items:flex-end;height:92px;margin:14px 0 4px;overflow-x:auto}
+.bars .b{flex:1;min-width:13px;display:flex;flex-direction:column;justify-content:flex-end;
+  align-items:center;gap:4px;height:100%}
+.bars .b i{display:block;width:100%;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#2fa39a,#14615f);
+  min-height:2px}
+.bars .b.hot i{background:linear-gradient(180deg,#fbbf24,#b45309)}
+.bars .b span{font-size:8.5px;color:var(--dim);writing-mode:vertical-rl;transform:rotate(180deg);
+  white-space:nowrap}
 .pos{color:#86efac}.neg{color:#fca5a5}.zero{color:#3d4a60}
 .q{background:#0d1626;border:1px solid var(--line2);border-radius:11px;color:var(--ink);
   padding:9px 13px;font:inherit;font-size:12.5px;width:100%;max-width:320px}
@@ -127,10 +143,6 @@ tbody td.dtl{text-align:left;padding:0;white-space:normal}
     <div class="live" id="live">—</div>
   </div>
   <div id="app"></div>
-  <div class="foot">
-    Система «Пульс» · Фуд Завод<br>
-    <b>Ольга Герасименко</b> · финансовый директор · данные из iiko
-  </div>
 </div>
 
 <script>
@@ -319,7 +331,7 @@ function tabsHtml(){
            ['cash','💰 Деньги по счетам', CASHN.length],
            ['acc','📒 Все счета', ACC.length],
            ['log','🧾 Журнал айко', D.evTotal||0],
-           ['fix','🚨 Правки закрытого периода', FIX.length]];
+           ['fix','🚨 Правки закрытого периода', FIX.length + (D.chartFixes||[]).length]];
   return '<div class="tabs" id="tabs">' + t.map(function(x){
     return '<button class="tab' + (TAB===x[0]?' on':'') + '" data-t="' + x[0] + '">' + x[1]
       + '<b>' + f0(x[2]) + '</b></button>'; }).join('') + '</div>';
@@ -562,31 +574,177 @@ function secLog(){
     + '</div>';
 }
 
-/* 5 — правки */
-function secFix(){
+/* 5 — правки: отдельно счета, отдельно техкарты */
+var FKIND = 'all', FSIG = 1000, FQ = '', FSUB = 'acc';
+
+function fixSubs(){
+  var nc = (D.chartFixes||[]).length;
+  var t = [['acc','📊 По счетам', FIX.length], ['card','🧪 По техкартам', nc]];
+  return '<div class="sub-t">' + t.map(function(x){
+    return '<button class="btn' + (FSUB===x[0]?' on':'') + '" data-fs="' + x[0] + '">'
+      + x[1] + ' · ' + f0(x[2]) + '</button>'; }).join('') + '</div>';
+}
+
+/* 5а — счета */
+function fixAcc(){
   if (!FIX.length)
-    return '<div class="card"><div class="card-t">🚨 Правки закрытого периода</div>'
+    return '<div class="card"><div class="card-t">📊 Правки по счетам</div>'
       + '<div class="hint">Каждые три часа «Айка» снимает обороты по всем счетам за каждый закрытый месяц и '
-      + 'сравнивает с прошлым снимком. Если кто-то проведёт, изменит или удалит документ задним числом — '
-      + 'оборот месяца сдвинется, и это попадёт сюда: какой счёт, какой месяц, на сколько и когда замечено. '
-      + 'Запись остаётся навсегда, даже если потом вернут как было.</div>'
-      + '<div class="good"><b>Пока чисто.</b> С ' + dmy(D.evFrom || D.today) + ' обороты закрытых месяцев '
-      + '(' + mlab(M[0]) + ' — ' + mlab(M[M.length-1]) + ') ни разу не менялись.</div></div>';
+      + 'сравнивает со снимком трёхчасовой давности. Если кто-то проведёт, изменит или удалит документ задним '
+      + 'числом — оборот месяца сдвинется, и это попадёт сюда. Запись остаётся навсегда, даже если потом '
+      + 'вернут как было.</div>'
+      + '<div class="good"><b>Пока чисто.</b> Обороты закрытых месяцев ни разу не менялись.</div></div>';
+
+  var rows = FIX.filter(function(f){
+    var money = !!CASH[f.acc];
+    if (FKIND === 'money' && !money) return false;
+    if (FKIND === 'stock' && money) return false;
+    if (Math.abs(f.di) < FSIG && Math.abs(f.do) < FSIG) return false;
+    if (FQ && (f.acc + ' ' + f.m).toLowerCase().indexOf(FQ) < 0) return false;
+    return true;
+  });
+  var money = FIX.filter(function(f){ return CASH[f.acc]; }).length;
+  var runs = {};
+  rows.forEach(function(f){ (runs[f.when] || (runs[f.when]=[])).push(f); });
+  var keys = Object.keys(runs).sort().reverse();
+
   var byM = {};
   FIX.forEach(function(f){ byM[f.m] = (byM[f.m]||0)+1; });
-  return '<div class="card"><div class="card-t">🚨 Правки закрытого периода — ' + FIX.length + '</div>'
-    + '<div class="hint">Обороты закрытых месяцев изменились после закрытия. Каждая строка — факт: '
-    + 'счёт, месяц, было и стало.</div>'
-    + '<div class="tw"><table><thead><tr><th class="nm">Замечено</th><th class="nm">Счёт</th><th>Месяц</th>'
-    + '<th>Дебет был</th><th>Дебет стал</th><th>Δ Дебет</th><th>Δ Кредит</th></tr></thead><tbody>'
-    + FIX.slice().reverse().map(function(f){
-        return '<tr><td class="nm">' + esc(f.when.replace('T',' ').slice(0,16)) + '</td>'
-          + '<td class="nm">' + esc(f.acc) + '</td><td>' + mlab(f.m) + '</td>'
-          + '<td>' + f0(f.was[0]) + '</td><td>' + f0(f.now[0]) + '</td>'
-          + '<td class="' + (f.di>=0?'pos':'neg') + '">' + sg(f.di) + '</td>'
-          + '<td class="' + (f.do>=0?'pos':'neg') + '">' + sg(f.do) + '</td></tr>'; }).join('')
-    + '</tbody></table></div></div>';
+
+  var head = '<div class="card"><div class="card-t">📊 Правки по счетам — ' + FIX.length + '</div>'
+    + '<div class="hint">Обороты закрытых месяцев сверяются каждые три часа. Слежение идёт с '
+    + dlong(D.fixFrom || D.today) + '. '
+    + (money ? '<b style="color:#fca5a5">' + money + ' ' + plw(money,'правка','правки','правок')
+        + ' на денежных счетах</b> — это самое серьёзное: двигали уже закрытые деньги. '
+      : 'Денежные счета не трогали — двигались только склады и себестоимость, которые iiko пересчитывает '
+        + 'задним числом сама, как только проводят документ или меняют техкарту. ')
+    + 'Месяцы: ' + Object.keys(byM).sort().map(function(m){ return mlab(m) + ' — ' + byM[m]; }).join(', ') + '.</div>'
+    + '<div class="row" style="margin-top:13px">'
+    + [['all','Все'],['money','Только деньги'],['stock','Склады и себестоимость']].map(function(x){
+        return '<button class="btn' + (FKIND===x[0]?' on':'') + '" data-fk="' + x[0] + '">' + x[1] + '</button>'; }).join('')
+    + [[0,'Всё'],[1000,'от 1 000 ₸'],[100000,'от 100 000 ₸']].map(function(x){
+        return '<button class="btn' + (FSIG===x[0]?' on':'') + '" data-fv="' + x[0] + '">' + x[1] + '</button>'; }).join('')
+    + '<input class="q" id="q" placeholder="🔍 счёт…" value="' + esc(FQ) + '">'
+    + '</div>';
+
+  if (!rows.length)
+    return head + '<div class="empty">В этом отборе правок нет.</div></div>';
+
+  var body = keys.slice(0, 40).map(function(w){
+    var g = runs[w].slice().sort(function(a,b){
+      return (Math.abs(b.di)+Math.abs(b.do)) - (Math.abs(a.di)+Math.abs(a.do)); });
+    return '<div class="run"><div class="run-h">' + esc(w.replace('T',' ').slice(0,16)) + ' — '
+      + g.length + ' ' + plw(g.length,'изменение','изменения','изменений') + '</div>'
+      + '<div class="tw" style="margin-top:0"><table style="min-width:640px"><thead><tr>'
+      + '<th class="nm">Счёт</th><th>Месяц</th><th>Δ дебет</th><th>Δ кредит</th>'
+      + '<th>Оборот стал</th></tr></thead><tbody>'
+      + g.map(function(f){
+          return '<tr><td class="nm">' + esc(f.acc)
+            + (CASH[f.acc] ? '<span class="st s-cash">деньги</span>' : '') + '</td>'
+            + '<td>' + mlab(f.m) + '</td>'
+            + '<td class="' + (f.di>=0?'pos':'neg') + '">' + (f.di?sg(f.di):'—') + '</td>'
+            + '<td class="' + (f.do>=0?'pos':'neg') + '">' + (f.do?sg(f.do):'—') + '</td>'
+            + '<td>' + f0(f.now[0]) + ' / ' + f0(f.now[1]) + '</td></tr>'; }).join('')
+      + '</tbody></table></div></div>'; }).join('');
+  return head + body + (keys.length>40 ? '<div class="hint">Показаны последние 40 сверок.</div>' : '') + '</div>';
 }
+
+/* 5б — технологические карты */
+function fixCard(){
+  var C = D.charts || {}, CFX = D.chartFixes || [];
+  var bm = C.byMonth || {}, mk = Object.keys(bm).sort().slice(-30);
+  var mx = Math.max.apply(null, mk.map(function(k){ return bm[k]; }).concat([1]));
+  var cl0 = (D.closedMonths||[])[0] || '', cl1 = (D.closedMonths||[])[(D.closedMonths||[]).length-1] || '';
+  var bars = '<div class="bars">' + mk.map(function(k){
+    var hot = k >= cl0 && k <= cl1;
+    return '<div class="b' + (hot?' hot':'') + '" title="' + k + ': ' + bm[k] + '">'
+      + '<i style="height:' + Math.max(2, Math.round(bm[k]/mx*66)) + 'px"></i>'
+      + '<span>' + mlab(k) + '</span></div>'; }).join('') + '</div>';
+
+  var inC = (C.inClosedTop||[]).filter(function(x){
+    return !FQ || x.dish.toLowerCase().indexOf(FQ) >= 0; });
+
+  var kpi = '<div class="kpis">'
+    + '<div class="kpi" style="--c:#2fa39a"><div class="l">Действующих карт</div><div class="v">' + f0(C.eff||0) + '</div>'
+    + '<div class="s">всего версий за всё время — ' + f0(C.versions||0) + '</div></div>'
+    + '<div class="kpi" style="--c:#fbbf24"><div class="l">Начали действовать внутри периода</div>'
+    + '<div class="v">' + f0(C.inClosed||0) + '</div>'
+    + '<div class="s">карт с датой начала между 01.01 и ' + dmy(D.closed)
+    + ' — себестоимость закрытых месяцев считалась по ним</div></div>'
+    + '<div class="kpi" style="--c:' + (CFX.length?'#f87171':'#4ade80') + '"><div class="l">Правок карт</div>'
+    + '<div class="v">' + f0(CFX.length) + '</div>'
+    + '<div class="s">замечено с ' + dmy(D.cfixFrom || D.today) + '</div></div>'
+    + '<div class="kpi" style="--c:#a78bfa"><div class="l">Карт без состава</div>'
+    + '<div class="v">' + f0((C.empty||[]).length) + '</div>'
+    + '<div class="s">обычно это услуги и нетоварные позиции</div></div></div>';
+
+  var log = !CFX.length
+    ? '<div class="good"><b>Карты не трогали.</b> С ' + dlong(D.cfixFrom || D.today)
+      + ' состав действующих технологических карт не менялся.</div>'
+    : CFX.slice().reverse().slice(0, 300).map(function(f){
+        var KR = {'new':'новая карта', 'changed':'состав переписан', 'gone':'карта снята'};
+        return '<div class="run"><div class="run-h">' + esc(f.dish)
+          + ' <span style="color:var(--mut);font-weight:600">· ' + (KR[f.kind]||f.kind)
+          + ' · действует с ' + dmy(f.df) + (f.closed ? ' — внутри закрытого периода' : '')
+          + ' · замечено ' + esc(f.when.replace('T',' ').slice(0,16)) + '</span></div>'
+          + '<div style="font-size:12px;color:var(--ink2);line-height:1.8">'
+          + 'строк в карте: ' + f.wasN + ' → ' + f.nowN
+          + (f.dfWas && f.dfWas !== f.df ? ' · дата начала: ' + dmy(f.dfWas) + ' → ' + dmy(f.df) : '')
+          + (f.outWas != null && f.out != null && f.outWas !== f.out
+              ? ' · выход: ' + f.outWas + ' → ' + f.out : '') + '<br>'
+          + (f.add||[]).map(function(n){ return '<span class="chip add">+ ' + esc(n) + '</span>'; }).join('')
+          + (f.rem||[]).map(function(n){ return '<span class="chip rem">− ' + esc(n) + '</span>'; }).join('')
+          + (f.chg||[]).map(function(c){ return '<span class="chip chg">' + esc(c[0]) + ': ' + c[1] + ' → ' + c[2] + '</span>'; }).join('')
+          + '</div></div>'; }).join('');
+
+  var inCTbl = inC.length
+    ? '<div class="tw"><table style="min-width:560px"><thead><tr><th class="nm">Блюдо</th>'
+      + '<th>Действует с</th><th>Строк в карте</th></tr></thead><tbody>'
+      + inC.slice(0, 200).map(function(x){
+          return '<tr><td class="nm">' + esc(x.dish) + '</td><td>' + dmy(x.df) + '</td>'
+            + '<td>' + x.n + '</td></tr>'; }).join('')
+      + '</tbody></table></div>'
+      + ((C.inClosedTop||[]).length >= 200 ? '<div class="hint" style="margin-top:8px">'
+          + 'Показаны 200 самых свежих из ' + f0(C.inClosed||0) + '.</div>' : '')
+    : '<div class="empty">Ничего не нашлось.</div>';
+
+  var multi = (C.multi||[]).length
+    ? '<div class="tw"><table style="min-width:420px"><thead><tr><th class="nm">Блюдо</th>'
+      + '<th>Версий карты</th></tr></thead><tbody>'
+      + C.multi.map(function(x){ return '<tr><td class="nm">' + esc(x.dish) + '</td><td>' + x.n + '</td></tr>'; }).join('')
+      + '</tbody></table></div>' : '';
+
+  return '<div class="card"><div class="card-t">🧪 Технологические карты</div>'
+    + '<div class="hint">Карта — это и есть себестоимость блюда. Её можно переписать или завести заново '
+    + 'с датой начала внутри уже закрытого месяца, и себестоимость пересчитается задним числом — без единой '
+    + 'проводки, поэтому по счетам такая правка не видна. «Айка» снимает состав всех действующих карт '
+    + 'каждые три часа и сравнивает.</div>'
+    + kpi
+    + '<div class="card-t" style="margin-top:16px">Когда карты начали действовать</div>'
+    + '<div class="hint">По месяцу начала действия, последние 30 месяцев. Жёлтым — закрытый период.</div>'
+    + bars
+    + '<div class="warn" style="background:rgba(251,191,36,.07);border-color:rgba(251,191,36,.3);color:#fde68a">'
+    + '<b>' + f0(C.inClosed||0) + ' ' + plw(C.inClosed||0,'карта начала','карты начали','карт начали')
+    + ' действовать внутри закрытого периода.</b> Каждая такая карта меняет себестоимость того месяца, '
+    + 'в котором она появилась: выпуск до неё посчитан по старому составу, после — по новому. '
+    + 'Это не ошибка сама по себе, но объясняет, почему себестоимость закрытых месяцев «плывёт».</div>'
+    + '</div>'
+    + '<div class="card"><div class="card-t">Что менялось в картах</div>'
+    + '<div class="hint">Состав действующих карт, строка за строкой: что добавили, что убрали, где поменяли '
+    + 'количество.</div>' + log + '</div>'
+    + '<div class="card"><div class="card-t">Карты, действующие с даты внутри закрытого периода — '
+    + f0(C.inClosed||0) + '</div>'
+    + '<div class="hint">Отсортированы от самых свежих. Карта с датой начала 30 сентября меняет '
+    + 'себестоимость сентября.</div>'
+    + '<div class="row" style="margin-top:12px"><input class="q" id="q" placeholder="🔍 блюдо…" value="' + esc(FQ) + '"></div>'
+    + inCTbl + '</div>'
+    + (multi ? '<div class="card"><div class="card-t">Чаще всего переписывали</div>'
+        + '<div class="hint">Сколько версий карты накопилось у блюда за всю историю. Много версий — '
+        + 'рецептуру постоянно правят, и сравнивать себестоимость по месяцам надо с оглядкой.</div>'
+        + multi + '</div>' : '');
+}
+
+function secFix(){ return fixSubs() + (FSUB==='acc' ? fixAcc() : fixCard()); }
 
 /* ── CSV ────────────────────────────────────────────────────────────── */
 function csv(rows, name){
@@ -625,7 +783,9 @@ function draw(){
   app.querySelectorAll('#tabs .tab').forEach(function(b){
     b.onclick = function(){ TAB = b.getAttribute('data-t'); Q=''; OPEN=null; draw(); }; });
   var q = document.getElementById('q');
-  if (q) q.oninput = function(){ var p = q.selectionStart; Q = q.value.trim().toLowerCase(); draw();
+  if (q) q.oninput = function(){ var p = q.selectionStart;
+    if (TAB === 'fix') FQ = q.value.trim().toLowerCase(); else Q = q.value.trim().toLowerCase();
+    draw();
     var n = document.getElementById('q'); if(n){ n.focus(); try{ n.setSelectionRange(p,p); }catch(e){} } };
   var c = document.getElementById('csv'); if (c) c.onclick = dlCsv;
   app.querySelectorAll('[data-sc]').forEach(function(b){
@@ -636,6 +796,12 @@ function draw(){
     b.onclick = function(){ EVU = b.getAttribute('data-u'); draw(); }; });
   app.querySelectorAll('[data-e]').forEach(function(b){
     b.onclick = function(){ EVT = b.getAttribute('data-e'); draw(); }; });
+  app.querySelectorAll('[data-fs]').forEach(function(b){
+    b.onclick = function(){ FSUB = b.getAttribute('data-fs'); FQ=''; draw(); }; });
+  app.querySelectorAll('[data-fk]').forEach(function(b){
+    b.onclick = function(){ FKIND = b.getAttribute('data-fk'); draw(); }; });
+  app.querySelectorAll('[data-fv]').forEach(function(b){
+    b.onclick = function(){ FSIG = +b.getAttribute('data-fv'); draw(); }; });
   app.querySelectorAll('tr.dr').forEach(function(t){
     t.onclick = function(){ var k = 'c:'+t.getAttribute('data-c'); OPEN = OPEN===k?null:k; draw(); }; });
   app.querySelectorAll('tr.ar').forEach(function(t){
