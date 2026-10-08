@@ -700,7 +700,7 @@ function rules(){
     {k:'run', t:'Контроль работает по расписанию',
      s: !runs.length ? 'Журнал сверок появится после следующего запуска сборщика — он ходит каждые три часа.'
        : last ? ('Последняя сверка ' + esc(last.replace('T',' ').slice(0,16))
-         + (age != null ? ' — ' + (age < 90 ? age + ' мин назад' : Math.round(age/60) + ' ч назад') : '')
+         + (age != null && age >= 0 ? ' — ' + (age < 2 ? 'только что' : age < 90 ? age + ' мин назад' : Math.round(age/60) + ' ч назад') : '')
          + '. Сегодня сверок: ' + day + ' из 8 по расписанию (каждые три часа).')
        : 'Сверок ещё не было — страница смотрит на первый снимок.',
      n: day, nl:'сверок сегодня',
@@ -715,7 +715,7 @@ function rules(){
           + '<div class="dot">' + (r.st==='ok'?'✓':r.st==='off'?'—':'!') + '</div>'
           + '<div><div class="t">' + r.t + '</div><div class="s">' + r.s
           + (r.open ? ' <b style="color:#fcd34d">Не разобрано: ' + r.open + '.</b>' : '')
-          + (r.n && !r.open ? ' <b style="color:#86efac">Всё разобрано.</b>' : '') + '</div></div>'
+          + (r.n && !r.open && r.k !== 'run' ? ' <b style="color:#86efac">Всё разобрано.</b>' : '') + '</div></div>'
           + '<div><div class="n">' + f0(r.n) + '</div><div class="nl">' + r.nl + '</div></div></div>'; }).join('')
     + '</div></div>';
 }
