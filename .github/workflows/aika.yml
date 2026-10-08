@@ -1,0 +1,55 @@
+name: Айка — журнал айко и контроль закрытого периода
+
+# Журнал событий айко живёт одни сутки: на любой запрос он отдаёт только
+# сегодняшние события. Поэтому ходим за ним каждые три часа и дописываем в
+# свою копилку — иначе историю правок восстановить будет уже неоткуда.
+# Заодно снимаем обороты по всем счетам и сверяем закрытые месяцы с прошлым
+# снимком: любое расхождение — это правка задним числом.
+on:
+  schedule:
+    - cron: "11 1,4,7,10,13,16,19,22 * * *"   # каждые 3 часа (UTC) → 06:11, 09:11 … по Алматы
+  workflow_dispatch:
+    inputs:
+      closed:
+        description: "Дата закрытия периода (ГГГГ-ММ-ДД), пусто — конец прошлого месяца"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aika
+  cancel-in-progress: false
+
+jobs:
+  aika:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+
+      - name: Снять журнал и обороты
+        id: run
+        env:
+          AIKA_CLOSED: ${{ github.event.inputs.closed }}
+        run: python3 aika_data.py
+
+      - name: Положить в репозиторий
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse-bot@users.noreply.github.com"
+          git add -A "_айка" aika_data.js
+          git commit -m "айка: +${{ steps.run.outputs.nev }} событий, правок закрытого периода ${{ steps.run.outputs.nfix }}${{ steps.run.outputs.skipci }}" || exit 0
+          git pull --rebase || true
+          git push
+
+      - name: Если правили закрытый период — сказать об этом в сводке
+        if: ${{ steps.run.outputs.nfix != '0' }}
+        run: |
+          echo "## ⚠️ Закрытый период двигали: ${{ steps.run.outputs.nfix }} расхождений" >> $GITHUB_STEP_SUMMARY
+          echo "Подробности — в разделе «Проба → Айка» на Пульсе." >> $GITHUB_STEP_SUMMARY
