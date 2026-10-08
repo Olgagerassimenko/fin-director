@@ -162,6 +162,10 @@ const UPF_WEEKS_KEY = "upf:weeks";
 // заказывать и держать неснижаемый остаток по ним надо. Хранятся отдельно
 // и подмешиваются к данным из iiko уже на странице.
 const UPF_SKU_KEY = "upf:sku";
+/* «Айка»: отметки по отклонениям закрытого периода. Контроль — это не
+   только увидеть расхождение, но и закрыть его: кто разобрал, что выяснил.
+   Ключ отметки — счёт+месяц+момент сверки либо блюдо+момент. */
+const AIKA_MARKS_KEY = "aika:marks";
 
 // ── Налоговый калькулятор: ставки и история расчётов ────────────────────────
 //  Ставки держим в KV, а не в коде: меняется МРП, МЗП или сама ставка —
@@ -278,6 +282,36 @@ async function handleZp(request, env, url) {
   }
 
   return jsonResp({ error: "неизвестный запрос" }, 404);
+}
+
+
+async function handleAika(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  if (act === "list") {
+    let marks = {};
+    try { marks = JSON.parse((await env.PLAN.get(AIKA_MARKS_KEY)) || "{}") || {}; } catch (e) {}
+    return jsonResp({ marks });
+  }
+  if (act === "mark" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const k = String((body && body.k) || "").slice(0, 200).trim();
+    if (!k) return jsonResp({ error: "нет ключа отметки" }, 400);
+    let marks = {};
+    try { marks = JSON.parse((await env.PLAN.get(AIKA_MARKS_KEY)) || "{}") || {}; } catch (e) {}
+    if (body && body.v) {
+      marks[k] = {
+        st: String(body.v.st || "").slice(0, 12),
+        note: String(body.v.note || "").slice(0, 400),
+        when: new Date().toISOString().slice(0, 16).replace("T", " "),
+      };
+    } else {
+      delete marks[k];
+    }
+    await env.PLAN.put(AIKA_MARKS_KEY, JSON.stringify(marks).slice(0, 900000));
+    return jsonResp({ ok: true, count: Object.keys(marks).length });
+  }
+  return jsonResp({ error: "неизвестное действие" }, 400);
 }
 
 async function handleUpak(request, env, url) {
@@ -762,6 +796,8 @@ export default {
       return handleHalal(request, env);
     }
     if (url.pathname === "/api/upak") return handleUpak(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/aika") return handleAika(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/calc") return handleCalc(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
