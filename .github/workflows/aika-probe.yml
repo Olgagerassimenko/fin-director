@@ -1,0 +1,147 @@
+name: Айка — разведка по счетам и журналу
+
+# Разведка перед отчётом «Айка»: сколько в айко счетов, какие обороты по ним
+# за закрытый период, что отдаёт журнал событий и на какую глубину он хранится.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - name: Счета, обороты, журнал
+        run: |
+          python - <<'PY'
+          import os, sys, json, hashlib, warnings, datetime, collections, requests
+          warnings.filterwarnings("ignore"); sys.stdout.reconfigure(encoding="utf-8")
+          from iiko_export import URL, LOGIN, PASS
+          s = requests.Session()
+          tok = s.get(f"{URL}/resto/api/auth",
+                      params={"login": LOGIN, "pass": hashlib.sha1(PASS.encode()).hexdigest()},
+                      verify=False, timeout=60).text.strip().strip('"')
+          H = {"Cookie": f"key={tok}", "Content-Type": "application/json"}
+          out = ["# Айка — разведка " + datetime.date.today().isoformat(), ""]
+
+          def olap(group, agg, d_from, d_to, extra=None):
+              flt = {"DateTime.DateTyped": {"filterType": "DateRange", "periodType": "CUSTOM",
+                                            "from": d_from, "to": d_to,
+                                            "includeLow": True, "includeHigh": False}}
+              if extra: flt.update(extra)
+              body = {"reportType": "TRANSACTIONS", "buildSummary": "true",
+                      "groupByRowFields": group, "aggregateFields": agg, "filters": flt}
+              r = s.post(f"{URL}/resto/api/v2/reports/olap", headers=H, data=json.dumps(body),
+                         verify=False, timeout=900)
+              if r.status_code != 200:
+                  raise RuntimeError("OLAP %d: %s" % (r.status_code, r.text[:300]))
+              return r.json().get("data", [])
+
+          # ── 1. все счета с оборотами за 01.01–01.10.2026 ──
+          G = ["Account.Code", "Account.Name", "Account.Type", "Account.Group",
+               "Account.IsCashFlowAccount", "Account.AccountHierarchyTop",
+               "Account.AccountHierarchySecond", "Account.AccountHierarchyThird",
+               "Account.StoreOrAccount"]
+          rows = olap(G, ["Sum.Incoming", "Sum.Outgoing"], "2026-01-01", "2026-10-01")
+          out.append("## Счета с оборотами за 01.01–30.09.2026: **%d**" % len(rows))
+          out.append("")
+          out.append("| код | счёт | тип | группа | в ДДС | верх | оборот Дт | оборот Кт |")
+          out.append("|---|---|---|---|---|---|---:|---:|")
+          rows.sort(key=lambda x: -(abs(x.get("Sum.Incoming") or 0) + abs(x.get("Sum.Outgoing") or 0)))
+          for x in rows[:400]:
+              out.append("| %s | %s | %s | %s | %s | %s | %.0f | %.0f |" % (
+                  x.get("Account.Code") or "", x.get("Account.Name") or "",
+                  x.get("Account.Type") or "", x.get("Account.Group") or "",
+                  x.get("Account.IsCashFlowAccount"), x.get("Account.AccountHierarchyTop") or "",
+                  x.get("Sum.Incoming") or 0, x.get("Sum.Outgoing") or 0))
+          out.append("")
+
+          # ── 2. какие значения принимают ключевые ENUM-поля ──
+          for f in ("Account.Type", "Account.Group", "Account.IsCashFlowAccount",
+                    "Account.StoreOrAccount", "Account.AccountHierarchyTop"):
+              c = collections.Counter(str(x.get(f)) for x in rows)
+              out.append("**%s**: %s" % (f, ", ".join("`%s`×%d" % (k, v) for k, v in c.most_common(20))))
+          out.append("")
+
+          # ── 3. статьи ДДС за период ──
+          cf = olap(["CashFlowCategory.HierarchyLevel1", "CashFlowCategory.HierarchyLevel2",
+                     "CashFlowCategory", "CashFlowCategory.Type", "Account.Name"],
+                    ["Sum.Incoming", "Sum.Outgoing"], "2026-01-01", "2026-10-01")
+          out.append("## Статьи ДДС: строк **%d**" % len(cf))
+          named = [x for x in cf if (x.get("CashFlowCategory") or "").strip()]
+          out.append("из них с заполненной статьёй: **%d**" % len(named))
+          out.append("")
+          out.append("| ур.1 | ур.2 | статья | тип | счёт | Дт | Кт |")
+          out.append("|---|---|---|---|---|---:|---:|")
+          named.sort(key=lambda x: -(abs(x.get("Sum.Incoming") or 0) + abs(x.get("Sum.Outgoing") or 0)))
+          for x in named[:250]:
+              out.append("| %s | %s | %s | %s | %s | %.0f | %.0f |" % (
+                  x.get("CashFlowCategory.HierarchyLevel1") or "", x.get("CashFlowCategory.HierarchyLevel2") or "",
+                  x.get("CashFlowCategory") or "", x.get("CashFlowCategory.Type") or "",
+                  x.get("Account.Name") or "", x.get("Sum.Incoming") or 0, x.get("Sum.Outgoing") or 0))
+          out.append("")
+
+          # ── 4. типы транзакций за период ──
+          tt = olap(["TransactionType", "Account.Name"], ["Sum.Incoming", "Sum.Outgoing"],
+                    "2026-01-01", "2026-10-01")
+          c = collections.Counter()
+          for x in tt: c[str(x.get("TransactionType"))] += 1
+          out.append("## Типы транзакций: **%d**" % len(c))
+          out.append(", ".join("`%s`×%d" % (k, v) for k, v in c.most_common(60)))
+          out.append("")
+
+          # ── 5. помесячная сетка: сколько строк, если резать по месяцам ──
+          mon = {}
+          for m in range(1, 10):
+              a = datetime.date(2026, m, 1).isoformat()
+              b = (datetime.date(2026, m + 1, 1) if m < 12 else datetime.date(2027, 1, 1)).isoformat()
+              r = olap(["Account.Code", "Account.Name"], ["Sum.Incoming", "Sum.Outgoing"], a, b)
+              mon["2026-%02d" % m] = len(r)
+          out.append("## Строк по месяцам (счёт × месяц): %s" % json.dumps(mon, ensure_ascii=False))
+          out.append("")
+
+          # ── 6. входящее сальдо на 01.01.2026 ──
+          op = olap(["Account.Code", "Account.Name"], ["Sum.Incoming", "Sum.Outgoing"],
+                    "2015-01-01", "2026-01-01")
+          out.append("## Счетов с входящим сальдо на 01.01.2026: **%d**" % len(op))
+          out.append("")
+
+          # ── 7. журнал событий: на какую глубину хранит ──
+          def events(d_from, d_to):
+              r = s.get(URL + "/resto/api/events", params={"key": tok, "from": d_from, "to": d_to},
+                        verify=False, timeout=300)
+              return r.status_code, r.text
+
+          today = datetime.date.today()
+          for back in (7, 30, 90, 200, 400):
+              a = (today - datetime.timedelta(days=back)).strftime("%Y-%m-%d") + "T00:00:00"
+              b = today.strftime("%Y-%m-%d") + "T23:59:59"
+              code, txt = events(a, b)
+              n = txt.count("<event ") + txt.count('"event"')
+              out.append("- журнал за %d дней: HTTP %s, длина ответа %d, похоже событий ~%d"
+                         % (back, code, len(txt), n))
+              if back == 30:
+                  open("_отладка/айка_события_30д.xml", "w", encoding="utf-8").write(txt[:400000])
+          out.append("")
+
+          os.makedirs("_отладка", exist_ok=True)
+          open("_отладка/айка_разведка.md", "w", encoding="utf-8").write("\n".join(out) + "\n")
+          print("\n".join(out)[:4000])
+          p2 = os.environ.get("GITHUB_STEP_SUMMARY")
+          if p2: open(p2, "a", encoding="utf-8").write("\n".join(out)[:60000] + "\n")
+          PY
+      - name: Положить в репозиторий
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse-bot@users.noreply.github.com"
+          git add -A "_отладка"
+          git commit -m "айка: разведка по счетам и журналу [skip ci]" || exit 0
+          git pull --rebase || true
+          git push
