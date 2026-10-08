@@ -42,6 +42,9 @@ DIR   = os.path.join(HERE, "_айка")
 EV_F  = os.path.join(DIR, "события.json")
 SNAP_F= os.path.join(DIR, "обороты.json")
 FIX_F = os.path.join(DIR, "правки.json")
+CH_F  = os.path.join(DIR, "техкарты.json")
+CFIX_F= os.path.join(DIR, "правки_карт.json")
+NAM_F = os.path.join(DIR, "имена.json")
 OUT   = os.path.join(HERE, "aika_data.js")
 YEAR  = TODAY.year
 
@@ -271,6 +274,162 @@ def collect_tt(s, H, mons):
     return list(rows.values())
 
 
+
+# ──────────────────────────────────────────────────────────────────────────
+# 2б. ТЕХНОЛОГИЧЕСКИЕ КАРТЫ
+#     Карта — это и есть себестоимость блюда. Переписали состав или завели
+#     новую карту с датой начала внутри закрытого месяца — и себестоимость
+#     уже сданного периода пересчиталась задним числом, без единой проводки.
+#     Проводки такую правку не ловят, поэтому карты снимаем отдельно.
+# ──────────────────────────────────────────────────────────────────────────
+def product_names(s, tok, force=False):
+    """id → имя. Справочник большой, поэтому держим сутки в кэше."""
+    cache = load(NAM_F, {})
+    ts = cache.get("ts") or ""
+    fresh = ts[:10] == datetime.date.today().isoformat()
+    if cache.get("n") and fresh and not force:
+        return cache["n"]
+    names = dict(cache.get("n") or {})
+    for dele in ("false", "true"):
+        try:
+            r = s.get(URL + "/resto/api/v2/entities/products/list",
+                      params={"key": tok, "includeDeleted": dele}, verify=False, timeout=600)
+            for x in r.json():
+                i = x.get("id")
+                if i and (dele == "false" or i not in names):
+                    names[i] = (x.get("name") or "").strip()
+        except Exception as e:
+            log("справочник номенклатуры (%s): %s" % (dele, e))
+    save(NAM_F, {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "n": names})
+    return names
+
+
+def chart_amount(it):
+    for k in ("amountMiddle", "amountIn", "amount", "amountOut"):
+        v = it.get(k)
+        if v:
+            return round(float(v), 6)
+    return 0.0
+
+
+def collect_charts(s, tok, year, today):
+    """Все версии карт + действующая карта по каждому блюду на сегодня."""
+    iso = today.isoformat()
+    r = s.get(URL + "/resto/api/v2/assemblyCharts/getAll",
+              params={"key": tok, "dateFrom": "%d-01-01" % year, "dateTo": iso},
+              verify=False, timeout=900)
+    if r.status_code != 200:
+        raise RuntimeError("assemblyCharts %d: %s" % (r.status_code, r.text[:300]))
+    j = r.json()
+    charts = (j.get("assemblyCharts") if isinstance(j, dict) else j) or []
+
+    allv, eff = [], {}
+    for ch in charts:
+        d = ch.get("assembledProductId") or ch.get("productId")
+        if not d:
+            continue
+        df = (ch.get("dateFrom") or "")[:10]
+        dt = (ch.get("dateTo") or "")[:10]
+        items = {}
+        for it in (ch.get("items") or []):
+            pid = it.get("productId")
+            if not pid:
+                continue
+            items[pid] = round(items.get(pid, 0) + chart_amount(it), 6)
+        out = round(float(ch.get("outputAmount") or ch.get("assembledAmount") or 0), 6)
+        allv.append({"d": d, "df": df, "dt": dt, "n": len(items), "out": out})
+        if df and df > iso:
+            continue
+        if dt and dt < iso:
+            continue
+        cur = eff.get(d)
+        if not cur or df > cur["df"]:
+            eff[d] = {"df": df, "dt": dt, "out": out, "items": items}
+    return charts, allv, eff
+
+
+def diff_charts(prev, cur, names, closed):
+    """Что изменилось в действующих картах со времени прошлого снимка."""
+    found, stamp = [], datetime.datetime.now().isoformat(timespec="seconds")
+    ciso = closed.isoformat()
+
+    def nm(i):
+        return names.get(i) or "позиция " + str(i)[:8]
+
+    def tot(it):
+        return round(sum(it.values()), 4)
+
+    for d in set(prev) | set(cur):
+        a, b = prev.get(d), cur.get(d)
+        if a and not b:
+            found.append({"when": stamp, "kind": "gone", "dish": nm(d),
+                          "df": a.get("df", ""), "dt": a.get("dt", ""),
+                          "wasN": len(a.get("items") or {}), "nowN": 0,
+                          "closed": bool(a.get("df") and a["df"] <= ciso),
+                          "add": [], "rem": [], "chg": []})
+            continue
+        if b and not a:
+            # на первом прогоне снимок пустой — это не правка, а старт слежения
+            if prev:
+                found.append({"when": stamp, "kind": "new", "dish": nm(d),
+                              "df": b.get("df", ""), "dt": b.get("dt", ""),
+                              "wasN": 0, "nowN": len(b["items"]),
+                              "closed": bool(b.get("df") and b["df"] <= ciso),
+                              "add": [nm(k) for k in list(b["items"])[:40]], "rem": [], "chg": []})
+            continue
+        ia, ib = a.get("items") or {}, b.get("items") or {}
+        same = (ia == ib) and a.get("df") == b.get("df") and a.get("dt") == b.get("dt") \
+            and abs((a.get("out") or 0) - (b.get("out") or 0)) < 1e-9
+        if same:
+            continue
+        add = [nm(k) for k in ib if k not in ia][:40]
+        rem = [nm(k) for k in ia if k not in ib][:40]
+        chg = [[nm(k), ia[k], ib[k]] for k in ib if k in ia and abs(ia[k] - ib[k]) > 1e-9][:40]
+        found.append({"when": stamp, "kind": "changed", "dish": nm(d),
+                      "df": b.get("df", ""), "dt": b.get("dt", ""),
+                      "dfWas": a.get("df", ""), "outWas": a.get("out", 0), "out": b.get("out", 0),
+                      "wasN": len(ia), "nowN": len(ib),
+                      "wasT": tot(ia), "nowT": tot(ib),
+                      "closed": bool(b.get("df") and b["df"] <= ciso),
+                      "add": add, "rem": rem, "chg": chg})
+    found.sort(key=lambda f: (not f["closed"], f["dish"]))
+    return found
+
+
+def chart_stats(allv, eff, names, year, closed, today):
+    """Аналитика по картам: что когда начало действовать и где непорядок."""
+    ciso, tiso = closed.isoformat(), today.isoformat()
+    bym = {}
+    for v in allv:
+        if not v["df"]:
+            continue
+        bym[v["df"][:7]] = bym.get(v["df"][:7], 0) + 1
+    inClosed = [v for v in allv if v["df"] and "%d-01-01" % year <= v["df"] <= ciso]
+    future = [v for v in allv if v["df"] and v["df"] > tiso]
+    dishes = {}
+    for v in allv:
+        dishes.setdefault(v["d"], 0)
+        dishes[v["d"]] += 1
+    multi = sorted([(n, k) for k, n in dishes.items() if n > 1], reverse=True)[:40]
+    empty = [d for d, c in eff.items() if not c["items"]]
+    noout = [d for d, c in eff.items() if not c.get("out")]
+
+    def nm(i):
+        return names.get(i) or "позиция " + str(i)[:8]
+
+    return {
+        "versions": len(allv), "eff": len(eff), "dishes": len(dishes),
+        "byMonth": bym,
+        "inClosed": len(inClosed),
+        "inClosedTop": sorted([{"dish": nm(v["d"]), "df": v["df"], "n": v["n"]} for v in inClosed],
+                              key=lambda x: x["df"], reverse=True)[:200],
+        "future": [{"dish": nm(v["d"]), "df": v["df"], "n": v["n"]} for v in future][:60],
+        "multi": [{"dish": nm(k), "n": n} for n, k in multi],
+        "empty": [nm(d) for d in empty][:60],
+        "noout": [nm(d) for d in noout][:60],
+    }
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # 3. СРАВНЕНИЕ С ПРОШЛЫМ СНИМКОМ — ЛОВИМ ПРАВКИ ЗАДНИМ ЧИСЛОМ
 # ──────────────────────────────────────────────────────────────────────────
@@ -337,6 +496,28 @@ def main():
     save(FIX_F, fixes)
     save(SNAP_F, mv)
 
+    # — технологические карты —
+    chfix, chstat = [], {}
+    try:
+        names = product_names(s, tok)
+        raw, allv, eff = collect_charts(s, tok, YEAR, TODAY)
+        log("техкарты: версий %d, действующих карт %d" % (len(allv), len(eff)))
+        prevc = load(CH_F, {})
+        chfix_new = diff_charts(prevc, eff, names, closed)
+        chfix = load(CFIX_F, []) + chfix_new
+        if chfix_new:
+            log("ПРАВКИ ТЕХКАРТ: %d (из них в закрытом периоде %d)"
+                % (len(chfix_new), sum(1 for f in chfix_new if f["closed"])))
+            for f in chfix_new[:20]:
+                log("   %s · %s · с %s · строк %d→%d" % (f["kind"], f["dish"], f["df"], f["wasN"], f["nowN"]))
+        save(CFIX_F, chfix)
+        save(CH_F, eff)
+        chstat = chart_stats(allv, eff, names, YEAR, closed, TODAY)
+    except Exception as e:
+        log("техкарты не собрались:", e)
+        chfix = load(CFIX_F, [])
+        chfix_new = []
+
     accounts = []
     for k, m in meta.items():
         r = dict(m)
@@ -352,6 +533,7 @@ def main():
         "closed": closed.isoformat(), "months": mons, "closedMonths": closed_mons,
         "accounts": accounts, "cf": cf, "tt": tt,
         "fixes": fixes[-2000:], "events": ev,
+        "chartFixes": chfix[-1500:], "charts": chstat,
         "evTotal": len(store["ev"]),
         "evFrom": (store["ev"][0]["d"][:10] if store["ev"] else ""),
         "docru": DOCRU,
@@ -367,12 +549,14 @@ def main():
         hour = almaty.now().hour
     except Exception:
         hour = datetime.datetime.now().hour
-    publish = bool(new_fix) or hour in (6, 7)
+    closed_card = sum(1 for f in (chfix_new or []) if f.get('closed'))
+    publish = bool(new_fix) or bool(closed_card) or hour in (6, 7)
     gh = os.environ.get("GITHUB_OUTPUT")
     if gh:
         with open(gh, "a", encoding="utf-8") as f:
             f.write("skipci=%s\n" % ("" if publish else " [skip ci]"))
             f.write("nfix=%d\n" % len(new_fix))
+            f.write("ncard=%d\n" % len(chfix_new or []))
             f.write("nev=%d\n" % len(added))
 
 
