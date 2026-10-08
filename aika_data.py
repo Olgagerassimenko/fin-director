@@ -45,6 +45,7 @@ FIX_F = os.path.join(DIR, "правки.json")
 CH_F  = os.path.join(DIR, "техкарты.json")
 CFIX_F= os.path.join(DIR, "правки_карт.json")
 NAM_F = os.path.join(DIR, "имена.json")
+NAM_TS= os.path.join(DIR, "имена_когда.json")
 OUT   = os.path.join(HERE, "aika_data.js")
 YEAR  = TODAY.year
 
@@ -106,9 +107,11 @@ def load(path, default):
 
 
 def save(path, obj):
+    """sort_keys обязателен: иначе айко отдаёт те же данные в другом порядке,
+    файл выглядит изменившимся и каждые три часа уезжает новый коммит на 6 МБ."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
+        json.dump(obj, f, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -285,11 +288,11 @@ def collect_tt(s, H, mons):
 def product_names(s, tok, force=False):
     """id → имя. Справочник большой, поэтому держим сутки в кэше."""
     cache = load(NAM_F, {})
-    ts = cache.get("ts") or ""
+    ts = (load(NAM_TS, {}) or {}).get("ts") or ""
     fresh = ts[:10] == datetime.date.today().isoformat()
-    if cache.get("n") and fresh and not force:
-        return cache["n"]
-    names = dict(cache.get("n") or {})
+    if cache and fresh and not force:
+        return cache
+    names = dict(cache)
     for dele in ("false", "true"):
         try:
             r = s.get(URL + "/resto/api/v2/entities/products/list",
@@ -300,7 +303,8 @@ def product_names(s, tok, force=False):
                     names[i] = (x.get("name") or "").strip()
         except Exception as e:
             log("справочник номенклатуры (%s): %s" % (dele, e))
-    save(NAM_F, {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "n": names})
+    save(NAM_F, names)
+    save(NAM_TS, {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "n": len(names)})
     return names
 
 
@@ -493,6 +497,7 @@ def main():
         log("ПРАВКИ ЗАКРЫТОГО ПЕРИОДА: %d" % len(new_fix))
         for f in new_fix[:20]:
             log("   %s · %s · Дт %+.0f Кт %+.0f" % (f["m"], f["acc"], f["di"], f["do"]))
+    fixes = fixes[-12000:]
     save(FIX_F, fixes)
     save(SNAP_F, mv)
 
@@ -510,6 +515,7 @@ def main():
                 % (len(chfix_new), sum(1 for f in chfix_new if f["closed"])))
             for f in chfix_new[:20]:
                 log("   %s · %s · с %s · строк %d→%d" % (f["kind"], f["dish"], f["df"], f["wasN"], f["nowN"]))
+        chfix = chfix[-6000:]
         save(CFIX_F, chfix)
         save(CH_F, eff)
         chstat = chart_stats(allv, eff, names, YEAR, closed, TODAY)
@@ -534,6 +540,8 @@ def main():
         "accounts": accounts, "cf": cf, "tt": tt,
         "fixes": fixes[-2000:], "events": ev,
         "chartFixes": chfix[-1500:], "charts": chstat,
+        "fixFrom": (fixes[0]["when"][:10] if fixes else TODAY.isoformat()),
+        "cfixFrom": (chfix[0]["when"][:10] if chfix else TODAY.isoformat()),
         "evTotal": len(store["ev"]),
         "evFrom": (store["ev"][0]["d"][:10] if store["ev"] else ""),
         "docru": DOCRU,
