@@ -1,0 +1,651 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Айка · Фуд Завод</title>
+<!-- Фуд Завод · © 2026. Все права защищены. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- Всё, что происходит в айко: обороты по счетам закрытого периода, ДДС и
+     журнал правок. Данные собирает aika_data.py каждые три часа. -->
+<script src="aika_data.js" onerror="window.AIKA=null"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070c17; --card:#0d1526; --line:#1c2740; --line2:#26334d;
+  --ink:#eef3fb; --ink2:#c3d0e2; --mut:#7b8ca6; --dim:#546279;
+  --red:#f87171; --amb:#fbbf24; --grn:#4ade80; --vio:#22d3ee; --brn:#2fa39a;
+}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(940px 520px at 8% -10%, rgba(47,163,154,.16), transparent 60%),
+    radial-gradient(820px 460px at 96% 0%, rgba(34,211,238,.12), transparent 60%),
+    var(--bg);
+  background-attachment:fixed}
+.wrap{max-width:1420px;margin:0 auto;padding:0 20px 60px}
+.topbar{display:flex;align-items:center;gap:14px;padding:16px 0 10px;flex-wrap:wrap}
+.backbtn{background:#101a2f;border:1px solid var(--line2);color:var(--ink2);border-radius:11px;
+  padding:8px 14px;font-size:12.5px;font-weight:700;text-decoration:none;transition:.15s}
+.backbtn:hover{background:#1a2842;color:#fff}
+.topbar h1{font-size:19px;font-weight:900;letter-spacing:-.4px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;background:rgba(47,163,154,.12);border:1px solid rgba(47,163,154,.4);
+  color:#5eead4;border-radius:999px;padding:7px 15px;font-size:11.5px;font-weight:800}
+.card{background:linear-gradient(180deg,#111c31,#0e1728);border:1px solid var(--line);
+  border-radius:18px;padding:18px 20px;margin-bottom:14px}
+.card-t{font-size:14px;font-weight:800;margin-bottom:4px}
+.hint{font-size:12px;color:var(--mut);line-height:1.65;max-width:1000px}
+.hero{background:linear-gradient(135deg,#0f2a2e,#0d1526 60%);border:1px solid var(--line);
+  border-radius:20px;padding:22px 24px;margin:6px 0 14px;display:flex;gap:26px;flex-wrap:wrap;align-items:center}
+.hero .big{font-size:40px;font-weight:900;letter-spacing:-1.6px;line-height:1;
+  font-variant-numeric:tabular-nums}
+.hero .lab{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#5eead4}
+.hero .sub{font-size:12.5px;color:var(--ink2);margin-top:9px;line-height:1.7;max-width:640px}
+.hero .sub b{color:#fff}
+.hs{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+.hs>div{background:#0b1322;border:1px solid var(--line);border-radius:13px;padding:11px 15px;min-width:132px}
+.hs .v{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.hs .l{font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--dim);margin-top:5px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:11px;margin:14px 0}
+.kpi{background:linear-gradient(180deg,#111c31,#0e1728);border:1px solid var(--line);border-radius:15px;
+  padding:13px 15px;position:relative;overflow:hidden}
+.kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,#334155)}
+.kpi .l{font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+.kpi .v{font-size:23px;font-weight:900;letter-spacing:-.6px;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:11px;color:var(--mut);margin-top:5px;line-height:1.55}
+.ins{background:#0b1322;border:1px solid var(--line);border-radius:16px;padding:14px 18px;margin-bottom:14px}
+.ins>div{font-size:12.5px;color:var(--ink2);line-height:1.8;padding-left:19px;position:relative}
+.ins>div:before{content:"";position:absolute;left:0;top:9px;width:7px;height:7px;border-radius:50%;
+  background:var(--d,#2fa39a)}
+.ins b{color:#fcd34d}.ins i{font-style:normal;color:#fff;font-weight:700}
+.ins .ok{color:var(--mut)}.ins .ok b{color:#86efac}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 14px}
+.tab{background:#101a2f;border:1px solid var(--line2);color:var(--ink2);border-radius:11px;padding:9px 15px;
+  font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+.tab:hover{background:#1a2842;color:#fff}
+.tab.on{background:linear-gradient(135deg,#2fa39a,#14615f);border-color:transparent;color:#021715;
+  box-shadow:0 0 22px -8px rgba(47,163,154,.9)}
+.tab b{margin-left:6px;opacity:.75}
+.sec{display:none}.sec.on{display:block}
+.tw{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:720px}
+thead th{position:sticky;top:0;z-index:5;background:#0e1830;color:var(--ink2);font-size:10px;
+  font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:9px 10px;text-align:right;
+  border-bottom:1px solid var(--line2);white-space:nowrap;cursor:pointer;user-select:none}
+thead th.nm{text-align:left}
+thead th.on{color:#5eead4}
+tbody td{padding:7px 10px;text-align:right;border-bottom:1px solid rgba(28,39,64,.7);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody td.nm{text-align:left;white-space:normal;min-width:210px;font-weight:700}
+tbody tr:hover{background:rgba(47,163,154,.06)}
+tbody tr.op{background:rgba(47,163,154,.09)}
+tfoot td{padding:9px 10px;text-align:right;font-weight:800;background:#0d1526;border-top:1px solid var(--line2);
+  font-variant-numeric:tabular-nums}
+tfoot td.nm{text-align:left}
+tbody td.dtl{text-align:left;padding:0;white-space:normal}
+.dtl .in{padding:11px 14px 14px;position:sticky;left:0;max-width:1080px}
+.pos{color:#86efac}.neg{color:#fca5a5}.zero{color:#3d4a60}
+.q{background:#0d1626;border:1px solid var(--line2);border-radius:11px;color:var(--ink);
+  padding:9px 13px;font:inherit;font-size:12.5px;width:100%;max-width:320px}
+.q:focus{outline:0;border-color:#2fa39a}
+.btn{background:#16233c;border:1px solid var(--line2);color:var(--ink2);border-radius:10px;padding:8px 14px;
+  font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+.btn:hover{background:#1e2f4d;color:#fff}
+.btn.on{background:linear-gradient(135deg,#2fa39a,#14615f);border-color:transparent;color:#021715}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:4px}
+.wf{display:flex;gap:6px;align-items:flex-end;height:190px;margin:18px 0 6px;overflow-x:auto;padding-bottom:4px}
+.wf .c{flex:1;min-width:52px;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;
+  justify-content:flex-end}
+.wf .bar{width:100%;border-radius:6px 6px 0 0;position:relative;min-height:2px;transition:.2s}
+.wf .up{background:linear-gradient(180deg,#4ade80,#16a34a)}
+.wf .dn{background:linear-gradient(180deg,#f87171,#b91c1c)}
+.wf .v{font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wf .m{font-size:10px;color:var(--mut);font-weight:700}
+.wf .bl{font-size:9.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+.warn{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.32);border-radius:13px;
+  padding:12px 15px;font-size:12.5px;color:#fecaca;line-height:1.7;margin-top:12px}
+.warn b{color:#fff}
+.good{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.28);border-radius:13px;
+  padding:12px 15px;font-size:12.5px;color:#bbf7d0;line-height:1.7;margin-top:12px}
+.good b{color:#fff}
+.st{display:inline-block;padding:2px 8px;border-radius:6px;font-size:9.5px;font-weight:800;margin-left:7px;
+  letter-spacing:.02em;vertical-align:1px}
+.s-cash{background:rgba(47,163,154,.2);color:#5eead4}
+.s-a{background:rgba(96,165,250,.16);color:#93c5fd}
+.s-l{background:rgba(245,158,11,.16);color:#fcd34d}
+.s-e{background:rgba(167,139,250,.18);color:#c4b5fd}
+.s-ie{background:rgba(148,163,184,.14);color:#cbd5e1}
+.sub2{font-size:10px;color:var(--dim);font-weight:400;margin-top:2px;line-height:1.4}
+.empty{padding:28px 6px;color:var(--dim);font-size:12.5px;line-height:1.7}
+.foot{text-align:center;color:var(--dim);font-size:11.5px;padding:26px 0 10px;line-height:1.8}
+@media(max-width:700px){.wrap{padding:0 13px 40px}.hero{padding:16px}.hero .big{font-size:30px}}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="backbtn" href="index.html">← Пульс</a>
+    <div><h1>🧿 Айка</h1><p id="sub">—</p></div>
+    <div class="live" id="live">—</div>
+  </div>
+  <div id="app"></div>
+  <div class="foot">
+    Система «Пульс» · Фуд Завод<br>
+    <b>Ольга Герасименко</b> · финансовый директор · данные из iiko
+  </div>
+</div>
+
+<script>
+(function(){
+var D = window.AIKA || null;
+var app = document.getElementById('app');
+if (!D) { app.innerHTML = '<div class="card"><div class="hint">Данные ещё не собраны. '
+  + 'Сборщик «Айка» ходит в iiko каждые три часа.</div></div>'; return; }
+
+/* ── мелочь ─────────────────────────────────────────────────────────── */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function f0(x){ if(x==null||!isFinite(x)) return '—';
+  var n = Math.round(x), s = Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+  return (n<0?'−':'') + s; }
+function sg(x){ if(!isFinite(x)) return '—'; return (x>0?'+':'') + f0(x); }
+function fm(x){ var a=Math.abs(x);
+  if(a>=1e9) return (x/1e9).toFixed(2).replace('.',',')+' млрд';
+  if(a>=1e6) return (x/1e6).toFixed(1).replace('.',',')+' млн';
+  if(a>=1e3) return Math.round(x/1e3)+' тыс';
+  return f0(x); }
+function plw(n,a,b,c){ var m=n%100; if(m>=11&&m<=14) return c; m=n%10;
+  return m===1?a:(m>=2&&m<=4)?b:c; }
+var MN = ['','января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+var MS = ['','янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+function mlab(mk){ return MS[+mk.slice(5,7)] + '.' + mk.slice(2,4); }
+function dmy(s){ return /^\d{4}-\d{2}-\d{2}/.test(s||'') ? s.slice(0,10).split('-').reverse().join('.') : (s||'—'); }
+function dlong(s){ var p=(s||'').slice(0,10).split('-'); return p.length===3 ? (+p[2])+' '+MN[+p[1]]+' '+p[0] : s; }
+
+var M = D.closedMonths || [], ACC = D.accounts || [], CF = D.cf || [];
+var CASH = {};  ACC.forEach(function(a){ if(a.cf===1 && a.type==='CASH') CASH[a.name]=a; });
+var CASHN = Object.keys(CASH);
+function sumM(m, keys){ var i=0,o=0; (keys||M).forEach(function(k){ var v=m[k]; if(v){ i+=v[0]; o+=v[1]; } });
+  return [i,o]; }
+function accTot(a){ return sumM(a.m); }
+var INTRE = /^1\s*внутренние/i;
+
+/* ── агрегаты ───────────────────────────────────────────────────────── */
+var cashOpen = CASHN.reduce(function(s,n){ return s + (CASH[n].open||0); }, 0);
+var cashIn = 0, cashOut = 0;
+CASHN.forEach(function(n){ var t = accTot(CASH[n]); cashIn += t[0]; cashOut += t[1]; });
+var cashEnd = cashOpen + cashIn - cashOut;
+
+var cfCash = CF.filter(function(r){ return CASH[r.acc]; });
+function cfAgg(rows, keys){
+  var g = {};
+  rows.forEach(function(r){
+    var k = r.cat || '— без статьи —';
+    var a = g[k] || (g[k] = {cat:k, ct:r.ct, l1:r.l1, i:0, o:0, m:{}, acc:{}});
+    (keys||M).forEach(function(mk){ var v = r.m[mk]; if(!v) return;
+      a.i += v[0]; a.o += v[1];
+      var p = a.m[mk] || [0,0]; a.m[mk] = [p[0]+v[0], p[1]+v[1]];
+      var q = a.acc[r.acc] || [0,0]; a.acc[r.acc] = [q[0]+v[0], q[1]+v[1]]; });
+  });
+  return Object.keys(g).map(function(k){ return g[k]; });
+}
+var CFA = cfAgg(cfCash).sort(function(a,b){ return (b.i+b.o)-(a.i+a.o); });
+var intRow = CFA.filter(function(r){ return INTRE.test(r.cat); });
+var intNet = intRow.reduce(function(s,r){ return s + r.i - r.o; }, 0);
+var opRows = CFA.filter(function(r){ return !INTRE.test(r.cat); });
+var opIn = opRows.reduce(function(s,r){ return s+r.i; }, 0);
+var opOut = opRows.reduce(function(s,r){ return s+r.o; }, 0);
+
+/* помесячный остаток денег */
+var MB = [], bal = cashOpen;
+M.forEach(function(mk){
+  var i=0,o=0,ii=0,io=0;
+  cfCash.forEach(function(r){ var v=r.m[mk]; if(!v) return;
+    if (INTRE.test(r.cat)) { ii+=v[0]; io+=v[1]; } else { i+=v[0]; o+=v[1]; } });
+  bal += (i+ii)-(o+io);
+  MB.push({m:mk, i:i, o:o, net:i-o, intn:ii-io, bal:bal});
+});
+
+/* сходимость Дт/Кт по месяцам */
+var BAL = M.map(function(mk){
+  var i=0,o=0; ACC.forEach(function(a){ var v=a.m[mk]; if(v){ i+=v[0]; o+=v[1]; } });
+  return {m:mk, i:i, o:o, d:i-o};
+});
+var balOk = BAL.every(function(x){ return Math.abs(x.d) < 1; });
+var grossIn = BAL.reduce(function(s,x){ return s+x.i; }, 0);
+
+/* неденежные счета, на которых стоит «внутренний оборот» */
+var intAlien = CF.filter(function(r){ return INTRE.test(r.cat) && !CASH[r.acc]; })
+  .map(function(r){ var t = sumM(r.m); return {acc:r.acc, i:t[0], o:t[1], net:t[0]-t[1]}; })
+  .filter(function(x){ return Math.abs(x.net) > 0.5; })
+  .sort(function(a,b){ return Math.abs(b.net)-Math.abs(a.net); });
+
+/* денежные счета с минусом на конец */
+var negCash = CASHN.map(function(n){ var a=CASH[n], t=accTot(a);
+  return {n:n, end:a.open+t[0]-t[1], i:t[0], o:t[1], open:a.open}; })
+  .filter(function(x){ return x.end < -0.5; });
+
+/* денежные обороты без статьи ДДС */
+var noCat = cfCash.filter(function(r){ return !(r.cat||'').trim(); })
+  .map(function(r){ var t=sumM(r.m); return {acc:r.acc, i:t[0], o:t[1]}; })
+  .filter(function(x){ return x.i || x.o; });
+
+/* капитал двигали внутри года */
+var eq = ACC.filter(function(a){ return a.grp==='EQUITY'; })
+  .map(function(a){ var t=accTot(a); return {n:a.name, i:t[0], o:t[1]}; })
+  .filter(function(x){ return x.i || x.o; });
+
+/* недостачи против излишков — пересортица */
+function byName(re){ return ACC.filter(function(a){ return re.test(a.name); }); }
+var nedo = byName(/недостач/i), izl = byName(/излишк/i);
+var nedoS = nedo.reduce(function(s,a){ return s + accTot(a)[0]; }, 0);
+var izlS  = izl.reduce(function(s,a){ return s + accTot(a)[1]; }, 0);
+
+var FIX = D.fixes || [], EV = D.events || [];
+var minBal = MB.reduce(function(a,b){ return b.bal < a.bal ? b : a; }, MB[0] || {bal:0, m:''});
+
+/* ── шапка ──────────────────────────────────────────────────────────── */
+document.getElementById('sub').textContent =
+  'Закрытый период: 01.01.' + D.year + ' — ' + dmy(D.closed)
+  + ' · ' + ACC.length + ' ' + plw(ACC.length,'счёт','счёта','счетов')
+  + ' · обновлено ' + D.updated;
+document.getElementById('live').textContent = FIX.length
+  ? '⚠ правок задним числом: ' + FIX.length
+  : '✓ закрытый период не трогали';
+
+function hero(){
+  return '<div class="hero"><div>'
+    + '<div class="lab">Деньги на конец закрытого периода</div>'
+    + '<div class="big">' + f0(cashEnd) + ' ₸</div>'
+    + '<div class="sub">На 1 января на счетах и в кассах лежало <b>' + f0(cashOpen) + ' ₸</b>. '
+    + 'За ' + M.length + ' ' + plw(M.length,'месяц','месяца','месяцев') + ' пришло <b>' + fm(opIn) + ' ₸</b>, '
+    + 'ушло <b>' + fm(opOut) + ' ₸</b> — деньги '
+    + (cashEnd >= cashOpen ? 'выросли' : 'уменьшились') + ' на <b>' + f0(Math.abs(cashEnd-cashOpen)) + ' ₸</b>. '
+    + 'Самый низкий остаток был в конце ' + MN[+String(minBal.m||'2026-01').slice(5,7)] + ' — ' + f0(minBal.bal) + ' ₸.</div></div>'
+    + '<div class="hs">'
+    + '<div><div class="v">' + fm(opIn) + '</div><div class="l">пришло, ₸</div></div>'
+    + '<div><div class="v">' + fm(opOut) + '</div><div class="l">ушло, ₸</div></div>'
+    + '<div><div class="v ' + (cashEnd-cashOpen>=0?'pos':'neg') + '">' + sg(cashEnd-cashOpen) + '</div>'
+    + '<div class="l">изменение, ₸</div></div></div></div>';
+}
+
+function kpis(){
+  return '<div class="kpis">'
+    + '<div class="kpi" style="--c:#2fa39a"><div class="l">Счетов в обороте</div><div class="v">' + ACC.length + '</div>'
+    + '<div class="s">' + CASHN.length + ' денежных · ' + (ACC.length-CASHN.length) + ' прочих</div></div>'
+    + '<div class="kpi" style="--c:#22d3ee"><div class="l">Обороты за период</div><div class="v">' + fm(grossIn) + ' ₸</div>'
+    + '<div class="s">' + (balOk ? 'дебет равен кредиту во всех ' + M.length + ' месяцах' : 'дебет и кредит расходятся — смотрите «Контроль»') + '</div></div>'
+    + '<div class="kpi" style="--c:' + (FIX.length?'#f87171':'#4ade80') + '"><div class="l">Правки задним числом</div><div class="v">' + FIX.length + '</div>'
+    + '<div class="s">обороты закрытых месяцев сверяются каждые 3 часа</div></div>'
+    + '<div class="kpi" style="--c:#a78bfa"><div class="l">Журнал айко</div><div class="v">' + f0(D.evTotal||0) + '</div>'
+    + '<div class="s">действий ' + (D.evFrom ? 'с ' + dmy(D.evFrom) : '') + ' — айко хранит сутки, мы копим</div></div>'
+    + '</div>';
+}
+
+function insights(){
+  var L = [];
+  if (Math.abs(intNet) > 0.5)
+    L.push(['#f87171','Внутренние переводы не схлопываются: по денежным счетам они дают <b>' + sg(intNet)
+      + ' ₸</b>, хотя перевод со своего счёта на свой обязан давать ноль. Разницу забрали '
+      + intAlien.length + ' ' + plw(intAlien.length,'неденежный счёт','неденежных счёта','неденежных счетов')
+      + ' — там статья ДДС «внутренние обороты» стоит у платежа, который внутренним не является.']);
+  if (negCash.length)
+    L.push(['#fbbf24','Минус на денежном счёте: ' + negCash.map(function(x){
+      return '<i>' + esc(x.n) + '</i> ' + f0(x.end) + ' ₸'; }).join(', ')
+      + '. Наличных меньше нуля не бывает — это непроведённый приход или лишнее списание.']);
+  if (nedoS > 0 && izlS > 0 && Math.min(nedoS,izlS)/Math.max(nedoS,izlS) > 0.6)
+    L.push(['#fbbf24','Недостачи <b>' + fm(nedoS) + ' ₸</b> и излишки <b>' + fm(izlS) + ' ₸</b> почти равны: '
+      + 'так выглядит пересортица, а не потери. Пока они гасят друг друга, себестоимость считается по кривым остаткам.']);
+  if (eq.length)
+    L.push(['#a78bfa','Прибыль прошлых периодов двигали внутри ' + D.year + ' года: '
+      + eq.map(function(x){ return '<i>' + esc(x.n) + '</i> Дт ' + fm(x.i) + ' / Кт ' + fm(x.o); }).join('; ')
+      + '. Это корректировки капитала задним числом — они должны быть объяснимы.']);
+  if (noCat.length)
+    L.push(['#fbbf24', noCat.length + ' ' + plw(noCat.length,'денежный оборот','денежных оборота','денежных оборотов')
+      + ' прошли без статьи ДДС — в отчёт о движении денег они не попадут.']);
+  if (balOk)
+    L.push(['#4ade80','<span class="ok">Проверка сошлась: во всех ' + M.length + ' закрытых месяцах дебет равен кредиту '
+      + 'до тенге (<b>' + fm(grossIn) + ' ₸</b>), а движение денег точно объясняет изменение остатка.</span>']);
+  if (!FIX.length)
+    L.push(['#4ade80','<span class="ok">С ' + dmy(D.evFrom || D.today) + ' обороты закрытых месяцев <b>не менялись</b>. '
+      + 'Сверка идёт каждые три часа: если кто-то проведёт документ в январь, это будет видно здесь.</span>']);
+  return '<div class="ins">' + L.map(function(x){
+    return '<div style="--d:' + x[0] + '">' + x[1] + '</div>'; }).join('') + '</div>';
+}
+
+/* ── вкладки ────────────────────────────────────────────────────────── */
+var TAB = 'dds', Q = '', OPEN = null, SORT = 'turn', DIR = -1, SCOPE = 'op', GRP = '';
+
+function tabsHtml(){
+  var t = [['dds','💸 Движение денег', CFA.length],
+           ['cash','💰 Деньги по счетам', CASHN.length],
+           ['acc','📒 Все счета', ACC.length],
+           ['log','🧾 Журнал айко', D.evTotal||0],
+           ['fix','🚨 Правки закрытого периода', FIX.length]];
+  return '<div class="tabs" id="tabs">' + t.map(function(x){
+    return '<button class="tab' + (TAB===x[0]?' on':'') + '" data-t="' + x[0] + '">' + x[1]
+      + '<b>' + f0(x[2]) + '</b></button>'; }).join('') + '</div>';
+}
+
+/* 1 — ДДС */
+function secDds(){
+  var rows = (SCOPE==='all' ? CFA : opRows).slice();
+  if (Q) rows = rows.filter(function(r){ return r.cat.toLowerCase().indexOf(Q)>=0; });
+  rows.sort(function(a,b){ return (b.i+b.o)-(a.i+a.o); });
+  var ti = rows.reduce(function(s,r){ return s+r.i; },0);
+  var to = rows.reduce(function(s,r){ return s+r.o; },0);
+
+  var mx = Math.max.apply(null, MB.map(function(x){ return Math.abs(x.net + x.intn); }).concat([1]));
+  var wf = '<div class="wf">' + MB.map(function(x){
+    var v = x.net + x.intn, h = Math.max(3, Math.round(Math.abs(v)/mx*120));
+    return '<div class="c"><div class="v ' + (v>=0?'pos':'neg') + '">' + sg(v) + '</div>'
+      + '<div class="bar ' + (v>=0?'up':'dn') + '" style="height:' + h + 'px"></div>'
+      + '<div class="m">' + mlab(x.m) + '</div><div class="bl">' + f0(x.bal) + '</div></div>'; }).join('')
+    + '</div><div class="hint">Столбец — сколько денег прибавилось или убыло за месяц, под ним — остаток на конец месяца.</div>';
+
+  var byType = {};
+  rows.forEach(function(r){ var k = r.ct || '—'; var a = byType[k] || (byType[k]=[0,0]);
+    a[0]+=r.i; a[1]+=r.o; });
+  var TRU = {OPERATIONAL:'Операционная деятельность', FINANCE:'Финансовая деятельность',
+             INVESTMENT:'Инвестиционная деятельность', '—':'Без типа'};
+  var tcards = '<div class="kpis">' + Object.keys(byType).sort(function(a,b){
+      return (byType[b][0]+byType[b][1])-(byType[a][0]+byType[a][1]); }).map(function(k){
+    var v = byType[k], n = v[0]-v[1];
+    return '<div class="kpi" style="--c:' + (n>=0?'#4ade80':'#f87171') + '"><div class="l">' + (TRU[k]||k) + '</div>'
+      + '<div class="v ' + (n>=0?'pos':'neg') + '">' + sg(n) + '</div>'
+      + '<div class="s">пришло ' + fm(v[0]) + ' · ушло ' + fm(v[1]) + '</div></div>'; }).join('') + '</div>';
+
+  var head = '<tr><th class="nm">Статья</th><th>Пришло</th><th>Ушло</th><th>Итого</th>'
+    + M.map(function(mk){ return '<th>' + mlab(mk) + '</th>'; }).join('') + '</tr>';
+  var body = rows.map(function(r){
+    var op = OPEN === 'c:'+r.cat, n = r.i-r.o;
+    var tr = '<tr class="dr' + (op?' op':'') + '" data-c="' + esc(r.cat) + '" style="cursor:pointer">'
+      + '<td class="nm">' + (op?'▾ ':'▸ ') + esc(r.cat)
+      + (r.ct && r.ct!=='OPERATIONAL' ? '<span class="st s-e">' + (TRU[r.ct]||r.ct).split(' ')[0] + '</span>' : '')
+      + '</td>'
+      + '<td class="' + (r.i?'pos':'zero') + '">' + (r.i?f0(r.i):'—') + '</td>'
+      + '<td class="' + (r.o?'neg':'zero') + '">' + (r.o?f0(r.o):'—') + '</td>'
+      + '<td style="font-weight:800" class="' + (n>=0?'pos':'neg') + '">' + sg(n) + '</td>'
+      + M.map(function(mk){ var v = r.m[mk]; if(!v) return '<td class="zero">—</td>';
+          var d = v[0]-v[1];
+          return '<td class="' + (d>=0?'pos':'neg') + '">' + sg(d) + '</td>'; }).join('') + '</tr>';
+    if (op) {
+      var an = Object.keys(r.acc).sort(function(a,b){
+        return Math.abs(r.acc[b][0]-r.acc[b][1]) - Math.abs(r.acc[a][0]-r.acc[a][1]); });
+      tr += '<tr><td class="dtl" colspan="' + (4+M.length) + '" style="background:#0a1221">'
+        + '<div class="in"><div style="font-size:10px;font-weight:800;letter-spacing:.12em;'
+        + 'text-transform:uppercase;color:var(--dim);margin-bottom:7px">С каких счетов шли деньги</div>'
+        + an.map(function(n2){ var v = r.acc[n2];
+            return '<div style="font-size:12px;color:var(--ink2);line-height:1.9">· <b>' + esc(n2) + '</b> — '
+              + 'пришло ' + f0(v[0]) + ', ушло ' + f0(v[1]) + '</div>'; }).join('')
+        + '</div></td></tr>';
+    }
+    return tr;
+  }).join('');
+
+  var chk = '';
+  if (Math.abs(intNet) > 0.5) {
+    chk += '<div class="warn"><b>Внутренние переводы дают ' + sg(intNet) + ' ₸ вместо нуля.</b><br>'
+      + 'Перевод со своего счёта на свой обязан схлопнуться. Не схлопнулся, потому что статью '
+      + '«внутренние обороты» поставили у операций с неденежными счетами:<br>'
+      + intAlien.map(function(x){ return '· ' + esc(x.acc) + ' — ' + sg(-x.net) + ' ₸'; }).join('<br>')
+      + '<br>По сути это платежи поставщикам и банку, спрятанные во внутренних оборотах — в отчёте о '
+      + 'движении денег они не видны ни в одной настоящей статье.</div>';
+  }
+  var ok = cashOpen + MB.reduce(function(s,x){ return s + x.net + x.intn; }, 0);
+  chk += '<div class="' + (Math.abs(ok-cashEnd)<1 ? 'good' : 'warn') + '">'
+    + (Math.abs(ok-cashEnd)<1 ? '<b>Сходится.</b> ' : '<b>Не сходится.</b> ')
+    + 'Остаток на 1 января ' + f0(cashOpen) + ' ₸ ' + (MB.reduce(function(s,x){ return s+x.net+x.intn; },0)>=0?'плюс':'минус')
+    + ' движения за период ' + f0(Math.abs(MB.reduce(function(s,x){ return s+x.net+x.intn; },0)))
+    + ' ₸ = ' + f0(ok) + ' ₸ на ' + dmy(D.closed) + '.</div>';
+
+  return '<div class="card"><div class="card-t">💸 Куда ушли деньги за закрытый период</div>'
+    + '<div class="hint">Движение считается по 22 денежным счетам — кассам и банковским счетам завода. '
+    + 'Статьи берутся из айко как есть; «внутренние обороты» — это переводы между своими счетами, '
+    + 'в чистом ДДС их быть не должно.</div>'
+    + wf + tcards + chk + '</div>'
+    + '<div class="card"><div class="row">'
+    + '<button class="btn' + (SCOPE==='op'?' on':'') + '" data-sc="op">Без внутренних переводов</button>'
+    + '<button class="btn' + (SCOPE==='all'?' on':'') + '" data-sc="all">Со всеми оборотами</button>'
+    + '<input class="q" id="q" placeholder="🔍 статья…" value="' + esc(Q) + '">'
+    + '<button class="btn" id="csv">⤓ Выгрузить</button>'
+    + '<div class="hint" style="margin-left:4px">строка раскрывается — видно, с каких счетов шли деньги</div></div>'
+    + '<div class="tw"><table><thead>' + head + '</thead><tbody>' + body
+    + '</tbody><tfoot><tr><td class="nm">Итого — ' + rows.length + ' '
+    + plw(rows.length,'статья','статьи','статей') + '</td><td class="pos">' + f0(ti) + '</td>'
+    + '<td class="neg">' + f0(to) + '</td><td class="' + (ti-to>=0?'pos':'neg') + '">' + sg(ti-to) + '</td>'
+    + M.map(function(mk){ var d=0; rows.forEach(function(r){ var v=r.m[mk]; if(v) d+=v[0]-v[1]; });
+        return '<td class="' + (d>=0?'pos':'neg') + '">' + sg(d) + '</td>'; }).join('')
+    + '</tr></tfoot></table></div></div>';
+}
+
+/* 2 — деньги по счетам */
+function secCash(){
+  var rows = CASHN.map(function(n){ var a = CASH[n], t = accTot(a);
+    return {n:n, open:a.open, i:t[0], o:t[1], end:a.open+t[0]-t[1], m:a.m}; })
+    .sort(function(a,b){ return (b.i+b.o)-(a.i+a.o); });
+  var ti = rows.reduce(function(s,r){ return s+r.i; },0), to = rows.reduce(function(s,r){ return s+r.o; },0);
+  var head = '<tr><th class="nm">Счёт</th><th>На 01.01</th><th>Пришло</th><th>Ушло</th><th>На ' + dmy(D.closed) + '</th>'
+    + M.map(function(mk){ return '<th>' + mlab(mk) + '</th>'; }).join('') + '</tr>';
+  var run = {};
+  var body = rows.map(function(r){
+    var b = r.open;
+    return '<tr><td class="nm">' + esc(r.n) + '</td>'
+      + '<td>' + f0(r.open) + '</td><td class="pos">' + (r.i?f0(r.i):'—') + '</td>'
+      + '<td class="neg">' + (r.o?f0(r.o):'—') + '</td>'
+      + '<td style="font-weight:800" class="' + (r.end<-0.5?'neg':(r.end>0.5?'':'zero')) + '">' + f0(r.end) + '</td>'
+      + M.map(function(mk){ var v = r.m[mk] || [0,0]; b += v[0]-v[1];
+          return '<td class="' + (b<-0.5?'neg':'') + '">' + (v[0]||v[1] ? f0(b) : '<span class="zero">' + f0(b) + '</span>') + '</td>'; }).join('')
+      + '</tr>'; }).join('');
+  return '<div class="card"><div class="card-t">💰 Остатки по кассам и счетам</div>'
+    + '<div class="hint">В колонках месяцев — остаток на конец месяца, накопленный от входящего сальдо. '
+    + 'Минус на денежном счёте всегда означает ошибку учёта, а не отсутствие денег.</div>'
+    + (negCash.length ? '<div class="warn"><b>Минусовые остатки:</b> ' + negCash.map(function(x){
+        return esc(x.n) + ' — ' + f0(x.end) + ' ₸'; }).join('; ') + '</div>' : '')
+    + '<div class="tw"><table><thead>' + head + '</thead><tbody>' + body
+    + '</tbody><tfoot><tr><td class="nm">Итого</td><td>' + f0(cashOpen) + '</td>'
+    + '<td class="pos">' + f0(ti) + '</td><td class="neg">' + f0(to) + '</td>'
+    + '<td style="font-weight:800">' + f0(cashEnd) + '</td>'
+    + MB.map(function(x){ return '<td>' + f0(x.bal) + '</td>'; }).join('')
+    + '</tr></tfoot></table></div></div>';
+}
+
+/* 3 — все счета */
+var GRU = {ASSETS:'Активы', LIABILITIES:'Обязательства', EQUITY:'Капитал', INCOME_EXPENSES:'Доходы и расходы'};
+var GCLS = {ASSETS:'s-a', LIABILITIES:'s-l', EQUITY:'s-e', INCOME_EXPENSES:'s-ie'};
+function secAcc(){
+  var rows = ACC.map(function(a){ var t = accTot(a);
+    return {a:a, i:t[0], o:t[1], turn:t[0]+t[1], end:a.open+t[0]-t[1]}; });
+  if (GRP) rows = rows.filter(function(r){ return r.a.grp === GRP; });
+  if (Q) rows = rows.filter(function(r){
+    return (r.a.name+' '+r.a.code+' '+r.a.top).toLowerCase().indexOf(Q) >= 0; });
+  rows.sort(function(x,y){
+    var k = SORT, v = k==='name' ? -x.a.name.localeCompare(y.a.name,'ru')
+      : k==='open' ? x.a.open-y.a.open : k==='in' ? x.i-y.i : k==='out' ? x.o-y.o
+      : k==='end' ? x.end-y.end : x.turn-y.turn;
+    return DIR*v; });
+  var ti = rows.reduce(function(s,r){ return s+r.i; },0), to = rows.reduce(function(s,r){ return s+r.o; },0);
+  var cols = [['name','Счёт'],['open','На 01.01'],['in','Дебет'],['out','Кредит'],['end','На ' + dmy(D.closed)],['turn','Оборот']];
+  var gbtn = [['','Все',ACC.length]].concat(Object.keys(GRU).map(function(g){
+    return [g, GRU[g], ACC.filter(function(a){ return a.grp===g; }).length]; }));
+  var body = rows.map(function(r){
+    var a = r.a, op = OPEN === 'a:'+a.code+'|'+a.name;
+    var tr = '<tr class="ar' + (op?' op':'') + '" data-a="' + esc(a.code+'|'+a.name) + '" style="cursor:pointer">'
+      + '<td class="nm">' + (op?'▾ ':'▸ ') + (a.code ? '<span style="color:var(--dim);font-weight:600">' + esc(a.code) + '</span> ' : '')
+      + esc(a.name)
+      + (a.cf===1 ? '<span class="st s-cash">ДДС</span>' : '')
+      + '<span class="st ' + (GCLS[a.grp]||'s-ie') + '">' + (GRU[a.grp]||a.grp) + '</span>'
+      + (a.top && a.top !== a.name ? '<div class="sub2">' + esc(a.top) + (a.sec?' › '+esc(a.sec):'') + '</div>' : '')
+      + '</td>'
+      + '<td class="' + (a.open<0?'neg':'') + '">' + (a.open?f0(a.open):'<span class="zero">—</span>') + '</td>'
+      + '<td>' + (r.i?f0(r.i):'<span class="zero">—</span>') + '</td>'
+      + '<td>' + (r.o?f0(r.o):'<span class="zero">—</span>') + '</td>'
+      + '<td style="font-weight:800" class="' + (r.end<0?'neg':'') + '">' + f0(r.end) + '</td>'
+      + '<td>' + f0(r.turn) + '</td></tr>';
+    if (op) {
+      var b = a.open;
+      tr += '<tr><td class="dtl" colspan="6" style="background:#0a1221"><div class="in">'
+        + '<div class="tw" style="margin:0"><table style="min-width:620px"><thead><tr><th class="nm">Месяц</th>'
+        + '<th>Дебет</th><th>Кредит</th><th>Оборот нетто</th><th>Сальдо на конец</th></tr></thead><tbody>'
+        + M.map(function(mk){ var v = a.m[mk] || [0,0]; b += v[0]-v[1];
+            return '<tr><td class="nm">' + mlab(mk) + '</td><td>' + (v[0]?f0(v[0]):'<span class="zero">—</span>')
+              + '</td><td>' + (v[1]?f0(v[1]):'<span class="zero">—</span>') + '</td>'
+              + '<td class="' + (v[0]-v[1]>=0?'pos':'neg') + '">' + sg(v[0]-v[1]) + '</td>'
+              + '<td style="font-weight:700">' + f0(b) + '</td></tr>'; }).join('')
+        + '</tbody></table></div></div></td></tr>';
+    }
+    return tr; }).join('');
+  return '<div class="card"><div class="card-t">📒 Все счета закрытого периода</div>'
+    + '<div class="hint">Обороты за 01.01.' + D.year + ' — ' + dmy(D.closed)
+    + '. «На 01.01» — входящее сальдо, посчитанное по всей истории до начала года. '
+    + 'Строка раскрывается помесячно.</div>'
+    + '<div class="row" style="margin-top:13px">'
+    + gbtn.map(function(g){ return '<button class="btn' + (GRP===g[0]?' on':'') + '" data-g="' + g[0] + '">'
+        + g[1] + ' · ' + g[2] + '</button>'; }).join('')
+    + '<input class="q" id="q" placeholder="🔍 счёт или код…" value="' + esc(Q) + '">'
+    + '<button class="btn" id="csv">⤓ Выгрузить</button></div>'
+    + '<div class="tw"><table><thead><tr>' + cols.map(function(c){
+        return '<th' + (c[0]==='name'?' class="nm"':'') + (SORT===c[0]?' class="on"':'')
+          + ' data-k="' + c[0] + '">' + c[1] + '</th>'; }).join('') + '</tr></thead><tbody>' + body
+    + '</tbody><tfoot><tr><td class="nm">Итого — ' + rows.length + '</td><td></td>'
+    + '<td>' + f0(ti) + '</td><td>' + f0(to) + '</td><td colspan="2"></td></tr></tfoot></table></div>'
+    + (balOk ? '<div class="good"><b>Дебет сходится с кредитом</b> в каждом из ' + M.length
+        + ' закрытых месяцев — до тенге. Это значит, что выгрузка полная: ни одна проводка не потерялась.</div>'
+        : '<div class="warn"><b>Дебет не равен кредиту.</b> ' + BAL.filter(function(x){ return Math.abs(x.d)>=1; })
+          .map(function(x){ return mlab(x.m) + ' — ' + sg(x.d); }).join(', ') + '</div>')
+    + '</div>';
+}
+
+/* 4 — журнал */
+var EVRU = {documentCreated:'Документ создан', documentModified:'Документ изменён',
+  documentDeleted:'Документ удалён', documentProcessed:'Документ проведён',
+  documentUnprocessed:'Документ распроведён', accountingTransactionUpdated:'Проводка изменена',
+  accountingTransactionCreated:'Проводка создана', accountingTransactionDeleted:'Проводка удалена',
+  productCreated:'Позиция заведена', productUpdated:'Позиция изменена', productDeleted:'Позиция удалена',
+  backLogin:'Вход в бэк-офис', backLogout:'Выход', pinAuthorization:'Авторизация по пину',
+  priceUpdated:'Цена изменена', employeeUpdated:'Сотрудник изменён'};
+var EVU = '', EVT = '';
+function secLog(){
+  var rows = EV.slice().reverse();
+  if (EVU) rows = rows.filter(function(e){ return e.u === EVU; });
+  if (EVT) rows = rows.filter(function(e){ return e.t === EVT; });
+  if (Q) rows = rows.filter(function(e){
+    return ((e.u||'')+' '+(e.dn||'')+' '+(D.docru[e.dt]||e.dt||'')).toLowerCase().indexOf(Q)>=0; });
+  var users = {}, types = {};
+  EV.forEach(function(e){ users[e.u||'—'] = (users[e.u||'—']||0)+1; types[e.t] = (types[e.t]||0)+1; });
+  var ub = Object.keys(users).sort(function(a,b){ return users[b]-users[a]; }).slice(0,10);
+  var tb = Object.keys(types).sort(function(a,b){ return types[b]-types[a]; });
+  var body = rows.slice(0,600).map(function(e){
+    return '<tr><td class="nm" style="font-weight:600">' + esc(e.d.replace('T',' ')) + '</td>'
+      + '<td class="nm">' + esc(EVRU[e.t]||e.t) + '</td>'
+      + '<td class="nm">' + esc(D.docru[e.dt] || e.dt || '—') + '</td>'
+      + '<td>' + esc(e.dn||'—') + '</td>'
+      + '<td class="nm">' + esc(e.u||'—') + '</td></tr>'; }).join('');
+  return '<div class="card"><div class="card-t">🧾 Кто что делал в айко</div>'
+    + '<div class="hint">Айко отдаёт журнал только за текущие сутки и назавтра обнуляет его. '
+    + 'Поэтому «Айка» ходит за ним каждые три часа и складывает к себе: '
+    + '<b>' + f0(D.evTotal||0) + '</b> ' + plw(D.evTotal||0,'действие','действия','действий')
+    + (D.evFrom ? ' с ' + dlong(D.evFrom) : '') + '. Репликацию и выгрузки не копим — только то, '
+    + 'что меняет учёт.</div>'
+    + '<div class="row" style="margin-top:13px">'
+    + '<button class="btn' + (EVU===''?' on':'') + '" data-u="">Все люди</button>'
+    + ub.map(function(u){ return '<button class="btn' + (EVU===u?' on':'') + '" data-u="' + esc(u) + '">'
+        + esc(u) + ' · ' + users[u] + '</button>'; }).join('') + '</div>'
+    + '<div class="row">'
+    + '<button class="btn' + (EVT===''?' on':'') + '" data-e="">Все действия</button>'
+    + tb.map(function(t){ return '<button class="btn' + (EVT===t?' on':'') + '" data-e="' + esc(t) + '">'
+        + esc(EVRU[t]||t) + ' · ' + types[t] + '</button>'; }).join('')
+    + '<input class="q" id="q" placeholder="🔍 человек, номер, документ…" value="' + esc(Q) + '"></div>'
+    + (rows.length ? '<div class="tw"><table><thead><tr><th class="nm">Когда</th><th class="nm">Что</th>'
+      + '<th class="nm">Документ</th><th>Номер</th><th class="nm">Кто</th></tr></thead><tbody>' + body
+      + '</tbody></table></div>' + (rows.length>600 ? '<div class="hint" style="margin-top:8px">Показаны последние 600 из '
+      + f0(rows.length) + '.</div>' : '')
+      : '<div class="empty">Пока ничего не попало в этот отбор.</div>')
+    + '</div>';
+}
+
+/* 5 — правки */
+function secFix(){
+  if (!FIX.length)
+    return '<div class="card"><div class="card-t">🚨 Правки закрытого периода</div>'
+      + '<div class="hint">Каждые три часа «Айка» снимает обороты по всем счетам за каждый закрытый месяц и '
+      + 'сравнивает с прошлым снимком. Если кто-то проведёт, изменит или удалит документ задним числом — '
+      + 'оборот месяца сдвинется, и это попадёт сюда: какой счёт, какой месяц, на сколько и когда замечено. '
+      + 'Запись остаётся навсегда, даже если потом вернут как было.</div>'
+      + '<div class="good"><b>Пока чисто.</b> С ' + dmy(D.evFrom || D.today) + ' обороты закрытых месяцев '
+      + '(' + mlab(M[0]) + ' — ' + mlab(M[M.length-1]) + ') ни разу не менялись.</div></div>';
+  var byM = {};
+  FIX.forEach(function(f){ byM[f.m] = (byM[f.m]||0)+1; });
+  return '<div class="card"><div class="card-t">🚨 Правки закрытого периода — ' + FIX.length + '</div>'
+    + '<div class="hint">Обороты закрытых месяцев изменились после закрытия. Каждая строка — факт: '
+    + 'счёт, месяц, было и стало.</div>'
+    + '<div class="tw"><table><thead><tr><th class="nm">Замечено</th><th class="nm">Счёт</th><th>Месяц</th>'
+    + '<th>Дебет был</th><th>Дебет стал</th><th>Δ Дебет</th><th>Δ Кредит</th></tr></thead><tbody>'
+    + FIX.slice().reverse().map(function(f){
+        return '<tr><td class="nm">' + esc(f.when.replace('T',' ').slice(0,16)) + '</td>'
+          + '<td class="nm">' + esc(f.acc) + '</td><td>' + mlab(f.m) + '</td>'
+          + '<td>' + f0(f.was[0]) + '</td><td>' + f0(f.now[0]) + '</td>'
+          + '<td class="' + (f.di>=0?'pos':'neg') + '">' + sg(f.di) + '</td>'
+          + '<td class="' + (f.do>=0?'pos':'neg') + '">' + sg(f.do) + '</td></tr>'; }).join('')
+    + '</tbody></table></div></div>';
+}
+
+/* ── CSV ────────────────────────────────────────────────────────────── */
+function csv(rows, name){
+  var txt = '﻿' + rows.map(function(r){ return r.map(function(c){
+    return /[;"\n]/.test(String(c)) ? '"' + String(c).replace(/"/g,'""') + '"' : c; }).join(';'); }).join('\r\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt], {type:'text/csv;charset=utf-8'}));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+function dlCsv(){
+  if (TAB === 'dds') {
+    var rows = [['Статья','Тип','Пришло','Ушло','Итого'].concat(M.map(mlab))];
+    (SCOPE==='all'?CFA:opRows).forEach(function(r){
+      rows.push([r.cat, r.ct, Math.round(r.i), Math.round(r.o), Math.round(r.i-r.o)]
+        .concat(M.map(function(mk){ var v=r.m[mk]; return v?Math.round(v[0]-v[1]):0; }))); });
+    csv(rows, 'айка_ддс_' + D.year + '.csv');
+  } else {
+    var rows2 = [['Код','Счёт','Группа','Тип','В ДДС','На 01.01','Дебет','Кредит','На ' + dmy(D.closed)]
+      .concat(M.map(function(mk){ return mlab(mk)+' Дт'; }))
+      .concat(M.map(function(mk){ return mlab(mk)+' Кт'; }))];
+    ACC.forEach(function(a){ var t = accTot(a);
+      rows2.push([a.code, a.name, GRU[a.grp]||a.grp, a.type, a.cf?'да':'нет',
+        Math.round(a.open), Math.round(t[0]), Math.round(t[1]), Math.round(a.open+t[0]-t[1])]
+        .concat(M.map(function(mk){ return Math.round((a.m[mk]||[0,0])[0]); }))
+        .concat(M.map(function(mk){ return Math.round((a.m[mk]||[0,0])[1]); }))); });
+    csv(rows2, 'айка_счета_' + D.year + '.csv');
+  }
+}
+
+/* ── отрисовка ──────────────────────────────────────────────────────── */
+function draw(){
+  app.innerHTML = hero() + kpis() + insights() + tabsHtml()
+    + (TAB==='dds' ? secDds() : TAB==='cash' ? secCash() : TAB==='acc' ? secAcc()
+       : TAB==='log' ? secLog() : secFix());
+
+  app.querySelectorAll('#tabs .tab').forEach(function(b){
+    b.onclick = function(){ TAB = b.getAttribute('data-t'); Q=''; OPEN=null; draw(); }; });
+  var q = document.getElementById('q');
+  if (q) q.oninput = function(){ var p = q.selectionStart; Q = q.value.trim().toLowerCase(); draw();
+    var n = document.getElementById('q'); if(n){ n.focus(); try{ n.setSelectionRange(p,p); }catch(e){} } };
+  var c = document.getElementById('csv'); if (c) c.onclick = dlCsv;
+  app.querySelectorAll('[data-sc]').forEach(function(b){
+    b.onclick = function(){ SCOPE = b.getAttribute('data-sc'); OPEN=null; draw(); }; });
+  app.querySelectorAll('[data-g]').forEach(function(b){
+    b.onclick = function(){ GRP = b.getAttribute('data-g'); OPEN=null; draw(); }; });
+  app.querySelectorAll('[data-u]').forEach(function(b){
+    b.onclick = function(){ EVU = b.getAttribute('data-u'); draw(); }; });
+  app.querySelectorAll('[data-e]').forEach(function(b){
+    b.onclick = function(){ EVT = b.getAttribute('data-e'); draw(); }; });
+  app.querySelectorAll('tr.dr').forEach(function(t){
+    t.onclick = function(){ var k = 'c:'+t.getAttribute('data-c'); OPEN = OPEN===k?null:k; draw(); }; });
+  app.querySelectorAll('tr.ar').forEach(function(t){
+    t.onclick = function(){ var k = 'a:'+t.getAttribute('data-a'); OPEN = OPEN===k?null:k; draw(); }; });
+  app.querySelectorAll('thead th[data-k]').forEach(function(t){
+    t.onclick = function(){ var k = t.getAttribute('data-k');
+      if (SORT===k) DIR = -DIR; else { SORT = k; DIR = k==='name'?1:-1; } draw(); }; });
+}
+draw();
+})();
+</script>
+<script src="nav.js"></script>
+</body></html>
