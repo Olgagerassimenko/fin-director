@@ -103,6 +103,7 @@ tr.cur td{background:#fff7ea}
   <h2>Все месяцы года</h2>
   <div class="tbl"><table><thead><tr>
     <th>Месяц</th><th class="r">Внесено в 1С</th><th class="r">Выручка по айко</th>
+    <th class="r">Создано, не проведено</th>
     <th class="r">Не внесено</th><th class="r">Внесено, %</th><th>Статус</th>
   </tr></thead><tbody id="tb"></tbody></table></div>
 
@@ -125,6 +126,11 @@ var tot1c = D.months.reduce(function(a,b){return a+(b.v1c||0);},0);
 var totii = D.months.reduce(function(a,b){return a+(b.iiko||0);},0);
 var cur = D.months[D.months.length-1] || {};
 var notEntered = D.months.reduce(function(a,b){return a + ((b.diff!==null&&b.diff<0)? -b.diff : 0);},0);
+// Разрыв с айко состоит из двух разных вещей: документ вообще не завели — и
+// завели, но не провели. Второе чинится одним нажатием, поэтому считаем
+// отдельно: в регистр бухгалтерии непроведённое не попадает.
+var totNp = D.months.reduce(function(a,b){return a+(b.np||0);},0);
+var totNpN = D.months.reduce(function(a,b){return a+(b.npn||0);},0);
 
 function kcard(lab,val,cls,small){
   return '<div class="card"><div class="lab">'+lab+'</div><div class="big '+(cls||'')+'">'+val+'</div><div class="small">'+(small||'')+'</div></div>';
@@ -132,6 +138,8 @@ function kcard(lab,val,cls,small){
 document.getElementById('kpi').innerHTML =
   kcard('Внесено за '+MN[cur.m]+', ₸', f(cur.v1c), 'warn', 'текущий месяц, по данным 1С') +
   kcard('По айко за '+MN[cur.m]+', ₸', f(cur.iiko), '', 'отгружено фактически') +
+  kcard('Создано, но не проведено, ₸', f(totNp), totNp>0?'no':'ok',
+        totNpN + ' документ(ов) лежат непроведёнными — в оборот 6010 они не попали') +
   kcard('Разрыв с айко за год, ₸', f(notEntered), notEntered>0?'no':'ok', 'часть разрыва структурная — не вся отгрузка идёт через эту базу') +
   kcard('Внесено за год', totii? pct(tot1c/totii):'—', 'warn', f(tot1c)+' из '+f(totii)+' по айко');
 
@@ -272,11 +280,13 @@ document.getElementById('tb').innerHTML = D.months.map(function(x){
   else { st='<span class="pill p-no">внесено не всё</span>'; }
   return '<tr class="'+(x.m===D.curMonth?'cur':'')+'"><td class="nm">'+MN[x.m]+'</td>'+
     '<td class="r">'+f(x.v1c)+'</td><td class="r">'+f(x.iiko)+'</td>'+
+    '<td class="r">'+(x.np? '<b style="color:#fbbf24">'+f(x.np)+'</b><span class="small"> · '+x.npn+' док.</span>' : '—')+'</td>'+
     '<td class="r">'+((x.diff!==null&&x.diff<0)? f(-x.diff) : '—')+'</td>'+
     '<td class="r">'+pct(x.pct)+'</td><td>'+st+'</td></tr>';
 }).join('') +
   '<tr class="tot"><td>Итого за год</td><td class="r">'+f(tot1c)+'</td><td class="r">'+f(totii)+
-  '</td><td class="r">'+f(notEntered)+'</td><td class="r">'+(totii?pct(tot1c/totii):'—')+'</td><td></td></tr>';
+  '</td><td class="r">'+f(totNp)+'</td><td class="r">'+f(notEntered)+
+  '</td><td class="r">'+(totii?pct(tot1c/totii):'—')+'</td><td></td></tr>';
 
 var og = D.orgs||[], ogt = og.reduce(function(a,b){return a+b.total;},0);
 document.getElementById('orgs').innerHTML = og.map(function(o){
