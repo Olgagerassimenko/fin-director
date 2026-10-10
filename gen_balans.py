@@ -84,34 +84,52 @@ def num(v):
     return -x if neg else x
 
 
-def opening(gid, pattern, sign):
-    """Долг на 04.01.26 из книги: единственная точка отсчёта, какая есть."""
+def last_balance_col(gid, pattern):
+    """Последняя колонка остатка в книге: её дата и значения по контрагентам.
+
+    Катить год от января одними накладными нельзя — за девять месяцев
+    набегают взаимозачёты, возвраты и ручные правки, которых в накладных нет,
+    и к октябрю расхождение доходит до пятидесяти миллионов. Поэтому точку
+    отсчёта берём не в январе, а на последнем срезе книги: на эту дату отчёт
+    совпадает с книгой до тенге, а движения вокруг неё — живые, из айко.
+    """
     rows = fetch_csv(gid)
     if not rows:
-        print("  книга не прочиталась — входящие остатки будут нулевые")
-        return {}
-    col = hi = None
+        print("  книга не прочиталась — точки отсчёта нет")
+        return None, {}
+    best = None
     for i, r in enumerate(rows[:12]):
         for j, c in enumerate(r):
-            if re.search(pattern, str(c or ""), re.I):
-                hi, col = i, j
-                break
-        if col is not None:
-            break
-    if col is None:
-        print("  колонка входящего остатка не нашлась:", pattern)
-        return {}
-    print(f"  входящий остаток: строка {hi}, колонка {col} «{rows[hi][col].strip()}»")
-    out = {}
+            m = re.search(pattern, str(c or ""), re.I)
+            if not m:
+                continue
+            d, mo, y = m.group(1), m.group(2), m.group(3)
+            y = int(y) + 2000 if len(y) == 2 else int(y)
+            try:
+                dt = date(y, int(mo), int(d))
+            except ValueError:
+                continue
+            if best is None or dt > best[0]:
+                best = (dt, i, j, str(c).strip())
+    if not best:
+        print("  колонка остатка не нашлась:", pattern)
+        return None, {}
+    dt, hi, col, title = best
+    vals = {}
     for r in rows[hi + 1:]:
         if not r:
             continue
         n = (r[0] or "").strip()
         if not n or n.lower().startswith(("итого", "всего", "сумма")):
             continue
-        v = num(r[col]) * sign if len(r) > col else 0.0
-        out[n] = out.get(n, 0.0) + v
-    return out
+        vals[n] = vals.get(n, 0.0) + (num(r[col]) if len(r) > col else 0.0)
+    # Книга в разные месяцы пишет кредиторку то плюсом, то минусом —
+    # определяем знак по самой колонке, а не по памяти.
+    if sum(vals.values()) < 0:
+        vals = {k: -v for k, v in vals.items()}
+    print(f"  точка отсчёта: «{title}» = {dt:%d.%m.%Y}, строк {len(vals)}, "
+          f"итого {sum(vals.values()):,.0f}".replace(",", " "))
+    return dt, vals
 
 
 def auth():
@@ -171,7 +189,7 @@ def collect(s, H, d_to_excl):
     return mv
 
 
-def build(side, mv, book, group_chains):
+def build(side, mv, book, group_chains, anchor_idx):
     """Складываем движения и входящий остаток в строки отчёта."""
     rows, used = {}, set()
 
@@ -210,13 +228,16 @@ def build(side, mv, book, group_chains):
             if k not in rows:
                 rows[k] = {"n": bn, "open": 0.0, "mv": {}, "src": [bn]}
                 lost.append(bn)
-        rows[k]["open"] += bv
+        rows[k]["book"] = rows[k].get("book", 0.0) + bv
         used.add(bn)
 
+    # Входящий остаток на BASE подбираем так, чтобы на дату среза сойтись с
+    # книгой: open = книга(на срезе) − движения от BASE до среза.
     out = []
     for k, r in sorted(rows.items(), key=lambda kv: kv[1]["n"].lower()):
         pts = sorted(r["mv"].items())
-        op = round(r["open"])
+        moved = sum(a - b for i, (a, b) in pts if i <= anchor_idx)
+        op = round(r.get("book", 0.0) - moved)
         if not pts and abs(op) < 1:
             continue
         row = {"n": r["n"], "open": op,
@@ -231,24 +252,27 @@ def main():
     today = almaty.now().date()
     tomorrow = today + timedelta(days=1)
 
-    print("-> входящие остатки из книги")
-    # В январе книга пишет кредиторку плюсом, с какого-то месяца — минусом.
-    # Берём январскую колонку, она положительная.
-    op_kz = opening(KZ_GID, r"задолженность\s+на\s+04\.01\.26", 1)
-    op_dz = opening(DZ_GID, r"дз\s+на\s+04\.01\.26",             1)
-    print(f"   КЗ {len(op_kz)} строк, ДЗ {len(op_dz)} строк")
+    print("-> точка отсчёта из книги")
+    d_kz, op_kz = last_balance_col(
+        KZ_GID, r"(?:задолженност[ьи]|кз)\s+на\s+(\d{2})\.(\d{2})\.(\d{2,4})")
+    d_dz, op_dz = last_balance_col(
+        DZ_GID, r"(?:дз|дебиторам)\s+на\s+(\d{2})\.(\d{2})\.(\d{2,4})")
+    anchor = max([d for d in (d_kz, d_dz) if d] or [today])
 
     print("-> движения из айко по накладным")
     s, H = auth()
     mv = collect(s, H, tomorrow)
 
-    kz, lost_kz = build("kz", mv["kz"], op_kz, False)
-    dz, lost_dz = build("dz", mv["dz"], op_dz, True)
+    i_kz = ((d_kz or anchor) - BASE).days
+    i_dz = ((d_dz or anchor) - BASE).days
+    kz, lost_kz = build("kz", mv["kz"], op_kz, False, i_kz)
+    dz, lost_dz = build("dz", mv["dz"], op_dz, True, i_dz)
 
     data = {"updated": almaty.now().strftime("%d.%m.%Y %H:%M"),
             "base": BASE.isoformat(),
             "maxDay": (today - BASE).days,
-            "note": "приход и оплата — из айко по накладным; долг на 04.01.2026 — из книги",
+            "anchor": {"kz": (d_kz or anchor).isoformat(), "dz": (d_dz or anchor).isoformat()},
+            "note": "приход и оплата — из айко по накладным; остаток на дату последнего среза — из книги",
             "sides": {
                 "kz": {"title": "Кредиторка — сколько должны мы",
                        "src": "INVOICE / INVOICE_PAYMENT", "rows": kz},
