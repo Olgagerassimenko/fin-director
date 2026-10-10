@@ -1519,7 +1519,12 @@ function buildConsign(){
   var SIDE = 'kz';
   var MAN  = {};                       // ручные контрагенты: id → запись
 
-  function iso(d){ return d.toISOString().slice(0,10); }
+  // Дату в строку собираем по местным полям, а не через toISOString: он
+  // переводит в UTC, и в Алматы (UTC+5) полночь уезжает на вчера — неделя
+  // съезжала на день назад.
+  function iso(d){
+    return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
+  }
   function ru(d){ return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}); }
   function di(d){ return Math.round((d - base)/DAY); }
   function fmt(v){
