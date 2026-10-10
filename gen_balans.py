@@ -40,7 +40,10 @@ BASE   = date(2026, 1, 4)        # входящий остаток из книг
 OUTPUT = "balans.js"
 
 T_IN_KZ  = ["INVOICE"]
-T_PAY_KZ = ["INVOICE_PAYMENT", "INVOICE_PAYMENT_AUTO"]
+# Автооплаты (INVOICE_PAYMENT_AUTO) в книге в колонку «Оплата» не попадают:
+# на неделе 03.10–09.10 это 689 690 ₸ по «РЫНОК СЫРЬЕ». Держим их отдельно,
+# чтобы колонки сходились с книгой тенга в тенгу.
+T_PAY_KZ = ["INVOICE_PAYMENT"]
 T_IN_DZ  = ["OUTGOING_INVOICE_REVENUE"]
 T_PAY_DZ = ["PAYIN"]
 DZ_PAY_CONTRA = {"задолженность перед поставщиками", "расчеты с гостями",
@@ -229,7 +232,9 @@ def main():
     tomorrow = today + timedelta(days=1)
 
     print("-> входящие остатки из книги")
-    op_kz = opening(KZ_GID, r"задолженность\s+на\s+04\.01\.26", -1)   # в книге КЗ минусом
+    # В январе книга пишет кредиторку плюсом, с какого-то месяца — минусом.
+    # Берём январскую колонку, она положительная.
+    op_kz = opening(KZ_GID, r"задолженность\s+на\s+04\.01\.26", 1)
     op_dz = opening(DZ_GID, r"дз\s+на\s+04\.01\.26",             1)
     print(f"   КЗ {len(op_kz)} строк, ДЗ {len(op_dz)} строк")
 
