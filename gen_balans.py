@@ -190,18 +190,29 @@ def collect(s, H, d_to_excl):
 
 
 def build(side, mv, book, group_chains, anchor_idx):
+    # Склеиваем точки сети только там, где сама книга держит их одной строкой
+    # («99-RP АЗС 1 (все точки)»). Если в книге у номера своя строка на каждую
+    # точку — оставляем как есть: Ольга их считает отдельно.
+    book_chains = set()
+    if group_chains:
+        seen = {}
+        for bn in book:
+            c = chain(bn)
+            if c:
+                seen[c] = seen.get(c, 0) + 1
+        book_chains = {c for c, n in seen.items() if n == 1}
     """Складываем движения и входящий остаток в строки отчёта."""
     rows, used = {}, set()
 
     def key(n):
         c = chain(n)
-        return ("#" + c) if (group_chains and c) else n
+        return ("#" + c) if (group_chains and c and c in book_chains) else n
 
     for n, days in mv.items():
         k = key(n)
         r = rows.setdefault(k, {"n": n, "open": 0.0, "mv": {}, "src": []})
         r["src"].append(n)
-        if group_chains and chain(n) and len(n) > len(r["n"]):
+        if group_chains and chain(n) in book_chains and len(n) > len(r["n"]):
             r["n"] = n
         for i, (a, b) in days.items():
             c = r["mv"].setdefault(i, [0.0, 0.0])
@@ -215,16 +226,16 @@ def build(side, mv, book, group_chains, anchor_idx):
         for sn in r["src"]:
             idx.setdefault(norm(sn), k)
         c = chain(r["n"])
-        if group_chains and c:
+        if group_chains and c in book_chains:
             idx.setdefault("#" + c, k)
     lost = []
     for bn, bv in book.items():
         if abs(bv) < 1:
             continue
         c = chain(bn)
-        k = (idx.get("#" + c) if (group_chains and c) else None) or idx.get(norm(bn))
+        k = (idx.get("#" + c) if (group_chains and c in book_chains) else None) or idx.get(norm(bn))
         if not k:
-            k = ("#" + c) if (group_chains and c) else bn
+            k = ("#" + c) if (group_chains and c in book_chains) else bn
             if k not in rows:
                 rows[k] = {"n": bn, "open": 0.0, "mv": {}, "src": [bn]}
                 lost.append(bn)
@@ -281,6 +292,37 @@ def main():
                        "src": "INVOICE / INVOICE_PAYMENT", "rows": kz},
                 "dz": {"title": "Дебиторка — сколько должны нам",
                        "src": "OUTGOING_INVOICE_REVENUE / PAYIN", "rows": dz}}}
+
+    # Сверка с книгой на дату среза: её видно и в логе прогона, и на странице.
+    def check(rows, book, ai):
+        got = {}
+        for r in rows:
+            got[r["n"]] = r["open"] + sum(a - b for i, a, b in r["mv"] if i <= ai)
+        bad = []
+        for bn, bv in book.items():
+            if abs(bv) < 1 and norm(bn) not in {norm(x) for x in got}:
+                continue
+            gv = got.get(bn)
+            if gv is None:
+                for k, v in got.items():
+                    if norm(k) == norm(bn):
+                        gv = v
+                        break
+            if gv is None:
+                bad.append({"n": bn, "book": round(bv), "got": None})
+            elif abs(gv - bv) >= 1:
+                bad.append({"n": bn, "book": round(bv), "got": round(gv)})
+        return {"book": round(sum(book.values())), "got": round(sum(got.values())),
+                "rows": len(got), "bookRows": len(book),
+                "bad": sorted(bad, key=lambda x: -abs(x["book"] - (x["got"] or 0)))[:40]}
+
+    data["check"] = {"kz": check(kz, op_kz, i_kz), "dz": check(dz, op_dz, i_dz)}
+    for k in ("kz", "dz"):
+        c = data["check"][k]
+        print(f"сверка {k}: книга {c['book']:,} против собранного {c['got']:,}, "
+              f"строк не сошлось {len(c['bad'])}".replace(",", " "))
+        for x in c["bad"][:6]:
+            print(f"    {x['n'][:44]:44} книга {x['book']:>13,} айко {str(x['got']):>13}".replace(",", " "))
 
     with open(os.path.join(HERE, OUTPUT), "w", encoding="utf-8") as f:
         f.write("window.BALANS = " + json.dumps(data, ensure_ascii=False,
