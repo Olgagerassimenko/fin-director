@@ -1674,43 +1674,51 @@ a.card.key .card-title{padding-right:100px;}
     chip.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' ') tog(e); });
   });
 
-  load('/dz_kz.js?v=3',function(){
-    var Z=window.DZ_KZ; if(!Z) return;
-    /* только процент, без слов: подпись собирается снаружи */
-    function pct(o,good){
-      var d=o&&o.dynamics; if(!d||d.length<2) return '—';
-      return chg(d[d.length-1].total,d[d.length-2].total,good).trim();
+  /* ── КТО КОМУ ДОЛЖЕН ────────────────────────────────────────────
+     Раньше плашки читали dz_kz.js — разбор гугл-книги, который по дороге
+     выбрасывал часть строк: дебиторку он показывал без 14,1 млн, снятых
+     как безнадёжные, и расходился с самой книгой на 1,6 млн по кредиторке.
+     Теперь берём balans.js — тот же срез книги, с которым сверяется вкладка
+     «Таблица ДЗ и КЗ», чтобы на Пульсе везде стояло одно число. */
+  load('/balans.js?v=1',function(){
+    var B=window.BALANS; if(!B||!B.sides) return;
+    var DAY=864e5, base=new Date(B.base+'T00:00:00');
+    function side(k){
+      var S=B.sides[k]; if(!S) return null;
+      var ad=new Date((B.anchor&&B.anchor[k]||B.base)+'T00:00:00');
+      var ai=Math.round((ad-base)/DAY);
+      var rows=S.rows.map(function(r){
+        var v=r.open; for(var n=0;n<r.mv.length;n++){ if(r.mv[n][0]<=ai) v+=r.mv[n][1]-r.mv[n][2]; }
+        return {name:r.n, debt:v};
+      }).filter(function(x){ return x.debt>0; });
+      rows.sort(function(a,b){ return b.debt-a.debt; });
+      return {total:rows.reduce(function(a,x){return a+x.debt;},0), top:rows,
+              date:ad.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})};
     }
-    /* Рост любого из долгов трактуем как минус: дебиторка — деньги, которые
-       до нас не дошли, кредиторка — которые мы ещё должны отдать.
-       Крупнейший контрагент выносим в подпись: без имени сумма долга — просто
-       число, а с именем это уже задача, с кем разговаривать. */
     /* Три крупнейших контрагента вместо одного: долг почти всегда собран
-       в нескольких именах, и по одному лидеру не видно, сколько их. Недельное
-       изменение убрано — по неделе к неделе долги почти не двигаются, строка
-       занимала место и ничего не сообщала. */
+       в нескольких именах, и по одному лидеру не видно, сколько их. */
     function top3(o){
-      var t=(o&&o.top)||[];
-      if(!t.length) return '';
-      return '<div style="margin-top:5px">' + t.slice(0,3).map(function(x){
-        var sh=o.total? Math.round((x.debt||0)/o.total*100) : 0;
+      if(!o||!o.top.length) return '';
+      return '<div style="margin-top:5px">' + o.top.slice(0,3).map(function(x){
+        var sh=o.total? Math.round(x.debt/o.total*100) : 0;
         return '<div style="display:flex;justify-content:space-between;gap:8px;line-height:1.45;align-items:baseline">'
           + '<span style="color:#dbe4f2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"'
           + ' title="'+String(x.name).replace(/"/g,'&quot;')+'">'
-          + String(x.name).replace(/^\d+-/,'')+'</span>'
+          + String(x.name).replace(/^\d+-\s*/,'')+'</span>'
           + '<span style="white-space:nowrap;color:#8ea0be">'+money1(x.debt)
           + (sh?(' <b style="color:#cbd5e1;font-weight:700">'+sh+'%</b>'):'')+'</span></div>';
       }).join('') + '</div>';
     }
-    if(Z.dz) set('p-dz', money(Z.dz.total), 'на ' + (Z.dz.date||'—') + top3(Z.dz));
-    if(Z.kz) set('p-kz', money(Z.kz.total), 'на ' + (Z.kz.date||'—') + top3(Z.kz));
-    var eD=document.getElementById('p-dz');
-    if(eD&&Z.dz&&Z.dz.top) eD.title='Кто нам должен, крупнейшие:\n'
-      + Z.dz.top.slice(0,5).map(function(x,i){ return (i+1)+'. '+x.name+' — '+num(x.debt)+' ₸'; }).join('\n')
-      + (Z.dz.excludedTotal? ('\nОтдельно снято как безнадёжное: '+money1(Z.dz.excludedTotal)) : '');
-    var eK=document.getElementById('p-kz');
-    if(eK&&Z.kz&&Z.kz.top) eK.title='Кому мы должны, крупнейшие:\n'
-      + Z.kz.top.slice(0,5).map(function(x,i){ return (i+1)+'. '+x.name+' — '+num(x.debt)+' ₸'; }).join('\n');
+    var D=side('dz'), K=side('kz');
+    if(D) set('p-dz', money(D.total), 'на ' + D.date + top3(D));
+    if(K) set('p-kz', money(K.total), 'на ' + K.date + top3(K));
+    function tip(id,o,head){
+      var e=document.getElementById(id); if(!e||!o) return;
+      e.title=head+'\n'+o.top.slice(0,5).map(function(x,i){ return (i+1)+'. '+x.name+' — '+num(x.debt)+' ₸'; }).join('\n')
+        + '\n\nСрез книги на '+o.date+', всего контрагентов в плюсе: '+o.top.length;
+    }
+    tip('p-dz', D, 'Кто нам должен, крупнейшие:');
+    tip('p-kz', K, 'Кому мы должны, крупнейшие:');
   });
 })();
 </script>
