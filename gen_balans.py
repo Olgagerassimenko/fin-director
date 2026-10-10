@@ -229,18 +229,21 @@ def build(side, mv, book, group_chains, anchor_idx):
                 rows[k] = {"n": bn, "open": 0.0, "mv": {}, "src": [bn]}
                 lost.append(bn)
         rows[k]["book"] = rows[k].get("book", 0.0) + bv
+        # Название берём из книги: в айко у сети карточка на каждую точку, и
+        # «90-Аль-Фараби ул.Ондасынова» вместо «90-ТОО Май Март» читается плохо.
+        rows[k].setdefault("bookname", bn)
         used.add(bn)
 
     # Входящий остаток на BASE подбираем так, чтобы на дату среза сойтись с
     # книгой: open = книга(на срезе) − движения от BASE до среза.
     out = []
-    for k, r in sorted(rows.items(), key=lambda kv: kv[1]["n"].lower()):
+    for k, r in sorted(rows.items(), key=lambda kv: (kv[1].get("bookname") or kv[1]["n"]).lower()):
         pts = sorted(r["mv"].items())
         moved = sum(a - b for i, (a, b) in pts if i <= anchor_idx)
         op = round(r.get("book", 0.0) - moved)
         if not pts and abs(op) < 1:
             continue
-        row = {"n": r["n"], "open": op,
+        row = {"n": r.get("bookname") or r["n"], "open": op,
                "mv": [[i, round(a), round(b)] for i, (a, b) in pts]}
         if len(r["src"]) > 1:
             row["src"] = sorted(r["src"])
