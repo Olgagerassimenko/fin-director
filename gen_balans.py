@@ -47,6 +47,13 @@ LOGIN = re.search(r'LOGIN\s*=\s*"([^"]+)"', src).group(1)
 PASS  = re.search(r'PASS\s*=\s*"([^"]+)"',  src).group(1)
 
 
+def norm(s):
+    """Для сверки имён между счетами: номер точки, регистр и кавычки гуляют."""
+    s = re.sub(r"^\d+\s*[-\u2013]?\s*", "", str(s or ""))
+    s = re.sub(r"[\u00ab\u00bb\"'`]", "", s).lower()
+    return re.sub(r"[^a-z\u0430-\u044f0-9]+", "", s)
+
+
 def auth():
     s = requests.Session()
     tok = s.get(f"{URL}/resto/api/auth",
@@ -109,12 +116,6 @@ def collect(s, H, account, sign, today):
             continue
         r = {"n": n, "open": op,
              "mv": [[i, round(a), round(b)] for i, (a, b) in pts]}
-        # На счёте 3.06 висят не только поставщики: там же наши точки и
-        # покупатели — «4-Базилик 4 (закрыто)», «102-Яндекс лавка». В айко они
-        # пронумерованы, поставщики — нет. Помечаем, чтобы страница по
-        # умолчанию показывала кредиторку, а не внутренние обороты.
-        if OWN.match(n):
-            r["own"] = 1
         rows.append(r)
     return rows
 
@@ -128,8 +129,22 @@ def main():
             "maxDay": (today - BASE).days,
             "sides": {}}
 
+    collected = {k: collect(s, H, acc, sg, today) for k, acc, _t, sg in SIDES}
+
+    # Кто есть кто. На счёте 3.06 висят не только поставщики: там же наши точки
+    # и покупатели — «4-Базилик 4 (закрыто)», «102-Яндекс лавка», «110 АЗС
+    # Sinooil». Отличаем двумя признаками: в айко наши точки пронумерованы, а
+    # покупатель к тому же сидит на дебиторском счёте. Помеченные строки
+    # страница по умолчанию прячет, чтобы кредиторка не смешивалась с
+    # внутренними оборотами.
+    buyers = {norm(r["n"]) for r in collected.get("dz", [])
+              if abs(r["open"]) >= 1 or r["mv"]}
+    for r in collected.get("kz", []):
+        if OWN.match(r["n"]) or norm(r["n"]) in buyers:
+            r["own"] = 1
+
     for key, account, title, sign in SIDES:
-        rows = collect(s, H, account, sign, today)
+        rows = collected[key]
         tot = sum(r["open"] + sum(a - b for _, a, b in r["mv"]) for r in rows)
         data["sides"][key] = {"account": account, "title": title, "rows": rows}
         print(f"{key}: контрагентов {len(rows)}, итого на {today:%d.%m.%Y}: "
