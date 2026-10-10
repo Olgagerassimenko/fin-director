@@ -1,0 +1,71 @@
+name: Пульс — баланс по контрагентам из айко (ДЗ и КЗ)
+
+# Та же таблица, что в книге «Баланс по поставщикам», только собранная из айко:
+# долг на начало периода, приход товара, оплата, долг на конец — по каждому
+# контрагенту. Берётся с двух счетов: 3.06 «Задолженность перед поставщиками»
+# (кредиторка) и 3.08 «5-Дебит.задолж.» (дебиторка).
+#
+# Выгружаются не остатки на каждый день, а входящий остаток на 1 января плюс
+# движения за те дни, когда они были. Любой период страница считает сама.
+
+on:
+  schedule:
+    - cron: "35 3,11 * * *"     # 08:35 и 16:35 по Алматы
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pulse-daily
+  cancel-in-progress: false
+
+jobs:
+  balans:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: pip install -r requirements.txt
+
+      - name: Баланс по контрагентам из айко
+        timeout-minutes: 14
+        run: python gen_balans.py
+
+      - uses: actions/setup-node@v4
+        with: {node-version: "20"}
+
+      - name: Публикация (Cloudflare Workers)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@3 deploy
+
+      - name: Сохранить баланс в репозиторий
+        if: always()
+        run: |
+          git config user.name "pulse-ci"; git config user.email "ci@local"
+          git add -f balans.js || true
+          git commit -m "Баланс по контрагентам: свежие данные [skip ci]" || echo "нет изменений"
+          git pull --rebase -X theirs origin main || { git rebase --abort || true; }
+          if grep -q '^<<<<<<< ' balans.js ; then
+            echo "::error::в balans.js остались маркеры конфликта — push отменён"
+            exit 1
+          fi
+          git push origin HEAD:main || echo "push не удался"
+
+      - name: "Проверка: баланс собрался"
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, re, sys
+          d = json.loads(re.search(r"=\s*(\{.*\});?\s*$",
+                open("balans.js", encoding="utf-8").read(), re.S).group(1))
+          for k, s in d["sides"].items():
+              rows = s["rows"]
+              tot = sum(r["open"] + sum(a - b for _, a, b in r["mv"]) for r in rows)
+              print(k, "| контрагентов:", len(rows),
+                    "| итого: %s" % f"{tot:,.0f}".replace(",", " "))
+              if not rows: sys.exit(k + ": пусто")
+          PY
