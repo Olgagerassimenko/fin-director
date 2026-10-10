@@ -903,6 +903,9 @@ export default {
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/balans") return handleBalans(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    // Отладчик OLAP: им калибруем новые сборщики, не гоняя GitHub Actions.
+    if (url.pathname === "/api/olap-probe") return iikoProbe(url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 300) }, 500));
     if (url.pathname === "/api/calc") return handleCalc(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/zp") return handleZp(request, env, url)
