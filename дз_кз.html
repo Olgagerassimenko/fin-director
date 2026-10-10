@@ -485,7 +485,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
           <span class="sal-q gt-q" data-q="0">с начала года</span>
         </div>
         <input type="search" id="gt-find" class="sal-find" placeholder="Поиск по контрагенту" autocomplete="off">
-        <label class="gt-chk" id="gt-own-wrap"><input type="checkbox" id="gt-own"> показать наши точки</label>
+        <label class="gt-chk" id="gt-own-wrap"><input type="checkbox" id="gt-own"> показать наши точки и покупателей</label>
         <button id="gt-add" class="sal-xls" type="button">+ контрагент</button>
         <button id="gt-xls" class="sal-xls" type="button">Выгрузить в Excel</button>
         <span id="gt-upd" style="margin-left:auto"></span>
@@ -1605,7 +1605,9 @@ function buildConsign(){
     document.getElementById('gt-own-wrap').style.display = side === 'kz' ? '' : 'none';
     document.getElementById('gt-hint').innerHTML = side === 'kz'
       ? 'Счёт «Задолженность перед поставщиками» (3.06). Плюс — мы должны, минус — у поставщика лежит наша переплата. '
-        + 'Наши точки и покупатели на этом счёте тоже есть, по умолчанию они скрыты.'
+        + 'На этом счёте висят не только поставщики: там же наши точки и покупатели — '
+        + 'их видно по номеру в названии и по тому, что они сидят на дебиторском счёте. '
+        + 'По умолчанию они скрыты, чтобы кредиторка не смешивалась с внутренними оборотами.'
       : 'Счёт «5-Дебит.задолж.» (3.08). Плюс — покупатель должен нам, минус — у нас его предоплата.';
 
     var per = ru(dFrom) + ' — ' + ru(dTo);
