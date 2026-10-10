@@ -8,7 +8,7 @@
 <script src="dz_kz.js?v=3" onerror="window.DZ_KZ=null"></script>
 <script src="saldo.js?v=1" onerror="window.SALDO=null"></script>
 <script src="kz_ana.js?v=1" onerror="window.KZ_ANA=null"></script>
-<script src="balans.js?v=4" onerror="window.BALANS=null"></script>
+<script src="balans.js?v=5" onerror="window.BALANS=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh}
@@ -136,6 +136,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .gt-tbl tfoot td{font-weight:800;color:#e2e8f0;border-top:1px solid #1e293b;background:#0a1424}
 .gt-own{color:#64748b}
 .gt-man{color:#c9a94e}
+.gt-warn{background:#2a1f06;border:1px solid #4a3a0d;border-radius:8px;padding:8px 11px;color:#e0c068}
+.gt-na{color:#8a6d3b}
 .gt-zero{color:#475569}
 .gt-form{margin-top:14px;background:#0b1526;border:1px solid #1e293b;border-radius:11px;padding:14px}
 .gt-form h4{font-size:12.5px;color:#e2e8f0;margin:0 0 10px}
@@ -498,6 +500,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
         <div class="a-card"><div class="a-card-lbl">Контрагентов</div><div class="a-card-val" id="gt-c5">—</div></div>
       </div>
       <p class="a-hint" id="gt-hint">—</p>
+      <p class="a-hint gt-warn" id="gt-warn" style="display:none"></p>
       <div id="gt-form" class="gt-form" style="display:none"></div>
       <div id="gt-body"></div>
     </div>
@@ -1602,7 +1605,8 @@ function buildConsign(){
       if(q && r.n.toLowerCase().indexOf(q) < 0) return false;
       return true;
     }).map(function(r){
-      var c = calc(r, a, b); c.n = r.n; c.own = r.own; c.man = r.man; c.id = r.id; c.note = r.note;
+      var c = calc(r, a, b); c.n = r.n; c.own = r.own; c.man = r.man; c.id = r.id;
+      c.note = r.note; c.na = r.noanchor;
       return c;
     }).filter(function(c){
       return Math.abs(c.start) >= 1 || Math.abs(c.end) >= 1 || c.in || c.pay;
@@ -1634,6 +1638,19 @@ function buildConsign(){
       + 'Отсчёт идёт от среза книги на ' + ((B.anchor && B.anchor[side]) || '').split('-').reverse().join('.')
       + ' — на эту дату цифры сходятся с книгой до тенге, дальше считается из айко.';
 
+    // Отчёт опирается на срез книги. Всё, что раньше него, восстановлено
+    // обратным счётом из накладных и с книгой не сверялось — говорим прямо,
+    // а не делаем вид, что история такая же надёжная, как текущая неделя.
+    var anch = B.anchor && B.anchor[side] ? new Date(B.anchor[side] + 'T00:00:00') : null;
+    var warn = document.getElementById('gt-warn');
+    if (anch && dFrom <= anch) {
+      warn.style.display = '';
+      warn.innerHTML = 'Период начинается раньше среза книги (' + ru(anch) + '). '
+        + 'До этой даты остатки восстановлены обратным счётом из накладных и с книгой не сверяются — '
+        + 'у строк, которых в книге нет (помечены ✱), начальный остаток может уйти в минус. '
+        + 'Движения за период взяты из айко и верны в любом случае.';
+    } else { warn.style.display = 'none'; }
+
     var per = ru(dFrom) + ' — ' + ru(dTo);
     var h = '<table class="gt-tbl"><thead>'
       + '<tr><th class="l" rowspan="2">Контрагент</th>'
@@ -1645,7 +1662,9 @@ function buildConsign(){
     rows.forEach(function(c){
       h += '<tr' + (c.man ? ' class="gt-man-row"' : '') + '>'
         + '<td class="l' + (c.own ? ' gt-own' : '') + (c.man ? ' gt-man' : '') + '">'
-        + (c.man ? '✎ ' : '') + esc(c.n)
+        + (c.man ? '✎ ' : '')
+        + (c.na ? '<span class="gt-na" title="этой строки нет в книге — опереться на срез не на что">✱ </span>' : '')
+        + esc(c.n)
         + (c.note ? '<span style="color:#64748b"> · ' + esc(c.note) + '</span>' : '') + '</td>'
         + '<td data-v="' + Math.round(c.start) + '">' + fmt(c.start) + '</td>'
         + '<td data-v="' + Math.round(c.in)    + '">' + fmt(c.in)    + '</td>'
