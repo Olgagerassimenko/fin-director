@@ -1680,7 +1680,7 @@ a.card.key .card-title{padding-right:100px;}
      как безнадёжные, и расходился с самой книгой на 1,6 млн по кредиторке.
      Теперь берём balans.js — тот же срез книги, с которым сверяется вкладка
      «Таблица ДЗ и КЗ», чтобы на Пульсе везде стояло одно число. */
-  load('/balans.js?v=1',function(){
+  load('/balans.js?v=2',function(){
     var B=window.BALANS; if(!B||!B.sides) return;
     var DAY=864e5, base=new Date(B.base+'T00:00:00');
     function side(k){
@@ -1690,9 +1690,13 @@ a.card.key .card-title{padding-right:100px;}
       var rows=S.rows.map(function(r){
         var v=r.open; for(var n=0;n<r.mv.length;n++){ if(r.mv[n][0]<=ai) v+=r.mv[n][1]-r.mv[n][2]; }
         return {name:r.n, debt:v};
-      }).filter(function(x){ return x.debt>0; });
+      });
+      /* Итог считаем по всем строкам, вместе с переплатами в минусе — иначе
+         он разойдётся с книгой; в список крупнейших берём только должников. */
+      var sum=rows.reduce(function(a,x){return a+x.debt;},0);
+      rows=rows.filter(function(x){ return x.debt>0; });
       rows.sort(function(a,b){ return b.debt-a.debt; });
-      return {total:rows.reduce(function(a,x){return a+x.debt;},0), top:rows,
+      return {total:sum, top:rows,
               date:ad.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})};
     }
     /* Три крупнейших контрагента вместо одного: долг почти всегда собран
