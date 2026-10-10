@@ -1578,7 +1578,7 @@ a.card.key .card-title{padding-right:100px;}
   });
 
   /* Реализация в 1С. Файл маленький (пара килобайт) — грузим на главную целиком. */
-  load('/realizaciya.js?v=2', function(){
+  load('/realizaciya.js?v=3', function(){
     var R = window.REALIZACIYA;
     if(!R || !R.months || !R.months.length){ set('p-rz','—','нет данных'); return; }
     var MN=['','январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
@@ -1594,7 +1594,13 @@ a.card.key .card-title{padding-right:100px;}
     var tail = (cur!==show)
       ? ' · '+MN[cur.m]+': '+(cur.v1c? money(cur.v1c) : 'ещё не вносили')
       : (norm? ' · обычно '+Math.round(norm*100)+'%' : '');
-    set('p-rz', money(show.v1c), MN[show.m]+' · '+sh+' от отгрузки' + tail);
+    /* Непроведённое — отдельная строка. Это не «не внесли», а «внесли и
+       забыли провести»: документ есть, в оборот 6010 он не попал, чинится
+       одним нажатием. Смешивать это с разрывом по айко нельзя. */
+    var np = R.npTotal || 0, npn = R.npCount || 0;
+    set('p-rz', money(show.v1c), MN[show.m]+' · '+sh+' от отгрузки' + tail
+      + (np ? '<br><span style="color:#fbbf24;font-weight:700">создано, не проведено '
+              + money(np) + '</span> · ' + npn + ' док.' : ''));
     /* 02.10.2026. В подсказке была проза — объяснение, что такое плашка.
        Объяснение читают один раз, а цифры нужны каждый день: заменили текст
        на пять последних закрытых месяцев — сколько внесено в 1С и какая это
@@ -1616,6 +1622,15 @@ a.card.key .card-title{padding-right:100px;}
       if(cur!==show){
         tl.push('');
         tl.push(MN[cur.m]+' (ещё идёт):  '+(cur.v1c? num(cur.v1c)+' ₸' : 'ещё не вносили'));
+      }
+      if(R.npTotal){
+        tl.push('');
+        tl.push('СОЗДАНО, НО НЕ ПРОВЕДЕНО:  '+num(R.npTotal)+' ₸  ·  '+R.npCount+' документов');
+        var npm=R.months.filter(function(x){return x.np;});
+        npm.slice(-4).forEach(function(x){
+          tl.push('   '+MN[x.m]+':  '+num(x.np)+' ₸  ·  '+x.npn+' док.');
+        });
+        tl.push('   в оборот 6010 они не попали — достаточно провести');
       }
       tl.push('');
       tl.push('Чип «3 мес.» — разбор прямо здесь, клик по плашке — полный отчёт.');
