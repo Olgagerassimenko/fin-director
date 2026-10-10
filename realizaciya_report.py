@@ -95,6 +95,73 @@ def turnovers_by_org(acc, start, end):
                   b + float(x.get("СуммаTurnoverCr") or 0))
     return out
 
+# ── создано, но не проведено ──────────────────────────────────────────────
+# В регистр бухгалтерии попадает только проведённое: непроведённый документ
+# движений не делает, и в обороте 6010 его нет. Поэтому разрыв между айко и
+# 1С состоит из двух разных вещей — чего вообще не внесли и что внесли, но
+# не провели. Вторую половину берём из самих документов реализации.
+DOC_NAMES = ["Document_РеализацияТМЗиУслуг",
+             "Document_РеализацияТоваровУслуг",
+             "Document_РеализацияТоваровИУслуг"]
+
+
+def find_doc_entity():
+    """Имя сущности документа реализации в этой базе. Конфигурации зовут его
+    по-разному, поэтому пробуем известные варианты, а если ни один не ответил —
+    ищем в описании базы и пишем найденное в отчёт, чтобы не гадать вслепую."""
+    for n in DOC_NAMES:
+        try:
+            get(n, [("$format", "json"), ("$top", "1")])
+            print("документ реализации:", n)
+            return n, []
+        except Exception as e:
+            print("  %s — нет (%s)" % (n, str(e)[:70]))
+    found = []
+    try:
+        req = urllib.request.Request(BASE + "$metadata", headers={
+            "Authorization": AUTH, "Accept": "application/xml",
+            "User-Agent": "pulse-realizaciya/1.0"})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            meta = r.read().decode("utf-8", "replace")
+        found = sorted(set(re.findall(r'Name="(Document_[^"]*Реализац[^"]*)"', meta)))
+        print("в базе нашлись документы реализации:", ", ".join(found[:12]) or "ни одного")
+    except Exception as e:
+        print("описание базы не прочиталось:", str(e)[:120])
+    return (found[0] if found else None), found
+
+
+def unposted(entity, year, cur_m, end_bound):
+    """Сумма непроведённых документов реализации по месяцам."""
+    out = [0.0] * cur_m
+    cnt = [0] * cur_m
+    if not entity:
+        return out, cnt
+    start = dt(year, 1, 1)
+    skip, page = 0, 1000
+    while True:
+        d = get(entity, [
+            ("$format", "json"),
+            ("$select", "Date,Posted,DeletionMark,СуммаДокумента"),
+            ("$filter", "Date ge datetime'%s' and Date lt datetime'%s' "
+                        "and Posted eq false and DeletionMark eq false" % (start, end_bound)),
+            ("$top", str(page)), ("$skip", str(skip))])
+        rows = val(d)
+        for x in rows:
+            try:
+                m = int(str(x.get("Date") or "")[5:7])
+            except ValueError:
+                continue
+            if 1 <= m <= cur_m:
+                out[m - 1] += float(x.get("СуммаДокумента") or 0)
+                cnt[m - 1] += 1
+        if len(rows) < page:
+            break
+        skip += page
+        if skip > 50000:
+            break
+    return [round(v) for v in out], cnt
+
+
 def iiko_months():
     """Помесячная выручка из айко — эталон, с чем сверяем 1С."""
     p = os.path.join(HERE, "opiu_iiko.js")
@@ -149,6 +216,11 @@ def main():
             "{:,}".format(sum(x["cr"] for x in per)).replace(",", " "),
             "{:,}".format(sum(x["dr"] for x in per)).replace(",", " ")))
 
+    doc_entity, doc_found = find_doc_entity()
+    npv, npc = unposted(doc_entity, year, cur_m, end_bound)
+    print("Создано, но не проведено: %s ₸ в %d документах"
+          % ("{:,}".format(int(sum(npv))).replace(",", " "), sum(npc)))
+
     iiko = iiko_months()
     months = []
     for m in range(1, cur_m + 1):
@@ -159,6 +231,7 @@ def main():
         key = "%04d-%02d" % (year, m)
         ii = iiko.get(key)
         months.append({"m": m, "v1c": round(v1c), "iiko": ii,
+                       "np": npv[m - 1], "npn": npc[m - 1],
                        "diff": (round(v1c) - ii) if ii is not None else None,
                        "pct": (round(v1c) / ii) if ii else None})
 
@@ -174,7 +247,9 @@ def main():
 
     D = {"org": "группа Фуд Завод", "bin": ORG_BIN, "year": year,
          "asof": now.strftime("%d.%m.%Y %H:%M"), "curMonth": cur_m,
-         "months": months, "accounts": list(rows.values()), "orgs": orgrows}
+         "months": months, "accounts": list(rows.values()), "orgs": orgrows,
+         "npTotal": sum(npv), "npCount": sum(npc),
+         "docEntity": doc_entity or "", "docFound": doc_found}
     with open(os.path.join(HERE, "realizaciya.js"), "w", encoding="utf-8") as f:
         f.write("window.REALIZACIYA = " + json.dumps(D, ensure_ascii=False, separators=(",", ":")) + ";\n")
 
