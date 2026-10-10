@@ -8,7 +8,7 @@
 <script src="dz_kz.js?v=3" onerror="window.DZ_KZ=null"></script>
 <script src="saldo.js?v=1" onerror="window.SALDO=null"></script>
 <script src="kz_ana.js?v=1" onerror="window.KZ_ANA=null"></script>
-<script src="balans.js?v=3" onerror="window.BALANS=null"></script>
+<script src="balans.js?v=4" onerror="window.BALANS=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh}
@@ -1529,9 +1529,27 @@ function buildConsign(){
   }
   var inFrom = document.getElementById('gt-from'), inTo = document.getElementById('gt-to');
 
-  /* Период по умолчанию — последняя неделя с данными, как недельный срез в книге. */
-  inTo.value   = iso(last);
-  inFrom.value = iso(new Date(last.getTime() - 6*DAY));
+  /* Неделя в книге идёт с субботы по пятницу, и новая появляется в пятницу
+     вечером, когда Маньшева закрывает срез. Поэтому страница сама переводит
+     период на свежую неделю в пятницу в 17:00 по Алматы: до этого часа
+     показывает прошлую, после — только что закрывшуюся.
+     Время считаем по Алматы (UTC+5), а не по часам смотрящего: отчёт один, и
+     неделя в нём должна быть одна и та же, откуда бы его ни открыли. */
+  var ROLL_HOUR = 17;
+  function bookWeek(){
+    var now = new Date();
+    var alm = new Date(now.getTime() + (now.getTimezoneOffset() + 300) * 60000);
+    var day = new Date(alm.getFullYear(), alm.getMonth(), alm.getDate());
+    var back = (day.getDay() - 5 + 7) % 7;          // сколько дней назад пятница
+    var fri = new Date(day.getTime() - back * DAY);
+    if (back === 0 && alm.getHours() < ROLL_HOUR) fri = new Date(fri.getTime() - 7 * DAY);
+    if (fri > last) fri = last;                      // данные ещё не доехали
+    var from = new Date(fri.getTime() - 6 * DAY);
+    return [from < base ? base : from, fri];
+  }
+  var wk = bookWeek();
+  inFrom.value = iso(wk[0]);
+  inTo.value   = iso(wk[1]);
   inFrom.min = inTo.min = iso(base); inFrom.max = inTo.max = iso(last);
 
   /* Ручные строки приводим к тому же виду, что строки из айко: долг на дату
@@ -1657,6 +1675,10 @@ function buildConsign(){
   document.querySelectorAll('.gt-q').forEach(function(b){
     b.addEventListener('click', function(){
       var n = +b.dataset.q;
+      if (n === 7) {                                 // «неделя» — именно книжная
+        var w = bookWeek();
+        inFrom.value = iso(w[0]); inTo.value = iso(w[1]); gtRender(); return;
+      }
       inTo.value = iso(last);
       inFrom.value = iso(n ? new Date(last.getTime() - (n-1)*DAY) : base);
       gtRender();
