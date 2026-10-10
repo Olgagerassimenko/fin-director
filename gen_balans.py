@@ -256,6 +256,11 @@ def build(side, mv, book, group_chains, anchor_idx):
             continue
         row = {"n": r.get("bookname") or r["n"], "open": op,
                "mv": [[i, round(a), round(b)] for i, (a, b) in pts]}
+        # Строки, которых в книге нет: опереться не на что, остаток на дату
+        # среза у них нулевой, а всё, что было до среза, — обратный счёт из
+        # накладных. Помечаем, чтобы на странице это было видно.
+        if "book" not in r:
+            row["noanchor"] = 1
         if len(r["src"]) > 1:
             row["src"] = sorted(r["src"])
         out.append(row)
