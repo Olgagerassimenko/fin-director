@@ -29,6 +29,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import almaty
 
+OWN    = re.compile(r"^\d+\s*[-–]")   # «102-Яндекс лавка» — наша точка, не поставщик
 BASE   = date(2026, 1, 1)        # точка отсчёта: всё, что раньше, — входящий остаток
 OUTPUT = "balans.js"
 
@@ -106,8 +107,15 @@ def collect(s, H, account, sign, today):
         op = round(opening.get(n, 0.0))
         if not pts and abs(op) < 1:
             continue
-        rows.append({"n": n, "open": op,
-                     "mv": [[i, round(a), round(b)] for i, (a, b) in pts]})
+        r = {"n": n, "open": op,
+             "mv": [[i, round(a), round(b)] for i, (a, b) in pts]}
+        # На счёте 3.06 висят не только поставщики: там же наши точки и
+        # покупатели — «4-Базилик 4 (закрыто)», «102-Яндекс лавка». В айко они
+        # пронумерованы, поставщики — нет. Помечаем, чтобы страница по
+        # умолчанию показывала кредиторку, а не внутренние обороты.
+        if OWN.match(n):
+            r["own"] = 1
+        rows.append(r)
     return rows
 
 
