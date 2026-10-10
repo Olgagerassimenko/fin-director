@@ -1578,7 +1578,7 @@ a.card.key .card-title{padding-right:100px;}
   });
 
   /* Реализация в 1С. Файл маленький (пара килобайт) — грузим на главную целиком. */
-  load('/realizaciya.js?v=3', function(){
+  load('/realizaciya.js?v=4', function(){
     var R = window.REALIZACIYA;
     if(!R || !R.months || !R.months.length){ set('p-rz','—','нет данных'); return; }
     var MN=['','январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
@@ -1594,13 +1594,22 @@ a.card.key .card-title{padding-right:100px;}
     var tail = (cur!==show)
       ? ' · '+MN[cur.m]+': '+(cur.v1c? money(cur.v1c) : 'ещё не вносили')
       : (norm? ' · обычно '+Math.round(norm*100)+'%' : '');
-    /* Непроведённое — отдельная строка. Это не «не внесли», а «внесли и
-       забыли провести»: документ есть, в оборот 6010 он не попал, чинится
-       одним нажатием. Смешивать это с разрывом по айко нельзя. */
-    var np = R.npTotal || 0, npn = R.npCount || 0;
-    set('p-rz', money(show.v1c), MN[show.m]+' · '+sh+' от отгрузки' + tail
-      + (np ? '<br><span style="color:#fbbf24;font-weight:700">создано, не проведено '
-              + money(np) + '</span> · ' + npn + ' док.' : ''));
+    /* Непроведённое — это не «не внесли», а «внесли и забыли провести»:
+       документ есть, в оборот 6010 он не попал, чинится одним нажатием.
+       Поэтому по каждому месяцу пишем обе цифры отдельно: что проведено и
+       что лежит непроведённым. */
+    function mrow(x){
+      if(!x) return '';
+      return '<div style="margin-top:3px;line-height:1.35">'
+        + '<b style="color:#e8eef6">' + MN[x.m] + '</b> · '
+        + '<span style="color:#4ade80">проведено</span> ' + money(x.v1c||0)
+        + (x.np ? ' · <span style="color:#fbbf24">не проведено</span> <b style="color:#fbbf24">'
+                  + money(x.np) + '</b><span style="opacity:.7"> · ' + x.npn + ' док.</span>'
+                : ' · <span style="opacity:.6">непроведённых нет</span>')
+        + (x.pct ? '<span style="opacity:.7"> · ' + Math.round(x.pct*100) + '% от отгрузки</span>' : '')
+        + '</div>';
+    }
+    set('p-rz', money(show.v1c), mrow(show) + (cur !== show ? mrow(cur) : ''));
     /* 02.10.2026. В подсказке была проза — объяснение, что такое плашка.
        Объяснение читают один раз, а цифры нужны каждый день: заменили текст
        на пять последних закрытых месяцев — сколько внесено в 1С и какая это
