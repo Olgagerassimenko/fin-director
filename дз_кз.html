@@ -8,6 +8,7 @@
 <script src="dz_kz.js?v=3" onerror="window.DZ_KZ=null"></script>
 <script src="saldo.js?v=1" onerror="window.SALDO=null"></script>
 <script src="kz_ana.js?v=1" onerror="window.KZ_ANA=null"></script>
+<script src="balans.js?v=1" onerror="window.BALANS=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh}
@@ -115,6 +116,35 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
   border:1px solid #1f4436;border-radius:8px;padding:5px 11px;cursor:pointer;transition:all .15s}
 .sal-xls:hover{background:#12291f;border-color:#4ade80}
 .sal-xls:disabled{opacity:.5;cursor:default}
+/* ── Таблица ДЗ и КЗ: повторяет разметку книги «Баланс по поставщикам» ── */
+.gt-ctl{flex-wrap:wrap;gap:10px}
+.gt-side{display:inline-flex;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:2px}
+.gt-s{font-size:11.5px;font-weight:700;color:#9db0c9;background:none;border:0;border-radius:7px;
+  padding:5px 12px;cursor:pointer;transition:all .15s}
+.gt-s.active{background:#1e3a5f;color:#e2e8f0}
+.gt-q{cursor:pointer}
+.gt-chk{font-size:11px;color:#9db0c9;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.gt-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.gt-tbl th{padding:7px 10px;color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:1px solid #1e293b;background:#0a1424;text-align:right;white-space:nowrap}
+.gt-tbl th.l{text-align:left}
+.gt-tbl th.grp{text-align:center;color:#c9a94e;background:#0d1a2e;border-bottom:1px solid #24324a}
+.gt-tbl td{padding:7px 10px;border-bottom:1px solid #0f172a;color:#cbd5e1;text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.gt-tbl td.l{text-align:left;white-space:normal}
+.gt-tbl tr:hover td{background:#0a1929}
+.gt-tbl tfoot td{font-weight:800;color:#e2e8f0;border-top:1px solid #1e293b;background:#0a1424}
+.gt-own{color:#64748b}
+.gt-man{color:#c9a94e}
+.gt-zero{color:#475569}
+.gt-form{margin-top:14px;background:#0b1526;border:1px solid #1e293b;border-radius:11px;padding:14px}
+.gt-form h4{font-size:12.5px;color:#e2e8f0;margin:0 0 10px}
+.gt-form input,.gt-form select{background:#0f172a;border:1px solid #334155;border-radius:7px;
+  color:#e2e8f0;font-size:12px;padding:5px 8px;font-family:inherit}
+.gt-form label{font-size:11px;color:#9db0c9;display:inline-flex;align-items:center;gap:6px;margin:0 12px 8px 0}
+.gt-ops{margin:8px 0}
+.gt-op{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.gt-x{background:none;border:0;color:#f87171;cursor:pointer;font-size:14px;line-height:1}
 .a-table{width:100%;border-collapse:collapse;font-size:12px}
 .a-table th{padding:7px 10px;text-align:left;color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1e293b;background:#0a1424}
 .a-table th.r{text-align:right}
@@ -303,6 +333,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
       <div class="atab" onclick="showAtab('shares',this)">🥧 Кто держит оборот</div>
       <div class="atab" onclick="showAtab('kzana',this)">🧾 Кому уходят деньги за закуп</div>
       <div class="atab" onclick="showAtab('saldo',this)">📆 Баланс на дату</div>
+      <div class="atab" onclick="showAtab('gtab',this)">📗 Таблица ДЗ и КЗ</div>
     </div>
 
     <!-- НЕСТЫКОВКИ -->
@@ -435,6 +466,40 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
       </div>
       <p class="a-hint" id="sal-hint">—</p>
       <div id="sal-body"></div>
+    </div>
+
+    <!-- ТАБЛИЦА ДЗ И КЗ: та же разметка, что в книге «Баланс по поставщикам»,
+         только собранная из айко и за любой период, а не за недельный срез. -->
+    <div id="atab-gtab" class="apanel">
+      <div class="kz-per gt-ctl">
+        <div class="gt-side">
+          <button type="button" class="gt-s active" data-side="kz">КЗ — мы должны</button>
+          <button type="button" class="gt-s" data-side="dz">ДЗ — должны нам</button>
+        </div>
+        <label style="font-size:12px;color:#9db0c9">с <input type="date" id="gt-from" class="sal-date"></label>
+        <label style="font-size:12px;color:#9db0c9">по <input type="date" id="gt-to" class="sal-date"></label>
+        <div class="sal-quick">
+          <span class="sal-q gt-q" data-q="7">неделя</span>
+          <span class="sal-q gt-q" data-q="30">месяц</span>
+          <span class="sal-q gt-q" data-q="90">квартал</span>
+          <span class="sal-q gt-q" data-q="0">с начала года</span>
+        </div>
+        <input type="search" id="gt-find" class="sal-find" placeholder="Поиск по контрагенту" autocomplete="off">
+        <label class="gt-chk" id="gt-own-wrap"><input type="checkbox" id="gt-own"> показать наши точки</label>
+        <button id="gt-add" class="sal-xls" type="button">+ контрагент</button>
+        <button id="gt-xls" class="sal-xls" type="button">Выгрузить в Excel</button>
+        <span id="gt-upd" style="margin-left:auto"></span>
+      </div>
+      <div class="a-cards">
+        <div class="a-card"><div class="a-card-lbl" id="gt-c1l">Долг на начало</div><div class="a-card-val" id="gt-c1">—</div></div>
+        <div class="a-card"><div class="a-card-lbl" id="gt-c2l">Приход за период</div><div class="a-card-val yellow" id="gt-c2">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Оплата за период</div><div class="a-card-val green" id="gt-c3">—</div></div>
+        <div class="a-card"><div class="a-card-lbl" id="gt-c4l">Долг на конец</div><div class="a-card-val red" id="gt-c4">—</div></div>
+        <div class="a-card"><div class="a-card-lbl">Контрагентов</div><div class="a-card-val" id="gt-c5">—</div></div>
+      </div>
+      <p class="a-hint" id="gt-hint">—</p>
+      <div id="gt-form" class="gt-form" style="display:none"></div>
+      <div id="gt-body"></div>
     </div>
   </div>
 </div>
@@ -1432,6 +1497,299 @@ function buildConsign(){
   function scan(){ [].forEach.call(document.querySelectorAll('table.a-table'),bind); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',scan); else scan();
   new MutationObserver(scan).observe(document.documentElement,{childList:true,subtree:true});
+})();
+
+/* ── Таблица ДЗ и КЗ ───────────────────────────────────────────────────────
+   Повторяет разметку книги «Баланс по поставщикам»: долг на начало периода,
+   приход товара, оплата, долг на конец — по каждому контрагенту. Разница в
+   том, что цифры не вбиты руками, а посчитаны из айко (balans.js: входящий
+   остаток на 1 января плюс движения по дням), поэтому период можно брать
+   любой, а не только недельный срез.
+
+   Контрагентов, которых в айко нет, можно дописать руками — они живут в
+   воркере (/api/balans) и считаются по тем же правилам. */
+(function(){
+  var B = window.BALANS, wrap = document.getElementById('gt-body');
+  if(!wrap) return;
+  if(!B || !B.sides){ wrap.innerHTML = '<p class="a-hint">Данные ещё не собрались — balans.js не загрузился.</p>'; return; }
+
+  var DAY = 86400000;
+  var base = new Date(B.base + 'T00:00:00');
+  var last = new Date(base.getTime() + B.maxDay * DAY);
+  var SIDE = 'kz';
+  var MAN  = {};                       // ручные контрагенты: id → запись
+
+  function iso(d){ return d.toISOString().slice(0,10); }
+  function ru(d){ return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  function di(d){ return Math.round((d - base)/DAY); }
+  function fmt(v){
+    v = Math.round(v);
+    if(!v) return '–';
+    return (v<0?'−':'') + Math.abs(v).toLocaleString('ru-RU').replace(/ /g,' ');
+  }
+  var inFrom = document.getElementById('gt-from'), inTo = document.getElementById('gt-to');
+
+  /* Период по умолчанию — последняя неделя с данными, как недельный срез в книге. */
+  inTo.value   = iso(last);
+  inFrom.value = iso(new Date(last.getTime() - 6*DAY));
+  inFrom.min = inTo.min = iso(base); inFrom.max = inTo.max = iso(last);
+
+  /* Ручные строки приводим к тому же виду, что строки из айко: долг на дату
+     записываем приходом на эту дату, тогда «начало + приход − оплата = конец»
+     сходится и у них. */
+  function manRows(side){
+    return Object.keys(MAN).map(function(k){ return MAN[k]; })
+      .filter(function(r){ return (r.side||'kz') === side; })
+      .map(function(r){
+        var mv = [];
+        if(r.open && r.from) mv.push([di(new Date(r.from+'T00:00:00')), +r.open, 0]);
+        (r.ops||[]).forEach(function(o){
+          if(o.d) mv.push([di(new Date(o.d+'T00:00:00')), +o.in||0, +o.pay||0]);
+        });
+        mv.sort(function(a,b){ return a[0]-b[0]; });
+        return {n:r.n, open:0, mv:mv, man:1, id:r.id, note:r.note||''};
+      });
+  }
+
+  /* Строка за период [a,b] в индексах дней от 1 января. */
+  function calc(r, a, b){
+    var start = r.open, kin = 0, pay = 0;
+    for(var i=0;i<r.mv.length;i++){
+      var m = r.mv[i];
+      if(m[0] < a) start += m[1] - m[2];
+      else if(m[0] <= b){ kin += m[1]; pay += m[2]; }
+    }
+    return {start:start, in:kin, pay:pay, end:start + kin - pay};
+  }
+
+  function gtRender(){
+    var side = SIDE, S = B.sides[side] || {rows:[]};
+    var dFrom = new Date(inFrom.value + 'T00:00:00');
+    var dTo   = new Date(inTo.value   + 'T00:00:00');
+    if(isNaN(dFrom) || isNaN(dTo)) return;
+    if(dTo < dFrom){ var t = dFrom; dFrom = dTo; dTo = t; inFrom.value = iso(dFrom); inTo.value = iso(dTo); }
+    var a = di(dFrom), b = di(dTo);
+    var dStart = new Date(dFrom.getTime() - DAY);
+
+    var showOwn = document.getElementById('gt-own').checked;
+    var q = (document.getElementById('gt-find').value||'').trim().toLowerCase();
+
+    var rows = S.rows.concat(manRows(side)).filter(function(r){
+      if(side === 'kz' && r.own && !showOwn) return false;
+      if(q && r.n.toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    }).map(function(r){
+      var c = calc(r, a, b); c.n = r.n; c.own = r.own; c.man = r.man; c.id = r.id; c.note = r.note;
+      return c;
+    }).filter(function(c){
+      return Math.abs(c.start) >= 1 || Math.abs(c.end) >= 1 || c.in || c.pay;
+    });
+    rows.sort(function(x,y){ return y.end - x.end; });
+
+    var T = rows.reduce(function(t,c){
+      t.start += c.start; t.in += c.in; t.pay += c.pay; t.end += c.end; return t;
+    }, {start:0, in:0, pay:0, end:0});
+
+    var lblDebt = side === 'kz' ? 'КЗ' : 'ДЗ';
+    var lblIn   = side === 'kz' ? 'Приход товара за период' : 'Отгрузка за период';
+
+    document.getElementById('gt-c1l').textContent = lblDebt + ' на ' + ru(dStart);
+    document.getElementById('gt-c2l').textContent = lblIn;
+    document.getElementById('gt-c4l').textContent = lblDebt + ' на ' + ru(dTo);
+    document.getElementById('gt-c1').textContent = fmt(T.start);
+    document.getElementById('gt-c2').textContent = fmt(T.in);
+    document.getElementById('gt-c3').textContent = fmt(T.pay);
+    document.getElementById('gt-c4').textContent = fmt(T.end);
+    document.getElementById('gt-c5').textContent = rows.length;
+    document.getElementById('gt-upd').textContent = 'из айко, обновлено ' + (B.updated||'');
+    document.getElementById('gt-own-wrap').style.display = side === 'kz' ? '' : 'none';
+    document.getElementById('gt-hint').innerHTML = side === 'kz'
+      ? 'Счёт «Задолженность перед поставщиками» (3.06). Плюс — мы должны, минус — у поставщика лежит наша переплата. '
+        + 'Наши точки и покупатели на этом счёте тоже есть, по умолчанию они скрыты.'
+      : 'Счёт «5-Дебит.задолж.» (3.08). Плюс — покупатель должен нам, минус — у нас его предоплата.';
+
+    var per = ru(dFrom) + ' — ' + ru(dTo);
+    var h = '<table class="gt-tbl"><thead>'
+      + '<tr><th class="l" rowspan="2">Контрагент</th>'
+      + '<th rowspan="2">' + lblDebt + '<br>на ' + ru(dStart) + '</th>'
+      + '<th class="grp" colspan="2">с ' + per.replace(' — ',' по ') + '</th>'
+      + '<th rowspan="2">' + lblDebt + '<br>на ' + ru(dTo) + '</th>'
+      + '<th rowspan="2"></th></tr>'
+      + '<tr><th>' + lblIn + '</th><th>Оплата за период</th></tr></thead><tbody>';
+    rows.forEach(function(c){
+      h += '<tr' + (c.man ? ' class="gt-man-row"' : '') + '>'
+        + '<td class="l' + (c.own ? ' gt-own' : '') + (c.man ? ' gt-man' : '') + '">'
+        + (c.man ? '✎ ' : '') + esc(c.n)
+        + (c.note ? '<span style="color:#64748b"> · ' + esc(c.note) + '</span>' : '') + '</td>'
+        + '<td data-v="' + Math.round(c.start) + '">' + fmt(c.start) + '</td>'
+        + '<td data-v="' + Math.round(c.in)    + '">' + fmt(c.in)    + '</td>'
+        + '<td data-v="' + Math.round(c.pay)   + '">' + fmt(c.pay)   + '</td>'
+        + '<td data-v="' + Math.round(c.end)   + '"><b>' + fmt(c.end) + '</b></td>'
+        + '<td>' + (c.man ? '<button class="gt-x" data-edit="' + esc(c.id) + '" title="Править">✎</button>' : '') + '</td>'
+        + '</tr>';
+    });
+    h += '</tbody><tfoot><tr><td class="l">Итого (' + rows.length + ')</td>'
+      + '<td>' + fmt(T.start) + '</td><td>' + fmt(T.in) + '</td>'
+      + '<td>' + fmt(T.pay) + '</td><td>' + fmt(T.end) + '</td><td></td></tr></tfoot></table>';
+    wrap.innerHTML = h;
+    wrap.querySelectorAll('[data-edit]').forEach(function(btn){
+      btn.addEventListener('click', function(){ manForm(MAN[btn.dataset.edit]); });
+    });
+  }
+  function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  /* ── управление ── */
+  document.querySelectorAll('.gt-s').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.gt-s').forEach(function(x){ x.classList.remove('active'); });
+      btn.classList.add('active'); SIDE = btn.dataset.side; gtRender();
+    });
+  });
+  // период пересчитывается сразу, без кнопки «применить»
+  inFrom.addEventListener('change', gtRender);
+  inTo.addEventListener('change', gtRender);
+  document.getElementById('gt-find').addEventListener('input', gtRender);
+  document.getElementById('gt-own').addEventListener('change', gtRender);
+  document.querySelectorAll('.gt-q').forEach(function(b){
+    b.addEventListener('click', function(){
+      var n = +b.dataset.q;
+      inTo.value = iso(last);
+      inFrom.value = iso(n ? new Date(last.getTime() - (n-1)*DAY) : base);
+      gtRender();
+    });
+  });
+
+  /* ── свои кредиторы и дебиторы ─────────────────────────────────────────
+     Их нет в айко (новый поставщик, заём, расчёт без накладной), но в отчёте
+     они нужны. Хранятся в воркере, поэтому видны всем, кто открывает Пульс. */
+  function manLoad(){
+    return fetch('/api/balans?a=list').then(function(r){ return r.json(); })
+      .then(function(j){ MAN = (j && j.rows) || {}; })
+      .catch(function(){ MAN = {}; });
+  }
+  function manForm(rec){
+    var box = document.getElementById('gt-form');
+    var r = rec || {id:'m'+Date.now().toString(36), side:SIDE, n:'', note:'',
+                    open:0, from:iso(last), ops:[]};
+    var isNew = !rec;
+    box.style.display = '';
+    box.innerHTML = '<h4>' + (isNew ? 'Новый контрагент' : 'Правим «' + esc(r.n) + '»') + '</h4>'
+      + '<div><label>Кто <input id="gf-n" style="width:260px" value="' + esc(r.n) + '"></label>'
+      + '<label>Сторона <select id="gf-side">'
+      + '<option value="kz"' + ((r.side||'kz')==='kz'?' selected':'') + '>КЗ — мы должны</option>'
+      + '<option value="dz"' + (r.side==='dz'?' selected':'') + '>ДЗ — должны нам</option></select></label>'
+      + '<label>Долг <input id="gf-open" type="number" step="1" style="width:130px" value="' + (+r.open||0) + '"></label>'
+      + '<label>на дату <input id="gf-from" type="date" value="' + esc(r.from||iso(last)) + '"></label>'
+      + '<label>Пометка <input id="gf-note" style="width:200px" value="' + esc(r.note||'') + '"></label></div>'
+      + '<div class="gt-ops" id="gf-ops"></div>'
+      + '<button type="button" class="sal-xls" id="gf-addop">+ операция</button> '
+      + '<button type="button" class="sal-xls" id="gf-save">Сохранить</button> '
+      + '<button type="button" class="sal-xls" id="gf-cancel">Отмена</button> '
+      + (isNew ? '' : '<button type="button" class="sal-xls" id="gf-del" style="color:#f87171;border-color:#451414;background:#1f0d0d">Удалить</button>')
+      + '<p class="a-hint" style="margin:10px 0 0">Долг на дату попадёт в колонку прихода за тот период, '
+      + 'куда эта дата входит. Операции — это приход товара и оплаты после неё.</p>';
+    var ops = (r.ops||[]).slice();
+    function drawOps(){
+      var o = document.getElementById('gf-ops');
+      o.innerHTML = ops.map(function(x,i){
+        return '<div class="gt-op"><input type="date" data-i="' + i + '" data-f="d" value="' + esc(x.d||'') + '">'
+          + '<input type="number" step="1" data-i="' + i + '" data-f="in" placeholder="приход" style="width:130px" value="' + (+x.in||0) + '">'
+          + '<input type="number" step="1" data-i="' + i + '" data-f="pay" placeholder="оплата" style="width:130px" value="' + (+x.pay||0) + '">'
+          + '<button type="button" class="gt-x" data-del="' + i + '">✕</button></div>';
+      }).join('');
+      o.querySelectorAll('input').forEach(function(el){
+        el.addEventListener('input', function(){
+          var x = ops[+el.dataset.i]; x[el.dataset.f] = el.dataset.f === 'd' ? el.value : +el.value;
+        });
+      });
+      o.querySelectorAll('[data-del]').forEach(function(el){
+        el.addEventListener('click', function(){ ops.splice(+el.dataset.del,1); drawOps(); });
+      });
+    }
+    drawOps();
+    document.getElementById('gf-addop').addEventListener('click', function(){
+      ops.push({d:iso(last), in:0, pay:0}); drawOps();
+    });
+    document.getElementById('gf-cancel').addEventListener('click', function(){ box.style.display='none'; });
+    document.getElementById('gf-save').addEventListener('click', function(){
+      var rec2 = {id:r.id, side:document.getElementById('gf-side').value,
+                  n:document.getElementById('gf-n').value.trim(),
+                  note:document.getElementById('gf-note').value.trim(),
+                  open:+document.getElementById('gf-open').value||0,
+                  from:document.getElementById('gf-from').value, ops:ops};
+      if(!rec2.n){ alert('Впишите, кто это'); return; }
+      fetch('/api/balans?a=save',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({r:rec2})}).then(function(x){ return x.json(); }).then(function(j){
+          if(j.error){ alert(j.error); return; }
+          MAN[rec2.id] = j.r || rec2; box.style.display='none';
+          SIDE = rec2.side;
+          document.querySelectorAll('.gt-s').forEach(function(x){
+            x.classList.toggle('active', x.dataset.side === SIDE); });
+          gtRender();
+        }).catch(function(){ alert('Не сохранилось — нет связи с сервером'); });
+    });
+    var del = document.getElementById('gf-del');
+    if(del) del.addEventListener('click', function(){
+      if(!confirm('Убрать «' + r.n + '» из отчёта?')) return;
+      fetch('/api/balans?a=del',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:r.id})}).then(function(){
+          delete MAN[r.id]; box.style.display='none'; gtRender();
+        });
+    });
+  }
+  document.getElementById('gt-add').addEventListener('click', function(){ manForm(null); });
+
+  /* ── выгрузка в Excel: ровно то, что на экране ── */
+  function loadXLSX(){
+    if(window.XLSX) return Promise.resolve();
+    return new Promise(function(ok,bad){
+      var sc=document.createElement('script');
+      sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      sc.onload=ok; sc.onerror=function(){ bad(new Error('не загрузилась библиотека')); };
+      document.head.appendChild(sc);
+    });
+  }
+  var xb = document.getElementById('gt-xls');
+  xb.addEventListener('click', function(){
+    var old = xb.textContent; xb.disabled = true; xb.textContent = 'Готовлю…';
+    loadXLSX().then(function(){
+      var dFrom = new Date(inFrom.value+'T00:00:00'), dTo = new Date(inTo.value+'T00:00:00');
+      var dStart = new Date(dFrom.getTime()-DAY);
+      var lbl = SIDE==='kz' ? 'КЗ' : 'ДЗ';
+      var aoa = [[ (SIDE==='kz'?'Кредиторка':'Дебиторка') + ' по контрагентам из айко'],
+                 ['период ' + ru(dFrom) + ' — ' + ru(dTo)],
+                 ['данные на ' + (B.updated||'')],
+                 [],
+                 ['Контрагент', lbl+' на '+ru(dStart),
+                  SIDE==='kz' ? 'Приход товара за период' : 'Отгрузка за период',
+                  'Оплата за период', lbl+' на '+ru(dTo)]];
+      var tb = wrap.querySelector('tbody');
+      [].forEach.call(tb.rows, function(tr){
+        aoa.push([tr.cells[0].textContent.replace(/^✎ /,''),
+                  +tr.cells[1].dataset.v, +tr.cells[2].dataset.v,
+                  +tr.cells[3].dataset.v, +tr.cells[4].dataset.v]);
+      });
+      var ft = wrap.querySelector('tfoot tr');
+      if(ft) aoa.push(['Итого',
+        aoa.slice(5).reduce(function(a,r){return a+r[1];},0),
+        aoa.slice(5).reduce(function(a,r){return a+r[2];},0),
+        aoa.slice(5).reduce(function(a,r){return a+r[3];},0),
+        aoa.slice(5).reduce(function(a,r){return a+r[4];},0)]);
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols']=[{wch:46},{wch:18},{wch:20},{wch:18},{wch:18}];
+      for(var i=5;i<aoa.length;i++) for(var c=1;c<=4;c++){
+        var cell = ws[XLSX.utils.encode_cell({r:i,c:c})]; if(cell) cell.z='# ##0';
+      }
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, SIDE==='kz' ? 'KZ' : 'DZ');
+      XLSX.writeFile(wb, (SIDE==='kz'?'Kreditorka_':'Debitorka_') + inFrom.value + '_' + inTo.value + '.xlsx');
+      xb.textContent='Готово';
+    }).catch(function(e){ xb.textContent='Не вышло'; console.error(e); });
+    setTimeout(function(){ xb.disabled=false; xb.textContent=old; }, 1600);
+  });
+
+  manLoad().then(gtRender);
 })();
 </script>
 <script src="nav.js"></script>
