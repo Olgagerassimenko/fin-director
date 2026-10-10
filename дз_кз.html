@@ -1643,7 +1643,9 @@ function buildConsign(){
     // а не делаем вид, что история такая же надёжная, как текущая неделя.
     var anch = B.anchor && B.anchor[side] ? new Date(B.anchor[side] + 'T00:00:00') : null;
     var warn = document.getElementById('gt-warn');
-    if (anch && dFrom <= anch) {
+    // Неделя, которую закрывает срез, ещё надёжна: её начало — это предыдущая
+    // колонка книги. Ругаемся только на то, что уходит глубже.
+    if (anch && dFrom < new Date(anch.getTime() - 6 * DAY)) {
       warn.style.display = '';
       warn.innerHTML = 'Период начинается раньше среза книги (' + ru(anch) + '). '
         + 'До этой даты остатки восстановлены обратным счётом из накладных и с книгой не сверяются — '
