@@ -854,35 +854,141 @@ function devCard(){
     + '<div class="s">обычно это услуги и нетоварные позиции</div></div></div>';
 
   var KR = {'new':'новая карта', 'changed':'состав переписан', 'gone':'карта снята'};
+
+  /* Что именно сделали с картой. Главное — «переписали расход»: состав тот же,
+     а норма другая, и себестоимость блюда поехала молча. Новые и снятые карты
+     видно и так, они отвлекают, поэтому по умолчанию их не показываем. */
+  function ckind(f){
+    if (f.kind === 'new') return 'new';
+    if (f.kind === 'gone') return 'gone';
+    if ((f.chg||[]).length) return 'qty';
+    if ((f.add||[]).length || (f.rem||[]).length) return 'set';
+    return 'other';
+  }
+  function q(x){
+    if (x === null || x === undefined) return '—';
+    var n = Math.abs(x) >= 100 ? Math.round(x) : Math.round(x*10000)/10000;
+    return String(n).replace('.', ',');
+  }
+  function dpc(a, b){
+    if (!a || a === b) return '';
+    var p = (b - a) / Math.abs(a) * 100;
+    return ' <b style="color:' + (p>0?'#fca5a5':'#86efac') + '">'
+      + (p>0?'+':'') + (Math.abs(p)>=10?Math.round(p):Math.round(p*10)/10).toString().replace('.',',') + '%</b>';
+  }
+  /* Главная правка расхода в карте — та, что сильнее всех двинула норму. */
+  function topChg(f){
+    var c = (f.chg||[]).slice().sort(function(a,b){
+      var pa = a[1] ? Math.abs((a[2]-a[1])/a[1]) : 9, pb = b[1] ? Math.abs((b[2]-b[1])/b[1]) : 9;
+      return pb - pa; });
+    return c[0] || null;
+  }
+  var CK = window.__CK || (window.__CK = {qty:1, set:0, new:0, gone:0});
+  var kinds = '<div class="btns" style="margin-bottom:10px">'
+    + [['qty','расход переписан'],['set','состав: добавили или убрали'],
+       ['new','новые карты'],['gone','снятые карты']].map(function(x){
+        var n = CFX.filter(function(f){ return ckind(f) === x[0]; }).length;
+        return '<button class="btn' + (CK[x[0]]?' on':'') + '" data-ck="' + x[0] + '">'
+          + x[1] + ' · ' + n + '</button>'; }).join('') + '</div>';
+
   var log = !CFX.length
     ? '<div class="good"><b>Карты не трогали.</b> С ' + dlong(D.cfixFrom || D.today)
       + ' состав действующих технологических карт не менялся.</div>'
     : CFX.filter(function(f){
         var m = markOf(ckey(f));
         if (!FDONE && m && m.st === 'ok') return false;
+        if (!CK[ckind(f)]) return false;
         return !FQ || f.dish.toLowerCase().indexOf(FQ) >= 0;
       }).reverse().slice(0,200).map(function(f){
         var k = ckey(f);
         return devBlock(k, esc(f.dish),
-          (f.kind === 'new' ? 'новая карта, ' + f.nowN + ' строк состава'
-            : f.kind === 'gone' ? 'карта снята (было ' + f.wasN + ' строк)'
-            : 'состав переписан: строк ' + f.wasN + ' → ' + f.nowN) + ' · действует с ' + dmy(f.df),
+          (function(){
+            var t = topChg(f);
+            if (t) {
+              return 'расход: ' + esc(t[0]) + ' ' + q(t[1]) + ' → ' + q(t[2]) + dpc(t[1], t[2])
+                + ((f.chg||[]).length > 1 ? ' · и ещё ' + ((f.chg||[]).length - 1) : '')
+                + ' · действует с ' + dmy(f.df);
+            }
+            return (f.kind === 'new' ? 'новая карта, ' + f.nowN + ' строк состава'
+              : f.kind === 'gone' ? 'карта снята (было ' + f.wasN + ' строк)'
+              : 'состав: +' + (f.add||[]).length + ' / −' + (f.rem||[]).length)
+              + ' · действует с ' + dmy(f.df);
+          })(),
           f.closed ? ['f-card','закрытый период'] : ['f-stock','текущий период'],
           '<div class="dh">' + (KR[f.kind]||f.kind) + '</div>'
           + '<div class="hint">Действует с ' + dmy(f.df)
           + (f.dfWas && f.dfWas !== f.df ? ' (было с ' + dmy(f.dfWas) + ')' : '')
           + ' · строк в карте ' + f.wasN + ' → ' + f.nowN
+          + (f.wasT != null && f.nowT != null && f.wasT !== f.nowT
+              ? ' · весь расход по карте ' + q(f.wasT) + ' → ' + q(f.nowT) + dpc(f.wasT, f.nowT) : '')
           + (f.outWas != null && f.out != null && f.outWas !== f.out
-              ? ' · выход ' + f.outWas + ' → ' + f.out : '')
+              ? ' · выход ' + q(f.outWas) + ' → ' + q(f.out) + dpc(f.outWas, f.out) : '')
           + (f.closed ? '. <b style="color:#fca5a5">Дата начала внутри закрытого периода — '
               + 'себестоимость уже сданного месяца пересчиталась.</b>' : '.') + '</div>'
           + ((f.add||[]).length || (f.rem||[]).length || (f.chg||[]).length
              ? '<div class="dh">Состав</div><div>'
                + (f.add||[]).map(function(n){ return '<span class="chip add">+ ' + esc(n) + '</span>'; }).join('')
                + (f.rem||[]).map(function(n){ return '<span class="chip rem">− ' + esc(n) + '</span>'; }).join('')
-               + (f.chg||[]).map(function(c){ return '<span class="chip chg">' + esc(c[0]) + ': ' + c[1] + ' → ' + c[2] + '</span>'; }).join('')
+               + (f.chg||[]).slice().sort(function(a,b){
+                   var pa = a[1] ? Math.abs((a[2]-a[1])/a[1]) : 9, pb = b[1] ? Math.abs((b[2]-b[1])/b[1]) : 9;
+                   return pb - pa; }).map(function(c){
+                   return '<span class="chip chg">' + esc(c[0]) + ': ' + q(c[1]) + ' → ' + q(c[2])
+                     + dpc(c[1], c[2]) + '</span>'; }).join('')
                + '</div>' : '')
           + whoHtml(f.when), f.when); }).join('');
+
+  setTimeout(function(){
+    document.querySelectorAll('[data-ck]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var k = b.dataset.ck;
+        CK[k] = CK[k] ? 0 : 1;
+        if (!CK.qty && !CK.set && !CK.new && !CK.gone) CK.qty = 1;   // совсем пусто не оставляем
+        redraw();
+      });
+    });
+  }, 0);
+
+  /* Плоский список: строка на каждую правку внутри карты. Блоками выше видно,
+     какие карты трогали; здесь — что именно в них переписали, одной таблицей,
+     которую можно отсортировать по размеру изменения. */
+  var edits = [];
+  CFX.forEach(function(f){
+    if (FQ && f.dish.toLowerCase().indexOf(FQ) < 0) return;
+    (f.chg||[]).forEach(function(c){
+      edits.push({dish:f.dish, ing:c[0], was:c[1], now:c[2], what:'расход',
+                  df:f.df, when:f.when, closed:f.closed}); });
+    (f.add||[]).forEach(function(n){
+      edits.push({dish:f.dish, ing:n, was:null, now:null, what:'добавили',
+                  df:f.df, when:f.when, closed:f.closed}); });
+    (f.rem||[]).forEach(function(n){
+      edits.push({dish:f.dish, ing:n, was:null, now:null, what:'убрали',
+                  df:f.df, when:f.when, closed:f.closed}); });
+  });
+  edits.sort(function(a,b){
+    var pa = (a.was && a.now) ? Math.abs((a.now-a.was)/a.was) : -1;
+    var pb = (b.was && b.now) ? Math.abs((b.now-b.was)/b.was) : -1;
+    if (pa !== pb) return pb - pa;
+    return String(b.when).localeCompare(String(a.when));
+  });
+  var WHC = {'расход':'chg','добавили':'add','убрали':'rem'};
+  var editsTbl = edits.length
+    ? '<div class="tw"><table style="min-width:780px"><thead><tr>'
+      + '<th class="nm">Блюдо</th><th class="nm">Что правили</th><th>Как</th>'
+      + '<th>Было</th><th>Стало</th><th>Δ</th><th>Действует с</th><th>Когда правили</th>'
+      + '</tr></thead><tbody>'
+      + edits.slice(0,400).map(function(e){
+          return '<tr' + (e.closed ? ' style="background:rgba(248,113,113,.06)"' : '') + '>'
+            + '<td class="nm">' + esc(e.dish) + '</td>'
+            + '<td class="nm">' + esc(e.ing) + '</td>'
+            + '<td><span class="chip ' + (WHC[e.what]||'chg') + '">' + e.what + '</span></td>'
+            + '<td>' + (e.was != null ? q(e.was) : '—') + '</td>'
+            + '<td>' + (e.now != null ? q(e.now) : '—') + '</td>'
+            + '<td>' + ((e.was && e.now) ? dpc(e.was, e.now) : '—') + '</td>'
+            + '<td>' + dmy(e.df) + '</td>'
+            + '<td>' + (String(e.when||'').slice(8,10) + '.' + String(e.when||'').slice(5,7)
+                        + ' ' + String(e.when||'').slice(11,16)) + '</td></tr>'; }).join('')
+      + '</tbody></table></div>'
+    : '<div class="empty">Состав карт не правили.</div>';
 
   var inC = (C.inClosedTop||[]).filter(function(x){ return !FQ || x.dish.toLowerCase().indexOf(FQ) >= 0; });
   var inCTbl = inC.length
@@ -925,7 +1031,12 @@ function devCard(){
     + '<div class="row" style="margin-top:12px">'
     + '<button class="btn' + (FDONE?' on':'') + '" data-fd="1">Показывать разобранные</button>'
     + '<input class="q" id="q" placeholder="🔍 блюдо…" value="' + esc(FQ) + '"></div>'
-    + '<div style="margin-top:12px">' + log + '</div></div>'
+    + '<div style="margin-top:10px">' + kinds + '</div>'
+    + '<div style="margin-top:4px">' + log + '</div></div>'
+    + '<div class="card"><div class="card-t">Что именно правили в картах — ' + f0(edits.length) + '</div>'
+    + '<div class="hint">Строка на каждую правку внутри карты: какое блюдо, какая позиция в составе, '
+    + 'сколько было и сколько стало. Сверху — те, где норму двинули сильнее всего. '
+    + 'Красным подсвечены правки, попавшие в закрытый период.</div>' + editsTbl + '</div>'
     + '<div class="card"><div class="card-t">Карты, действующие с даты внутри закрытого периода — '
     + f0(C.inClosed||0) + '</div>'
     + '<div class="hint">Отсортированы от самых свежих. Карта с датой начала 30 сентября меняет '
