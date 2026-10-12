@@ -370,13 +370,20 @@ def diff_charts(prev, cur, names, closed):
     ciso = closed.isoformat()
 
     def nm(i):
-        return names.get(i) or "позиция " + str(i)[:8]
+        # Имени нет — значит позиции нет в номенклатуре (служебная, удалённая).
+        # Показывать «позиция fd7ef238» бессмысленно: по такой строке нечего
+        # проверять. Такие правки пропускаем и считаем отдельно.
+        return names.get(i) or None
 
     def tot(it):
         return round(sum(it.values()), 4)
 
+    skipped = 0
     for d in set(prev) | set(cur):
         a, b = prev.get(d), cur.get(d)
+        if not nm(d):
+            skipped += 1          # позиции нет в номенклатуре — показывать нечего
+            continue
         if a and not b:
             found.append({"when": stamp, "kind": "gone", "dish": nm(d),
                           "df": a.get("df", ""), "dt": a.get("dt", ""),
@@ -391,16 +398,18 @@ def diff_charts(prev, cur, names, closed):
                               "df": b.get("df", ""), "dt": b.get("dt", ""),
                               "wasN": 0, "nowN": len(b["items"]),
                               "closed": bool(b.get("df") and b["df"] <= ciso),
-                              "add": [nm(k) for k in list(b["items"])[:40]], "rem": [], "chg": []})
+                              "add": [x for x in (nm(k) for k in list(b["items"])[:40]) if x],
+                              "rem": [], "chg": []})
             continue
         ia, ib = a.get("items") or {}, b.get("items") or {}
         same = (ia == ib) and a.get("df") == b.get("df") and a.get("dt") == b.get("dt") \
             and abs((a.get("out") or 0) - (b.get("out") or 0)) < 1e-9
         if same:
             continue
-        add = [nm(k) for k in ib if k not in ia][:40]
-        rem = [nm(k) for k in ia if k not in ib][:40]
-        chg = [[nm(k), ia[k], ib[k]] for k in ib if k in ia and abs(ia[k] - ib[k]) > 1e-9][:40]
+        add = [x for x in (nm(k) for k in ib if k not in ia) if x][:40]
+        rem = [x for x in (nm(k) for k in ia if k not in ib) if x][:40]
+        chg = [[nm(k), ia[k], ib[k]] for k in ib
+               if k in ia and nm(k) and abs(ia[k] - ib[k]) > 1e-9][:40]
         found.append({"when": stamp, "kind": "changed", "dish": nm(d),
                       "df": b.get("df", ""), "dt": b.get("dt", ""),
                       "dfWas": a.get("df", ""), "outWas": a.get("out", 0), "out": b.get("out", 0),
@@ -409,6 +418,8 @@ def diff_charts(prev, cur, names, closed):
                       "closed": bool(b.get("df") and b["df"] <= ciso),
                       "add": add, "rem": rem, "chg": chg})
     found.sort(key=lambda f: (not f["closed"], f["dish"]))
+    if skipped:
+        log("правок по позициям без имени пропущено: %d" % skipped)
     return found
 
 
@@ -431,18 +442,21 @@ def chart_stats(allv, eff, names, year, closed, today):
     noout = [d for d, c in eff.items() if not c.get("out")]
 
     def nm(i):
-        return names.get(i) or "позиция " + str(i)[:8]
+        return names.get(i) or None
 
     return {
         "versions": len(allv), "eff": len(eff), "dishes": len(dishes),
+        "noName": sum(1 for d in eff if not names.get(d)),
         "byMonth": bym,
         "inClosed": len(inClosed),
-        "inClosedTop": sorted([{"dish": nm(v["d"]), "df": v["df"], "n": v["n"]} for v in inClosed],
+        "inClosedTop": sorted([{"dish": nm(v["d"]), "df": v["df"], "n": v["n"]}
+                               for v in inClosed if nm(v["d"])],
                               key=lambda x: x["df"], reverse=True)[:200],
-        "future": [{"dish": nm(v["d"]), "df": v["df"], "n": v["n"]} for v in future][:60],
-        "multi": [{"dish": nm(k), "n": n} for n, k in multi],
-        "empty": [nm(d) for d in empty][:60],
-        "noout": [nm(d) for d in noout][:60],
+        "future": [{"dish": nm(v["d"]), "df": v["df"], "n": v["n"]}
+                   for v in future if nm(v["d"])][:60],
+        "multi": [{"dish": nm(k), "n": n} for n, k in multi if nm(k)],
+        "empty": [x for x in (nm(d) for d in empty) if x][:60],
+        "noout": [x for x in (nm(d) for d in noout) if x][:60],
     }
 
 
@@ -518,26 +532,21 @@ def main():
     try:
         names = product_names(s, tok)
         raw, allv, eff = collect_charts(s, tok, YEAR, TODAY)
-        # справочник кэшируется на сутки: позиция, заведённая после обновления кэша,
-        # показывалась как «позиция fd7ef238». Если в картах есть неизвестные id — перечитываем.
-        _ids = set(eff) | {k for v in eff.values() for k in (v.get("items") or {})}
-        if any(i not in names for i in _ids):
+        # Справочник имён держится сутки в кэше, а карту могли завести на
+        # позицию, созданную сегодня — тогда в отчёте вместо блюда стояло
+        # «позиция fd7ef238». Если среди карт есть незнакомый id,
+        # перечитываем справочник, не дожидаясь завтра.
+        unknown = [d for d in eff if d not in names]
+        if unknown:
+            log("в справочнике нет %d позиций — перечитываю" % len(unknown))
             names = product_names(s, tok, force=True)
+            still = [d for d in eff if d not in names]
+            if still:
+                log("так и не нашлись в номенклатуре: %d" % len(still))
         log("техкарты: версий %d, действующих карт %d" % (len(allv), len(eff)))
         prevc = load(CH_F, {})
         chfix_new = diff_charts(prevc, eff, names, closed)
         chfix = load(CFIX_F, []) + chfix_new
-        # старые записи с «позиция xxxxxxxx» (первые 8 знаков id) — подставляем названия
-        _by8 = {}
-        for _i, _n in names.items():
-            if _n:
-                _by8[str(_i)[:8]] = _n
-        _fix = lambda t: (_by8.get(t[8:]) or t) if isinstance(t, str) and t.startswith("позиция ") else t
-        for _f in chfix:
-            _f["dish"] = _fix(_f.get("dish"))
-            for _k in ("add", "rem"):
-                _f[_k] = [_fix(x) for x in (_f.get(_k) or [])]
-            _f["chg"] = [[_fix(c[0])] + list(c[1:]) for c in (_f.get("chg") or [])]
         if chfix_new:
             log("ПРАВКИ ТЕХКАРТ: %d (из них в закрытом периоде %d)"
                 % (len(chfix_new), sum(1 for f in chfix_new if f["closed"])))
