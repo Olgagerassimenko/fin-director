@@ -1332,6 +1332,10 @@ PKEY=defKey(); render();
 (function(){
   var SP=/[\s   ]/g;
   function val(td){
+    // У раскрытых строк («от кого пришло») одна ячейка на всю ширину, и при
+    // сортировке по дальней колонке сюда приходило undefined — обработчик
+    // падал, и ни одна колонка больше не сортировалась.
+    if(!td) return null;
     var t=(td.getAttribute('data-s')!==null)?td.getAttribute('data-s'):td.textContent;
     t=String(t).replace(SP,' ').trim();
     if(!t||t==='—'||t==='–') return null;
@@ -1362,14 +1366,26 @@ PKEY=defKey(); render();
       th.addEventListener('click',function(){
         var cur=+(th.getAttribute('data-d')||0);
         var probe=null;
-        for(var k=0;k<body.rows.length&&probe===null;k++) probe=val(body.rows[k].cells[ci]);
+        for(var k=0;k<body.rows.length&&probe===null;k++){
+          var rr=body.rows[k];
+          if(rr.className&&rr.className.indexOf('cedet')>=0) continue;
+          probe=val(rr.cells[ci]);
+        }
         var first=(typeof probe==='number')?-1:1;
         var dir = cur===0 ? first : (cur===first ? -first : 0);
         [].forEach.call(hr.cells,function(o){
           o.removeAttribute('data-d'); o.classList.remove('zon');
           var s=o.querySelector('.zsa'); if(s) s.textContent='↕';
         });
-        var rows=[].slice.call(body.rows);
+        /* Строки расшифровки сортировать нельзя: они не самостоятельные,
+           а продолжение своей позиции. Запоминаем, к кому какая относится,
+           и возвращаем её на место сразу за своей строкой. */
+        var rows=[], dets=[], prev=null;
+        [].forEach.call(body.rows,function(r){
+          if(r.className&&r.className.indexOf('cedet')>=0){ if(prev) dets.push([prev,r]); }
+          else { rows.push(r); prev=r; }
+        });
+        function detOf(r){ for(var k=0;k<dets.length;k++) if(dets[k][0]===r) return dets[k][1]; return null; }
         if(dir===0){ rows.sort(function(a,b){ return a.__i-b.__i; }); }
         else{
           th.setAttribute('data-d',dir); th.classList.add('zon');
@@ -1384,7 +1400,7 @@ PKEY=defKey(); render();
           });
         }
         var f=document.createDocumentFragment();
-        rows.forEach(function(r){ f.appendChild(r); });
+        rows.forEach(function(r){ f.appendChild(r); var d=detOf(r); if(d) f.appendChild(d); });
         body.appendChild(f);
         renum(body);
       });
