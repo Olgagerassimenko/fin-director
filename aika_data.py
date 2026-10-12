@@ -518,10 +518,26 @@ def main():
     try:
         names = product_names(s, tok)
         raw, allv, eff = collect_charts(s, tok, YEAR, TODAY)
+        # справочник кэшируется на сутки: позиция, заведённая после обновления кэша,
+        # показывалась как «позиция fd7ef238». Если в картах есть неизвестные id — перечитываем.
+        _ids = set(eff) | {k for v in eff.values() for k in (v.get("items") or {})}
+        if any(i not in names for i in _ids):
+            names = product_names(s, tok, force=True)
         log("техкарты: версий %d, действующих карт %d" % (len(allv), len(eff)))
         prevc = load(CH_F, {})
         chfix_new = diff_charts(prevc, eff, names, closed)
         chfix = load(CFIX_F, []) + chfix_new
+        # старые записи с «позиция xxxxxxxx» (первые 8 знаков id) — подставляем названия
+        _by8 = {}
+        for _i, _n in names.items():
+            if _n:
+                _by8[str(_i)[:8]] = _n
+        _fix = lambda t: (_by8.get(t[8:]) or t) if isinstance(t, str) and t.startswith("позиция ") else t
+        for _f in chfix:
+            _f["dish"] = _fix(_f.get("dish"))
+            for _k in ("add", "rem"):
+                _f[_k] = [_fix(x) for x in (_f.get(_k) or [])]
+            _f["chg"] = [[_fix(c[0])] + list(c[1:]) for c in (_f.get("chg") or [])]
         if chfix_new:
             log("ПРАВКИ ТЕХКАРТ: %d (из них в закрытом периоде %d)"
                 % (len(chfix_new), sum(1 for f in chfix_new if f["closed"])))
