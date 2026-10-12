@@ -398,11 +398,16 @@ function setPlanMonth(){
   document.title=nm+' — план по дням и неделям';
 }
 
-/* Недели месяца — те же, что в балансе по дебиторам: 1–7, 8–14, 15–21, 22–28, 29–конец */
+/* Недели месяца — календарные, Пн–Вс (1-я неделя — с 1-го числа до первого воскресенья) */
 function weekDays(w){
-  const last=dim(PLAN_Y,PLAN_M), a=(w-1)*7+1;
+  const last=dim(PLAN_Y,PLAN_M);
+  const dw0=new Date(Date.UTC(PLAN_Y,PLAN_M,1)).getUTCDay();   /* 0=Вс..6=Сб */
+  const firstLen=(dw0===0)?1:(8-dw0);                            /* дней в 1-й неделе до воскресенья */
+  let a,b;
+  if(w===1){ a=1; b=firstLen; }
+  else { a=firstLen+(w-2)*7+1; b=(w>=5)?last:a+6; }
+  b=Math.min(b,last);
   if(a>last) return [];
-  const b=(w>=5)?last:Math.min(w*7,last);
   const out=[]; for(let d=a;d<=b;d++) out.push(iso(PLAN_Y,PLAN_M,d));
   return out;
 }
@@ -560,7 +565,7 @@ function buildPlanWeeks(wks,P){
     .filter(x=>weekDays(x.w).length).sort((a,b)=>a.cov-b.cov)[0];
   return '<div class="section" id="sec-weeks">'
    +'<div class="card">'+cardHdr('#6366f1','Недели месяца: план и факт')
-   +'<div class="sub2">Недели те же, что в балансе по дебиторам: 1–7, 8–14, 15–21, 22–28, 29–конец. Факт — из iiko по '+FACT_THROUGH+'.</div>'
+   +'<div class="sub2">Недели календарные, Пн–Вс: первая неделя неполная — с 1-го числа до воскресенья. Факт — из iiko по '+FACT_THROUGH+'.</div>'
    +'<div class="tscroll"><table class="dtbl"><thead><tr><th>Неделя</th><th>Статус</th>'
    +'<th class="num">Ожидаем план</th><th class="num">Приход факт</th><th class="num">Платим план</th><th class="num">Расход факт</th>'
    +'<th class="num">Сальдо план</th><th class="num">Сальдо факт</th><th>Покрытие</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'
