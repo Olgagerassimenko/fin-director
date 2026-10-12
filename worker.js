@@ -541,7 +541,7 @@ const AUTH_ITER  = 150000;
 const SETUP_HASH = "c294775d93b48f8e391f9a8f2c1353006d02546637986753df12254b3a3f1492";
 const FAIL_MAX   = 12;              // попыток в час с одного адреса
 
-const AUTH_OPEN = new Set(["/track", "/favicon.ico", "/robots.txt"]);
+const AUTH_OPEN = new Set(["/track", "/favicon.ico", "/robots.txt", "/cfo", "/cfo.html"]);
 
 // Раздел «1С» открыт без пароля — решение владельца от 02.10.2026: страницы
 // налогов и реализации показываем бухгалтерии и банку, не заводя им вход на
