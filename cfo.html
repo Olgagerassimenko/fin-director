@@ -121,13 +121,13 @@ footer{margin-top:30px;color:var(--mut);font-size:12px;line-height:1.7;border-to
 <section class="kpis" id="kpis"></section>
 
 <section class="card">
-  <div class="card-h"><h2>Выручка и прибыль по месяцам</h2><span class="sub">млрд ₸ · 2026 год</span></div>
-  <p class="hint">Выручка растёт девятый месяц, прибыль — быстрее выручки: с 4,1 % в январе до 6,4 % в сентябре.
-    Наведите на месяц — увидите цифры и рентабельность.</p>
+  <div class="card-h"><h2>Выручка и рентабельность по месяцам</h2><span class="sub">2026 год</span></div>
+  <p class="hint">Выручка растёт девятый месяц, прибыль — быстрее выручки: рентабельность поднялась
+    с 4,1 % в январе до 6,4 % в сентябре. Наведите на месяц — увидите выручку, прибыль и процент.</p>
   <div class="row">
     <div class="legend">
-      <span><i style="background:var(--s1)"></i>Выручка</span>
-      <span><i style="background:var(--s2)"></i>Чистая прибыль</span>
+      <span><i style="background:var(--s1)"></i>Выручка, млрд ₸</span>
+      <span><i style="background:var(--s2)"></i>Рентабельность, %</span>
     </div>
     <button class="btn" id="tblBtn" style="margin-left:auto">Показать таблицей</button>
   </div>
@@ -277,41 +277,52 @@ function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){
       + '<div class="v '+x[2]+'">'+x[1]+'</div><div class="s">'+x[4]+'</div></div>'; }).join('');
 })();
 
-/* ── график: выручка и прибыль ──────────────────────────────────────────
-   Две величины разного масштаба на одной оси показывать нельзя, поэтому
-   прибыль идёт столбиками по той же шкале — она честно мелкая рядом
-   с выручкой, и это и есть сообщение. */
+/* ── график: выручка и рентабельность ───────────────────────────────────
+   Две величины разного масштаба на одной оси показывать нельзя и второй
+   оси тоже не бывает, поэтому это две панели с общей осью месяцев:
+   сверху выручка в деньгах, снизу рентабельность в процентах. */
 (function(){
   var box = document.getElementById('chart'), tip = document.getElementById('tip');
-  var W = 1120, H = 300, L = 54, R = 16, T = 16, B = 34;
+  var W = 1120, H = 350, L = 54, R = 16;
+  var T1 = 16, B1 = 214;              // панель выручки
+  var T2 = 252, B2 = 316;             // панель рентабельности
   var mx = Math.max.apply(null, M.map(function(x){return x.rev;}));
+  var pct = M.map(function(x){ return x.np/x.rev*100; });
+  var mp = Math.max.apply(null, pct);
   var step = (W-L-R)/M.length;
-  function y(v){ return T + (H-T-B) * (1 - v/(mx*1.08)); }
-  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Выручка и чистая прибыль по месяцам">';
+  function y(v){ return T1 + (B1-T1) * (1 - v/(mx*1.08)); }
+  function yp(v){ return B2 - (B2-T2) * (v/(mp*1.15)); }
+  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Выручка по месяцам и рентабельность по месяцам">';
   [0,1000,2000,3000].forEach(function(g){
     s += '<line class="gl" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(g)+'" y2="'+y(g)+'"/>'
       +  '<text class="ax" x="'+(L-8)+'" y="'+(y(g)+3)+'" text-anchor="end">'+(g?g/1000+' млрд':'0')+'</text>';
-  });
-  // столбики прибыли
-  M.forEach(function(x,i){
-    var cx = L + step*i + step/2, bw = Math.min(26, step*0.34);
-    s += '<rect x="'+(cx-bw/2)+'" y="'+y(x.np)+'" width="'+bw+'" height="'+(y(0)-y(x.np))+'" rx="4" fill="var(--s2)"/>';
   });
   // линия выручки
   var pts = M.map(function(x,i){ return [L+step*i+step/2, y(x.rev)]; });
   s += '<path fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" d="M'
     + pts.map(function(p){return p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' L') + '"/>';
   pts.forEach(function(p){ s += '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="4.5" fill="var(--s1)" stroke="var(--surface-1)" stroke-width="2"/>'; });
-  // подписи месяцев и значения выручки у краёв
   M.forEach(function(x,i){
     var cx = L + step*i + step/2;
-    s += '<text class="ax" x="'+cx+'" y="'+(H-12)+'" text-anchor="middle">'+x.m.slice(0,3)+'</text>';
     if (i===0 || i===M.length-1)
       s += '<text class="ax" x="'+cx+'" y="'+(y(x.rev)-12)+'" text-anchor="middle" fill="var(--ink2)" font-weight="700">'+(x.rev/1000).toFixed(2).replace('.',',')+'</text>';
   });
-  // прозрачные зоны наведения
+  // вторая панель: рентабельность
+  s += '<text class="ax" x="'+L+'" y="'+(T2-10)+'" fill="var(--ink2)" font-weight="700">Рентабельность, %</text>';
+  s += '<line class="gl" x1="'+L+'" x2="'+(W-R)+'" y1="'+B2+'" y2="'+B2+'"/>';
   M.forEach(function(x,i){
-    s += '<rect x="'+(L+step*i)+'" y="'+T+'" width="'+step+'" height="'+(H-T-B)+'" fill="transparent" data-i="'+i+'"/>';
+    var cx = L + step*i + step/2, bw = Math.min(30, step*0.42), v = pct[i];
+    s += '<rect x="'+(cx-bw/2)+'" y="'+yp(v)+'" width="'+bw+'" height="'+(B2-yp(v))+'" rx="4" fill="var(--s2)"/>'
+      +  '<text class="ax" x="'+cx+'" y="'+(yp(v)-6)+'" text-anchor="middle" fill="var(--ink2)" font-weight="700">'+v.toFixed(1).replace('.',',')+'</text>';
+  });
+  // общая ось месяцев
+  M.forEach(function(x,i){
+    var cx = L + step*i + step/2;
+    s += '<text class="ax" x="'+cx+'" y="'+(H-10)+'" text-anchor="middle">'+x.m.slice(0,3)+'</text>';
+  });
+  // прозрачные зоны наведения — на всю высоту обеих панелей
+  M.forEach(function(x,i){
+    s += '<rect x="'+(L+step*i)+'" y="'+T1+'" width="'+step+'" height="'+(B2-T1)+'" fill="transparent" data-i="'+i+'"/>';
   });
   s += '</svg>';
   box.insertAdjacentHTML('afterbegin', s);
