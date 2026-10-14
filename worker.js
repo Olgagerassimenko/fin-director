@@ -397,9 +397,11 @@ async function handleErp(request, env, url) {
     let raw = null; try { raw = await rr.json(); } catch (e) { return jsonResp({ error: "айко вернул не JSON" }, 502); }
     if (url.searchParams.get("raw")) return jsonResp({ raw: Array.isArray(raw) ? raw.slice(0, 3) : raw });
     const arr = Array.isArray(raw) ? raw : [];
+    const [dS, dP] = await Promise.all([erpDict(env, "stores"), erpDict(env, "products")]);
+    const nm = (map, id) => (map && map[id]) || String(id || "").slice(0, 8);
     const rows = arr.map((x) => ({
-      store: x.store || x.storeName || x.storeId || "",
-      product: x.product || x.productName || x.productId || "",
+      store: x.storeName || nm(dS, x.store || x.storeId),
+      product: x.productName || nm(dP, x.product || x.productId),
       amount: Number(x.amount != null ? x.amount : x.quantity) || 0,
       sum: Number(x.sum != null ? x.sum : x.cost) || 0,
     })).filter((x) => x.amount || x.sum);
@@ -471,6 +473,49 @@ async function handleErp(request, env, url) {
   d.agg.forEach((k) => { sums[k] = rows.reduce((s, x) => s + (x[k] || 0), 0); });
   return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, 300), total: rows.length,
                     sums: sums, from: from, to: to });
+}
+
+/* Справочники складов и номенклатуры: отчёт остатков айко отдаёт одни
+   идентификаторы. Держим карты id → имя в KV сутки — перечитывать их
+   на каждый отчёт слишком дорого, а меняются они редко. */
+const DICT_PATHS = {
+  stores: ["/resto/api/v2/entities/list?rootType=Store&includeDeleted=false",
+           "/resto/api/corporation/stores"],
+  products: ["/resto/api/v2/entities/products/list",
+             "/resto/api/v2/entities/list?rootType=Product&includeDeleted=false"],
+};
+async function erpDict(env, kind) {
+  const key = "dict:" + kind;
+  try {
+    const c = JSON.parse((await env.PLAN.get(key)) || "null");
+    if (c && c.till > Date.now() && c.m) return c.m;
+  } catch (e) {}
+  const token = await iikoAuthCached();
+  const m = {};
+  for (const path of DICT_PATHS[kind]) {
+    try {
+      const txt = (await iikoGet(token, path)).trim();
+      if (txt.startsWith("{") || txt.startsWith("[")) {
+        const j = JSON.parse(txt);
+        const arr = Array.isArray(j) ? j : (j.items || []);
+        for (const x of arr) if (x && x.id) m[x.id] = String(x.name || x.code || x.id).trim();
+      } else {
+        const re = /<(corporateItemDto|storeDto|productDto|item|store|product)\b[^>]*>([\s\S]*?)<\/\1>/g;
+        let mm;
+        while ((mm = re.exec(txt))) {
+          const b = mm[2];
+          const id = (b.match(/<id>([^<]+)<\/id>/) || [])[1];
+          const nm = (b.match(/<name>([^<]*)<\/name>/) || [])[1];
+          if (id) m[id] = (nm || id).trim();
+        }
+      }
+      if (Object.keys(m).length) break;
+    } catch (e) {}
+  }
+  if (Object.keys(m).length) {
+    try { await env.PLAN.put(key, JSON.stringify({ till: Date.now() + 864e5, m: m })); } catch (e) {}
+  }
+  return m;
 }
 
 async function handlePaycal(request, env, url) {
