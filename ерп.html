@@ -265,11 +265,16 @@ var S = [
     ['Реализация товаров (из 1С)','реализация.html','ok'],
     ['Созданные, но не проведённые','реализация.html','ok'],
   ]},
+  {t:'Покупатели', i:[
+    ['Покупатели и их доля в выручке','продажи_2026.html','ok'],
+    ['Разрез контрагент × позиция','продажи_2026.html','ok'],
+    ['Дебиторская задолженность','дз_кз.html','ok'],
+    ['Просроченная задолженность','просрочка.html','ok'],
+  ]},
   {t:'Отчёты', i:[
     ['Продажи за год: месяцы, SKU, точки','продажи_2026.html','ok'],
     ['Выручка по дням, план-факт','план.html','ok'],
     ['Валовая прибыль','опиу_2026.html','ok'],
-    ['Дебиторская задолженность','дз_кз.html','ok'],
   ]},
   {t:'Чего в Пульсе нет', i:[
     ['Заказы клиентов',null,'no'],
@@ -721,8 +726,17 @@ function repInit(list){
   t.value=iso(now);
   f.value=iso(now).slice(0,8)+'01';
   go.onclick=function(){ repRun(sel.value,f.value,t.value); };
-  sel.onchange=function(){ repRun(sel.value,f.value,t.value); };
-  repRun(list[0],f.value,t.value);
+  /* Отчёт сам не строится: как в 1С, его формируют кнопкой. Запрос в айко
+     занимает секунды и занимает сессию resto API — гонять его на каждое
+     открытие раздела незачем. */
+  sel.onchange=repIdle; f.onchange=repIdle; t.onchange=repIdle;
+  repIdle();
+}
+function repIdle(){
+  var bd=document.getElementById('rp-bd'), st=document.getElementById('rp-st');
+  if(!bd) return;
+  st.textContent='';
+  bd.innerHTML='<div class="empty">Отчёт не сформирован. Нажмите «Сформировать».</div>';
 }
 function repRun(key,from,to){
   var bd=document.getElementById('rp-bd'), st=document.getElementById('rp-st'),
