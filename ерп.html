@@ -766,15 +766,24 @@ function repIdle(){
   st.textContent='';
   bd.innerHTML='<div class="empty">Отчёт не сформирован. Нажмите «Сформировать».</div>';
 }
+var repGen=0, repAbort=null;
 function repRun(key,from,to){
   var bd=document.getElementById('rp-bd'), st=document.getElementById('rp-st'),
       go=document.getElementById('rp-go');
   if(!bd) return;
+  /* Отменяем предыдущий запрос: иначе ответ медленного перетирает быстрый,
+     и на экране оказывается чужой период. */
+  if(repAbort) try{ repAbort.abort(); }catch(e){}
+  var my=++repGen, ac=(window.AbortController? new AbortController() : null);
+  repAbort=ac;
+  var tmr=setTimeout(function(){ if(ac) try{ ac.abort(); }catch(e){} }, 70000);
   st.textContent='считаю в айко…'; go.disabled=true;
   bd.innerHTML='<div class="empty">запрос в айко, это занимает несколько секунд…</div>';
-  fetch('/api/erp?r='+encodeURIComponent(key)+'&from='+from+'&to='+to)
+  fetch('/api/erp?r='+encodeURIComponent(key)+'&from='+from+'&to='+to, ac?{signal:ac.signal}:{})
     .then(function(r){ return r.json(); })
     .then(function(j){
+      clearTimeout(tmr);
+      if(my!==repGen) return;          /* пришёл ответ отменённого запроса */
       go.disabled=false;
       if(!j||j.error){ st.textContent=''; bd.innerHTML='<div class="empty">не получилось: '
         +esc((j&&j.error)||'нет ответа')+'</div>'; return; }
@@ -799,8 +808,15 @@ function repRun(key,from,to){
       var more=j.total>j.rows.length ? ' · показаны первые '+j.rows.length+' из '+j.total : '';
       st.textContent='строк '+j.total+more+' · период '+j.from+' — '+j.to;
     })
-    .catch(function(e){ go.disabled=false; st.textContent='';
-      bd.innerHTML='<div class="empty">не получилось: '+esc(String(e))+'</div>'; });
+    .catch(function(e){
+      clearTimeout(tmr);
+      if(my!==repGen) return;
+      go.disabled=false; st.textContent='';
+      var ab=(e&&e.name==='AbortError');
+      bd.innerHTML='<div class="empty">'+(ab
+        ? 'Айко не ответил за минуту. Попробуйте период покороче или повторите — второй запуск берётся из кэша.'
+        : 'не получилось: '+esc(String(e)))+'</div>';
+    });
 }
 
 /* ══════════════════════════════════════════════════════════════════
