@@ -173,6 +173,11 @@ const BAZA_KEY = "baza:rows";
 /* Баланс по контрагентам. Основа приходит из айко файлом balans.js; здесь —
    только те кредиторы и дебиторы, которых в айко нет, и их операции. */
 const BALANS_KEY = "balans:manual";
+/* Доска задач раздела CRM: хранится целиком одним ключом. Страница
+   сохраняет её не на каждый щелчок, а через паузу после последнего
+   изменения — на бесплатном плане Cloudflare всего 1000 записей в KV
+   в сутки, и доска не должна их съедать. */
+const CRM_KEY = "crm:v1";
 
 // ── Налоговый калькулятор: ставки и история расчётов ────────────────────────
 //  Ставки держим в KV, а не в коде: меняется МРП, МЗП или сама ставка —
@@ -293,6 +298,38 @@ async function handleZp(request, env, url) {
 
 
 
+
+async function handleCrm(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  if (act === "get") {
+    let b = null;
+    try { b = JSON.parse((await env.PLAN.get(CRM_KEY)) || "null"); } catch (e) {}
+    return jsonResp({ board: b });
+  }
+  if (act === "save" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const cols = Array.isArray(body && body.cols) ? body.cols : null;
+    if (!cols) return jsonResp({ error: "нет колонок" }, 400);
+    const clean = {
+      upd: new Date().toISOString().slice(0, 16).replace("T", " "),
+      cols: cols.slice(0, 24).map((c) => ({
+        id: String(c.id || "").slice(0, 40),
+        n: String(c.n || "").slice(0, 60),
+        cards: Array.isArray(c.cards) ? c.cards.slice(0, 200).map((k) => ({
+          id: String(k.id || "").slice(0, 40),
+          t: String(k.t || "").slice(0, 400),
+          d: k.d ? 1 : 0,
+        })) : [],
+      })),
+    };
+    const str = JSON.stringify(clean);
+    if (str.length > 400000) return jsonResp({ error: "доска переполнена" }, 413);
+    await env.PLAN.put(CRM_KEY, str);
+    return jsonResp({ ok: true, upd: clean.upd });
+  }
+  return jsonResp({ error: "неизвестное действие" }, 400);
+}
 
 async function handleBalans(request, env, url) {
   const act = url.searchParams.get("a") || "";
@@ -900,6 +937,8 @@ export default {
     if (url.pathname === "/api/aika") return handleAika(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/baza") return handleBaza(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/crm") return handleCrm(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/balans") return handleBalans(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
