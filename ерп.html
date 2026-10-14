@@ -63,34 +63,39 @@ h1{font-size:17px;font-weight:600;color:#1c1c1c;margin-bottom:3px}
 .b-part{background:#fdf1dc;color:#9a6508}
 .b-no{background:#f1f1f1;color:#8a8a8a}
 
-/* ── монитор руководителя: как в 1С — рамка, шапка, таблицы ── */
-.m1c{border:1px solid #c9c9c9;border-radius:2px;margin-bottom:22px;background:#fff;max-width:1080px}
-.m1c .hd{background:#f4f4f4;border-bottom:1px solid #d9d9d9;padding:7px 12px;
-  font-size:13.5px;font-weight:600;color:#1c1c1c}
-.m1c .asof{padding:7px 12px;border-bottom:1px solid #ececec;font-size:12px;color:#444;
-  display:flex;gap:22px;flex-wrap:wrap}
-.m1c .asof b{font-weight:600;color:#1c1c1c}
-.m1c .body{display:grid;grid-template-columns:1fr 1fr;gap:0}
-.m1c .pane{padding:11px 12px 14px;border-right:1px solid #ececec;border-bottom:1px solid #ececec;min-width:0}
-.m1c .pane:nth-child(2n){border-right:0}
-.m1c h3{font-size:12.5px;font-weight:600;color:#1c1c1c;margin-bottom:6px}
+/* ── монитор руководителя: классический вид 1С — синие шапки блоков,
+      сетка, подсветка строки при наведении ── */
+.m1c{border:1px solid #8ca0b8;border-radius:2px;margin-bottom:22px;background:#f7f9fc;max-width:1120px}
+.m1c .hd{background:linear-gradient(#dfe8f3,#c6d6e8);border-bottom:1px solid #9fb3c8;
+  padding:6px 12px;font-size:13.5px;font-weight:700;color:#1b3a5c}
+.m1c .asof{padding:6px 12px;border-bottom:1px solid #d7e0ea;font-size:12px;color:#3b5b7e;
+  background:#eef3f9;display:flex;gap:22px;flex-wrap:wrap}
+.m1c .asof b{font-weight:700;color:#1b3a5c}
+.m1c .body{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}
+.m1c .pane{background:#fff;border:1px solid #9fb3c8;border-radius:2px;min-width:0;overflow:hidden}
+.m1c h3{background:linear-gradient(#dfe8f3,#c6d6e8);border-bottom:1px solid #9fb3c8;
+  padding:4px 8px;font-size:12px;font-weight:700;color:#1b3a5c;margin:0}
 .m1c table{width:100%;border-collapse:collapse;font-size:12px}
-.m1c th{font-weight:400;color:#6b6b6b;text-align:right;padding:3px 4px;border-bottom:1px solid #e0e0e0;
-  font-size:11px;white-space:nowrap}
+.m1c th{background:#eef3f9;font-weight:400;color:#3b5b7e;text-align:right;padding:3px 7px;
+  border-bottom:1px solid #9fb3c8;border-right:1px solid #dde4ec;font-size:11px;white-space:nowrap}
+.m1c th:last-child{border-right:0}
 .m1c th.l,.m1c td.l{text-align:left}
-.m1c td{padding:3px 4px;text-align:right;font-variant-numeric:tabular-nums;color:#1c1c1c;
-  border-bottom:1px solid #f4f4f4;white-space:nowrap}
+.m1c td{padding:3px 7px;text-align:right;font-variant-numeric:tabular-nums;color:#1c1c1c;
+  border-bottom:1px solid #e6ebf2;border-right:1px solid #eef1f5;white-space:nowrap}
+.m1c td:last-child{border-right:0}
 .m1c td.l{white-space:normal}
 .m1c td.nm{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:1px;width:99%}
+.m1c tbody tr:hover td,.m1c table tr:hover td{background:#316ac5;color:#fff}
+.m1c tr:hover td a,.m1c tr:hover td span{color:#fff}
+.m1c tr.tot td{background:#eef3f9;font-weight:700;border-top:1px solid #9fb3c8;
+  border-bottom:0;color:#1b3a5c}
+.m1c tr.tot:hover td{background:#316ac5;color:#fff}
 .m1c a{color:#1d3c6e}
-.m1c tr.tot td{font-weight:700;border-top:1px solid #c9c9c9;border-bottom:0;padding-top:5px}
-.m1c .warn{color:#9a6508;font-weight:600}
-.m1c .empty{font-size:12px;color:#999;padding:4px 0}
-@media(max-width:860px){ .m1c .body{grid-template-columns:1fr} .m1c .pane{border-right:0} }
-
-.note{border:1px solid #e3c969;background:#fffbe9;border-radius:3px;padding:11px 14px;
-  font-size:12.5px;color:#4a4332;line-height:1.55;margin-bottom:20px;max-width:880px}
-.note b{color:#1c1c1c}
+.m1c .warn{color:#c0392b;font-weight:600}
+.m1c .foot{font-size:11px;color:#3b5b7e;padding:5px 8px;background:#f7f9fc;
+  border-top:1px solid #dde4ec}
+.m1c .empty{font-size:12px;color:#8a97a8;padding:7px 8px}
+@media(max-width:860px){ .m1c .body{grid-template-columns:1fr} }
 
 /* ── доска задач CRM, в оформлении «Такси» ── */
 .crm{border:1px solid #c9c9c9;border-radius:2px;margin-bottom:22px;background:#fff}
@@ -607,7 +612,7 @@ function monitor(){
       if(o.rows.length>8)
         h+='<tr><td class="l" style="color:#888">…и ещё '+(o.rows.length-8)+'</td><td></td></tr>';
       h+='<tr class="tot"><td class="l">ВСЕГО</td><td>'+f0(o.total)+'</td></tr></table>'
-       + '<div style="font-size:11px;color:#777;margin-top:6px">на '+o.date+' · '
+       + '<div class="foot">на '+o.date+' · '
        + o.rows.length+' '+who+' · <a href="'+href+'" style="color:#1d3c6e">подробно</a></div>';
       fill(id,h);
     }
@@ -625,9 +630,9 @@ function monitor(){
        + '<td style="color:'+((x.diff||0)<0?'#9a6508':'#888')+'">'+f0(x.diff||0)+'</td>'
        + '<td'+((x.np||0)>0?' class="warn"':'')+'>'+((x.np||0)?f0(x.np)+' · '+x.npn+' док.':'—')+'</td></tr>';
     });
-    h+='</table><div style="font-size:11px;color:#777;margin-top:6px">'
+    h+='</table><div class="foot">'
      + 'Непроведённый документ в 1С создан, но в оборот не попал — в обычном отчёте его не видно. '
-     + '<a href="реализация.html" style="color:#1d3c6e">подробно</a></div>';
+     + '<a href="реализация.html">подробно</a></div>';
     fill('pn-rz',h);
   });
 }
