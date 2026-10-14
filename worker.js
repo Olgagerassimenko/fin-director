@@ -299,6 +299,70 @@ async function handleZp(request, env, url) {
 
 
 
+/* ══════════════════════════════════════════════════════════════════
+   ОТЧЁТЫ РАЗДЕЛА ЕРП — считаются в айко по запросу, а не берутся из
+   собранных файлов. Это и есть «как в 1С»: выбрал период, нажал
+   «Сформировать» — отчёт построился. Набор отчётов закрытый: что
+   не перечислено здесь, через этот адрес не спросить.
+   ══════════════════════════════════════════════════════════════════ */
+const ERP_REPORTS = {
+  osv: { n: "Оборотно-сальдовая ведомость по счетам",
+    group: ["Account.Name"], agg: ["Sum.Incoming", "Sum.Outgoing"],
+    cols: [["Account.Name", "Счёт", "l"], ["Sum.Incoming", "Приход", "n"], ["Sum.Outgoing", "Расход", "n"]] },
+  cash: { n: "Движение денежных средств по статьям",
+    types: ["PAYIN", "PAYOUT"], group: ["Account.Name"], agg: ["Sum.Incoming", "Sum.Outgoing"],
+    cols: [["Account.Name", "Статья", "l"], ["Sum.Incoming", "Поступление", "n"], ["Sum.Outgoing", "Выплата", "n"]] },
+  ship: { n: "Отгрузка по контрагентам",
+    types: ["OUTGOING_INVOICE_REVENUE"], group: ["Counteragent.Name"], agg: ["Sum.Outgoing"],
+    cols: [["Counteragent.Name", "Покупатель", "l"], ["Sum.Outgoing", "Отгружено, ₸", "n"]] },
+  shipit: { n: "Отгрузка по номенклатуре",
+    types: ["OUTGOING_INVOICE_REVENUE"], group: ["Product.Name"], agg: ["Amount", "Sum.Outgoing"],
+    cols: [["Product.Name", "Номенклатура", "l"], ["Amount", "Количество", "q"], ["Sum.Outgoing", "Сумма, ₸", "n"]] },
+  buy: { n: "Закупки по поставщикам",
+    types: ["INVOICE"], group: ["Counteragent.Name"], agg: ["Sum.Incoming"],
+    cols: [["Counteragent.Name", "Поставщик", "l"], ["Sum.Incoming", "Приход, ₸", "n"]] },
+  buyit: { n: "Закупки по номенклатуре",
+    types: ["INVOICE"], group: ["Product.Name"], agg: ["Amount", "Sum.Incoming"],
+    cols: [["Product.Name", "Номенклатура", "l"], ["Amount", "Количество", "q"], ["Sum.Incoming", "Сумма, ₸", "n"]] },
+  prod: { n: "Выпуск продукции",
+    types: ["PRODUCTION"], group: ["Product.Name"], agg: ["Amount", "Sum.Incoming"],
+    cols: [["Product.Name", "Продукция", "l"], ["Amount", "Выпущено", "q"], ["Sum.Incoming", "Себестоимость, ₸", "n"]] },
+  wo: { n: "Списания, брак и недостачи",
+    types: ["WRITEOFF"], group: ["Account.Name", "Product.Name"], agg: ["Amount", "Sum.Outgoing"],
+    cols: [["Account.Name", "Статья", "l"], ["Product.Name", "Номенклатура", "l"],
+           ["Amount", "Количество", "q"], ["Sum.Outgoing", "Сумма, ₸", "n"]] },
+};
+
+async function handleErp(request, env, url) {
+  const key = String(url.searchParams.get("r") || "");
+  const d = ERP_REPORTS[key];
+  if (!d) return jsonResp({ error: "неизвестный отчёт" }, 400);
+  const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
+  const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);  // Алматы
+  const to = ok(url.searchParams.get("to")) ? url.searchParams.get("to") : today;
+  const from = ok(url.searchParams.get("from")) ? url.searchParams.get("from") : to.slice(0, 8) + "01";
+  if (from > to) return jsonResp({ error: "начало периода позже конца" }, 400);
+
+  const filters = { "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM", from: from, to: to } };
+  if (d.types) filters.TransactionType = { filterType: "IncludeValues", values: d.types };
+  const body = { reportType: "TRANSACTIONS", buildSummary: "true",
+    groupByRowFields: d.group, aggregateFields: d.agg, filters: filters };
+
+  const token = await iikoAuthCached();
+  const r = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+    method: "POST", headers: { Cookie: `key=${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body) });
+  if (!r.ok) return jsonResp({ error: "айко ответил " + r.status }, 502);
+  let p = null; try { p = await r.json(); } catch (e) { return jsonResp({ error: "айко вернул не JSON" }, 502); }
+  let rows = Array.isArray(p && p.data) ? p.data : [];
+  const sortKey = d.agg[d.agg.length - 1];
+  rows.sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+  const sums = {};
+  d.agg.forEach((k) => { sums[k] = rows.reduce((s, x) => s + (x[k] || 0), 0); });
+  return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, 300), total: rows.length,
+                    sums: sums, from: from, to: to });
+}
+
 async function handleCrm(request, env, url) {
   const act = url.searchParams.get("a") || "";
   if (act === "get") {
@@ -937,6 +1001,8 @@ export default {
     if (url.pathname === "/api/aika") return handleAika(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/baza") return handleBaza(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/erp") return handleErp(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/crm") return handleCrm(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
