@@ -97,6 +97,20 @@ h1{font-size:17px;font-weight:600;color:#1c1c1c;margin-bottom:3px}
 .m1c .empty{font-size:12px;color:#8a97a8;padding:7px 8px}
 @media(max-width:860px){ .m1c .body{grid-template-columns:1fr} }
 
+/* ── отчёт, который считается в айко по кнопке ── */
+.m1c.rp .asof{align-items:center;gap:10px}
+.m1c.rp select,.m1c.rp input{font:inherit;font-size:12px;border:1px solid #9fb3c8;border-radius:2px;
+  padding:2px 5px;background:#fff;color:#1c1c1c}
+.m1c.rp select{max-width:280px}
+.m1c.rp button{font:inherit;font-size:12px;border:1px solid #9fb3c8;border-radius:2px;padding:2px 12px;
+  background:linear-gradient(#f7fafd,#dfe8f3);color:#1b3a5c;font-weight:600;cursor:pointer}
+.m1c.rp button:hover{background:linear-gradient(#fff,#d2e0ef)}
+.m1c.rp button:disabled{opacity:.6;cursor:default}
+.m1c.rp .st{color:#3b5b7e;font-size:11.5px}
+.rpbd{padding:0;max-height:430px;overflow:auto;background:#fff}
+.rpbd table{width:100%}
+.rpbd th{position:sticky;top:0;z-index:1}
+
 /* ── доска задач CRM, в оформлении «Такси» ── */
 .crm{border:1px solid #c9c9c9;border-radius:2px;margin-bottom:22px;background:#fff}
 .crm .hd{background:#f4f4f4;border-bottom:1px solid #d9d9d9;padding:7px 12px;font-size:13.5px;
@@ -250,7 +264,7 @@ var S = [
  ]},
 
 /* ───────────────────────── ПРОДАЖИ ──────────────────────── */
-{id:'sales', ic:'▦', n:'Продажи', sub:'Отгрузки, выручка, дебиторка', groups:[
+{id:'sales', ic:'▦', n:'Продажи', rep:['ship','shipit'], sub:'Отгрузки, выручка, дебиторка', groups:[
   {t:'Документы', i:[
     ['Реализация товаров (из 1С)','реализация.html','ok'],
     ['Созданные, но не проведённые','реализация.html','ok'],
@@ -269,7 +283,7 @@ var S = [
  ]},
 
 /* ──────────────────────── МАРКЕТИНГ ─────────────────────── */
-{id:'mkt', ic:'◈', n:'Маркетинг', sub:'Ассортимент, цены и маржинальность по позициям', groups:[
+{id:'mkt', ic:'◈', n:'Маркетинг', rep:['shipit','buyit'], sub:'Ассортимент, цены и маржинальность по позициям', groups:[
   {t:'Анализ по SKU', i:[
     ['SKU 360: полный разрез по позициям','sku360.html','ok'],
     ['Себестоимость и маржа по позициям','себестоимость_маржа.html','ok'],
@@ -290,7 +304,7 @@ var S = [
  ]},
 
 /* ───────────────────────── ЗАКУПКИ ──────────────────────── */
-{id:'buy', ic:'⛬', n:'Закупки', sub:'Цены поставщиков и расчёты с ними', groups:[
+{id:'buy', ic:'⛬', n:'Закупки', rep:['buy','buyit'], sub:'Цены поставщиков и расчёты с ними', groups:[
   {t:'Цены и поставщики', i:[
     ['Цены закупа и их изменение','закуп.html','ok'],
     ['Поставщики в разрезе позиции','закуп.html','ok'],
@@ -299,7 +313,6 @@ var S = [
   {t:'Расчёты с поставщиками', i:[
     ['Кредиторка и сальдо на дату','дз_кз.html','ok'],
     ['Приход и оплата по накладным','дз_кз.html','ok'],
-    ['Согласование оплат (Битрикс24)','bitrix_отчёт_оплаты.html','ok'],
   ]},
   {t:'Чего в Пульсе нет', i:[
     ['Заказы поставщикам',null,'no'],
@@ -326,7 +339,7 @@ var S = [
  ]},
 
 /* ─────────────────────── ПРОИЗВОДСТВО ───────────────────── */
-{id:'prod', ic:'⚒', n:'Производство', sub:'Выпуск, нормативы, себестоимость, отклонения', groups:[
+{id:'prod', ic:'⚒', n:'Производство', rep:['prod'], sub:'Выпуск, нормативы, себестоимость, отклонения', groups:[
   {t:'Выпуск и себестоимость', i:[
     ['Выпуск продукции','производство.html','ok'],
     ['Фактическая себестоимость и маржа','себестоимость_маржа.html','ok'],
@@ -347,7 +360,7 @@ var S = [
  ]},
 
 /* ──────────────────────── КАЧЕСТВО ─────────────────────── */
-{id:'qc', ic:'✓', n:'Качество', sub:'Отдел контроля качества: бракераж, брак, нарушения техпроцесса, возвраты', groups:[
+{id:'qc', ic:'✓', n:'Качество', rep:['wo'], sub:'Отдел контроля качества: бракераж, брак, нарушения техпроцесса, возвраты', groups:[
   {t:'Потери качества в деньгах', i:[
     ['Бракераж — статья ОПиУ','опиу_аудит.html','ok'],
     ['Брак','опиу_аудит.html','ok'],
@@ -393,14 +406,13 @@ var S = [
  ]},
 
 /* ────────────────────── КАЗНАЧЕЙСТВО ───────────────────── */
-{id:'treasury', ic:'◉', n:'Казначейство', sub:'Деньги, счета, платежи, взаиморасчёты', groups:[
+{id:'treasury', ic:'◉', n:'Казначейство', rep:['cash','osv'], sub:'Деньги, счета, платежи, взаиморасчёты', groups:[
   {t:'Денежные средства', i:[
     ['Остатки на счетах и в кассах','дашборд_ддс_прямой.html','ok'],
     ['ДДС прямым методом, по дням','дашборд_ддс_прямой.html','ok'],
     ['ДДС косвенным методом, по статьям','дашборд_ддс.html','ok'],
   ]},
   {t:'Платежи и расчёты', i:[
-    ['Согласование оплат (Битрикс24)','bitrix_отчёт_оплаты.html','ok'],
     ['Сальдо по контрагентам','дз_кз.html','ok'],
   ]},
   {t:'Чего в Пульсе нет', i:[
@@ -413,7 +425,7 @@ var S = [
 
 /* ────────── ФИНАНСОВЫЙ РЕЗУЛЬТАТ И КОНТРОЛЛИНГ ──────────── */
 {id:'fin', ic:'▥', n:'Финансовый результат и контроллинг',
- sub:'Прибыль, себестоимость, управленческая отчётность', groups:[
+ rep:['osv','cash'], sub:'Прибыль, себестоимость, управленческая отчётность', groups:[
   {t:'Финансовый результат', i:[
     ['ОПиУ 2026: план, факт, норматив','опиу_2026.html','ok'],
     ['ОПиУ с расшифровкой до документа','опиу_аудит.html','ok'],
@@ -470,7 +482,6 @@ var S = [
   {t:'Интеграции', i:[
     ['iiko — продажи, закуп, склады, тех. карты','айка.html','ok'],
     ['1С по OData — налоги и реализация','реализация.html','ok'],
-    ['Битрикс24 — согласование оплат','bitrix_отчёт_оплаты.html','ok'],
   ]},
   {t:'Сервис', i:[
     ['Все отчёты Пульса','путеводитель.html','ok'],
@@ -526,6 +537,11 @@ function open(id){
     + 'что в «Управлении предприятием 2», внутри — те же команды. Синяя ссылка значит, что такой '
     + 'отчёт в Пульсе уже есть и он живой. Серая — такого нет. Получается честная карта: какую '
     + 'часть ERP завод закрыл, не покупая ERP, и что осталось за её пределами.</div>';
+  if(s.rep) h+= '<div class="m1c rp"><div class="hd">Отчёт из айко</div>'
+    + '<div class="asof"><select id="rp-sel"></select>'
+    + '<span>с <input type="date" id="rp-from"> по <input type="date" id="rp-to"></span>'
+    + '<button id="rp-go">Сформировать</button><span class="st" id="rp-st"></span></div>'
+    + '<div class="rpbd" id="rp-bd"></div></div>';
   if(s.crm) h+= '<div class="crm"><div class="hd">Задачи'
     + '<button class="btn lnk" id="crm-addcol">+ Колонка</button>'
     + '<span class="st" id="crm-st">загружается…</span></div>'
@@ -556,6 +572,7 @@ function open(id){
   });
   if(s.home) monitor();
   if(s.crm) crmInit();
+  if(s.rep) repInit(s.rep);
   if(location.hash.slice(1)!==id) history.replaceState(null,'','#'+id);
 }
 
@@ -580,9 +597,9 @@ function monitor(){
   var m=document.getElementById('mon'); if(!m) return;
   m.innerHTML = pane('pn-cash','Остатки денежных средств на расчётных счетах и в кассах')
               + pane('pn-rev','Доход (выручка)')
+              + pane('pn-rz','Реализация в 1С против айко', true)
               + pane('pn-dz','Дебиторы')
-              + pane('pn-kz','Кредиторы')
-              + pane('pn-rz','Реализация в 1С против айко', true);
+              + pane('pn-kz','Кредиторы');
 
   /* ── Остатки на счетах и в кассах ── */
   load('/ddsp_days.js?v=1',function(){
@@ -601,7 +618,7 @@ function monitor(){
     if(a&&C.date){ var d=C.date.split('-');
       a.innerHTML='По состоянию на: <b>'+d[2]+'.'+d[1]+'.'+d[0]+'</b>'
                 + '<span>Организация: <b>Фуд Завод</b></span>'
-                + '<span>Источник: <b>айко, 1С, Битрикс24</b></span>'; }
+                + '<span>Источник: <b>айко, 1С</b></span>'; }
   });
 
   /* ── Доход по месяцам ── */
@@ -674,6 +691,76 @@ function monitor(){
      + '<a href="реализация.html">подробно</a></div>';
     fill('pn-rz',h);
   });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ОТЧЁТЫ ИЗ АЙКО. Не ссылка на готовую страницу Пульса, а запрос
+   в учётную систему: выбрали период, нажали «Сформировать» —
+   воркер сходил в OLAP айко и вернул строки. Набор отчётов задан
+   на сервере, страница только показывает.
+   ══════════════════════════════════════════════════════════════════ */
+var REP_N = {
+  osv:'Оборотно-сальдовая ведомость по счетам',
+  cash:'Движение денежных средств по статьям',
+  ship:'Отгрузка по контрагентам',
+  shipit:'Отгрузка по номенклатуре',
+  buy:'Закупки по поставщикам',
+  buyit:'Закупки по номенклатуре',
+  prod:'Выпуск продукции',
+  wo:'Списания, брак и недостачи'
+};
+function qty(v){
+  var n=Number(v)||0;
+  if(Math.abs(n-Math.round(n))<0.0005) return f0(n);
+  return n.toFixed(3).replace('.',',');
+}
+function repInit(list){
+  var sel=document.getElementById('rp-sel'), go=document.getElementById('rp-go'),
+      f=document.getElementById('rp-from'), t=document.getElementById('rp-to');
+  if(!sel) return;
+  sel.innerHTML=list.map(function(k){ return '<option value="'+k+'">'+(REP_N[k]||k)+'</option>'; }).join('');
+  var now=new Date(Date.now()+5*3600e3);           /* Алматы */
+  var p2=function(x){ return ('0'+x).slice(-2); };
+  var iso=function(d){ return d.getUTCFullYear()+'-'+p2(d.getUTCMonth()+1)+'-'+p2(d.getUTCDate()); };
+  t.value=iso(now);
+  f.value=iso(now).slice(0,8)+'01';
+  go.onclick=function(){ repRun(sel.value,f.value,t.value); };
+  sel.onchange=function(){ repRun(sel.value,f.value,t.value); };
+  repRun(list[0],f.value,t.value);
+}
+function repRun(key,from,to){
+  var bd=document.getElementById('rp-bd'), st=document.getElementById('rp-st'),
+      go=document.getElementById('rp-go');
+  if(!bd) return;
+  st.textContent='считаю в айко…'; go.disabled=true;
+  bd.innerHTML='<div class="empty">запрос в айко, это занимает несколько секунд…</div>';
+  fetch('/api/erp?r='+encodeURIComponent(key)+'&from='+from+'&to='+to)
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      go.disabled=false;
+      if(!j||j.error){ st.textContent=''; bd.innerHTML='<div class="empty">не получилось: '
+        +esc((j&&j.error)||'нет ответа')+'</div>'; return; }
+      var h='<table><tr>'+j.cols.map(function(c){
+        return '<th'+(c[2]==='l'?' class="l"':'')+'>'+esc(c[1])+'</th>'; }).join('')+'</tr>';
+      j.rows.forEach(function(r){
+        h+='<tr>'+j.cols.map(function(c){
+          var v=r[c[0]];
+          if(c[2]==='l') return '<td class="nm" title="'+esc(v==null?'':v)+'">'+esc(v==null?'—':v)+'</td>';
+          if(c[2]==='q') return '<td>'+qty(v)+'</td>';
+          return '<td>'+f0(v||0)+'</td>';
+        }).join('')+'</tr>';
+      });
+      h+='<tr class="tot">'+j.cols.map(function(c,n){
+        if(c[2]==='l') return '<td class="l">'+(n===0?'ИТОГО':'')+'</td>';
+        if(c[2]==='q') return '<td>'+qty(j.sums[c[0]]||0)+'</td>';
+        return '<td>'+f0(j.sums[c[0]]||0)+'</td>';
+      }).join('')+'</tr></table>';
+      bd.innerHTML=h;
+      var more=j.total>j.rows.length ? ' · показаны первые '+j.rows.length+' из '+j.total : '';
+      st.textContent='строк '+j.total+more+' · период '+j.from+' — '+j.to;
+    })
+    .catch(function(e){ go.disabled=false; st.textContent='';
+      bd.innerHTML='<div class="empty">не получилось: '+esc(String(e))+'</div>'; });
 }
 
 /* ══════════════════════════════════════════════════════════════════
