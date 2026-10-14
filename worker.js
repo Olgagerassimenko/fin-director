@@ -327,6 +327,29 @@ const ERP_REPORTS = {
   prod: { n: "Выпуск продукции",
     types: ["PRODUCTION"], group: ["Product.Name"], agg: ["Amount", "Sum.Incoming"],
     cols: [["Product.Name", "Продукция", "l"], ["Amount", "Выпущено", "q"], ["Sum.Incoming", "Себестоимость, ₸", "n"]] },
+  shipday: { n: "Отгрузка по дням",
+    types: ["OUTGOING_INVOICE_REVENUE"], group: ["DateTime.DateTyped"], agg: ["Sum.Outgoing"], bydate: 1,
+    cols: [["DateTime.DateTyped", "Дата", "l"], ["Sum.Outgoing", "Отгружено, ₸", "n"]] },
+  buyday: { n: "Закупки по дням",
+    types: ["INVOICE"], group: ["DateTime.DateTyped"], agg: ["Sum.Incoming"], bydate: 1,
+    cols: [["DateTime.DateTyped", "Дата", "l"], ["Sum.Incoming", "Приход, ₸", "n"]] },
+  cashday: { n: "Движение денежных средств по дням",
+    types: ["PAYIN", "PAYOUT"], group: ["DateTime.DateTyped"], agg: ["Sum.Incoming", "Sum.Outgoing"], bydate: 1,
+    cols: [["DateTime.DateTyped", "Дата", "l"], ["Sum.Incoming", "Поступление", "n"], ["Sum.Outgoing", "Выплата", "n"]] },
+  prodstore: { n: "Выпуск по складам",
+    types: ["PRODUCTION"], group: ["Store"], agg: ["Amount", "Sum.Incoming"],
+    cols: [["Store", "Склад", "l"], ["Amount", "Выпущено", "q"], ["Sum.Incoming", "Себестоимость, ₸", "n"]] },
+  movestore: { n: "Обороты по складам",
+    group: ["Store"], agg: ["Sum.Incoming", "Sum.Outgoing"],
+    cols: [["Store", "Склад", "l"], ["Sum.Incoming", "Приход, ₸", "n"], ["Sum.Outgoing", "Расход, ₸", "n"]] },
+  chess: { n: "Обороты: счёт и корреспондирующий счёт",
+    group: ["Account.Name", "Contr-Account.Name"], agg: ["Sum.Incoming"],
+    cols: [["Account.Name", "Счёт", "l"], ["Contr-Account.Name", "Корр. счёт", "l"],
+           ["Sum.Incoming", "Оборот, ₸", "n"]] },
+  docs: { n: "Журнал документов",
+    group: ["TransactionType", "Document"], agg: ["Sum.Incoming"],
+    cols: [["TransactionType", "Вид операции", "l"], ["Document", "Документ", "l"],
+           ["Sum.Incoming", "Сумма, ₸", "n"]] },
   wo: { n: "Списания, брак и недостачи",
     types: ["WRITEOFF"], group: ["Account.Name", "Product.Name"], agg: ["Amount", "Sum.Outgoing"],
     cols: [["Account.Name", "Склад / статья", "l"], ["Product.Name", "Номенклатура", "l"],
@@ -355,8 +378,13 @@ async function handleErp(request, env, url) {
   if (!r.ok) return jsonResp({ error: "айко ответил " + r.status }, 502);
   let p = null; try { p = await r.json(); } catch (e) { return jsonResp({ error: "айко вернул не JSON" }, 502); }
   let rows = Array.isArray(p && p.data) ? p.data : [];
-  const sortKey = d.agg[d.agg.length - 1];
-  rows.sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+  if (d.bydate) {
+    const k0 = d.group[0];
+    rows.sort((a, b) => String(a[k0] || "").localeCompare(String(b[k0] || "")));
+  } else {
+    const sortKey = d.agg[d.agg.length - 1];
+    rows.sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+  }
   const sums = {};
   d.agg.forEach((k) => { sums[k] = rows.reduce((s, x) => s + (x[k] || 0), 0); });
   return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, 300), total: rows.length,
