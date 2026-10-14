@@ -329,7 +329,7 @@ const ERP_REPORTS = {
     cols: [["Product.Name", "Продукция", "l"], ["Amount", "Выпущено", "q"], ["Sum.Incoming", "Себестоимость, ₸", "n"]] },
   wo: { n: "Списания, брак и недостачи",
     types: ["WRITEOFF"], group: ["Account.Name", "Product.Name"], agg: ["Amount", "Sum.Outgoing"],
-    cols: [["Account.Name", "Статья", "l"], ["Product.Name", "Номенклатура", "l"],
+    cols: [["Account.Name", "Склад / статья", "l"], ["Product.Name", "Номенклатура", "l"],
            ["Amount", "Количество", "q"], ["Sum.Outgoing", "Сумма, ₸", "n"]] },
 };
 
