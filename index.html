@@ -339,7 +339,7 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-d" id="p-kz-d">загрузка…</div>
       </a>
       <a class="pt" id="p-sales" href="продажи_2026.html" title="Выручка Фуд Завода за последний месяц, без возвратов и без Olive — из iiko">
-        <div class="pt-l">Продажи ФУД ЗАВОД<span class="pt-chip" id="p-olv-sw" role="button" tabindex="0" title="Считать вместе с направлением Olive">+ Olive</span></div>
+        <div class="pt-l">Продажи ФУД ЗАВОД</div>
         <div class="pt-v" id="p-sales-v">—</div>
         <div class="pt-d" id="p-sales-d">загрузка…</div>
       </a>
@@ -1180,9 +1180,6 @@ a.card.key .card-title{padding-right:100px;}
   function dat(s){ var k=String(s||'').split(' ')[0]; return DAT[k]||String(s||'').toLowerCase(); }
 
   var SUM=null;
-  /* Считать ли Olive вместе с заводом. Выбор хранится в браузере: это
-     личная настройка того, кто смотрит, а не общая для всех. */
-  var OLV=false; try{ OLV=localStorage.getItem('pulse-olv')==='1'; }catch(e){}
   var MNR=['','января','февраля','марта','апреля','мая','июня','июля','августа',
            'сентября','октября','ноября','декабря'];
 
@@ -1206,47 +1203,28 @@ a.card.key .card-title{padding-right:100px;}
              prev:prev.reduce(function(a,x){ return a+(D[x]||0); },0) };
   }
 
+  /* Olive в продажи завода не входит: это отдельное направление и у него
+     своя плашка. Здесь — только завод. */
   function renderSales(){
     if(!SUM) return;
     var O=SUM.oliv||null;
     var sp=samePeriod();
-    var rev=(sp?sp.cur:SUM.rev) + (OLV&&O?O.rev:0);
-    var tail=' · '+String(SUM.label||'').toLowerCase()+(OLV?' с Olive':'');
-    if(FC&&FC.fc) tail+=' · прогноз '+money(FC.fc+(OLV&&O?olivFc():0));
+    var rev=sp?sp.cur:SUM.rev;
+    var tail=' · '+String(SUM.label||'').toLowerCase();
+    if(FC&&FC.fc) tail+=' · прогноз '+money(FC.fc);
     var d2;
-    if(sp && sp.prev>0){
-      /* Olive знаем только помесячно — за те же дни берём пропорцией. */
-      var prev=sp.prev + (OLV&&O&&O.prevRev ? O.prevRev*sp.d/sp.pD : 0);
-      d2=chg(rev,prev,1)+'к 1–'+sp.d+' '+MNR[sp.pm]+tail;
-    } else {
-      d2=chg(rev,SUM.prevRev+(OLV&&O?(O.prevRev||0):0),1)
+    if(sp && sp.prev>0) d2=chg(rev,sp.prev,1)+'к 1–'+sp.d+' '+MNR[sp.pm]+tail;
+    else d2=chg(rev,SUM.prevRev,1)
         +'к '+(SUM.prevLabel?dat(SUM.prevLabel):'прошлому месяцу')+tail;
-    }
     set('p-sales', money(rev), d2);
-    var sw=document.getElementById('p-olv-sw');
-    if(sw){ sw.textContent=OLV?'− Olive':'+ Olive';
-            sw.style.background=OLV?'rgba(158,201,72,.22)':''; }
     if(O) set('p-oliv', money1(O.rev),
         chg(O.rev,O.prevRev,1)+'к '+(O.prevLabel?dat(O.prevLabel):'прошлому месяцу')
         +' · с начала года '+money1(O.yearRev));
     else set('p-oliv','—','нет данных');
   }
-  /* Olive в прогнозе — линейно по дневному темпу: подневных данных по ней
-     нет, только месячная сумма. */
-  function olivFc(){
-    var O=SUM&&SUM.oliv; if(!O||!FC||!FC.d) return 0;
-    return O.rev/FC.d*FC.D;
-  }
-
   load('/sales_sum.js?v=1',function(){
     SUM=window.SALES_SUM; if(!SUM) return;
     renderSales();
-    var sw=document.getElementById('p-olv-sw');
-    if(sw) sw.onclick=function(e){
-      e.preventDefault(); e.stopPropagation();
-      OLV=!OLV; try{ localStorage.setItem('pulse-olv',OLV?'1':'0'); }catch(e2){}
-      renderSales(); if(FC) fcShow();
-    };
     /* Плитка «С начала года» заменена ссылкой на «Путеводитель» — цифры года
        остались на дашборде продаж, поэтому здесь их больше не считаем. */
     /* Топ-категория ушла с главной 05.09.2026: она почти не менялась месяцами,
@@ -1375,17 +1353,12 @@ a.card.key .card-title{padding-right:100px;}
      не говорит, куда месяц идёт. */
   function fcShow(){
     if(!FC) return;
-    var O=(SUM&&SUM.oliv)||null;
-    var add=(OLV&&O)?olivFc():0;
-    var fc=FC.fc+add;
-    var fact=FC.rev+FC.today+((OLV&&O)?O.rev:0);
-    var prev=FC.prev+((OLV&&O&&O.prevRev)?O.prevRev:0);
-    var dl=prev>0?(fc/prev*100-100):null;
-    set('p-fc', money(fc),
+    var fact=FC.rev+FC.today;
+    var dl=FC.prev>0?(FC.fc/FC.prev*100-100):null;
+    set('p-fc', money(FC.fc),
         (dl===null?'':'<span class="'+(dl>=0?'up':'down')+'">'+(dl>=0?'+':'−')
           +Math.abs(dl).toFixed(1)+'%</span> к '+dat(FC.prevLbl)+' · ')
-        +'факт '+money(fact)+' за '+FC.d+(FC.today>0?'+сегодня':'')+' дн. из '+FC.D
-        +(OLV?' · с Olive':''));
+        +'факт '+money(fact)+' за '+FC.d+(FC.today>0?'+сегодня':'')+' дн. из '+FC.D);
   }
   /* Пересчёт прогноза при заданном весе текущего месяца.
      Сегодня — день идущий, но факт по нему уже есть: берём большее из факта и
