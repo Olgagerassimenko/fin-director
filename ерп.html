@@ -136,7 +136,9 @@ h1{font-size:17px;font-weight:600;color:#1c1c1c;margin-bottom:3px}
 .crm .hd{background:#f4f4f4;border-bottom:1px solid #d9d9d9;padding:7px 12px;font-size:13.5px;
   font-weight:600;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .crm .hd .st{margin-left:auto;font-size:11.5px;font-weight:400;color:#777}
-.crm .bd{display:flex;gap:10px;padding:12px;overflow-x:auto;align-items:flex-start}
+/* Колонки переносятся на следующий ряд, а не уезжают за горизонтальную
+   полосу прокрутки: доску видно целиком. */
+.crm .bd{display:flex;gap:10px;padding:12px;flex-wrap:wrap;align-items:flex-start}
 .col{flex:0 0 232px;border:1px solid #d9d9d9;border-radius:2px;background:#fafafa;min-height:70px}
 .col.over{border-color:#f0b400;background:#fffaea}
 .col .ch{background:#ffe9a3;border-bottom:1px solid #e3c969;padding:5px 9px;font-size:12.5px;
