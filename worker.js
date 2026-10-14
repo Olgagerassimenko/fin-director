@@ -376,10 +376,32 @@ const ERP_REPORTS = {
            ["Amount", "Количество", "q"], ["Sum.Outgoing", "Сумма, ₸", "n"]] },
 };
 
+/* Кэш ответов на 10 минут. Отчёты тяжёлые — «Валовая прибыль» это две
+   выгрузки из айко, — а за десять минут цифры в учёте не меняются
+   настолько, чтобы гонять запрос заново на каждое нажатие кнопки. */
 async function handleErp(request, env, url) {
+  if (url.searchParams.get("raw")) return handleErpRaw(request, env, url);
+  const ck = new Request("https://erp.cache" + url.pathname + url.search);
+  const hit = await caches.default.match(ck);
+  if (hit) return hit;
+  const resp = await handleErpRaw(request, env, url);
+  if (resp.status === 200) {
+    const body = await resp.clone().text();
+    const cached = new Response(body, {
+      status: 200,
+      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "max-age=600" },
+    });
+    await caches.default.put(ck, cached.clone());
+    return cached;
+  }
+  return resp;
+}
+
+async function handleErpRaw(request, env, url) {
   const key = String(url.searchParams.get("r") || "");
   const d = ERP_REPORTS[key];
   if (!d) return jsonResp({ error: "неизвестный отчёт" }, 400);
+
   const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
   const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);  // Алматы
   const to = ok(url.searchParams.get("to")) ? url.searchParams.get("to") : today;
@@ -430,7 +452,11 @@ async function handleErp(request, env, url) {
       const pp = await rr.json();
       return Array.isArray(pp && pp.data) ? pp.data : [];
     };
-    const [ra, rb] = await Promise.all([pull(d.two.a), pull(d.two.b)]);
+    /* Последовательно, а не параллельно: два тяжёлых OLAP-запроса в одной
+       сессии resto API айко обслуживает по очереди, и параллельный вызов
+       только держит соединение дольше. */
+    const ra = await pull(d.two.a);
+    const rb = await pull(d.two.b);
     const m = new Map();
     const put = (list, part) => list.forEach((x) => {
       const k = String(x[key] || "");
