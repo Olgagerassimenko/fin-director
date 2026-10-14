@@ -63,14 +63,29 @@ h1{font-size:17px;font-weight:600;color:#1c1c1c;margin-bottom:3px}
 .b-part{background:#fdf1dc;color:#9a6508}
 .b-no{background:#f1f1f1;color:#8a8a8a}
 
-/* ── монитор руководителя ── */
-.mon{display:grid;grid-template-columns:repeat(auto-fit,minmax(198px,1fr));gap:10px;margin-bottom:22px}
-.p{border:1px solid #d9d9d9;border-radius:3px;padding:10px 12px;background:#fcfcfc}
-.p .l{font-size:11px;color:#6b6b6b;margin-bottom:3px}
-.p .v{font-size:20px;font-weight:600;color:#1c1c1c;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
-.p .s{font-size:11px;color:#777;margin-top:3px;line-height:1.4}
-.p.warn{border-color:#e8c37a;background:#fffbf0}
-.p.warn .v{color:#9a6508}
+/* ── монитор руководителя: как в 1С — рамка, шапка, таблицы ── */
+.m1c{border:1px solid #c9c9c9;border-radius:2px;margin-bottom:22px;background:#fff;max-width:1080px}
+.m1c .hd{background:#f4f4f4;border-bottom:1px solid #d9d9d9;padding:7px 12px;
+  font-size:13.5px;font-weight:600;color:#1c1c1c}
+.m1c .asof{padding:7px 12px;border-bottom:1px solid #ececec;font-size:12px;color:#444;
+  display:flex;gap:22px;flex-wrap:wrap}
+.m1c .asof b{font-weight:600;color:#1c1c1c}
+.m1c .body{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.m1c .pane{padding:11px 12px 14px;border-right:1px solid #ececec;border-bottom:1px solid #ececec;min-width:0}
+.m1c .pane:nth-child(2n){border-right:0}
+.m1c h3{font-size:12.5px;font-weight:600;color:#1c1c1c;margin-bottom:6px}
+.m1c table{width:100%;border-collapse:collapse;font-size:12px}
+.m1c th{font-weight:400;color:#6b6b6b;text-align:right;padding:3px 4px;border-bottom:1px solid #e0e0e0;
+  font-size:11px;white-space:nowrap}
+.m1c th.l,.m1c td.l{text-align:left}
+.m1c td{padding:3px 4px;text-align:right;font-variant-numeric:tabular-nums;color:#1c1c1c;
+  border-bottom:1px solid #f4f4f4;white-space:nowrap}
+.m1c td.l{white-space:normal;color:#1d3c6e}
+.m1c td.nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:1px;width:99%}
+.m1c tr.tot td{font-weight:700;border-top:1px solid #c9c9c9;border-bottom:0;padding-top:5px}
+.m1c .warn{color:#9a6508;font-weight:600}
+.m1c .empty{font-size:12px;color:#999;padding:4px 0}
+@media(max-width:860px){ .m1c .body{grid-template-columns:1fr} .m1c .pane{border-right:0} }
 
 .note{border:1px solid #e3c969;background:#fffbe9;border-radius:3px;padding:11px 14px;
   font-size:12.5px;color:#4a4332;line-height:1.55;margin-bottom:20px;max-width:880px}
@@ -560,7 +575,9 @@ function open(id){
   var c=cover(s);
   var h='<div class="crumb">Пульс: Управление предприятием</div><h1>'+s.n+'</h1>'
       + '<p class="lead">'+s.sub+'</p>';
-  if(s.home) h+= '<div class="mon" id="mon"></div>'
+  if(s.home) h+= '<div class="m1c"><div class="hd">Монитор руководителя</div>'
+    + '<div class="asof" id="asof">По состоянию на: <b>—</b></div>'
+    + '<div class="body" id="mon"></div></div>'
     + '<div class="note"><b>Это Пульс, разложенный по разделам 1С:ERP.</b> Слева — те же разделы, '
     + 'что в «Управлении предприятием 2», внутри — те же команды. Синяя ссылка значит, что такой '
     + 'отчёт в Пульсе уже есть и он живой. Серая — такого нет. Получается честная карта: какую '
@@ -593,60 +610,120 @@ function open(id){
   if(location.hash.slice(1)!==id) history.replaceState(null,'','#'+id);
 }
 
-/* ── монитор руководителя: живые цифры из тех же файлов, что и главная ── */
-function tile(l,v,s,warn){
-  return '<div class="p'+(warn?' warn':'')+'"><div class="l">'+l+'</div>'
-       + '<div class="v">'+v+'</div><div class="s">'+(s||'')+'</div></div>';
-}
-function setMon(html){ var m=document.getElementById('mon'); if(m) m.innerHTML+=html; }
+/* ══════════════════════════════════════════════════════════════════
+   МОНИТОР РУКОВОДИТЕЛЯ — как в 1С:ERP: остатки на счетах и в кассах,
+   доход, дебиторы, кредиторы. Цифры живые, из тех же файлов, что и
+   главная Пульса, — ничего не пересчитываем заново, чтобы монитор
+   не разошёлся с отчётами.
+   ══════════════════════════════════════════════════════════════════ */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function load(src,cb){ var s=document.createElement('script'); s.src=src;
   s.onload=cb; s.onerror=function(){cb();}; document.head.appendChild(s); }
+function pane(id,title,wide){
+  return '<div class="pane'+(wide?' wide':'')+'" id="'+id+'" style="'+(wide?'grid-column:1/-1':'')+'">'
+       + '<h3>'+title+'</h3><div class="empty">загружается…</div></div>';
+}
+function fill(id,html){ var e=document.getElementById(id); if(!e) return;
+  e.innerHTML = e.querySelector('h3').outerHTML + html; }
+function nodata(id){ fill(id,'<div class="empty">нет данных</div>'); }
 
 function monitor(){
-  var m=document.getElementById('mon'); if(!m) return; m.innerHTML='';
+  var m=document.getElementById('mon'); if(!m) return;
+  m.innerHTML = pane('pn-cash','Остатки денежных средств на расчётных счетах и в кассах')
+              + pane('pn-rev','Доход (выручка)')
+              + pane('pn-dz','Дебиторы')
+              + pane('pn-kz','Кредиторы')
+              + pane('pn-rz','Реализация в 1С против айко', true);
 
-  load('/opiu_rev.js?v=1',function(){
-    var R=window.OPIU_REV; if(!R) return;
-    var ks=Object.keys(R).filter(function(k){return /^\d{4}-\d{2}$/.test(k);}).sort();
-    if(ks.length<2) return;
-    var cur=ks[ks.length-1], prev=ks[ks.length-2];
-    var year=ks.reduce(function(a,k){return a+(R[k].itogo||0);},0);
-    setMon(tile('Выручка за '+MN[+prev.slice(5)], mln(R[prev].itogo), 'последний закрытый месяц'));
-    setMon(tile('Выручка с начала года', mln(year), ks.length+' мес. · на '+(R._through||'')));
-    setMon(tile('Выручка, '+MN[+cur.slice(5)], mln(R[cur].itogo), 'месяц идёт'));
-  });
-
+  /* ── Остатки на счетах и в кассах ── */
   load('/ddsp_days.js?v=1',function(){
-    var C=(window.DDSP_DAYS||{}).cash; if(!C) return;
-    var d=String(C.date||'').split('-'), when=d.length===3?(d[2]+'.'+d[1]):'';
-    setMon(tile('Деньги на счетах и в кассах', mln(C.nal+C.beznal),
-      'нал '+mln(C.nal)+' · безнал '+mln(C.beznal)+(when?' · на '+when:'')));
+    var C=(window.DDSP_DAYS||{}).cash; if(!C||!C.acc) return nodata('pn-cash');
+    var nalSet={}; (C.nalAcc||[]).forEach(function(x){ nalSet[x]=1; });
+    var ks=Object.keys(C.acc).sort(function(a,b){ return C.acc[b]-C.acc[a]; });
+    var h='<table><tr><th class="l">Счёт / касса</th><th>Вид</th><th>Остаток, ₸</th></tr>';
+    ks.forEach(function(k){
+      h+='<tr><td class="nm" title="'+esc(k)+'">'+esc(k)+'</td>'
+       + '<td style="color:#888">'+(nalSet[k]?'касса':'банк')+'</td>'
+       + '<td>'+f0(C.acc[k])+'</td></tr>';
+    });
+    h+='<tr class="tot"><td class="l">ВСЕГО</td><td></td><td>'+f0(C.nal+C.beznal)+'</td></tr></table>';
+    fill('pn-cash',h);
+    var a=document.getElementById('asof');
+    if(a&&C.date){ var d=C.date.split('-');
+      a.innerHTML='По состоянию на: <b>'+d[2]+'.'+d[1]+'.'+d[0]+'</b>'
+                + '<span>Организация: <b>Фуд Завод</b></span>'
+                + '<span>Источник: <b>айко, 1С, Битрикс24</b></span>'; }
   });
 
+  /* ── Доход по месяцам ── */
+  load('/opiu_rev.js?v=1',function(){
+    var R=window.OPIU_REV; if(!R) return nodata('pn-rev');
+    var ks=Object.keys(R).filter(function(k){return /^\d{4}-\d{2}$/.test(k);}).sort();
+    if(!ks.length) return nodata('pn-rev');
+    var yearT=0, yearI=0;
+    ks.forEach(function(k){ yearT+=R[k].trade||0; yearI+=R[k].itogo||0; });
+    var show=ks.slice(-6);
+    var h='<table><tr><th class="l">Месяц</th><th>Торговая выручка</th>'
+        + '<th>Возвраты и прочее</th><th>Итого</th></tr>';
+    show.forEach(function(k){
+      var x=R[k], d=(x.itogo||0)-(x.trade||0);
+      h+='<tr><td class="l">'+MN[+k.slice(5)]+'</td><td>'+f0(x.trade||0)+'</td>'
+       + '<td style="color:'+(d<0?'#9a6508':'#888')+'">'+(d?f0(d):'—')+'</td>'
+       + '<td>'+f0(x.itogo||0)+'</td></tr>';
+    });
+    h+='<tr class="tot"><td class="l">С начала года</td><td>'+f0(yearT)+'</td><td></td>'
+     + '<td>'+f0(yearI)+'</td></tr></table>';
+    fill('pn-rev',h);
+  });
+
+  /* ── Дебиторы и кредиторы ── */
   load('/balans.js?v=2',function(){
-    var B=window.BALANS; if(!B||!B.sides) return;
+    var B=window.BALANS;
+    if(!B||!B.sides){ nodata('pn-dz'); nodata('pn-kz'); return; }
     var DAY=864e5, base=new Date(B.base+'T00:00:00');
     function side(k){
       var S2=B.sides[k]; if(!S2) return null;
       var ad=new Date(((B.anchor&&B.anchor[k])||B.base)+'T00:00:00');
-      var ai=Math.round((ad-base)/DAY), tot=0, n=0;
+      var ai=Math.round((ad-base)/DAY), tot=0, rows=[];
       S2.rows.forEach(function(r){
         var v=r.open;
         for(var j=0;j<r.mv.length;j++){ if(r.mv[j][0]<=ai) v+=r.mv[j][1]-r.mv[j][2]; }
-        tot+=v; if(v>0) n++;
+        tot+=v; if(v>0) rows.push({n:String(r.n).replace(/^\d+-\s*/,''), v:v});
       });
-      return {total:tot, n:n, date:ad.toLocaleDateString('ru-RU')};
+      rows.sort(function(a,b){ return b.v-a.v; });
+      return {total:tot, rows:rows, date:ad.toLocaleDateString('ru-RU')};
     }
-    var dz=side('dz'), kz=side('kz');
-    if(dz) setMon(tile('Нам должны', mln(dz.total), dz.n+' покупателей · на '+dz.date));
-    if(kz) setMon(tile('Мы должны', mln(kz.total), kz.n+' поставщиков · на '+kz.date));
+    function draw(id,o,who,href){
+      if(!o) return nodata(id);
+      var h='<table><tr><th class="l">Контрагент</th><th>Задолженность, ₸</th></tr>';
+      o.rows.slice(0,8).forEach(function(r){
+        h+='<tr><td class="nm" title="'+esc(r.n)+'">'+esc(r.n)+'</td><td>'+f0(r.v)+'</td></tr>';
+      });
+      if(o.rows.length>8)
+        h+='<tr><td class="l" style="color:#888">…и ещё '+(o.rows.length-8)+'</td><td></td></tr>';
+      h+='<tr class="tot"><td class="l">ВСЕГО</td><td>'+f0(o.total)+'</td></tr></table>'
+       + '<div style="font-size:11px;color:#777;margin-top:6px">на '+o.date+' · '
+       + o.rows.length+' '+who+' · <a href="'+href+'" style="color:#1d3c6e">подробно</a></div>';
+      fill(id,h);
+    }
+    draw('pn-dz', side('dz'), 'покупателей', 'дз_кз.html');
+    draw('pn-kz', side('kz'), 'поставщиков', 'дз_кз.html');
   });
 
+  /* ── Реализация: 1С против айко ── */
   load('/realizaciya.js?v=4',function(){
-    var R=window.REALIZACIYA; if(!R||!R.months||!R.months.length) return;
-    if(R.npTotal>0)
-      setMon(tile('Создано, но не проведено', mln(R.npTotal),
-        R.npCount+' документов в 1С · в оборот не попали', true));
+    var R=window.REALIZACIYA; if(!R||!R.months||!R.months.length) return nodata('pn-rz');
+    var h='<table><tr><th class="l">Месяц</th><th>Проведено в 1С</th><th>Отгружено по айко</th>'
+        + '<th>Разница</th><th>Создано, не проведено</th></tr>';
+    R.months.slice(-4).forEach(function(x){
+      h+='<tr><td class="l">'+MN[x.m]+'</td><td>'+f0(x.v1c||0)+'</td><td>'+f0(x.iiko||0)+'</td>'
+       + '<td style="color:'+((x.diff||0)<0?'#9a6508':'#888')+'">'+f0(x.diff||0)+'</td>'
+       + '<td'+((x.np||0)>0?' class="warn"':'')+'>'+((x.np||0)?f0(x.np)+' · '+x.npn+' док.':'—')+'</td></tr>';
+    });
+    h+='</table><div style="font-size:11px;color:#777;margin-top:6px">'
+     + 'Непроведённый документ в 1С создан, но в оборот не попал — в обычном отчёте его не видно. '
+     + '<a href="реализация.html" style="color:#1d3c6e">подробно</a></div>';
+    fill('pn-rz',h);
   });
 }
 
