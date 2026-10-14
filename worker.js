@@ -178,6 +178,9 @@ const BALANS_KEY = "balans:manual";
    изменения — на бесплатном плане Cloudflare всего 1000 записей в KV
    в сутки, и доска не должна их съедать. */
 const CRM_KEY = "crm:v1";
+/* Платёжный календарь: плановые платежи вводятся руками — в айко их нет,
+   там только факт. Факт и остаток денег страница берёт из своих данных. */
+const PAYCAL_KEY = "paycal:v1";
 
 // ── Налоговый калькулятор: ставки и история расчётов ────────────────────────
 //  Ставки держим в KV, а не в коде: меняется МРП, МЗП или сама ставка —
@@ -327,6 +330,23 @@ const ERP_REPORTS = {
   prod: { n: "Выпуск продукции",
     types: ["PRODUCTION"], group: ["Product.Name"], agg: ["Amount", "Sum.Incoming"],
     cols: [["Product.Name", "Продукция", "l"], ["Amount", "Выпущено", "q"], ["Sum.Incoming", "Себестоимость, ₸", "n"]] },
+  gp: { n: "Валовая прибыль по позициям",
+    /* Расходная накладная создаёт в айко две проводки: выручку
+       (OUTGOING_INVOICE_REVENUE) и списание себестоимости со склада
+       (OUTGOING_INVOICE). Берём обе и вычитаем — это и есть валовая
+       прибыль по позиции. Сверено за сентябрь: 267,6 млн выручки
+       против 127,1 млн себестоимости, то есть 47,5 % — ровно норматив
+       «1.1.Себестоимость продуктовая» из ОПиУ. */
+    two: { a: { types: ["OUTGOING_INVOICE_REVENUE"], agg: ["Sum.Outgoing"], as: "rev" },
+           b: { types: ["OUTGOING_INVOICE"], agg: ["Sum.Outgoing"], as: "cost" } },
+    group: ["Product.Name"],
+    cols: [["Product.Name", "Номенклатура", "l"], ["rev", "Выручка, ₸", "n"],
+           ["cost", "Себестоимость, ₸", "n"], ["gp", "Валовая прибыль, ₸", "n"],
+           ["mp", "Маржа, %", "p"]] },
+  stock: { n: "Остатки на складах на дату",
+    kind: "api", path: "/resto/api/v2/reports/balance/stores",
+    cols: [["store", "Склад", "l"], ["product", "Номенклатура", "l"],
+           ["amount", "Количество", "q"], ["sum", "Сумма, ₸", "n"]] },
   shipday: { n: "Отгрузка по дням",
     types: ["OUTGOING_INVOICE_REVENUE"], group: ["DateTime.DateTyped"], agg: ["Sum.Outgoing"], bydate: 1,
     cols: [["DateTime.DateTyped", "Дата", "l"], ["Sum.Outgoing", "Отгружено, ₸", "n"]] },
@@ -366,8 +386,70 @@ async function handleErp(request, env, url) {
   const from = ok(url.searchParams.get("from")) ? url.searchParams.get("from") : to.slice(0, 8) + "01";
   if (from > to) return jsonResp({ error: "начало периода позже конца" }, 400);
 
+  /* Остатки берём не из OLAP, а из отчёта остатков айко: OLAP по всей
+     истории проводок кладёт и запрос, и склад. */
+  if (d.kind === "api") {
+    const token = await iikoAuthCached();
+    const ts = to + "T23:59:59";
+    const ru = `${IIKO.url}${d.path}?timestamp=${encodeURIComponent(ts)}`;
+    const rr = await fetch(ru, { headers: { Cookie: `key=${token}` } });
+    if (!rr.ok) return jsonResp({ error: "айко ответил " + rr.status }, 502);
+    let raw = null; try { raw = await rr.json(); } catch (e) { return jsonResp({ error: "айко вернул не JSON" }, 502); }
+    if (url.searchParams.get("raw")) return jsonResp({ raw: Array.isArray(raw) ? raw.slice(0, 3) : raw });
+    const arr = Array.isArray(raw) ? raw : [];
+    const rows = arr.map((x) => ({
+      store: x.store || x.storeName || x.storeId || "",
+      product: x.product || x.productName || x.productId || "",
+      amount: Number(x.amount != null ? x.amount : x.quantity) || 0,
+      sum: Number(x.sum != null ? x.sum : x.cost) || 0,
+    })).filter((x) => x.amount || x.sum);
+    rows.sort((a, b) => b.sum - a.sum);
+    const sums = { amount: rows.reduce((s2, x) => s2 + x.amount, 0),
+                   sum: rows.reduce((s2, x) => s2 + x.sum, 0) };
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, 300), total: rows.length,
+                      sums: sums, from: to, to: to });
+  }
+
   const filters = { "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM", from: from, to: to } };
   if (d.types) filters.TransactionType = { filterType: "IncludeValues", values: d.types };
+
+  /* Отчёт из двух выгрузок: считаем обе и складываем по ключу группировки. */
+  if (d.two) {
+    const token2 = await iikoAuthCached();
+    const key = d.group[0];
+    const pull = async (part) => {
+      const f2 = JSON.parse(JSON.stringify(filters));
+      f2.TransactionType = { filterType: "IncludeValues", values: part.types };
+      const rr = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+        method: "POST", headers: { Cookie: `key=${token2}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reportType: "TRANSACTIONS", buildSummary: "true",
+          groupByRowFields: d.group, aggregateFields: part.agg, filters: f2 }) });
+      if (!rr.ok) throw new Error("айко ответил " + rr.status);
+      const pp = await rr.json();
+      return Array.isArray(pp && pp.data) ? pp.data : [];
+    };
+    const [ra, rb] = await Promise.all([pull(d.two.a), pull(d.two.b)]);
+    const m = new Map();
+    const put = (list, part) => list.forEach((x) => {
+      const k = String(x[key] || "");
+      const o = m.get(k) || { [key]: k, rev: 0, cost: 0 };
+      o[part.as] += Number(x[part.agg[0]]) || 0;
+      m.set(k, o);
+    });
+    put(ra, d.two.a); put(rb, d.two.b);
+    let rows2 = [...m.values()].map((o) => {
+      o.gp = o.rev - o.cost;
+      o.mp = o.rev ? (o.gp / o.rev) * 100 : 0;
+      return o;
+    }).filter((o) => o.rev || o.cost);
+    rows2.sort((a, b) => b.gp - a.gp);
+    const sRev = rows2.reduce((s2, x) => s2 + x.rev, 0);
+    const sCost = rows2.reduce((s2, x) => s2 + x.cost, 0);
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, 300), total: rows2.length,
+      sums: { rev: sRev, cost: sCost, gp: sRev - sCost, mp: sRev ? ((sRev - sCost) / sRev) * 100 : 0 },
+      from: from, to: to });
+  }
+
   const body = { reportType: "TRANSACTIONS", buildSummary: "true",
     groupByRowFields: d.group, aggregateFields: d.agg, filters: filters };
 
@@ -389,6 +471,51 @@ async function handleErp(request, env, url) {
   d.agg.forEach((k) => { sums[k] = rows.reduce((s, x) => s + (x[k] || 0), 0); });
   return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, 300), total: rows.length,
                     sums: sums, from: from, to: to });
+}
+
+async function handlePaycal(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  async function rows() {
+    try { return JSON.parse((await env.PLAN.get(PAYCAL_KEY)) || "{}") || {}; } catch (e) { return {}; }
+  }
+  if (act === "list") return jsonResp({ rows: await rows() });
+
+  if (act === "save" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const r = body && body.r;
+    if (!r) return jsonResp({ error: "нет строки" }, 400);
+    const id = String(r.id || "").slice(0, 40).trim()
+      || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+    const clean = {
+      id: id,
+      d: /^\d{4}-\d{2}-\d{2}$/.test(String(r.d || "")) ? r.d : "",
+      w: String(r.w || "").slice(0, 120),
+      n: String(r.n || "").slice(0, 200),
+      a: Math.round(Number(r.a) || 0),
+      st: r.st === "done" ? "done" : "plan",
+    };
+    if (!clean.d) return jsonResp({ error: "нет даты" }, 400);
+    if (!clean.a) return jsonResp({ error: "нет суммы" }, 400);
+    const all = await rows();
+    all[id] = clean;
+    const str = JSON.stringify(all);
+    if (str.length > 400000) return jsonResp({ error: "календарь переполнен" }, 413);
+    await env.PLAN.put(PAYCAL_KEY, str);
+    return jsonResp({ ok: true, r: clean, count: Object.keys(all).length });
+  }
+
+  if (act === "del" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const id = String((body && body.id) || "").slice(0, 40).trim();
+    if (!id) return jsonResp({ error: "нет ключа" }, 400);
+    const all = await rows();
+    delete all[id];
+    await env.PLAN.put(PAYCAL_KEY, JSON.stringify(all));
+    return jsonResp({ ok: true, count: Object.keys(all).length });
+  }
+  return jsonResp({ error: "неизвестное действие" }, 400);
 }
 
 async function handleCrm(request, env, url) {
@@ -1031,6 +1158,8 @@ export default {
     if (url.pathname === "/api/baza") return handleBaza(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/erp") return handleErp(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/paycal") return handlePaycal(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/crm") return handleCrm(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
