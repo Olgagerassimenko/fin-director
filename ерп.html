@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ЕРП · Пульс</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   Интерфейс «Такси» 1С:Предприятия 8.3, воспроизведённый на Пульсе:
+   жёлтая панель разделов слева, белая рабочая область, команды
+   разложены по колонкам — как в 1С:ERP Управление предприятием 2.
+
+   Структура разделов и команд повторяет оригинал. Синяя живая ссылка —
+   такой отчёт в Пульсе есть. Серая — такого нет. Страница заодно
+   показывает, какую часть ERP завод закрыл, не покупая ERP.
+   ══════════════════════════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:13px/1.45 "Segoe UI",system-ui,Arial,sans-serif;color:#1c1c1c;background:#fff;
+  display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+
+/* ── верхняя жёлтая полоса ── */
+.tb{background:#ffe9a3;border-bottom:1px solid #e3c969;display:flex;align-items:center;
+  gap:11px;padding:0 12px;height:34px;flex:0 0 auto}
+.tb .logo{width:26px;height:17px;border-radius:2px;background:#f5c518;position:relative;flex:0 0 auto;
+  display:grid;place-items:center;font-weight:900;font-size:10px;color:#111;letter-spacing:-.5px}
+.tb .logo:after{content:'';position:absolute;right:2px;top:3px;width:5px;height:11px;
+  border-radius:1px;background:#e2231a}
+.tb .burger{font-size:15px;color:#4a4332;user-select:none}
+.tb .cap{font-size:12.5px;color:#262626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb .sp{margin-left:auto;display:flex;gap:12px;align-items:center}
+.tb a.exit{font-size:12px;color:#1d3c6e;text-decoration:none;white-space:nowrap}
+.tb a.exit:hover{text-decoration:underline}
+
+.wrap{flex:1 1 auto;display:flex;min-height:0}
+
+/* ── левая панель разделов ── */
+.nav{width:216px;flex:0 0 216px;background:#ffe9a3;overflow-y:auto;padding:2px 0 24px}
+.nav button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:0;
+  background:none;font:inherit;font-size:12.5px;color:#1c1c1c;padding:7px 10px 7px 11px;
+  cursor:pointer;line-height:1.25;border-left:3px solid transparent}
+.nav button:hover{background:#ffdf7e}
+.nav button.on{background:#fff;border-left-color:#f0b400;font-weight:600}
+.nav .ic{width:16px;flex:0 0 16px;text-align:center;font-size:13px;opacity:.75}
+
+/* ── рабочая область ── */
+.main{flex:1 1 auto;overflow-y:auto;padding:16px 26px 60px;min-width:0}
+.crumb{font-size:12px;color:#6b6b6b;margin-bottom:3px}
+h1{font-size:17px;font-weight:600;color:#1c1c1c;margin-bottom:3px}
+.lead{font-size:12.5px;color:#555;max-width:780px;margin-bottom:18px;line-height:1.5}
+
+.cols{column-width:272px;column-gap:38px}
+.grp{break-inside:avoid;margin-bottom:21px;display:inline-block;width:100%}
+.grp h2{font-size:13.5px;font-weight:600;color:#1a9e4b;margin-bottom:7px}
+.grp ul{list-style:none}
+.grp li{padding:2.5px 0;display:flex;gap:7px;align-items:baseline}
+.grp a{color:#1d3c6e;text-decoration:none}
+.grp a:hover{text-decoration:underline}
+.grp .no{color:#9a9a9a}
+.bg{font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;
+  letter-spacing:.02em;flex:0 0 auto;position:relative;top:-1px}
+.b-ok{background:#e7f6ec;color:#17793c}
+.b-part{background:#fdf1dc;color:#9a6508}
+.b-no{background:#f1f1f1;color:#8a8a8a}
+
+/* ── монитор руководителя ── */
+.mon{display:grid;grid-template-columns:repeat(auto-fit,minmax(198px,1fr));gap:10px;margin-bottom:22px}
+.p{border:1px solid #d9d9d9;border-radius:3px;padding:10px 12px;background:#fcfcfc}
+.p .l{font-size:11px;color:#6b6b6b;margin-bottom:3px}
+.p .v{font-size:20px;font-weight:600;color:#1c1c1c;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.p .s{font-size:11px;color:#777;margin-top:3px;line-height:1.4}
+.p.warn{border-color:#e8c37a;background:#fffbf0}
+.p.warn .v{color:#9a6508}
+
+.note{border:1px solid #e3c969;background:#fffbe9;border-radius:3px;padding:11px 14px;
+  font-size:12.5px;color:#4a4332;line-height:1.55;margin-bottom:20px;max-width:880px}
+.note b{color:#1c1c1c}
+
+.legend{font-size:11.5px;color:#777;margin-top:26px;padding-top:12px;border-top:1px solid #ececec;
+  display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.cover{font-size:12px;color:#6b6b6b;margin-top:7px}
+.cover b{color:#17793c}
+
+@media(max-width:760px){
+  .nav{position:fixed;left:0;top:34px;bottom:0;z-index:9;transform:translateX(-100%);
+    transition:transform .18s;box-shadow:2px 0 12px #0003}
+  .nav.open{transform:none}
+  .tb .burger{cursor:pointer;font-size:19px}
+  .main{padding:14px 16px 60px}
+}
+</style>
+</head>
+<body>
+
+<div class="tb">
+  <div class="logo">1С</div>
+  <span class="burger" id="burger">☰</span>
+  <span class="cap">Фуд Завод / Пульс: Управление предприятием (аналог 1С:ERP)</span>
+  <span class="sp"><a class="exit" href="index.html">← На Пульс</a></span>
+</div>
+
+<div class="wrap">
+  <nav class="nav" id="nav"></nav>
+  <main class="main" id="main"></main>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   Разделы и команды 1С:ERP Управление предприятием 2, и чем каждая
+   закрыта в Пульсе.  st: ok — есть, part — есть частично, no — нет.
+   Ссылка «#id» открывает раздел этой же страницы — как в 1С, где
+   «Настройка НСИ и разделов» уводит в нужный раздел.
+   ══════════════════════════════════════════════════════════════════ */
+var S = [
+
+/* ─────────────────────────── НАЧАЛЬНАЯ СТРАНИЦА ─────────────────── */
+{id:'home', ic:'⌂', n:'Начальная страница', home:true,
+ sub:'Монитор руководителя — ключевые цифры завода на одном экране, живые',
+ groups:[
+  {t:'Финансы', i:[
+    ['Отчёт о прибылях и убытках','опиу_2026.html','ok'],
+    ['ОПиУ с расшифровкой статей','опиу_аудит.html','ok'],
+    ['Движение денег по дням','дашборд_ддс_прямой.html','ok'],
+    ['Рычаги прибыли','рычаги.html','ok'],
+  ]},
+  {t:'Долги', i:[
+    ['Дебиторская задолженность','дз_кз.html','ok'],
+    ['Кредиторская задолженность','дз_кз.html','ok'],
+    ['Просроченная задолженность','просрочка.html','ok'],
+  ]},
+  {t:'Операционное', i:[
+    ['Продажи за год','продажи_2026.html','ok'],
+    ['Цены закупа','закуп.html','ok'],
+    ['Производство','производство.html','ok'],
+    ['Склады и остатки','склады.html','ok'],
+  ]},
+  {t:'Контроль', i:[
+    ['Правки тех. карт задним числом','айка.html','ok'],
+    ['Непроведённые документы 1С','реализация.html','ok'],
+    ['Налоги','nalogi_отчёт.html','ok'],
+  ]},
+ ]},
+
+/* ─────────────────────────── ГЛАВНОЕ ────────────────────────────── */
+{id:'main', ic:'☰', n:'Главное', sub:'Точка входа и навигация по системе', groups:[
+  {t:'Навигация', i:[
+    ['Пульс — главная','index.html','ok'],
+    ['Путеводитель: как читать Пульс','путеводитель.html','ok'],
+    ['Все разделы ЕРП','#nsi','ok'],
+  ]},
+  {t:'Отчёты', i:[
+    ['Журнал изменений сайта','журнал.html','ok'],
+    ['Метрики: что смотрят','metrics.html','ok'],
+  ]},
+  {t:'Сервис', i:[
+    ['Калькулятор себестоимости и цены','калькулятор.html','ok'],
+    ['Демо-версия для показа наружу','cfo','ok'],
+    ['Смена пароля','__passwd','ok'],
+  ]},
+ ]},
+
+/* ─────────────────── БЮДЖЕТИРОВАНИЕ И ПЛАНИРОВАНИЕ ──────────────── */
+{id:'budget', ic:'₉', n:'Бюджетирование и планирование',
+ sub:'Бюджеты, планы продаж и производства, исполнение', groups:[
+  {t:'Бюджеты', i:[
+    ['Бюджет доходов и расходов (БДР)','опиу_2026.html','ok'],
+    ['Бюджет движения денег (БДДС)','дашборд_ддс.html','part'],
+    ['Экземпляры бюджетов',null,'no'],
+    ['Виды бюджетов и их структура',null,'no'],
+    ['Статьи бюджетов',null,'no'],
+    ['Сценарии планирования',null,'no'],
+    ['Лимиты расходования средств',null,'no'],
+  ]},
+  {t:'Планы', i:[
+    ['План продаж по дням','план.html','ok'],
+    ['План-факт по контрагентам','план.html','ok'],
+    ['Нормативы ОПиУ в процентах к выручке','опиу_2026.html','ok'],
+    ['Планы производства',null,'no'],
+    ['Планы закупок',null,'no'],
+    ['Планы по категориям',null,'no'],
+  ]},
+  {t:'Отчёты', i:[
+    ['Исполнение бюджета, план-факт','опиу_2026.html','ok'],
+    ['Анализ нормативов и отклонений','опиу_аудит.html','ok'],
+    ['Что на что влияет: рычаги','рычаги.html','ok'],
+    ['Бюджетный процесс и согласование',null,'no'],
+  ]},
+ ]},
+
+/* ─────────────────────── CRM И МАРКЕТИНГ ────────────────────────── */
+{id:'crm', ic:'◔', n:'CRM и маркетинг', sub:'Покупатели, ассортимент, цены', groups:[
+  {t:'Клиенты', i:[
+    ['Покупатели и их доля в выручке','продажи_2026.html','ok'],
+    ['Разрез контрагент × позиция','продажи_2026.html','ok'],
+    ['Карточка клиента с историей',null,'part'],
+    ['Партнёры и контактные лица',null,'no'],
+    ['Сделки и воронка продаж',null,'no'],
+    ['Взаимодействия, звонки, письма',null,'no'],
+  ]},
+  {t:'Ценообразование', i:[
+    ['Повышение цен и влияние на маржу','повышение_цен.html','ok'],
+    ['Развитие ассортимента','развитие_ассортимента.html','ok'],
+    ['Прайс-лист','повышение_цен.html','part'],
+    ['Виды цен и ценовые группы',null,'no'],
+    ['Скидки и наценки',null,'no'],
+  ]},
+  {t:'Отчёты', i:[
+    ['Продажи по клиентам','продажи_2026.html','ok'],
+    ['ABC/XYZ-анализ позиций','sku360.html','part'],
+    ['Маркетинговые акции и их эффект',null,'no'],
+  ]},
+ ]},
+
+/* ───────────────────────────── ПРОДАЖИ ──────────────────────────── */
+{id:'sales', ic:'▦', n:'Продажи', sub:'Отгрузки, выручка, дебиторка', groups:[
+  {t:'Документы', i:[
+    ['Реализация товаров (из 1С)','реализация.html','ok'],
+    ['Созданные, но не проведённые','реализация.html','ok'],
+    ['Заказы клиентов',null,'no'],
+    ['Счета на оплату',null,'no'],
+    ['Возвраты от клиентов','продажи_2026.html','part'],
+    ['Акты выполненных работ',null,'no'],
+    ['Соглашения об условиях продаж',null,'no'],
+  ]},
+  {t:'Отчёты', i:[
+    ['Продажи за год: месяцы, SKU, точки','продажи_2026.html','ok'],
+    ['Выручка по дням, план-факт','план.html','ok'],
+    ['Валовая прибыль','опиу_2026.html','ok'],
+    ['Дебиторская задолженность','дз_кз.html','ok'],
+    ['Просроченная задолженность','просрочка.html','ok'],
+    ['Выручка по точкам','продажи_2026.html','ok'],
+  ]},
+  {t:'Сверка с учётом', i:[
+    ['Айко против 1С по месяцам','реализация.html','ok'],
+    ['Что не проведено в 1С','реализация.html','ok'],
+  ]},
+ ]},
+
+/* ───────────────────────────── ЗАКУПКИ ──────────────────────────── */
+{id:'buy', ic:'⛬', n:'Закупки', sub:'Цены поставщиков и расчёты с ними', groups:[
+  {t:'Цены и поставщики', i:[
+    ['Цены закупа и их изменение','закуп.html','ok'],
+    ['Поставщики в разрезе позиции','закуп.html','ok'],
+    ['Разброс цены между поставщиками','закуп.html','ok'],
+    ['Что было бы, если брать у дешёвого','закуп.html','ok'],
+  ]},
+  {t:'Расчёты с поставщиками', i:[
+    ['Кредиторская задолженность','дз_кз.html','ok'],
+    ['Сальдо по поставщикам на дату','дз_кз.html','ok'],
+    ['Приход и оплата по накладным','дз_кз.html','ok'],
+    ['Согласование оплат (Битрикс24)','bitrix_отчёт_оплаты.html','ok'],
+  ]},
+  {t:'Документы', i:[
+    ['Заказы поставщикам',null,'no'],
+    ['Приобретение товаров и услуг',null,'no'],
+    ['Возвраты поставщикам',null,'no'],
+    ['Соглашения с поставщиками',null,'no'],
+    ['Приёмка по ордерам',null,'no'],
+  ]},
+ ]},
+
+/* ────────────────────── СКЛАД И ДОСТАВКА ────────────────────────── */
+{id:'stock', ic:'▤', n:'Склад и доставка', sub:'Остатки, запас, упаковка', groups:[
+  {t:'Запасы', i:[
+    ['Склады и остатки','склады.html','ok'],
+    ['Запас в днях','склады.html','ok'],
+    ['Залежавшиеся позиции','склады.html','ok'],
+    ['Оборачиваемость','склады.html','part'],
+  ]},
+  {t:'Упаковка и маркировка', i:[
+    ['Расход упаковки','упаковка.html','ok'],
+    ['Этикетки и блюда','этикетки.html','ok'],
+  ]},
+  {t:'Документы', i:[
+    ['Ордера на поступление и отгрузку',null,'no'],
+    ['Перемещения между складами',null,'no'],
+    ['Инвентаризация',null,'no'],
+    ['Списания и оприходования',null,'no'],
+    ['Ячеистое хранение',null,'no'],
+  ]},
+  {t:'Доставка', i:[
+    ['Задания на перевозку',null,'no'],
+    ['Маршруты',null,'no'],
+    ['Транспортные расходы',null,'no'],
+  ]},
+ ]},
+
+/* ─────────────────────────── ПРОИЗВОДСТВО ───────────────────────── */
+{id:'prod', ic:'⚒', n:'Производство', sub:'Выпуск, нормативы, себестоимость, отклонения', groups:[
+  {t:'Планирование и заказы', i:[
+    ['Заказы на производство',null,'no'],
+    ['Графики производства',null,'no'],
+    ['Диспетчирование этапов',null,'no'],
+    ['Планирование загрузки рабочих центров',null,'no'],
+    ['Доступность мощностей',null,'no'],
+  ]},
+  {t:'Исполнение', i:[
+    ['Выпуск продукции','производство.html','ok'],
+    ['Этапы производства',null,'no'],
+    ['Передача материалов в производство',null,'no'],
+    ['Учёт брака и возвратных отходов',null,'no'],
+    ['Полуфабрикаты',null,'no'],
+    ['Производство у переработчика',null,'no'],
+    ['Давальческое сырьё',null,'no'],
+  ]},
+  {t:'Нормативно-справочная информация', i:[
+    ['Ресурсные спецификации (тех. карты)','айка.html','ok'],
+    ['Нормы расхода по каждой карте','айка.html','ok'],
+    ['Производственные подразделения','база.html','part'],
+    ['Маршрутные карты',null,'no'],
+    ['Рабочие центры и виды рабочих центров',null,'no'],
+  ]},
+  {t:'Затраты и себестоимость', i:[
+    ['Фактическая себестоимость','себестоимость_маржа.html','ok'],
+    ['Маржа по позициям','себестоимость_маржа.html','ok'],
+    ['SKU 360: полный разрез','sku360.html','ok'],
+    ['Анализ отклонений от норм','айка.html','part'],
+    ['Распределение затрат',null,'no'],
+    ['Незавершённое производство',null,'no'],
+  ]},
+  {t:'Контроль', i:[
+    ['Что именно правили в тех. картах','айка.html','ok'],
+    ['Правки задним числом в закрытых месяцах','айка.html','ok'],
+    ['Состояние выполнения заказов',null,'no'],
+    ['Загрузка мощностей',null,'no'],
+  ]},
+ ]},
+
+/* ──────────────────────────── КАДРЫ ─────────────────────────────── */
+{id:'hr', ic:'☺', n:'Кадры', sub:'Люди, подразделения, роли', groups:[
+  {t:'Справочники', i:[
+    ['Люди, роли и зоны ответственности','база.html','part'],
+    ['Производственные подразделения','база.html','part'],
+    ['Физические лица',null,'no'],
+    ['Сотрудники',null,'no'],
+  ]},
+  {t:'Документы', i:[
+    ['Приём на работу',null,'no'],
+    ['Кадровый перевод',null,'no'],
+    ['Увольнение',null,'no'],
+    ['Штатное расписание',null,'no'],
+    ['Табель учёта рабочего времени',null,'no'],
+    ['Графики работы',null,'no'],
+  ]},
+  {t:'Отчёты', i:[
+    ['Численность и текучесть',null,'no'],
+    ['Фонд оплаты труда','зарплата.html','ok'],
+  ]},
+ ]},
+
+/* ──────────────────────────── ЗАРПЛАТА ──────────────────────────── */
+{id:'zp', ic:'₸', n:'Зарплата', sub:'Фонд оплаты труда (под отдельным паролем)', groups:[
+  {t:'Отчёты', i:[
+    ['Зарплата по подразделениям','зарплата.html','ok'],
+    ['Карточка сотрудника','зарплата.html','ok'],
+    ['ФОТ в структуре себестоимости','опиу_2026.html','part'],
+  ]},
+  {t:'Документы', i:[
+    ['Начисления и удержания',null,'no'],
+    ['Ведомости на выплату',null,'no'],
+    ['Взносы и налоги с ФОТ',null,'no'],
+    ['Расчётные листки',null,'no'],
+  ]},
+ ]},
+
+/* ───────────────────────── КАЗНАЧЕЙСТВО ─────────────────────────── */
+{id:'treasury', ic:'◉', n:'Казначейство', sub:'Деньги, счета, платежи, взаиморасчёты', groups:[
+  {t:'Денежные средства', i:[
+    ['Остатки на счетах и в кассах','дашборд_ддс_прямой.html','ok'],
+    ['ДДС прямым методом, по дням','дашборд_ддс_прямой.html','ok'],
+    ['ДДС косвенным методом','дашборд_ддс.html','ok'],
+    ['Движение по статьям','дашборд_ддс.html','ok'],
+  ]},
+  {t:'Платежи', i:[
+    ['Согласование оплат (Битрикс24)','bitrix_отчёт_оплаты.html','ok'],
+    ['Платёжный календарь',null,'part'],
+    ['Заявки на расходование средств',null,'no'],
+    ['Лимиты по статьям расходов',null,'no'],
+    ['Платёжные поручения',null,'no'],
+    ['Банковские выписки',null,'no'],
+    ['Кассовые документы',null,'no'],
+    ['Эквайринг и инкассация',null,'no'],
+  ]},
+  {t:'Взаиморасчёты', i:[
+    ['Дебиторская задолженность','дз_кз.html','ok'],
+    ['Кредиторская задолженность','дз_кз.html','ok'],
+    ['Сальдо по контрагентам','дз_кз.html','ok'],
+    ['Акты сверки',null,'no'],
+  ]},
+ ]},
+
+/* ───────────── ФИНАНСОВЫЙ РЕЗУЛЬТАТ И КОНТРОЛЛИНГ ───────────────── */
+{id:'fin', ic:'▥', n:'Финансовый результат и контроллинг',
+ sub:'Прибыль, себестоимость, управленческая отчётность', groups:[
+  {t:'Финансовый результат', i:[
+    ['ОПиУ 2026: план, факт, норматив','опиу_2026.html','ok'],
+    ['ОПиУ с расшифровкой до документа','опиу_аудит.html','ok'],
+    ['ОПиУ год к году','опиу_2025_2026.html','ok'],
+    ['Рентабельность по месяцам','опиу_2026.html','ok'],
+  ]},
+  {t:'Себестоимость', i:[
+    ['Себестоимость и маржа','себестоимость_маржа.html','ok'],
+    ['Полная себестоимость по позициям','sku360.html','ok'],
+    ['Калькулятор себестоимости и цены','калькулятор.html','ok'],
+    ['Рычаги прибыли','рычаги.html','ok'],
+    ['Распределение косвенных затрат',null,'no'],
+  ]},
+  {t:'Управленческая отчётность', i:[
+    ['Управленческий баланс',null,'no'],
+    ['Прибыль по направлениям деятельности',null,'no'],
+    ['Прибыль по подразделениям',null,'no'],
+    ['Закрытие месяца',null,'no'],
+  ]},
+ ]},
+
+/* ───────────────────── ВНЕОБОРОТНЫЕ АКТИВЫ ──────────────────────── */
+{id:'assets', ic:'▣', n:'Внеоборотные активы', sub:'Основные средства — в Пульсе не ведутся', groups:[
+  {t:'Документы', i:[
+    ['Принятие к учёту ОС',null,'no'],
+    ['Амортизация',null,'no'],
+    ['Модернизация и перемещение',null,'no'],
+    ['Выбытие и списание',null,'no'],
+  ]},
+  {t:'Эксплуатация', i:[
+    ['Ремонты и обслуживание',null,'no'],
+    ['Графики ТО',null,'no'],
+    ['Аренда',null,'no'],
+  ]},
+  {t:'Отчёты', i:[
+    ['Ведомость амортизации',null,'no'],
+    ['Состав и износ ОС',null,'no'],
+  ]},
+ ]},
+
+/* ─────────────────── РЕГЛАМЕНТИРОВАННЫЙ УЧЁТ ────────────────────── */
+{id:'reg', ic:'🔒', n:'Регламентированный учет', sub:'Налоги и данные из 1С:Бухгалтерии', groups:[
+  {t:'Из 1С', i:[
+    ['Налоги','nalogi_отчёт.html','ok'],
+    ['Налоги: аналитика','nalogi_analitika_отчёт.html','ok'],
+    ['Реализация товаров','реализация.html','ok'],
+    ['Непроведённые документы','реализация.html','ok'],
+  ]},
+  {t:'Чего нет', i:[
+    ['Декларации и отчётность',null,'no'],
+    ['Книга покупок и продаж',null,'no'],
+    ['Учёт НДС, импорт и экспорт',null,'no'],
+    ['Закрытие месяца',null,'no'],
+    ['Сверка с бюджетом',null,'no'],
+  ]},
+ ]},
+
+/* ──────────── МЕЖДУНАРОДНЫЙ ФИНАНСОВЫЙ УЧЁТ ─────────────────────── */
+{id:'ifrs', ic:'◈', n:'Международный финансовый учет', sub:'МСФО — в Пульсе не ведётся', groups:[
+  {t:'Чего нет', i:[
+    ['Проводки по МСФО',null,'no'],
+    ['Трансформация отчётности',null,'no'],
+    ['Отчётность по МСФО',null,'no'],
+    ['Параллельный учёт',null,'no'],
+    ['Курсы валют',null,'no'],
+  ]},
+ ]},
+
+/* ───────────────── НСИ И АДМИНИСТРИРОВАНИЕ ──────────────────────── */
+{id:'nsi', ic:'⚙', n:'НСИ и администрирование',
+ sub:'Справочники, настройка разделов, интеграции и сервис', groups:[
+  {t:'Начальное заполнение', i:[
+    ['Начальное заполнение',null,'no'],
+    ['Корректировка регистров',null,'no'],
+    ['Как устроен Пульс','путеводитель.html','ok'],
+  ]},
+  {t:'НСИ', i:[
+    ['Номенклатура','база.html','ok'],
+    ['Партнёры и контрагенты','база.html','part'],
+    ['Организации (юрлица)','база.html','ok'],
+    ['Структура предприятия','база.html','ok'],
+    ['Склады и магазины','склады.html','ok'],
+    ['Банковские счета','дашборд_ддс_прямой.html','ok'],
+    ['Кассы предприятия','дашборд_ддс_прямой.html','ok'],
+    ['Счета учёта','база.html','ok'],
+    ['Физические лица','база.html','part'],
+    ['Классификаторы номенклатуры',null,'no'],
+    ['Кассы ККМ',null,'no'],
+    ['Направления деятельности',null,'no'],
+    ['Проекты',null,'no'],
+    ['Графики работы',null,'no'],
+    ['Лица с правом подписи',null,'no'],
+  ]},
+  {t:'Настройка НСИ и разделов', i:[
+    ['Предприятие','#main','ok'],
+    ['Бюджетирование и планирование','#budget','ok'],
+    ['CRM и маркетинг','#crm','ok'],
+    ['Продажи','#sales','ok'],
+    ['Закупки','#buy','ok'],
+    ['Склад и доставка','#stock','ok'],
+    ['Производство','#prod','ok'],
+    ['Кадры','#hr','ok'],
+    ['Зарплата','#zp','ok'],
+    ['Казначейство и взаиморасчёты','#treasury','ok'],
+    ['Финансовый результат и контроллинг','#fin','ok'],
+    ['Внеоборотные активы','#assets','ok'],
+    ['Регламентированный учет','#reg','ok'],
+    ['Международный финансовый учет','#ifrs','ok'],
+  ]},
+  {t:'Настройка интеграции', i:[
+    ['Интеграция с iiko','журнал.html','ok'],
+    ['Интеграция с 1С (OData)','реализация.html','ok'],
+    ['Интеграция с Битрикс24','bitrix_отчёт_оплаты.html','ok'],
+    ['Синхронизация данных','журнал.html','part'],
+    ['Интеграция с 1С:Документооборот',null,'no'],
+  ]},
+  {t:'Отчёты', i:[
+    ['Все отчёты Пульса','путеводитель.html','ok'],
+    ['Журнал изменений сайта','журнал.html','ok'],
+    ['Метрики посещений','metrics.html','ok'],
+  ]},
+  {t:'Сервис', i:[
+    ['Смена пароля','__passwd','ok'],
+    ['Демо-версия для показа наружу','cfo','ok'],
+    ['Персональные настройки',null,'no'],
+    ['Дополнительные обработки',null,'no'],
+    ['Обращение в техническую поддержку',null,'no'],
+    ['Свёртка информационной базы',null,'no'],
+  ]},
+ ]},
+
+];
+
+/* ── деньги ── */
+function f0(v){ return Math.round(v).toLocaleString('ru-RU').replace(/,/g,' '); }
+function mln(v){
+  var a=Math.abs(v);
+  if(a>=1e9) return (v/1e9).toFixed(2).replace('.',',')+' млрд ₸';
+  if(a>=1e6) return (v/1e6).toFixed(1).replace('.',',')+' млн ₸';
+  return f0(v)+' ₸';
+}
+var MN=['','январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+
+/* ── левая панель ── */
+var nav=document.getElementById('nav'), main=document.getElementById('main');
+S.forEach(function(s){
+  var b=document.createElement('button');
+  b.innerHTML='<span class="ic">'+s.ic+'</span><span>'+s.n+'</span>';
+  b.dataset.id=s.id;
+  b.onclick=function(){ open(s.id); };
+  nav.appendChild(b);
+});
+
+/* ── сколько закрыто: считаем по самой таблице, чтобы цифра не врала ── */
+function cover(s){
+  var ok=0,part=0,no=0;
+  s.groups.forEach(function(g){ g.i.forEach(function(it){
+    if(it[2]==='ok') ok++; else if(it[2]==='part') part++; else no++; }); });
+  return {ok:ok, part:part, no:no, all:ok+part+no};
+}
+
+function open(id){
+  var s=S.filter(function(x){return x.id===id;})[0]; if(!s) return;
+  [].forEach.call(nav.children,function(b){ b.className = b.dataset.id===id?'on':''; });
+  nav.classList.remove('open');
+  var c=cover(s);
+  var h='<div class="crumb">Пульс: Управление предприятием</div><h1>'+s.n+'</h1>'
+      + '<p class="lead">'+s.sub+'</p>';
+  if(s.home) h+= '<div class="mon" id="mon"></div>'
+    + '<div class="note"><b>Это Пульс, разложенный по разделам 1С:ERP.</b> Слева — те же разделы, '
+    + 'что в «Управлении предприятием 2», внутри — те же команды. Синяя ссылка значит, что такой '
+    + 'отчёт в Пульсе уже есть и он живой. Серая — такого нет. Получается честная карта: какую '
+    + 'часть ERP завод закрыл, не покупая ERP, и что осталось за её пределами.</div>';
+  h+='<div class="cols">';
+  s.groups.forEach(function(g){
+    h+='<div class="grp"><h2>'+g.t+'</h2><ul>';
+    g.i.forEach(function(it){
+      var name=it[0], href=it[1], st=it[2];
+      var bg = st==='ok' ? '' : '<span class="bg '+(st==='part'?'b-part':'b-no')+'">'
+             + (st==='part'?'частично':'нет')+'</span>';
+      h+='<li>' + (href? '<a href="'+href+'">'+name+'</a>' : '<span class="no">'+name+'</span>')
+        + bg + '</li>';
+    });
+    h+='</ul></div>';
+  });
+  h+='</div>';
+  h+='<div class="legend"><span><span class="bg b-ok">есть</span> отчёт работает</span>'
+   + '<span><span class="bg b-part">частично</span> есть похожее, но не в полном виде</span>'
+   + '<span><span class="bg b-no">нет</span> в Пульсе такого нет</span></div>'
+   + '<div class="cover">В разделе «'+s.n+'» из '+c.all+' команд ERP Пульс закрывает '
+   + '<b>'+c.ok+'</b>, частично '+c.part+', не закрывает '+c.no+'.</div>';
+  main.innerHTML=h;
+  main.scrollTop=0;
+  /* ссылки «#раздел» переключают раздел, а не прыгают по странице */
+  [].forEach.call(main.querySelectorAll('a[href^="#"]'),function(a){
+    a.onclick=function(e){ e.preventDefault(); open(a.getAttribute('href').slice(1)); };
+  });
+  if(s.home) monitor();
+  if(location.hash.slice(1)!==id) history.replaceState(null,'','#'+id);
+}
+
+/* ── монитор руководителя: живые цифры из тех же файлов, что и главная ── */
+function tile(l,v,s,warn){
+  return '<div class="p'+(warn?' warn':'')+'"><div class="l">'+l+'</div>'
+       + '<div class="v">'+v+'</div><div class="s">'+(s||'')+'</div></div>';
+}
+function setMon(html){ var m=document.getElementById('mon'); if(m) m.innerHTML+=html; }
+function load(src,cb){ var s=document.createElement('script'); s.src=src;
+  s.onload=cb; s.onerror=function(){cb();}; document.head.appendChild(s); }
+
+function monitor(){
+  var m=document.getElementById('mon'); if(!m) return; m.innerHTML='';
+
+  load('/opiu_rev.js?v=1',function(){
+    var R=window.OPIU_REV; if(!R) return;
+    var ks=Object.keys(R).filter(function(k){return /^\d{4}-\d{2}$/.test(k);}).sort();
+    if(ks.length<2) return;
+    var cur=ks[ks.length-1], prev=ks[ks.length-2];
+    var year=ks.reduce(function(a,k){return a+(R[k].itogo||0);},0);
+    setMon(tile('Выручка за '+MN[+prev.slice(5)], mln(R[prev].itogo), 'последний закрытый месяц'));
+    setMon(tile('Выручка с начала года', mln(year), ks.length+' мес. · на '+(R._through||'')));
+    setMon(tile('Выручка, '+MN[+cur.slice(5)], mln(R[cur].itogo), 'месяц идёт'));
+  });
+
+  load('/ddsp_days.js?v=1',function(){
+    var C=(window.DDSP_DAYS||{}).cash; if(!C) return;
+    var d=String(C.date||'').split('-'), when=d.length===3?(d[2]+'.'+d[1]):'';
+    setMon(tile('Деньги на счетах и в кассах', mln(C.nal+C.beznal),
+      'нал '+mln(C.nal)+' · безнал '+mln(C.beznal)+(when?' · на '+when:'')));
+  });
+
+  load('/balans.js?v=2',function(){
+    var B=window.BALANS; if(!B||!B.sides) return;
+    var DAY=864e5, base=new Date(B.base+'T00:00:00');
+    function side(k){
+      var S2=B.sides[k]; if(!S2) return null;
+      var ad=new Date(((B.anchor&&B.anchor[k])||B.base)+'T00:00:00');
+      var ai=Math.round((ad-base)/DAY), tot=0, n=0;
+      S2.rows.forEach(function(r){
+        var v=r.open;
+        for(var j=0;j<r.mv.length;j++){ if(r.mv[j][0]<=ai) v+=r.mv[j][1]-r.mv[j][2]; }
+        tot+=v; if(v>0) n++;
+      });
+      return {total:tot, n:n, date:ad.toLocaleDateString('ru-RU')};
+    }
+    var dz=side('dz'), kz=side('kz');
+    if(dz) setMon(tile('Нам должны', mln(dz.total), dz.n+' покупателей · на '+dz.date));
+    if(kz) setMon(tile('Мы должны', mln(kz.total), kz.n+' поставщиков · на '+kz.date));
+  });
+
+  load('/realizaciya.js?v=4',function(){
+    var R=window.REALIZACIYA; if(!R||!R.months||!R.months.length) return;
+    if(R.npTotal>0)
+      setMon(tile('Создано, но не проведено', mln(R.npTotal),
+        R.npCount+' документов в 1С · в оборот не попали', true));
+  });
+}
+
+document.getElementById('burger').onclick=function(){ nav.classList.toggle('open'); };
+window.addEventListener('hashchange',function(){ open((location.hash||'#home').slice(1)); });
+open((location.hash||'#home').slice(1));
+</script>
+
+<script src="nav.js"></script>
+</body>
+</html>
