@@ -743,21 +743,34 @@ function qty(v){
   if(Math.abs(n-Math.round(n))<0.0005) return f0(n);
   return n.toFixed(3).replace('.',',');
 }
+/* Тяжёлые отчёты по умолчанию открываются на прошлом закрытом месяце:
+   «Валовая прибыль» — это две выгрузки из айко, и на незакрытом периоде
+   она считается долго, а смысла в неполном месяце мало. */
+var REP_PREV = {gp:1};
+function repDates(key){
+  var p2=function(x){ return ('0'+x).slice(-2); };
+  var iso=function(d){ return d.getUTCFullYear()+'-'+p2(d.getUTCMonth()+1)+'-'+p2(d.getUTCDate()); };
+  var now=new Date(Date.now()+5*3600e3);           /* Алматы */
+  if(REP_PREV[key]){
+    var end=new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
+    var beg=new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
+    return [iso(beg), iso(end)];
+  }
+  return [iso(now).slice(0,8)+'01', iso(now)];
+}
 function repInit(list){
   var sel=document.getElementById('rp-sel'), go=document.getElementById('rp-go'),
       f=document.getElementById('rp-from'), t=document.getElementById('rp-to');
   if(!sel) return;
   sel.innerHTML=list.map(function(k){ return '<option value="'+k+'">'+(REP_N[k]||k)+'</option>'; }).join('');
-  var now=new Date(Date.now()+5*3600e3);           /* Алматы */
-  var p2=function(x){ return ('0'+x).slice(-2); };
-  var iso=function(d){ return d.getUTCFullYear()+'-'+p2(d.getUTCMonth()+1)+'-'+p2(d.getUTCDate()); };
-  t.value=iso(now);
-  f.value=iso(now).slice(0,8)+'01';
+  var dd=repDates(list[0]);
+  f.value=dd[0]; t.value=dd[1];
   go.onclick=function(){ repRun(sel.value,f.value,t.value); };
   /* Отчёт сам не строится: как в 1С, его формируют кнопкой. Запрос в айко
      занимает секунды и занимает сессию resto API — гонять его на каждое
      открытие раздела незачем. */
-  sel.onchange=repIdle; f.onchange=repIdle; t.onchange=repIdle;
+  sel.onchange=function(){ var d2=repDates(sel.value); f.value=d2[0]; t.value=d2[1]; repIdle(); };
+  f.onchange=repIdle; t.onchange=repIdle;
   repIdle();
 }
 function repIdle(){
