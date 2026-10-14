@@ -1222,7 +1222,12 @@ a.card.key .card-title{padding-right:100px;}
     if(!SUM) return;
     var O=SUM.oliv||null;
     var sp=samePeriod();
-    var rev=(sp?sp.cur:SUM.rev)+(OLV&&O?O.rev:0);
+    /* Завод берём по закрытым дням, значит и Olive надо за те же дни:
+       подневных по ней нет, поэтому режем её месячную сумму пропорционально
+       числу дней в выгрузке (метка вида «Октябрь (1–14)»). */
+    var span=(String(SUM.label||'').match(/\((\d+)\s*[–-]\s*(\d+)\)/)||[])[2];
+    var olvCur=(OLV&&O) ? (sp&&span ? O.rev*sp.d/(+span) : O.rev) : 0;
+    var rev=(sp?sp.cur:SUM.rev)+olvCur;
     var tail=' · '+(sp?('1–'+sp.d+' '+MNR[sp.m]):String(SUM.label||'').toLowerCase())
             +(OLV?' с Olive':'');
     if(FC&&FC.fc) tail+=' · прогноз '+money(FC.fc+(OLV?olivFc():0));
