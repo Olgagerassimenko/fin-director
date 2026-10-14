@@ -113,6 +113,24 @@ h1{font-size:17px;font-weight:600;color:#1c1c1c;margin-bottom:3px}
 /* в отчёте бывает две текстовые колонки — не даём первой забрать всю ширину */
 .rpbd td.nm{width:auto;max-width:360px}
 
+/* ── платёжный календарь ── */
+.pc .asof{align-items:center;gap:12px}
+.pc input,.pc select{font:inherit;font-size:12px;border:1px solid #9fb3c8;border-radius:2px;
+  padding:2px 5px;background:#fff;color:#1c1c1c}
+.pc button{font:inherit;font-size:12px;border:1px solid #9fb3c8;border-radius:2px;padding:2px 12px;
+  background:linear-gradient(#f7fafd,#dfe8f3);color:#1b3a5c;font-weight:600;cursor:pointer}
+.pc button:hover{background:linear-gradient(#fff,#d2e0ef)}
+.pc .neg td{color:#c0392b}
+.pc tr.day{cursor:pointer}
+.pc tr.pay td{background:#fbfcfe;font-size:11.5px;color:#3b5b7e}
+.pc tr.pay:hover td{background:#eef3f9;color:#3b5b7e}
+.pc .x{color:#b9b9b9;cursor:pointer}
+.pc .x:hover{color:#c0392b}
+.pc .today td{font-weight:700}
+.pcform{padding:8px 10px;background:#eef3f9;border-top:1px solid #d7e0ea;display:flex;gap:7px;
+  flex-wrap:wrap;align-items:center;font-size:12px}
+.pcform input.n{width:120px} .pcform input.w{width:170px} .pcform input.s{width:110px}
+
 /* ── доска задач CRM, в оформлении «Такси» ── */
 .crm{border:1px solid #c9c9c9;border-radius:2px;margin-bottom:22px;background:#fff}
 .crm .hd{background:#f4f4f4;border-bottom:1px solid #d9d9d9;padding:7px 12px;font-size:13.5px;
@@ -254,7 +272,7 @@ var S = [
  ]},
 
 /* ───────────────────────── ПРОДАЖИ ──────────────────────── */
-{id:'sales', ic:'▦', n:'Продажи', rep:['ship','shipit','shipday','docs'], sub:'Отгрузки, выручка, дебиторка', groups:[
+{id:'sales', ic:'▦', n:'Продажи', rep:['gp','ship','shipit','shipday','docs'], sub:'Отгрузки, выручка, дебиторка', groups:[
   {t:'Документы', i:[
     ['Реализация товаров (из 1С)','реализация.html','ok'],
     ['Созданные, но не проведённые','реализация.html','ok'],
@@ -278,7 +296,7 @@ var S = [
  ]},
 
 /* ──────────────────────── МАРКЕТИНГ ─────────────────────── */
-{id:'mkt', ic:'◈', n:'Маркетинг', rep:['shipit','buyit'], sub:'Ассортимент, цены и маржинальность по позициям', groups:[
+{id:'mkt', ic:'◈', n:'Маркетинг', rep:['gp','shipit','buyit'], sub:'Ассортимент, цены и маржинальность по позициям', groups:[
   {t:'Анализ по SKU', i:[
     ['SKU 360: полный разрез по позициям','sku360.html','ok'],
     ['Себестоимость и маржа по позициям','себестоимость_маржа.html','ok'],
@@ -317,7 +335,7 @@ var S = [
  ]},
 
 /* ──────────────────── СКЛАД И ДОСТАВКА ──────────────────── */
-{id:'stock', ic:'▤', n:'Склад и доставка', rep:['movestore','wo'], sub:'Остатки, запас, упаковка', groups:[
+{id:'stock', ic:'▤', n:'Склад и доставка', rep:['stock','movestore','wo'], sub:'Остатки, запас, упаковка', groups:[
   {t:'Запасы', i:[
     ['Склады и остатки','склады.html','ok'],
     ['Запас в днях и залежавшееся','склады.html','ok'],
@@ -401,17 +419,17 @@ var S = [
  ]},
 
 /* ────────────────────── КАЗНАЧЕЙСТВО ───────────────────── */
-{id:'treasury', ic:'◉', n:'Казначейство', rep:['cash','cashday','osv'], sub:'Деньги, счета, платежи, взаиморасчёты', groups:[
+{id:'treasury', ic:'◉', n:'Казначейство', pc:true, rep:['cash','cashday','osv'], sub:'Деньги, счета, платежи, взаиморасчёты', groups:[
   {t:'Денежные средства', i:[
     ['Остатки на счетах и в кассах','дашборд_ддс_прямой.html','ok'],
     ['ДДС прямым методом, по дням','дашборд_ддс_прямой.html','ok'],
     ['ДДС косвенным методом, по статьям','дашборд_ддс.html','ok'],
   ]},
   {t:'Платежи и расчёты', i:[
+    ['Платёжный календарь','#treasury','ok'],
     ['Сальдо по контрагентам','дз_кз.html','ok'],
   ]},
   {t:'В планах', i:[
-    ['Платёжный календарь',null,'part'],
     ['Заявки на расходование средств',null,'no'],
     ['Лимиты по статьям расходов',null,'no'],
     ['Банковские выписки и платёжные поручения',null,'no'],
@@ -420,7 +438,7 @@ var S = [
 
 /* ────────── ФИНАНСОВЫЙ РЕЗУЛЬТАТ И КОНТРОЛЛИНГ ──────────── */
 {id:'fin', ic:'▥', n:'Финансовый результат и контроллинг',
- rep:['osv','chess'], sub:'Прибыль, себестоимость, управленческая отчётность', groups:[
+ rep:['gp','osv','chess'], sub:'Прибыль, себестоимость, управленческая отчётность', groups:[
   {t:'Финансовый результат', i:[
     ['ОПиУ 2026: план, факт, норматив','опиу_2026.html','ok'],
     ['ОПиУ с расшифровкой до документа','опиу_аудит.html','ok'],
@@ -532,6 +550,12 @@ function open(id){
     + 'что в «Управлении предприятием 2», внутри — те же команды. Синяя ссылка значит, что такой '
     + 'отчёт в Пульсе уже есть и он живой. Серая — такого нет. Получается честная карта: какую '
     + 'часть ERP завод закрыл, не покупая ERP, и что осталось за её пределами.</div>';
+  if(s.pc) h+= '<div class="m1c pc"><div class="hd">Платёжный календарь</div>'
+    + '<div class="asof"><span>Остаток на сегодня: <b id="pc-cash">—</b></span>'
+    + '<span>дней вперёд: <input type="number" id="pc-days" value="14" min="3" max="60" style="width:56px"></span>'
+    + '<button id="pc-add">+ Платёж</button>'
+    + '<span class="st" id="pc-st" style="margin-left:auto;font-size:11.5px;color:#3b5b7e"></span></div>'
+    + '<div id="pc-form"></div><div id="pc-bd"></div></div>';
   if(s.rep) h+= '<div class="m1c rp"><div class="hd">Отчёт из айко</div>'
     + '<div class="asof"><select id="rp-sel"></select>'
     + '<span>с <input type="date" id="rp-from"> по <input type="date" id="rp-to"></span>'
@@ -568,6 +592,7 @@ function open(id){
   if(s.home) monitor();
   if(s.crm) crmInit();
   if(s.rep) repInit(s.rep);
+  if(s.pc) pcInit();
   if(location.hash.slice(1)!==id) history.replaceState(null,'','#'+id);
 }
 
@@ -709,7 +734,9 @@ var REP_N = {
   prodstore:'Выпуск по складам',
   movestore:'Обороты по складам',
   chess:'Обороты: счёт и корреспондирующий счёт',
-  docs:'Журнал документов'
+  docs:'Журнал документов',
+  gp:'Валовая прибыль по позициям',
+  stock:'Остатки на складах на дату'
 };
 function qty(v){
   var n=Number(v)||0;
@@ -758,12 +785,14 @@ function repRun(key,from,to){
           var v=r[c[0]];
           if(c[2]==='l') return '<td class="nm" title="'+esc(v==null?'':v)+'">'+esc(v==null?'—':v)+'</td>';
           if(c[2]==='q') return '<td>'+qty(v)+'</td>';
+          if(c[2]==='p') return '<td>'+(Number(v)||0).toFixed(1).replace('.',',')+' %</td>';
           return '<td>'+f0(v||0)+'</td>';
         }).join('')+'</tr>';
       });
       h+='<tr class="tot">'+j.cols.map(function(c,n){
         if(c[2]==='l') return '<td class="l">'+(n===0?'ИТОГО':'')+'</td>';
         if(c[2]==='q') return '<td>'+qty(j.sums[c[0]]||0)+'</td>';
+        if(c[2]==='p') return '<td>'+(Number(j.sums[c[0]])||0).toFixed(1).replace('.',',')+' %</td>';
         return '<td>'+f0(j.sums[c[0]]||0)+'</td>';
       }).join('')+'</tr></table>';
       bd.innerHTML=h;
@@ -772,6 +801,106 @@ function repRun(key,from,to){
     })
     .catch(function(e){ go.disabled=false; st.textContent='';
       bd.innerHTML='<div class="empty">не получилось: '+esc(String(e))+'</div>'; });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ПЛАТЁЖНЫЙ КАЛЕНДАРЬ. Плановых платежей в айко нет — там только факт,
+   поэтому план вводится руками и живёт в KV. Остаток на сегодня берём
+   из тех же данных, что и монитор, и катим его вперёд по плану:
+   видно, в какой день деньги кончатся.
+   ══════════════════════════════════════════════════════════════════ */
+var PC = {rows:{}, cash:0, open:{}};
+function pcIso(d){ var p2=function(x){return ('0'+x).slice(-2);};
+  return d.getUTCFullYear()+'-'+p2(d.getUTCMonth()+1)+'-'+p2(d.getUTCDate()); }
+function pcToday(){ return new Date(Date.now()+5*3600e3); }
+function pcDow(iso){
+  var d=new Date(iso+'T00:00:00Z');
+  return ['вс','пн','вт','ср','чт','пт','сб'][d.getUTCDay()];
+}
+function pcInit(){
+  var days=document.getElementById('pc-days');
+  if(!days) return;
+  days.onchange=pcDraw;
+  document.getElementById('pc-add').onclick=pcForm;
+  if(window.DDSP_DAYS && DDSP_DAYS.cash){ PC.cash=(DDSP_DAYS.cash.nal||0)+(DDSP_DAYS.cash.beznal||0); }
+  else load('/ddsp_days.js?v=1',function(){
+    var C=(window.DDSP_DAYS||{}).cash; if(C){ PC.cash=(C.nal||0)+(C.beznal||0); pcDraw(); } });
+  fetch('/api/paycal?a=list').then(function(r){return r.json();}).then(function(j){
+    PC.rows=(j&&j.rows)||{}; pcDraw();
+  }).catch(function(){ document.getElementById('pc-st').textContent='офлайн: план не загрузился'; });
+  pcDraw();
+}
+function pcDraw(){
+  var bd=document.getElementById('pc-bd'); if(!bd) return;
+  var cashEl=document.getElementById('pc-cash');
+  if(cashEl) cashEl.textContent = PC.cash ? f0(PC.cash)+' ₸' : '—';
+  var n=Math.max(3,Math.min(60,parseInt(document.getElementById('pc-days').value,10)||14));
+  var t0=pcToday(), today=pcIso(t0);
+  var byDay={};
+  Object.keys(PC.rows).forEach(function(k){
+    var r=PC.rows[k]; (byDay[r.d]=byDay[r.d]||[]).push(r);
+  });
+  var bal=PC.cash, h='<table><tr><th class="l">Дата</th><th class="l">День</th>'
+    + '<th>Платежей</th><th>К оплате, ₸</th><th>Остаток на конец дня, ₸</th></tr>';
+  var planTotal=0;
+  for(var i=0;i<n;i++){
+    var d=new Date(t0.getTime()+i*864e5), iso=pcIso(d);
+    var list=(byDay[iso]||[]).filter(function(r){ return r.st!=='done'; });
+    var sum=list.reduce(function(a,x){ return a+(x.a||0); },0);
+    planTotal+=sum; bal-=sum;
+    h+='<tr class="day'+(bal<0?' neg':'')+(iso===today?' today':'')+'" data-d="'+iso+'">'
+      + '<td class="l">'+iso.slice(8)+'.'+iso.slice(5,7)+'</td>'
+      + '<td class="l" style="color:#8a97a8">'+pcDow(iso)+(iso===today?' · сегодня':'')+'</td>'
+      + '<td>'+(list.length||'—')+'</td>'
+      + '<td>'+(sum?f0(sum):'—')+'</td><td>'+f0(bal)+'</td></tr>';
+    if(PC.open[iso]) list.forEach(function(r){
+      h+='<tr class="pay"><td class="l"></td><td class="l" colspan="2">'+esc(r.w||'—')+'</td>'
+        + '<td class="l">'+esc(r.n||'')+'</td>'
+        + '<td>'+f0(r.a)+' <span class="x" data-del="'+r.id+'">✕</span></td></tr>';
+    });
+  }
+  h+='<tr class="tot"><td class="l">ИТОГО за '+n+' дн.</td><td></td><td></td><td>'
+    + f0(planTotal)+'</td><td>'+f0(bal)+'</td></tr></table>';
+  bd.innerHTML=h;
+  [].forEach.call(bd.querySelectorAll('tr.day'),function(tr){
+    tr.onclick=function(){ var k=tr.dataset.d; PC.open[k]=!PC.open[k]; pcDraw(); };
+  });
+  [].forEach.call(bd.querySelectorAll('[data-del]'),function(x){
+    x.onclick=function(e){ e.stopPropagation(); pcDel(x.dataset.del); };
+  });
+  var st=document.getElementById('pc-st');
+  if(st) st.textContent = bal<0 ? 'при таком плане денег не хватит' : '';
+}
+function pcForm(){
+  var f=document.getElementById('pc-form');
+  if(f.dataset.open){ f.dataset.open=''; f.innerHTML=''; return; }
+  f.dataset.open='1';
+  f.innerHTML='<div class="pcform">'
+    + '<span>дата <input type="date" id="pf-d" value="'+pcIso(pcToday())+'"></span>'
+    + '<input class="w" id="pf-w" placeholder="кому">'
+    + '<input class="n" id="pf-n" placeholder="назначение">'
+    + '<input class="s" id="pf-a" type="number" placeholder="сумма, ₸">'
+    + '<button id="pf-ok">Добавить</button><button id="pf-no">✕</button>'
+    + '<span id="pf-st" style="color:#c0392b"></span></div>';
+  document.getElementById('pf-no').onclick=pcForm;
+  document.getElementById('pf-ok').onclick=function(){
+    var r={ d:document.getElementById('pf-d').value,
+            w:document.getElementById('pf-w').value.trim(),
+            n:document.getElementById('pf-n').value.trim(),
+            a:Number(document.getElementById('pf-a').value)||0 };
+    if(!r.d||!r.a){ document.getElementById('pf-st').textContent='нужны дата и сумма'; return; }
+    fetch('/api/paycal?a=save',{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({r:r})}).then(function(x){return x.json();}).then(function(j){
+        if(j&&j.ok){ PC.rows[j.r.id]=j.r; PC.open[j.r.d]=true; pcForm(); pcDraw(); }
+        else document.getElementById('pf-st').textContent=(j&&j.error)||'не сохранилось';
+      }).catch(function(){ document.getElementById('pf-st').textContent='нет связи'; });
+  };
+}
+function pcDel(id){
+  fetch('/api/paycal?a=del',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({id:id})}).then(function(x){return x.json();}).then(function(j){
+      if(j&&j.ok){ delete PC.rows[id]; pcDraw(); }
+    });
 }
 
 /* ══════════════════════════════════════════════════════════════════
