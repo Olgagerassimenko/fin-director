@@ -114,6 +114,11 @@ h1{font-size:17px;font-weight:600;color:#1c1c1c;margin-bottom:3px}
 .rpbd td.nm{width:auto;max-width:360px}
 
 /* ── платёжный календарь ── */
+.m1c .hd.fold{cursor:pointer;user-select:none;display:flex;align-items:center;gap:7px}
+.m1c .hd.fold:hover{background:linear-gradient(#e7eff8,#cedcec)}
+.m1c .chev{font-size:10px;color:#3b5b7e;transition:transform .15s;display:inline-block}
+.m1c .hd.on .chev{transform:rotate(90deg)}
+.m1c .hd .sum{margin-left:auto;font-weight:400;font-size:11.5px;color:#3b5b7e}
 .pc .asof{align-items:center;gap:12px}
 .pc input,.pc select{font:inherit;font-size:12px;border:1px solid #9fb3c8;border-radius:2px;
   padding:2px 5px;background:#fff;color:#1c1c1c}
@@ -552,12 +557,15 @@ function open(id){
     + 'что в «Управлении предприятием 2», внутри — те же команды. Синяя ссылка значит, что такой '
     + 'отчёт в Пульсе уже есть и он живой. Серая — такого нет. Получается честная карта: какую '
     + 'часть ERP завод закрыл, не покупая ERP, и что осталось за её пределами.</div>';
-  if(s.pc) h+= '<div class="m1c pc"><div class="hd">Платёжный календарь</div>'
+  if(s.pc) h+= '<div class="m1c pc"><div class="hd fold" id="pc-hd">'
+    + '<span class="chev" id="pc-chev">▸</span> Платёжный календарь'
+    + '<span class="sum" id="pc-sum"></span></div>'
+    + '<div id="pc-wrap" hidden>'
     + '<div class="asof"><span>Остаток на сегодня: <b id="pc-cash">—</b></span>'
     + '<span>дней вперёд: <input type="number" id="pc-days" value="14" min="3" max="60" style="width:56px"></span>'
     + '<button id="pc-add">+ Платёж</button>'
     + '<span class="st" id="pc-st" style="margin-left:auto;font-size:11.5px;color:#3b5b7e"></span></div>'
-    + '<div id="pc-form"></div><div id="pc-bd"></div></div>';
+    + '<div id="pc-form"></div><div id="pc-bd"></div></div></div>';
   if(s.rep) h+= '<div class="m1c rp"><div class="hd">Отчёт из айко</div>'
     + '<div class="asof"><select id="rp-sel"></select>'
     + '<span>с <input type="date" id="rp-from"> по <input type="date" id="rp-to"></span>'
@@ -851,6 +859,24 @@ function pcDow(iso){
 function pcInit(){
   var days=document.getElementById('pc-days');
   if(!days) return;
+  /* Календарь свёрнут: на пустом плане это четырнадцать строк «—», которые
+     только занимают экран. В шапке остаётся итог, ради которого его и
+     открывают. Выбор запоминается на этом устройстве. */
+  var hd=document.getElementById('pc-hd'), wrap=document.getElementById('pc-wrap');
+  var open=false;
+  try{ open = localStorage.getItem('pc-open')==='1'; }catch(e){}
+  var apply=function(){
+    wrap.hidden=!open;
+    hd.className='hd fold'+(open?' on':'');
+    document.getElementById('pc-chev').textContent='▸';
+    if(open) pcDraw();
+  };
+  hd.onclick=function(){
+    open=!open;
+    try{ localStorage.setItem('pc-open', open?'1':'0'); }catch(e){}
+    apply();
+  };
+  apply();
   days.onchange=pcDraw;
   document.getElementById('pc-add').onclick=pcForm;
   if(window.DDSP_DAYS && DDSP_DAYS.cash){ PC.cash=(DDSP_DAYS.cash.nal||0)+(DDSP_DAYS.cash.beznal||0); }
@@ -861,7 +887,20 @@ function pcInit(){
   }).catch(function(){ document.getElementById('pc-st').textContent='офлайн: план не загрузился'; });
   pcDraw();
 }
+function pcSum(){
+  var el=document.getElementById('pc-sum'); if(!el) return;
+  var t0=pcToday(), n=14, end=pcIso(new Date(t0.getTime()+(n-1)*864e5)), beg=pcIso(t0), plan=0, cnt=0;
+  Object.keys(PC.rows).forEach(function(k){
+    var r=PC.rows[k];
+    if(r.st!=='done' && r.d>=beg && r.d<=end){ plan+=r.a||0; cnt++; }
+  });
+  el.innerHTML = cnt
+    ? ('на 14 дней: ' + cnt + ' платежей на ' + f0(plan) + ' ₸'
+       + (PC.cash && plan>PC.cash ? ' · <b style="color:#c0392b">денег не хватит</b>' : ''))
+    : 'плановых платежей нет';
+}
 function pcDraw(){
+  pcSum();
   var bd=document.getElementById('pc-bd'); if(!bd) return;
   var cashEl=document.getElementById('pc-cash');
   if(cashEl) cashEl.textContent = PC.cash ? f0(PC.cash)+' ₸' : '—';
