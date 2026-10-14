@@ -655,6 +655,15 @@ function crmSeed(){
   ]};
 }
 
+function crmUpd(u){
+  /* воркер пишет время в UTC строкой «ГГГГ-ММ-ДД ЧЧ:ММ» — показываем по Алматы */
+  try{
+    var d=new Date(String(u).replace(' ','T')+'Z');
+    d=new Date(d.getTime()+5*3600e3);
+    var p2=function(x){ return ('0'+x).slice(-2); };
+    return p2(d.getUTCDate())+'.'+p2(d.getUTCMonth()+1)+' '+p2(d.getUTCHours())+':'+p2(d.getUTCMinutes());
+  }catch(e){ return u; }
+}
 function crmStatus(t){ var e=document.getElementById('crm-st'); if(e) e.textContent=t; }
 
 function crmInit(){
@@ -667,7 +676,7 @@ function crmInit(){
   fetch('/api/crm?a=get').then(function(r){return r.json();}).then(function(j){
     CRM = (j && j.board && j.board.cols && j.board.cols.length) ? j.board : crmSeed();
     crmDraw();
-    crmStatus(j && j.board && j.board.upd ? 'сохранено '+j.board.upd : 'доска создана, ещё не сохранялась');
+    crmStatus(j && j.board && j.board.upd ? 'сохранено '+crmUpd(j.board.upd) : 'доска создана, ещё не сохранялась');
     if(!(j && j.board)) crmSave();
   }).catch(function(){ CRM=crmSeed(); crmDraw(); crmStatus('офлайн: изменения не сохранятся'); });
 }
@@ -678,7 +687,7 @@ function crmSave(){
     fetch('/api/crm?a=save',{method:'POST',headers:{'content-type':'application/json'},
       body:JSON.stringify({cols:CRM.cols})})
       .then(function(r){return r.json();})
-      .then(function(j){ crmStatus(j&&j.ok ? 'сохранено '+j.upd : 'не сохранилось: '+((j&&j.error)||'ошибка')); })
+      .then(function(j){ crmStatus(j&&j.ok ? 'сохранено '+crmUpd(j.upd) : 'не сохранилось: '+((j&&j.error)||'ошибка')); })
       .catch(function(){ crmStatus('не сохранилось: нет связи'); });
   },1200);
 }
