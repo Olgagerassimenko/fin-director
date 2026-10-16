@@ -353,9 +353,10 @@ const ERP_REPORTS = {
     kind: "cat", types: ["OUTGOING_INVOICE_REVENUE"],
     group: ["Product.Name", "Product.Category", "Product.Hierarchy"],
     agg: ["Sum.Outgoing"],
-    cols: [["name", "Номенклатура", "l"], ["cat", "Категория сейчас", "l"],
-           ["dom", "Должна быть", "l"], ["rec", "Что сделать", "l"],
-           ["folder", "Папка", "l"], ["sum", "Отгрузка за период, ₸", "n"]] },
+    cols: [["name", "Номенклатура", "l"], ["path", "Классификация", "l"],
+           ["cat", "Категория сейчас", "l"], ["dom", "Должна быть", "l"],
+           ["act", "Действие", "l"], ["rec", "Что сделать", "l"],
+           ["sum", "Отгрузка за период, ₸", "n"]] },
   stock: { n: "Остатки на складах на дату",
     kind: "api", path: "/resto/api/v2/reports/balance/stores",
     cols: [["store", "Склад", "l"], ["product", "Номенклатура", "l"],
@@ -464,6 +465,9 @@ async function handleErpRaw(request, env, url) {
     const items = src.map((x) => ({
       name: String(x["Product.Name"] || ""),
       cat: x["Product.Category"] || NO,
+      /* Полный путь по дереву номенклатуры — это и есть классификация;
+         папка (последний уровень) используется для сравнения категорий. */
+      path: String(x["Product.Hierarchy"] || ""),
       folder: String(x["Product.Hierarchy"] || "").split("/").pop() || "",
       sum: Number(x["Sum.Outgoing"]) || 0,
     }));
@@ -504,9 +508,25 @@ async function handleErpRaw(request, env, url) {
         } else {
           rec = "Проверить: сменить «" + i.cat + "» на «" + dom + "» или перенести в свою папку";
         }
-        return { name: i.name, cat: i.cat, dom: dom, rec: rec, folder: i.folder, sum: i.sum };
+        /* Варианты замены — категории, которые реально встречаются в этой же
+           папке: выбирать надо из них, а не из всего справочника. */
+        const alts = Object.entries(fold[i.folder].c)
+          .filter((e) => e[0] !== NO).sort((a, b) => b[1] - a[1])
+          .map((e) => e[0] + " (" + e[1] + ")");
+        const act = i.cat === NO ? "Проставить"
+                  : (dupes.some((q) => q.split(" / ").indexOf(i.cat) >= 0) ? "Объединить" : "Сменить");
+        return { name: i.name, cat: i.cat, dom: dom, act: act, rec: rec, alts: alts,
+                 path: i.path, folder: i.folder, sum: i.sum };
       })
       .sort((a, b) => b.sum - a.sum);
+
+    /* Справочник папок: что в каждой лежит и какие категории в ней встречаются. */
+    const folders = Object.keys(fold).sort().map((f) => ({
+      folder: f, n: fold[f].n, dom: fold[f].dom, mixed: !!fold[f].mixed,
+      cats: Object.entries(fold[f].c).sort((a, b) => b[1] - a[1])
+              .map((e) => ({ c: e[0], n: e[1] })),
+      sum: items.filter((i) => i.folder === f).reduce((a, i) => a + i.sum, 0),
+    }));
 
     const noCat = rows2.filter((r) => r.cat === NO);
     return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, 1000), total: rows2.length,
@@ -515,7 +535,7 @@ async function handleErpRaw(request, env, url) {
           + " · без категории " + noCat.length
           + " · спорных " + (rows2.length - noCat.length)
           + (dupes.length ? " · задвоенные категории: " + dupes.join(", ") : ""),
-      dupes: dupes,
+      dupes: dupes, folders: folders, allCats: allCats.sort(),
       from: from, to: to });
   }
 
