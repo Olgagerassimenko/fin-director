@@ -1726,7 +1726,7 @@ function ctDraw(){
   if(j.folders && j.folders.length){
     h+='<div class="ct-fold"><div class="ct-fold-h" onclick="ctToggleFolders()">'
       + '<span id="ct-fold-chev">\u25B8</span> Папки номенклатуры и категории в них · '
-      + j.folders.length + '</div><div id="ct-fold-b" hidden>'
+      + j.folders.length + '</div><div id="ct-fold-b" class="ct-fold-b" hidden>'
       + '<table class="ct-t"><thead><tr><th class="l">Папка</th><th class="r">Позиций</th>'
       + '<th class="l">Какие категории встречаются</th><th class="r">Отгрузка, \u20B8</th></tr></thead><tbody>';
     j.folders.forEach(function(f){
