@@ -157,7 +157,6 @@ tbody td{padding:8px 12px;vertical-align:middle}
   font:inherit;font-size:13px}
 .ct-per{font-size:12px;color:#6b7280;white-space:nowrap}
 
-.ct-wrap{border:1px solid #e5e7eb;border-radius:12px;overflow:auto;max-height:68vh}
 .ct-t{width:100%;border-collapse:collapse;font-size:13px}
 .ct-t th{position:sticky;top:0;z-index:1;background:#f9fafb;padding:9px 12px;
   font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;font-weight:800;
@@ -174,12 +173,29 @@ tbody td{padding:8px 12px;vertical-align:middle}
 .a-no{background:#fef2f2;color:#b91c1c} .a-chg{background:#eff6ff;color:#1d4ed8}
 .a-dup{background:#f5f3ff;color:#6d28d9}
 .ct-why{font-size:11.5px;color:#6b7280;margin-top:4px;max-width:430px;line-height:1.35}
+/* Вложенных прокруток нет: страница скроллится одна, шапка таблицы липкая. */
+.ct-t th.s{cursor:pointer;user-select:none}
+.ct-t th.s:hover{color:#6d28d9}
+.ct-row{cursor:pointer}
+.ct-row.sel td{background:#ede9fe}
+.ct-ch{display:inline-block;width:12px;color:#9ca3af;font-size:9px;margin-right:4px}
+.ct-row.open td{background:#faf5ff}
+.ct-det td{background:#faf5ff;border-bottom:1px solid #e9d5ff}
+.ct-det-in{display:grid;gap:6px;font-size:12.5px;color:#4b5563;padding:2px 0 6px 16px}
+.ct-det-in b{color:#111827}
+.ct-det-act{display:flex;gap:8px;margin-top:4px}
+.ct-mini{border:1px solid #d8b4fe;background:#fff;color:#6d28d9;border-radius:8px;
+  padding:4px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.ct-mini:hover{background:#f5f3ff}
+.ct-fchip{background:#7c3aed;color:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;
+  font-weight:700;cursor:pointer;white-space:nowrap}
+.ct-kpi.on{box-shadow:0 0 0 2px #7c3aed inset}
 .ct-note{padding:14px;color:#6b7280;font-size:13px} .ct-err{color:#b91c1c}
 
 .ct-fold{margin-top:14px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
 .ct-fold-h{background:#f9fafb;padding:10px 14px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer}
 .ct-fold-h:hover{background:#f3f4f6}
-.ct-fold-b{max-height:60vh;overflow:auto}
+.ct-fold-b{}
 .ct-mix td{background:#fffbeb}
 </style>
 <style id="mobile-adapt">@media (max-width:768px){html,body{overflow-x:hidden!important;max-width:100%;}body{font-size:15px;-webkit-text-size-adjust:100%;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}img,svg{max-width:100%;height:auto;}.container,.wrap,.content,.card,.panel,section,main{max-width:100%!important;box-sizing:border-box;}[style*="width:1"],[style*="width: 1"]{max-width:100%!important;}}</style>
@@ -2026,8 +2042,13 @@ function buildTopRevList(){
    Категорию в айко проставляют руками, и она разъезжается. Отчёт берёт
    для каждой папки преобладающую категорию и показывает тех, кто из неё
    выбивается, плюс позиции вовсе без категории. Считается в айко по
-   кнопке, период — месяц. */
-var CT_LAST=null, CT_BUSY=false, CT_FILTER='all', CT_Q='';
+   кнопке, период — месяц.
+   Таблица живая: строка раскрывается, заголовки сортируют, клик по папке
+   в нижнем справочнике фильтрует список. */
+var CT_LAST=null, CT_BUSY=false, CT_FILTER='all', CT_Q='', CT_FOLDER='';
+var CT_SORT={k:'sum',d:-1}, CT_OPEN={};
+var CT_NO='(не проставлена)';
+
 function ctLoadXLSX(){
   if(window.XLSX) return Promise.resolve();
   return new Promise(function(ok,no){
@@ -2042,7 +2063,6 @@ function ctEsc(s){ return String(s==null?'':s)
 function ctNum(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU').replace(/,/g,' '); }
 function ctMln(v){ v=Number(v)||0;
   return Math.abs(v)>=1e6 ? (v/1e6).toFixed(1).replace('.',',')+' млн ₸' : ctNum(v)+' ₸'; }
-var CT_NO='(не проставлена)';
 
 function ctInit(){
   var mon=document.getElementById('ct-mon');
@@ -2052,8 +2072,6 @@ function ctInit(){
   mon.value=a.getUTCFullYear()+'-'+p(a.getUTCMonth()+1);
   document.getElementById('ct-go').onclick=ctRun;
   document.getElementById('ct-xls').onclick=ctXls;
-  var q=document.getElementById('ct-q');
-  if(q) q.oninput=function(){ CT_Q=q.value.trim().toLowerCase(); ctDraw(); };
 }
 function ctRun(){
   if(CT_BUSY) return;
@@ -2072,12 +2090,59 @@ function ctRun(){
       CT_BUSY=false; st.textContent='';
       if(!j||j.error){ bd.innerHTML='<div class="ct-note ct-err">Не получилось: '
         +ctEsc((j&&j.error)||'нет ответа')+'</div>'; return; }
-      CT_LAST=j;
+      CT_LAST=j; CT_OPEN={}; CT_FOLDER='';
       document.getElementById('ct-xls').hidden=!(j.rows&&j.rows.length);
       ctDraw();
     })
     .catch(function(e){ CT_BUSY=false; st.textContent='';
       bd.innerHTML='<div class="ct-note ct-err">Не получилось: '+ctEsc(e.message)+'</div>'; });
+}
+
+function ctRows(){
+  var j=CT_LAST; if(!j) return [];
+  var all=j.rows||[];
+  var r=all.filter(function(x){
+    if(CT_FILTER==='no' && x.cat!==CT_NO) return false;
+    if(CT_FILTER==='dis' && x.cat===CT_NO) return false;
+    if(CT_FOLDER && x.folder!==CT_FOLDER) return false;
+    if(CT_Q && (x.name+' '+x.path+' '+x.cat).toLowerCase().indexOf(CT_Q)<0) return false;
+    return true;
+  });
+  var k=CT_SORT.k, d=CT_SORT.d;
+  r.sort(function(a,b){
+    var va=a[k], vb=b[k];
+    if(k==='sum') return (vb-va)*(d<0?1:-1);
+    return String(va).localeCompare(String(vb),'ru')*(d<0?-1:1);
+  });
+  return r;
+}
+function ctSort(k){
+  if(CT_SORT.k===k) CT_SORT.d=-CT_SORT.d; else CT_SORT={k:k,d:(k==='sum'?-1:1)};
+  ctDraw();
+}
+function ctSetFilter(k){ CT_FILTER=k; ctDraw(); }
+function ctByFolder(f){
+  CT_FOLDER=(CT_FOLDER===f?'':f); CT_FILTER='all'; ctDraw();
+  var e=document.getElementById('ct-bar'); if(e) e.scrollIntoView({block:'center',behavior:'smooth'});
+}
+function ctToggleRow(i){ CT_OPEN[i]=!CT_OPEN[i]; ctDraw(); }
+function ctToggleFolders(){
+  var b=document.getElementById('ct-fold-b'), c=document.getElementById('ct-fold-chev');
+  if(!b) return; b.hidden=!b.hidden; c.textContent=b.hidden?'\u25B8':'\u25BE';
+}
+function ctCopy(i){
+  var r=ctRows()[i]; if(!r) return;
+  var t=r.name+'\t'+r.path+'\t'+r.cat+'\t'+r.dom+'\t'+r.act;
+  if(navigator.clipboard) navigator.clipboard.writeText(t);
+  var st=document.getElementById('ct-st');
+  if(st){ st.textContent='строка скопирована'; setTimeout(function(){ st.textContent=''; },1800); }
+}
+
+function ctKpi(l,n,sub,money,tone,onclick,active){
+  return '<div class="ct-kpi '+tone+(active?' on':'')+'"'
+    + (onclick?' onclick="'+onclick+'" style="cursor:pointer"':'')
+    + '><div class="ct-kpi-l">'+l+'</div>'
+    + '<div class="ct-kpi-v">'+n+'</div><div class="ct-kpi-s">'+sub+' · '+money+'</div></div>';
 }
 
 function ctDraw(){
@@ -2087,12 +2152,17 @@ function ctDraw(){
   var noCat=all.filter(function(r){ return r.cat===CT_NO; });
   var dis=all.filter(function(r){ return r.cat!==CT_NO; });
   var sumAll=all.reduce(function(a,x){ return a+(x.sum||0); },0);
+  var total=(j.note||'').replace(/^позиций с отгрузкой /,'').split(' ')[0];
 
-  /* ——— Шапка: три числа и задвоенные пары ——— */
   var h='<div class="ct-kpis">'
-    + ctKpi('Без категории', noCat.length, 'позиций', ctMln(noCat.reduce(function(a,x){return a+x.sum;},0)), 'red')
-    + ctKpi('Спорная категория', dis.length, 'позиций', ctMln(dis.reduce(function(a,x){return a+x.sum;},0)), 'amber')
-    + ctKpi('Всего к разбору', all.length, 'из '+(j.note||'').replace(/^позиций с отгрузкой /,'').split(' ')[0]+' с отгрузкой', ctMln(sumAll), 'violet')
+    + ctKpi('Без категории',noCat.length,'позиций',
+        ctMln(noCat.reduce(function(a,x){return a+x.sum;},0)),'red',
+        "ctSetFilter('no')",CT_FILTER==='no')
+    + ctKpi('Спорная категория',dis.length,'позиций',
+        ctMln(dis.reduce(function(a,x){return a+x.sum;},0)),'amber',
+        "ctSetFilter('dis')",CT_FILTER==='dis')
+    + ctKpi('Всего к разбору',all.length,'из '+total+' с отгрузкой',ctMln(sumAll),'violet',
+        "ctSetFilter('all')",CT_FILTER==='all')
     + '</div>';
 
   if(j.dupes && j.dupes.length){
@@ -2101,50 +2171,65 @@ function ctDraw(){
       + '<div class="ct-hint">Пока в справочнике живут обе, любой разрез по категориям разваливается надвое.</div></div>';
   }
 
-  /* ——— Фильтры ——— */
-  var btn=function(k,t,n){ return '<button class="ct-f'+(CT_FILTER===k?' on':'')
-    +'" onclick="ctSetFilter(\''+k+'\')">'+t+' <b>'+n+'</b></button>'; };
-  h+='<div class="ct-bar">'+btn('all','Все',all.length)
-    + btn('no','Без категории',noCat.length)+btn('dis','Спорные',dis.length)
+  var rows=ctRows();
+  h+='<div class="ct-bar" id="ct-bar">'
     + '<input id="ct-q" class="ct-q" placeholder="поиск по названию или классификации" value="'+ctEsc(CT_Q)+'">'
+    + (CT_FOLDER?'<span class="ct-fchip" onclick="ctByFolder(\''+ctEsc(CT_FOLDER).replace(/'/g,"\\'")
+        +'\')">папка: '+ctEsc(CT_FOLDER)+' \u2715</span>':'')
     + '<span class="ct-per">'+ctEsc(j.from)+' — '+ctEsc(j.to)+'</span></div>';
 
-  /* ——— Таблица ——— */
-  var rows=(CT_FILTER==='no'?noCat:CT_FILTER==='dis'?dis:all).filter(function(r){
-    if(!CT_Q) return true;
-    return (r.name+' '+r.path+' '+r.cat).toLowerCase().indexOf(CT_Q)>=0;
-  });
-  h+='<div class="ct-wrap"><table class="ct-t"><thead><tr>'
-    + '<th class="l">Номенклатура и где лежит</th>'
-    + '<th class="l">Категория сейчас</th><th class="l">Должна быть</th>'
-    + '<th class="l">Что сделать</th><th class="r">Отгрузка, ₸</th></tr></thead><tbody>';
+  var th=function(k,t,cls){
+    var ar=CT_SORT.k===k?(CT_SORT.d<0?' \u25BE':' \u25B4'):'';
+    return '<th class="'+(cls||'l')+' s" onclick="ctSort(\''+k+'\')">'+t+ar+'</th>';
+  };
+  h+='<table class="ct-t"><thead><tr>'
+    + th('name','Номенклатура и где лежит')
+    + th('cat','Категория сейчас')
+    + th('dom','Должна быть')
+    + th('act','Что сделать')
+    + th('sum','Отгрузка, \u20B8','r')
+    + '</tr></thead><tbody>';
   if(!rows.length) h+='<tr><td colspan="5" class="ct-note">Ничего не нашлось</td></tr>';
-  rows.forEach(function(r){
+  rows.forEach(function(r,i){
     var cls=r.act==='Проставить'?'a-no':r.act==='Объединить'?'a-dup':'a-chg';
-    h+='<tr><td class="l"><div class="ct-nm">'+ctEsc(r.name)+'</div>'
-      + '<div class="ct-path">'+ctEsc(r.path||r.folder)+'</div></td>'
+    var op=!!CT_OPEN[i];
+    h+='<tr class="ct-row'+(op?' open':'')+'" onclick="ctToggleRow('+i+')">'
+      + '<td class="l"><div class="ct-nm"><span class="ct-ch">'+(op?'\u25BE':'\u25B8')+'</span>'
+      + ctEsc(r.name)+'</div><div class="ct-path">'+ctEsc(r.path||r.folder)+'</div></td>'
       + '<td class="l">'+(r.cat===CT_NO?'<span class="ct-nocat">не проставлена</span>':ctEsc(r.cat))+'</td>'
-      + '<td class="l"><b>'+ctEsc(r.dom)+'</b>'
-      + ((r.alts&&r.alts.length>1)
-          ? '<div class="ct-alts">ещё в папке: '+r.alts.filter(function(a){
-              return a.split(' (')[0]!==r.dom; }).map(ctEsc).join(', ')+'</div>' : '')
-      + '</td>'
-      + '<td class="l"><span class="ct-act '+cls+'">'+ctEsc(r.act)+'</span>'
-      + '<div class="ct-why">'+ctEsc(r.rec)+'</div></td>'
+      + '<td class="l"><b>'+ctEsc(r.dom)+'</b></td>'
+      + '<td class="l"><span class="ct-act '+cls+'">'+ctEsc(r.act)+'</span></td>'
       + '<td class="r">'+ctNum(r.sum)+'</td></tr>';
+    if(op){
+      h+='<tr class="ct-det"><td colspan="5"><div class="ct-det-in">'
+        + '<div><b>Что сделать.</b> '+ctEsc(r.rec)+'</div>'
+        + '<div><b>Классификация.</b> '+ctEsc(r.path||'—')+'</div>'
+        + '<div><b>Категории в этой папке.</b> '
+        + ((r.alts&&r.alts.length)?r.alts.map(function(a){
+            return '<span class="ct-chip'+(a.split(' (')[0]===r.dom?' ct-chip-dom':'')+'">'
+              +ctEsc(a)+'</span>'; }).join(' '):'только эта позиция')
+        + '</div><div class="ct-det-act">'
+        + '<button class="ct-mini" onclick="event.stopPropagation();ctByFolder(\''
+        + ctEsc(r.folder).replace(/'/g,"\\'")+'\')">Показать всю папку</button>'
+        + '<button class="ct-mini" onclick="event.stopPropagation();ctCopy('+i+')">Скопировать строку</button>'
+        + '</div></div></td></tr>';
+    }
   });
-  h+='</tbody><tfoot><tr><td class="l" colspan="4">Показано '+rows.length+' из '+all.length+'</td>'
-    + '<td class="r">'+ctNum(rows.reduce(function(a,x){return a+x.sum;},0))+'</td></tr></tfoot></table></div>';
-  /* ——— Справочник папок: что где лежит и какие категории встречаются ——— */
+  h+='</tbody><tfoot><tr><td class="l" colspan="4">Показано '+rows.length+' из '+all.length
+    + (CT_FOLDER?' · папка «'+ctEsc(CT_FOLDER)+'»':'')+'</td>'
+    + '<td class="r">'+ctNum(rows.reduce(function(a,x){return a+x.sum;},0))+'</td></tr></tfoot></table>';
+
   if(j.folders && j.folders.length){
     h+='<div class="ct-fold"><div class="ct-fold-h" onclick="ctToggleFolders()">'
       + '<span id="ct-fold-chev">\u25B8</span> Папки номенклатуры и категории в них · '
-      + j.folders.length + '</div><div id="ct-fold-b" class="ct-fold-b" hidden>'
+      + j.folders.length + ' · нажмите на папку, чтобы отфильтровать список</div>'
+      + '<div id="ct-fold-b" class="ct-fold-b" hidden>'
       + '<table class="ct-t"><thead><tr><th class="l">Папка</th><th class="r">Позиций</th>'
       + '<th class="l">Какие категории встречаются</th><th class="r">Отгрузка, \u20B8</th></tr></thead><tbody>';
     j.folders.forEach(function(f){
-      h+='<tr'+(f.mixed?' class="ct-mix"':'')+'><td class="l">'+ctEsc(f.folder)+'</td>'
-        + '<td class="r">'+f.n+'</td><td class="l">'
+      h+='<tr class="ct-row'+(f.mixed?' ct-mix':'')+(CT_FOLDER===f.folder?' sel':'')
+        + '" onclick="ctByFolder(\''+ctEsc(f.folder).replace(/'/g,"\\'")+'\')">'
+        + '<td class="l">'+ctEsc(f.folder)+'</td><td class="r">'+f.n+'</td><td class="l">'
         + f.cats.map(function(c){
             var no=(c.c===CT_NO);
             return '<span class="ct-chip'+(no?' ct-chip-no':(c.c===f.dom?' ct-chip-dom':''))+'">'
@@ -2155,14 +2240,12 @@ function ctDraw(){
   }
   bd.innerHTML=h;
   var q=document.getElementById('ct-q');
-  if(q){ q.oninput=function(){ CT_Q=q.value.trim().toLowerCase(); ctDraw();
-      var e=document.getElementById('ct-q'); if(e){ e.focus(); e.selectionStart=e.value.length; } }; }
+  if(q) q.oninput=function(){
+    CT_Q=q.value.trim().toLowerCase(); ctDraw();
+    var e=document.getElementById('ct-q');
+    if(e){ e.focus(); e.selectionStart=e.value.length; }
+  };
 }
-function ctKpi(l,n,sub,money,tone){
-  return '<div class="ct-kpi '+tone+'"><div class="ct-kpi-l">'+l+'</div>'
-    + '<div class="ct-kpi-v">'+n+'</div><div class="ct-kpi-s">'+sub+' · '+money+'</div></div>';
-}
-function ctSetFilter(k){ CT_FILTER=k; ctDraw(); }
 
 function ctXls(){
   if(!CT_LAST) return;
@@ -2189,13 +2272,6 @@ function ctXls(){
     XLSX.writeFile(wb,'Категории SKU '+j.from+'_'+j.to+'.xlsx');
     st.textContent='файл выгружен';
   }).catch(function(e){ st.textContent='не вышло: '+e.message; });
-}
-
-function ctToggleFolders(){
-  var b=document.getElementById('ct-fold-b'), c=document.getElementById('ct-fold-chev');
-  if(!b) return;
-  b.hidden=!b.hidden;
-  c.textContent=b.hidden?'\u25B8':'\u25BE';
 }
 
 /* Ссылка с плашки «Категории SKU» на главной приходит с #cats —
