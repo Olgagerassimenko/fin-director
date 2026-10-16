@@ -23,7 +23,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .btn.pri{background:#15803d;border-color:#16a34a;color:#eafff3}
 .btn.pri:hover{background:#166534;color:#fff}
 
-.wrap{max-width:1480px;margin:0 auto;padding:20px 28px 60px}
+.wrap{max-width:1480px;margin:0 auto;padding:20px 20px 60px}
+body{overflow-x:hidden}
 .lead{font-size:13px;color:#9db0c9;line-height:1.55;max-width:900px;margin-bottom:18px}
 .lead b{color:#e2e8f0}
 
@@ -47,10 +48,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .chk{display:flex;align-items:center;gap:7px;font-size:12px;color:#9db0c9;cursor:pointer;user-select:none}
 .chk input{accent-color:#2fa39a;width:15px;height:15px;cursor:pointer}
 
-table{width:100%;border-collapse:collapse;font-size:12.5px}
-thead th{position:sticky;top:0;z-index:3;background:#0e1628;color:#8aa0bd;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:10px 8px;text-align:right;border-bottom:1px solid #233150;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:auto}
+thead th{position:sticky;top:0;z-index:3;background:#0e1628;color:#8aa0bd;font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;padding:9px 6px;text-align:right;border-bottom:1px solid #233150;white-space:nowrap}
 thead th.l{text-align:left}
-tbody td{padding:9px 8px;text-align:right;border-bottom:1px solid #1b2742;white-space:nowrap;font-variant-numeric:tabular-nums}
+tbody td{padding:8px 6px;text-align:right;border-bottom:1px solid #1b2742;white-space:nowrap;font-variant-numeric:tabular-nums}
 tbody td.l{text-align:left;white-space:normal}
 tr.g{cursor:pointer}
 tr.g:hover td{background:#17223c}
@@ -62,7 +63,7 @@ tr.d td{color:#9db0c9;font-weight:500;background:#0f1930}
 tr.d td.l{padding-left:30px}
 tr.d .nom{color:#64748b;font-size:11.5px;display:block;margin-top:2px}
 td.rsp{text-align:left;padding:5px 6px}
-.rsp-in{width:100%;min-width:118px;background:#0e1628;border:1px solid #233150;border-radius:7px;color:#cfe0f5;font:600 12px/1 Inter,system-ui,sans-serif;padding:7px 8px}
+.rsp-in{width:100%;min-width:104px;background:#0e1628;border:1px solid #233150;border-radius:7px;color:#cfe0f5;font:600 12px/1 Inter,system-ui,sans-serif;padding:7px 8px}
 .rsp-in::placeholder{color:#4a5a78;font-weight:500}
 .rsp-in:focus{outline:none;border-color:#2fa39a;background:#0b1324}
 tr.d .rsp-in{font-weight:500;color:#9db0c9}
@@ -77,14 +78,7 @@ tr.d .rsp-in{font-weight:500;color:#9db0c9}
 .rsum-v{font-size:18px;font-weight:800;color:#5eead4}
 .rsum-s{font-size:11px;color:#8aa0bd;margin-top:3px}
 .saved{font-size:11.5px;color:#4ade80}
-/* Двенадцать месяцев в строку не влезают, и при горизонтальной прокрутке
-   таблица превращается в набор цифр без подписей. Первые две колонки —
-   название и ответственный — остаются на месте. */
-thead th:nth-child(1),tbody td:nth-child(1){position:sticky;left:var(--navw,0px);z-index:2;background:#121b31;min-width:206px;max-width:206px}
-thead th:nth-child(2),tbody td:nth-child(2){position:sticky;left:calc(var(--navw,0px) + 206px);z-index:2;background:#121b31;box-shadow:1px 0 0 #233150}
-thead th:nth-child(1),thead th:nth-child(2){z-index:5;background:#0e1628}
-tr.d td:nth-child(1),tr.d td:nth-child(2){background:#0f1930}
-tr.g[style*="0e1628"] td:nth-child(1),tr.g[style*="0e1628"] td:nth-child(2){background:#0e1628}
+thead th:nth-child(1),tbody td:nth-child(1){min-width:168px}
 
 td.tot{color:#5eead4;font-weight:800}
 td.zero{color:#33405c}
@@ -126,6 +120,10 @@ var NOBODY = '(не назначен)';
 var MN = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
 
 function fmt(n){ n = Math.round(n||0); return n ? n.toLocaleString('ru-RU').replace(/,/g,' ') : '—'; }
+/* В таблице двенадцать колонок месяцев. В полных тенге она не помещается
+   в экран и уезжает в горизонтальную прокрутку, поэтому здесь — тысячи.
+   В выгрузке в Excel суммы остаются в тенге до копейки. */
+function fk(n){ n = Math.round((n||0)/1000); return n ? n.toLocaleString('ru-RU').replace(/,/g,' ') : '—'; }
 function mln(n){ n = (n||0)/1e6; return (Math.abs(n)>=100? n.toFixed(0) : n.toFixed(1)).replace('.',',')+' млн'; }
 
 function yrBar(){
@@ -222,6 +220,7 @@ function draw(){
      +   '<label class="chk"><input type="checkbox" id="f-ref"'+(showRef?' checked':'')+'> показать налоги, возмещения и возвраты</label>'
      +   '<button class="btn" id="btn-all">Раскрыть всё</button>'
      +   '<span id="rsp-ok" class="saved"></span>'
+     +   '<span class="panel-n" style="margin-left:auto">суммы в таблице — тысячи ₸; в выгрузке Excel — тенге</span>'
      + '</div>'
      + '<div class="tools chips" id="f-ppl">'+personChips()+'</div>'
      + table(D.vids, false, q)
@@ -250,7 +249,7 @@ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 
 function head(n){
   var nf = Math.max(1, D.nFull||D.nMon);
-  var h = '<tr><th class="l">Вид работ · поставщик</th><th class="l" style="min-width:140px">Ответственный<br>за подачу</th>';
+  var h = '<tr><th class="l">Вид работ · поставщик</th><th class="l" style="min-width:116px">Ответственный<br>за подачу</th>';
   for (var i=0;i<n;i++) h += '<th'+(i>=nf?' style="color:#5b6c88" title="месяц ещё не закрыт — документы проводят по ходу дела"':'')+'>'+MN[i]+(i>=nf?' ·':'')+'</th>';
   return h + '<th>Итого</th><th>Σ/мес</th><th>Доля</th></tr>';
 }
@@ -268,8 +267,8 @@ function table(vids, isRef, q){
        + '</span><span class="pill">'+g.sup+' пост.</span></td>'
        + '<td class="rsp"><input class="rsp-in'+(isSeed(g.v)?' seed':'')+'" list="ppl" data-k="'+esc(g.v)
        + '" value="'+esc(respVid(g.v))+'" placeholder="кто подаёт"></td>';
-    for (var i=0;i<n;i++) h += '<td'+(g.m[i]?'':' class="zero"')+'>'+fmt(g.m[i])+'</td>';
-    h += '<td class="tot">'+fmt(g.sum)+'</td><td>'+fmt(g.sum/nf)+'</td>'
+    for (var i=0;i<n;i++) h += '<td'+(g.m[i]?'':' class="zero"')+'>'+fk(g.m[i])+'</td>';
+    h += '<td class="tot">'+fk(g.sum)+'</td><td>'+fk(g.sum/nf)+'</td>'
        + '<td><span class="sh">'+(grand? (g.sum/grand*100).toFixed(1).replace('.',',') : '0')+'%</span></td></tr>';
     if (op) {
       rows.filter(function(r){ return r.v === g.v && matches(r, q); })
@@ -278,8 +277,8 @@ function table(vids, isRef, q){
         h += '<tr class="d"><td class="l">'+esc(r.s)+'<span class="nom">'+esc(r.p)+'</span></td>'
            + '<td class="rsp"><input class="rsp-in" list="ppl" data-k="'+esc(rkey(r))
            + '" value="'+esc(RESP[rkey(r)]||'')+'" placeholder="'+esc(respVid(r.v)||'как у вида работ')+'"></td>';
-        for (var i=0;i<n;i++) h += '<td'+(r.m[i]?'':' class="zero"')+'>'+fmt(r.m[i])+'</td>';
-        h += '<td class="tot">'+fmt(r.sum)+'</td><td>'+fmt(r.sum/nf)+'</td>'
+        for (var i=0;i<n;i++) h += '<td'+(r.m[i]?'':' class="zero"')+'>'+fk(r.m[i])+'</td>';
+        h += '<td class="tot">'+fk(r.sum)+'</td><td>'+fk(r.sum/nf)+'</td>'
            + '<td><span class="sh">'+(grand? (r.sum/grand*100).toFixed(1).replace('.',',') : '0')+'%</span></td></tr>';
       });
     }
@@ -287,8 +286,8 @@ function table(vids, isRef, q){
   var T = isRef?D.refTot:D.svcTot;
   h += '<tr class="g" style="background:#0e1628"><td class="l"><span class="caret" style="visibility:hidden">▶</span><b>'
      + (isRef?'Итого справочно':'ИТОГО УСЛУГИ')+'</b></td><td></td>';
-  for (var i=0;i<n;i++) h += '<td>'+fmt(T.m[i])+'</td>';
-  h += '<td class="tot">'+fmt(T.sum)+'</td><td>'+fmt(T.sum/nf)+'</td><td></td></tr>';
+  for (var i=0;i<n;i++) h += '<td>'+fk(T.m[i])+'</td>';
+  h += '<td class="tot">'+fk(T.sum)+'</td><td>'+fk(T.sum/nf)+'</td><td></td></tr>';
   return h + '</tbody></table>';
 }
 
@@ -492,6 +491,12 @@ document.getElementById('btn-xls').onclick = xls;
 yrBar();
 load();
 </script>
-<script src="nav.js"></script>
+<script>
+/* Боковая панель nav.js на этой странице не ставится: она раскрывается по
+   наведению и накрывает собой левые колонки широкой таблицы. Возврат —
+   ссылкой «← Пульс» в шапке, как на обычных страницах. Счётчик просмотров
+   жил в nav.js, поэтому зовём его отдельно. */
+try{ fetch('/track?p='+encodeURIComponent(location.pathname),{method:'GET',keepalive:true}); }catch(e){}
+</script>
 </body>
 </html>
