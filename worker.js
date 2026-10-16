@@ -1365,8 +1365,11 @@ async function iikoProbe(url) {
       const sum = Array.isArray(data)
         ? data.reduce((s, x) => { for (const k in x) if (typeof x[k] === "number") (s[k] = (s[k] || 0) + x[k]); return s; }, {})
         : null;
+      /* ?n= — сколько строк вернуть. По умолчанию 120: столько влезает
+         в беглый просмотр. Для разборов вроде «все SKU месяца» нужно больше. */
+      const n = Math.max(1, Math.min(3000, +(url.searchParams.get("n") || 120) || 120));
       return J({ status: r.status, rows: Array.isArray(data) ? data.length : null, sums: sum,
-                 sample: Array.isArray(data) ? data.slice(0, 120) : p });
+                 sample: Array.isArray(data) ? data.slice(0, n) : p });
     }
     return J({ hint: "?cols=TRANSACTIONS | ?q=<base64url olap>" });
   } catch (e) { return J({ error: String(e && e.stack || e) }, 500); }
