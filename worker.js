@@ -2856,7 +2856,9 @@ const USL_REF = {
 };
 
 async function handleUsl(request, env, url) {
-  const ck = new Request("https://usl.cache" + url.pathname + url.search);
+  /* Версия в ключе кэша: после выкладки нового формата ответа старое тело
+     иначе живёт в кэше ещё полчаса и страница читает поля, которых в нём нет. */
+  const ck = new Request("https://usl.cache/v2" + url.pathname + url.search);
   const hit = await caches.default.match(ck);
   if (hit) return hit;
   const resp = await handleUslRaw(request, env, url);
