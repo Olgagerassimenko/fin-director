@@ -115,7 +115,10 @@ tbody td{padding:8px 12px;vertical-align:middle}
 
 /* ——— Категории SKU ——— */
 #view-cats{display:none}
-.ct-card{width:100%;background:#fff;border-radius:16px;padding:18px 20px 22px}
+/* Шире 1180 px читать неудобно: строка уезжает, глаз теряет начало.
+   Карточку держим в этой ширине и центрируем. */
+.ct-card{width:100%;max-width:1180px;margin:0 auto;background:#fff;border-radius:16px;padding:18px 20px 22px}
+#view-cats{justify-content:center}
 .ct-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .ct-head b{font-size:17px;color:#111827;letter-spacing:-.2px}
 .ct-head .lbl{font-size:12px;color:#6b7280}
