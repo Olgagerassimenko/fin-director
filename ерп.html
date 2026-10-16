@@ -568,8 +568,11 @@ function open(id){
     + '<div id="pc-form"></div><div id="pc-bd"></div></div></div>';
   if(s.rep) h+= '<div class="m1c rp"><div class="hd">Отчёт из айко</div>'
     + '<div class="asof"><select id="rp-sel"></select>'
+    + '<span>месяц <input type="month" id="rp-mon"></span>'
     + '<span>с <input type="date" id="rp-from"> по <input type="date" id="rp-to"></span>'
-    + '<button id="rp-go">Сформировать</button><span class="st" id="rp-st"></span></div>'
+    + '<button id="rp-go">Сформировать</button>'
+    + '<button id="rp-xls" hidden>Выгрузить в Excel</button>'
+    + '<span class="st" id="rp-st"></span></div>'
     + '<div class="rpbd" id="rp-bd"></div></div>';
   if(s.crm) h+= '<div class="crm"><div class="hd">Задачи'
     + '<button class="btn lnk" id="crm-addcol">+ Колонка</button>'
@@ -776,11 +779,32 @@ function repInit(list){
   sel.innerHTML=list.map(function(k){ return '<option value="'+k+'">'+(REP_N[k]||k)+'</option>'; }).join('');
   var dd=repDates(list[0]);
   f.value=dd[0]; t.value=dd[1];
+  /* Месяц целиком — то, чем пользуются чаще всего: выбрал месяц, даты
+     проставились сами. Руками даты тоже можно, они рядом. */
+  var mon=document.getElementById('rp-mon');
+  if(mon){
+    mon.value=dd[1].slice(0,7);
+    mon.onchange=function(){
+      var v=mon.value; if(!/^\d{4}-\d{2}$/.test(v)) return;
+      var y=+v.slice(0,4), m=+v.slice(5,7);
+      var last=new Date(Date.UTC(y,m,0)).getUTCDate();
+      var now=new Date(Date.now()+5*3600e3);
+      var isCur=(now.getUTCFullYear()===y && now.getUTCMonth()+1===m);
+      f.value=v+'-01';
+      t.value=v+'-'+('0'+(isCur?now.getUTCDate():last)).slice(-2);
+      repIdle();
+    };
+  }
   go.onclick=function(){ repRun(sel.value,f.value,t.value); };
+  var xb=document.getElementById('rp-xls'); if(xb) xb.onclick=repXls;
   /* Отчёт сам не строится: как в 1С, его формируют кнопкой. Запрос в айко
      занимает секунды и занимает сессию resto API — гонять его на каждое
      открытие раздела незачем. */
-  sel.onchange=function(){ var d2=repDates(sel.value); f.value=d2[0]; t.value=d2[1]; repIdle(); };
+  sel.onchange=function(){
+    var d2=repDates(sel.value); f.value=d2[0]; t.value=d2[1];
+    var mn=document.getElementById('rp-mon'); if(mn) mn.value=d2[1].slice(0,7);
+    repIdle();
+  };
   f.onchange=repIdle; t.onchange=repIdle;
   repIdle();
 }
@@ -789,6 +813,63 @@ function repIdle(){
   if(!bd) return;
   st.textContent='';
   bd.innerHTML='<div class="empty">Отчёт не сформирован. Нажмите «Сформировать».</div>';
+  var xb=document.getElementById('rp-xls'); if(xb) xb.hidden=true;
+  REP_LAST=null;
+}
+
+/* ── Выгрузка отчёта в Excel ────────────────────────────────────────
+   Лист строится из того же, что на экране: заголовок с названием отчёта
+   и периодом, шапка таблицы, строки, итог. Кому-то этот файл раздавать
+   по исполнителям — поэтому первая колонка широкая, а «Что сделать»
+   написано так, чтобы читалось без пояснений. */
+var REP_LAST=null;
+function loadXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  return new Promise(function(ok,no){
+    var sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    sc.onload=ok; sc.onerror=function(){ no(new Error('не загрузилась библиотека')); };
+    document.head.appendChild(sc);
+  });
+}
+function repXls(){
+  if(!REP_LAST) return;
+  var j=REP_LAST.j, st=document.getElementById('rp-st');
+  st.textContent='готовлю файл…';
+  loadXLSX().then(function(){
+    var aoa=[];
+    aoa.push([j.n]);
+    aoa.push(['Период', j.from+' — '+j.to, '', 'Выгружено', new Date().toLocaleString('ru-RU')]);
+    if(j.note) aoa.push([j.note]);
+    aoa.push([]);
+    aoa.push(j.cols.map(function(c){ return c[1]; }));
+    j.rows.forEach(function(r){
+      aoa.push(j.cols.map(function(c){
+        var v=r[c[0]];
+        if(c[2]==='n'||c[2]==='q'||c[2]==='p') return Number(v)||0;
+        return v==null?'':String(v);
+      }));
+    });
+    aoa.push(j.cols.map(function(c,i){
+      if(i===0) return 'ИТОГО';
+      if(c[2]==='n'||c[2]==='q') return Number(j.sums[c[0]])||0;
+      return '';
+    }));
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=j.cols.map(function(c){
+      return {wch: c[2]==='l' ? (c[0]==='name'||c[0]==='rec' ? 52 : 26) : 18};
+    });
+    /* Шапка таблицы закреплена: список длинный, без этого колонки теряются. */
+    ws['!freeze']={xSplit:0,ySplit:5};
+    var hdr=4;
+    ws['!autofilter']={ref:XLSX.utils.encode_range(
+      {s:{r:hdr,c:0}, e:{r:hdr+j.rows.length, c:j.cols.length-1}})};
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Отчёт');
+    var nm=String(j.n).replace(/[^\wа-яА-ЯёЁ \-]/g,'').slice(0,40).trim();
+    XLSX.writeFile(wb, nm+' '+j.from+'_'+j.to+'.xlsx');
+    st.textContent='файл выгружен';
+  }).catch(function(e){ st.textContent='не вышло: '+e.message; });
 }
 var repGen=0, repAbort=null;
 function repRun(key,from,to){
@@ -829,6 +910,9 @@ function repRun(key,from,to){
         return '<td>'+f0(j.sums[c[0]]||0)+'</td>';
       }).join('')+'</tr></table>';
       bd.innerHTML=h;
+      REP_LAST={key:key, j:j};
+      var xb=document.getElementById('rp-xls');
+      if(xb){ xb.hidden=!(j.rows&&j.rows.length); }
       var more=j.total>j.rows.length ? ' · показаны первые '+j.rows.length+' из '+j.total : '';
       st.textContent='строк '+j.total+more+(j.note?' · '+j.note:'')+' · период '+j.from+' — '+j.to;
     })
