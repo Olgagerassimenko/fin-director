@@ -1333,6 +1333,8 @@ export default {
     if (url.pathname === "/api/erp") return handleErp(request, env, url)
 
     if (url.pathname === "/api/uslugi") return handleUsl(request, env, url)
+
+    if (url.pathname === "/api/uslresp") return handleUslResp(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/paycal") return handlePaycal(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
@@ -2949,6 +2951,43 @@ async function handleUslRaw(request, env, url) {
     note: "Источник — проводки айко типа «Поступление услуг» (INCOMING_SERVICE) за " + from + " — " + to +
           ". Налоги, возмещение затрат площадкам и возвраты товара показаны отдельно и в итог по услугам не входят.",
   });
+}
+
+/* Ответственные за подачу данных по услугам. Нужны бюджету: вид работ без
+   человека, который приносит цифру, в плане не живёт. Правятся прямо на
+   странице, поэтому лежат в KV, а не в коде. Ключ — либо вид работ целиком,
+   либо конкретная строка «вид\u0000поставщик\u0000услуга», если по одному
+   поставщику отвечает не тот, кто за весь вид. */
+const USL_RESP_KEY = "uslresp:v1";
+/* Предзаполнено из файла «Услуги по видам работ» — колонка «Инициатор».
+   Служит значением по умолчанию, пока по виду работ ничего не назначено. */
+const USL_RESP_SEED = {
+  "Коммунальные услуги": "Акерке",
+  "Аренда помещений": "Акерке",
+  "Связь и интернет": "Акерке",
+  "Программы и IT-сервисы": "Адиль",
+  "Страхование": "Бухгалтерия",
+  "Ремонт и обслуживание оборудования": "Руслан Абитов",
+  "Монтаж, стройка и ремонт помещений": "Руслан Абитов",
+};
+
+async function handleUslResp(request, env, url) {
+  if (request.method === "POST") {
+    let body = null;
+    try { body = await request.json(); } catch (e) {}
+    if (!body || typeof body !== "object" || Array.isArray(body))
+      return jsonResp({ error: "пустой запрос" }, 400);
+    const clean = {};
+    Object.keys(body).slice(0, 2000).forEach((k) => {
+      const v = String(body[k] == null ? "" : body[k]).replace(/\s+/g, " ").trim().slice(0, 80);
+      if (v) clean[String(k).slice(0, 300)] = v;
+    });
+    await env.PLAN.put(USL_RESP_KEY, JSON.stringify(clean).slice(0, 180000));
+    return jsonResp({ ok: true, n: Object.keys(clean).length });
+  }
+  let saved = null;
+  try { saved = JSON.parse((await env.PLAN.get(USL_RESP_KEY)) || "null"); } catch (e) {}
+  return jsonResp({ resp: saved || {}, seed: USL_RESP_SEED, saved: !!saved });
 }
 
 function jsonResp(obj, status) {
