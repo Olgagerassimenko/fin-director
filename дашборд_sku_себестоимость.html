@@ -99,6 +99,72 @@ tbody td{padding:8px 12px;vertical-align:middle}
 .trr-bar-fill{background:#7c3aed;border-radius:4px;height:6px}
 .trr-val{font-size:13px;font-weight:700;width:60px;text-align:right;flex-shrink:0}
 .trr-mg{font-size:12px;font-weight:600;width:42px;text-align:right;flex-shrink:0}
+
+/* ——— Категории SKU ——— */
+#view-cats{display:none}
+.ct-card{width:100%;background:#fff;border-radius:16px;padding:18px 20px 22px}
+.ct-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.ct-head b{font-size:17px;color:#111827;letter-spacing:-.2px}
+.ct-head .lbl{font-size:12px;color:#6b7280}
+.ct-card input[type=month]{padding:6px 9px;border:1px solid #d1d5db;border-radius:9px;font:inherit;font-size:13px}
+.ct-btn{padding:7px 16px;border-radius:9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;border:1px solid}
+.ct-btn.go{border-color:#c4b5fd;background:#f5f3ff;color:#6d28d9}
+.ct-btn.go:hover{background:#ede9fe}
+.ct-btn.xls{border-color:#bbf7d0;background:#f0fdf4;color:#15803d}
+.ct-btn.xls:hover{background:#dcfce7}
+.ct-st{font-size:12px;color:#6b7280;margin-left:auto}
+
+.ct-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:14px}
+.ct-kpi{border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;border-left-width:4px}
+.ct-kpi.red{border-left-color:#ef4444} .ct-kpi.amber{border-left-color:#f59e0b}
+.ct-kpi.violet{border-left-color:#7c3aed}
+.ct-kpi-l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;font-weight:800}
+.ct-kpi-v{font-size:28px;font-weight:800;color:#111827;letter-spacing:-.6px;margin:3px 0 2px}
+.ct-kpi-s{font-size:12px;color:#6b7280}
+
+.ct-dupes{background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:11px 14px;
+  font-size:13px;color:#78350f;margin-bottom:14px}
+.ct-dupes b{color:#92400e}
+.ct-hint{font-size:12px;color:#92400e;opacity:.85;margin-top:5px}
+.ct-chip{display:inline-block;background:#fff;border:1px solid #e5e7eb;border-radius:999px;
+  padding:2px 10px;font-size:12px;color:#374151;margin:2px 3px 0 0;white-space:nowrap}
+.ct-chip-dom{background:#eef2ff;border-color:#c7d2fe;color:#3730a3;font-weight:700}
+.ct-chip-no{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+
+.ct-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.ct-f{border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:6px 14px;
+  font:inherit;font-size:13px;color:#374151;cursor:pointer}
+.ct-f:hover{border-color:#c4b5fd}
+.ct-f.on{background:#7c3aed;border-color:#7c3aed;color:#fff;font-weight:700}
+.ct-f b{font-weight:800}
+.ct-q{flex:1 1 260px;min-width:200px;padding:7px 12px;border:1px solid #d1d5db;border-radius:9px;
+  font:inherit;font-size:13px}
+.ct-per{font-size:12px;color:#6b7280;white-space:nowrap}
+
+.ct-wrap{border:1px solid #e5e7eb;border-radius:12px;overflow:auto;max-height:68vh}
+.ct-t{width:100%;border-collapse:collapse;font-size:13px}
+.ct-t th{position:sticky;top:0;z-index:1;background:#f9fafb;padding:9px 12px;
+  font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;font-weight:800;
+  border-bottom:1px solid #e5e7eb;white-space:nowrap}
+.ct-t th.l,.ct-t td.l{text-align:left} .ct-t th.r,.ct-t td.r{text-align:right}
+.ct-t td{padding:9px 12px;border-bottom:1px solid #f3f4f6;vertical-align:top;color:#374151}
+.ct-t tbody tr:hover td{background:#faf5ff}
+.ct-t tfoot td{background:#f9fafb;font-weight:700;color:#111827;border-top:1px solid #e5e7eb}
+.ct-nm{font-weight:600;color:#111827;line-height:1.3}
+.ct-path{font-size:11.5px;color:#9ca3af;margin-top:2px}
+.ct-alts{font-size:11.5px;color:#9ca3af;margin-top:3px}
+.ct-nocat{color:#b91c1c;font-weight:700}
+.ct-act{display:inline-block;border-radius:999px;padding:2px 10px;font-size:11.5px;font-weight:800;white-space:nowrap}
+.a-no{background:#fef2f2;color:#b91c1c} .a-chg{background:#eff6ff;color:#1d4ed8}
+.a-dup{background:#f5f3ff;color:#6d28d9}
+.ct-why{font-size:11.5px;color:#6b7280;margin-top:4px;max-width:430px;line-height:1.35}
+.ct-note{padding:14px;color:#6b7280;font-size:13px} .ct-err{color:#b91c1c}
+
+.ct-fold{margin-top:14px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
+.ct-fold-h{background:#f9fafb;padding:10px 14px;font-size:13.5px;font-weight:700;color:#374151;cursor:pointer}
+.ct-fold-h:hover{background:#f3f4f6}
+.ct-fold-b{max-height:60vh;overflow:auto}
+.ct-mix td{background:#fffbeb}
 </style>
 </head>
 <body>
@@ -283,18 +349,18 @@ tbody td{padding:8px 12px;vertical-align:middle}
   <div id="insights-content" style="width:100%"></div>
 </div>
 
-<!-- ====== КАТЕГОРИИ: живой отчёт из айко ====== -->
+<!-- ====== КАТЕГОРИИ: живой разбор разметки номенклатуры ====== -->
 <div id="view-cats" class="an-view" style="display:none">
-  <div style="width:100%;background:#fff;border-radius:14px;padding:16px 18px">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <b style="font-size:15px;color:#111827">Категории SKU: спорные и непроставленные</b>
-      <span style="font-size:12px;color:#6b7280">месяц</span>
-      <input type="month" id="ct-mon" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:13px">
-      <button id="ct-go" style="padding:6px 14px;border:1px solid #c4b5fd;background:#f5f3ff;color:#6d28d9;border-radius:8px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">Сформировать</button>
-      <button id="ct-xls" hidden style="padding:6px 14px;border:1px solid #bbf7d0;background:#f0fdf4;color:#15803d;border-radius:8px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">Выгрузить в Excel</button>
-      <span id="ct-st" style="font-size:12px;color:#6b7280;margin-left:auto"></span>
+  <div class="ct-card">
+    <div class="ct-head">
+      <b>Категории SKU: спорные и непроставленные</b>
+      <span class="lbl">месяц</span>
+      <input type="month" id="ct-mon">
+      <button id="ct-go" class="ct-btn go">Сформировать</button>
+      <button id="ct-xls" class="ct-btn xls" hidden>Выгрузить в Excel</button>
+      <span class="ct-st" id="ct-st"></span>
     </div>
-    <div id="ct-bd" style="font-size:13px;color:#6b7280">Отчёт не сформирован. Нажмите «Сформировать».</div>
+    <div id="ct-bd"><div class="ct-note">Отчёт не сформирован. Выберите месяц и нажмите «Сформировать».</div></div>
   </div>
 </div>
 
@@ -1552,11 +1618,12 @@ function buildTopRevList(){
 
 </script>
 <script>
-/* ——— Категории SKU: считается в айко по кнопке ———
-   Разметку номенклатуры проставляют руками, и она разъезжается. Отчёт для
-   каждой папки берёт преобладающую категорию и показывает тех, кто из неё
-   выбивается, плюс позиции вовсе без категории. Период — месяц. */
-var CT_LAST=null, CT_BUSY=false;
+/* ——— Категории SKU: живой разбор разметки номенклатуры ———
+   Категорию в айко проставляют руками, и она разъезжается. Отчёт берёт
+   для каждой папки преобладающую категорию и показывает тех, кто из неё
+   выбивается, плюс позиции вовсе без категории. Считается в айко по
+   кнопке, период — месяц. */
+var CT_LAST=null, CT_BUSY=false, CT_FILTER='all', CT_Q='';
 function ctLoadXLSX(){
   if(window.XLSX) return Promise.resolve();
   return new Promise(function(ok,no){
@@ -1569,6 +1636,10 @@ function ctLoadXLSX(){
 function ctEsc(s){ return String(s==null?'':s)
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function ctNum(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU').replace(/,/g,' '); }
+function ctMln(v){ v=Number(v)||0;
+  return Math.abs(v)>=1e6 ? (v/1e6).toFixed(1).replace('.',',')+' млн ₸' : ctNum(v)+' ₸'; }
+var CT_NO='(не проставлена)';
+
 function ctInit(){
   var mon=document.getElementById('ct-mon');
   if(!mon || mon.dataset.ready) return;
@@ -1577,6 +1648,8 @@ function ctInit(){
   mon.value=a.getUTCFullYear()+'-'+p(a.getUTCMonth()+1);
   document.getElementById('ct-go').onclick=ctRun;
   document.getElementById('ct-xls').onclick=ctXls;
+  var q=document.getElementById('ct-q');
+  if(q) q.oninput=function(){ CT_Q=q.value.trim().toLowerCase(); ctDraw(); };
 }
 function ctRun(){
   if(CT_BUSY) return;
@@ -1589,59 +1662,138 @@ function ctRun(){
   var from=mon+'-01', to=mon+'-'+p(isCur?a.getUTCDate():last);
   var bd=document.getElementById('ct-bd'), st=document.getElementById('ct-st');
   CT_BUSY=true; st.textContent='считаю в айко…';
-  bd.innerHTML='<div style="color:#9ca3af">запрос в айко, это занимает несколько секунд…</div>';
+  bd.innerHTML='<div class="ct-note">Запрос в айко, это занимает несколько секунд…</div>';
   fetch('/api/erp?r=cat&from='+from+'&to='+to).then(function(r){ return r.json(); })
     .then(function(j){
-      CT_BUSY=false;
-      if(!j||j.error){ st.textContent=''; bd.innerHTML='<div style="color:#b91c1c">не получилось: '
+      CT_BUSY=false; st.textContent='';
+      if(!j||j.error){ bd.innerHTML='<div class="ct-note ct-err">Не получилось: '
         +ctEsc((j&&j.error)||'нет ответа')+'</div>'; return; }
       CT_LAST=j;
       document.getElementById('ct-xls').hidden=!(j.rows&&j.rows.length);
-      var h='<div style="overflow:auto;max-height:60vh;border:1px solid #e5e7eb;border-radius:10px">'
-        + '<table style="width:100%;border-collapse:collapse;font-size:12.5px">'
-        + '<thead><tr>'+j.cols.map(function(c){
-            return '<th style="position:sticky;top:0;background:#f9fafb;text-align:'
-              +(c[2]==='l'?'left':'right')+';padding:7px 10px;border-bottom:1px solid #e5e7eb;'
-              +'font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">'
-              +ctEsc(c[1])+'</th>'; }).join('')+'</tr></thead><tbody>';
-      j.rows.forEach(function(r){
-        h+='<tr>'+j.cols.map(function(c){
-          var v=r[c[0]];
-          var al=(c[2]==='l')?'left':'right';
-          var col=(c[0]==='cat'&&v==='(не проставлена)')?';color:#b91c1c;font-weight:600':'';
-          return '<td style="padding:6px 10px;border-bottom:1px solid #f3f4f6;text-align:'+al+col+'">'
-            +((c[2]==='n')?ctNum(v):ctEsc(v))+'</td>';
-        }).join('')+'</tr>';
-      });
-      h+='</tbody></table></div>';
-      bd.innerHTML=h;
-      st.textContent=(j.note||'')+' · '+from+' — '+to;
+      ctDraw();
     })
     .catch(function(e){ CT_BUSY=false; st.textContent='';
-      bd.innerHTML='<div style="color:#b91c1c">не получилось: '+ctEsc(e.message)+'</div>'; });
+      bd.innerHTML='<div class="ct-note ct-err">Не получилось: '+ctEsc(e.message)+'</div>'; });
 }
+
+function ctDraw(){
+  var j=CT_LAST, bd=document.getElementById('ct-bd');
+  if(!j||!bd) return;
+  var all=j.rows||[];
+  var noCat=all.filter(function(r){ return r.cat===CT_NO; });
+  var dis=all.filter(function(r){ return r.cat!==CT_NO; });
+  var sumAll=all.reduce(function(a,x){ return a+(x.sum||0); },0);
+
+  /* ——— Шапка: три числа и задвоенные пары ——— */
+  var h='<div class="ct-kpis">'
+    + ctKpi('Без категории', noCat.length, 'позиций', ctMln(noCat.reduce(function(a,x){return a+x.sum;},0)), 'red')
+    + ctKpi('Спорная категория', dis.length, 'позиций', ctMln(dis.reduce(function(a,x){return a+x.sum;},0)), 'amber')
+    + ctKpi('Всего к разбору', all.length, 'из '+(j.note||'').replace(/^позиций с отгрузкой /,'').split(' ')[0]+' с отгрузкой', ctMln(sumAll), 'violet')
+    + '</div>';
+
+  if(j.dupes && j.dupes.length){
+    h+='<div class="ct-dupes"><b>Задвоенные категории — чинить первыми:</b> '
+      + j.dupes.map(function(d){ return '<span class="ct-chip">'+ctEsc(d)+'</span>'; }).join(' ')
+      + '<div class="ct-hint">Пока в справочнике живут обе, любой разрез по категориям разваливается надвое.</div></div>';
+  }
+
+  /* ——— Фильтры ——— */
+  var btn=function(k,t,n){ return '<button class="ct-f'+(CT_FILTER===k?' on':'')
+    +'" onclick="ctSetFilter(\''+k+'\')">'+t+' <b>'+n+'</b></button>'; };
+  h+='<div class="ct-bar">'+btn('all','Все',all.length)
+    + btn('no','Без категории',noCat.length)+btn('dis','Спорные',dis.length)
+    + '<input id="ct-q" class="ct-q" placeholder="поиск по названию или классификации" value="'+ctEsc(CT_Q)+'">'
+    + '<span class="ct-per">'+ctEsc(j.from)+' — '+ctEsc(j.to)+'</span></div>';
+
+  /* ——— Таблица ——— */
+  var rows=(CT_FILTER==='no'?noCat:CT_FILTER==='dis'?dis:all).filter(function(r){
+    if(!CT_Q) return true;
+    return (r.name+' '+r.path+' '+r.cat).toLowerCase().indexOf(CT_Q)>=0;
+  });
+  h+='<div class="ct-wrap"><table class="ct-t"><thead><tr>'
+    + '<th class="l">Номенклатура и где лежит</th>'
+    + '<th class="l">Категория сейчас</th><th class="l">Должна быть</th>'
+    + '<th class="l">Что сделать</th><th class="r">Отгрузка, ₸</th></tr></thead><tbody>';
+  if(!rows.length) h+='<tr><td colspan="5" class="ct-note">Ничего не нашлось</td></tr>';
+  rows.forEach(function(r){
+    var cls=r.act==='Проставить'?'a-no':r.act==='Объединить'?'a-dup':'a-chg';
+    h+='<tr><td class="l"><div class="ct-nm">'+ctEsc(r.name)+'</div>'
+      + '<div class="ct-path">'+ctEsc(r.path||r.folder)+'</div></td>'
+      + '<td class="l">'+(r.cat===CT_NO?'<span class="ct-nocat">не проставлена</span>':ctEsc(r.cat))+'</td>'
+      + '<td class="l"><b>'+ctEsc(r.dom)+'</b>'
+      + ((r.alts&&r.alts.length>1)
+          ? '<div class="ct-alts">ещё в папке: '+r.alts.filter(function(a){
+              return a.split(' (')[0]!==r.dom; }).map(ctEsc).join(', ')+'</div>' : '')
+      + '</td>'
+      + '<td class="l"><span class="ct-act '+cls+'">'+ctEsc(r.act)+'</span>'
+      + '<div class="ct-why">'+ctEsc(r.rec)+'</div></td>'
+      + '<td class="r">'+ctNum(r.sum)+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr><td class="l" colspan="4">Показано '+rows.length+' из '+all.length+'</td>'
+    + '<td class="r">'+ctNum(rows.reduce(function(a,x){return a+x.sum;},0))+'</td></tr></tfoot></table></div>';
+  /* ——— Справочник папок: что где лежит и какие категории встречаются ——— */
+  if(j.folders && j.folders.length){
+    h+='<div class="ct-fold"><div class="ct-fold-h" onclick="ctToggleFolders()">'
+      + '<span id="ct-fold-chev">\u25B8</span> Папки номенклатуры и категории в них · '
+      + j.folders.length + '</div><div id="ct-fold-b" hidden>'
+      + '<table class="ct-t"><thead><tr><th class="l">Папка</th><th class="r">Позиций</th>'
+      + '<th class="l">Какие категории встречаются</th><th class="r">Отгрузка, \u20B8</th></tr></thead><tbody>';
+    j.folders.forEach(function(f){
+      h+='<tr'+(f.mixed?' class="ct-mix"':'')+'><td class="l">'+ctEsc(f.folder)+'</td>'
+        + '<td class="r">'+f.n+'</td><td class="l">'
+        + f.cats.map(function(c){
+            var no=(c.c===CT_NO);
+            return '<span class="ct-chip'+(no?' ct-chip-no':(c.c===f.dom?' ct-chip-dom':''))+'">'
+              + ctEsc(no?'не проставлена':c.c)+' · '+c.n+'</span>'; }).join(' ')
+        + '</td><td class="r">'+ctNum(f.sum)+'</td></tr>';
+    });
+    h+='</tbody></table></div></div>';
+  }
+  bd.innerHTML=h;
+  var q=document.getElementById('ct-q');
+  if(q){ q.oninput=function(){ CT_Q=q.value.trim().toLowerCase(); ctDraw();
+      var e=document.getElementById('ct-q'); if(e){ e.focus(); e.selectionStart=e.value.length; } }; }
+}
+function ctKpi(l,n,sub,money,tone){
+  return '<div class="ct-kpi '+tone+'"><div class="ct-kpi-l">'+l+'</div>'
+    + '<div class="ct-kpi-v">'+n+'</div><div class="ct-kpi-s">'+sub+' · '+money+'</div></div>';
+}
+function ctSetFilter(k){ CT_FILTER=k; ctDraw(); }
+
 function ctXls(){
   if(!CT_LAST) return;
   var j=CT_LAST, st=document.getElementById('ct-st');
   st.textContent='готовлю файл…';
   ctLoadXLSX().then(function(){
-    var aoa=[[j.n],['Период',j.from+' — '+j.to,'','Выгружено',new Date().toLocaleString('ru-RU')]];
+    var cols=[['name','Номенклатура'],['path','Классификация'],['cat','Категория сейчас'],
+              ['dom','Должна быть'],['act','Действие'],['rec','Что сделать'],['sum','Отгрузка, ₸']];
+    var aoa=[['Категории SKU: спорные и непроставленные'],
+             ['Период', j.from+' — '+j.to, '', 'Выгружено', new Date().toLocaleString('ru-RU')]];
     if(j.note) aoa.push([j.note]);
+    if(j.dupes&&j.dupes.length) aoa.push(['Задвоенные категории — чинить первыми', j.dupes.join(', ')]);
     aoa.push([]);
-    aoa.push(j.cols.map(function(c){ return c[1]; }));
-    j.rows.forEach(function(r){ aoa.push(j.cols.map(function(c){
-      var v=r[c[0]]; return c[2]==='n' ? (Number(v)||0) : String(v==null?'':v); })); });
+    aoa.push(cols.map(function(c){ return c[1]; }));
+    j.rows.forEach(function(r){ aoa.push(cols.map(function(c){
+      return c[0]==='sum' ? (Number(r.sum)||0) : String(r[c[0]]==null?'':r[c[0]]); })); });
+    var hdr=aoa.length-j.rows.length-1;
     var ws=XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols']=j.cols.map(function(c){
-      return {wch: c[2]==='l' ? (c[0]==='name'||c[0]==='rec' ? 52 : 26) : 18}; });
-    ws['!freeze']={xSplit:0,ySplit:5};
+    ws['!cols']=[{wch:50},{wch:46},{wch:22},{wch:20},{wch:14},{wch:58},{wch:16}];
+    ws['!freeze']={xSplit:0,ySplit:hdr+1};
     ws['!autofilter']={ref:XLSX.utils.encode_range(
-      {s:{r:4,c:0}, e:{r:4+j.rows.length, c:j.cols.length-1}})};
+      {s:{r:hdr,c:0}, e:{r:hdr+j.rows.length, c:cols.length-1}})};
     var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Категории');
     XLSX.writeFile(wb,'Категории SKU '+j.from+'_'+j.to+'.xlsx');
     st.textContent='файл выгружен';
   }).catch(function(e){ st.textContent='не вышло: '+e.message; });
 }
+
+function ctToggleFolders(){
+  var b=document.getElementById('ct-fold-b'), c=document.getElementById('ct-fold-chev');
+  if(!b) return;
+  b.hidden=!b.hidden;
+  c.textContent=b.hidden?'\u25B8':'\u25BE';
+}
+
 /* Ссылка с плашки «Категории SKU» на главной приходит с #cats —
    открываем сразу нужную вкладку. */
 (function(){
