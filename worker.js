@@ -354,8 +354,8 @@ const ERP_REPORTS = {
     group: ["Product.Name", "Product.Category", "Product.Hierarchy"],
     agg: ["Sum.Outgoing"],
     cols: [["name", "Номенклатура", "l"], ["cat", "Категория сейчас", "l"],
-           ["dom", "Ожидается по папке", "l"], ["folder", "Папка", "l"],
-           ["sum", "Отгрузка за период, ₸", "n"]] },
+           ["dom", "Должна быть", "l"], ["rec", "Что сделать", "l"],
+           ["folder", "Папка", "l"], ["sum", "Отгрузка за период, ₸", "n"]] },
   stock: { n: "Остатки на складах на дату",
     kind: "api", path: "/resto/api/v2/reports/balance/stores",
     cols: [["store", "Склад", "l"], ["product", "Номенклатура", "l"],
@@ -480,15 +480,42 @@ async function handleErpRaw(request, env, url) {
       fold[f].dom = named.length ? named[0][0] : NO;
       fold[f].mixed = e.length > 1;
     });
+    /* Задвоенные категории: «Десерты» и «СН Десерты» — это одно и то же,
+       пока живут обе, любой разрез разваливается надвое. Ищем пары, где
+       одно имя получается из другого отбрасыванием приставки. */
+    const allCats = [...new Set(items.map((i) => i.cat))].filter((c) => c !== NO);
+    const base = (c) => String(c).toLowerCase().replace(/ё/g, "е")
+      .replace(/^(сн|сп|пп)\s+/, "").replace(/[*_\s.]/g, "");
+    const dupes = [];
+    allCats.forEach((a) => allCats.forEach((b) => {
+      if (a < b && base(a) === base(b)) dupes.push(a + " / " + b);
+    }));
+
     const rows2 = items
       .filter((i) => i.cat === NO || (fold[i.folder].mixed && i.cat !== fold[i.folder].dom))
-      .map((i) => ({ name: i.name, cat: i.cat, dom: fold[i.folder].dom,
-                     folder: i.folder, sum: i.sum }))
+      .map((i) => {
+        const dom = fold[i.folder].dom;
+        let rec;
+        if (i.cat === NO) {
+          rec = dom === NO ? "Завести категорию для папки и проставить"
+                           : "Проставить категорию «" + dom + "»";
+        } else if (dupes.some((p) => p.split(" / ").indexOf(i.cat) >= 0)) {
+          rec = "Сначала объединить задвоенные категории, затем поставить «" + dom + "»";
+        } else {
+          rec = "Проверить: сменить «" + i.cat + "» на «" + dom + "» или перенести в свою папку";
+        }
+        return { name: i.name, cat: i.cat, dom: dom, rec: rec, folder: i.folder, sum: i.sum };
+      })
       .sort((a, b) => b.sum - a.sum);
-    return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, 300), total: rows2.length,
+
+    const noCat = rows2.filter((r) => r.cat === NO);
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, 1000), total: rows2.length,
       sums: { sum: rows2.reduce((a, x) => a + x.sum, 0) },
-      note: "всего позиций с отгрузкой: " + items.length
-          + " · папок: " + Object.keys(fold).length,
+      note: "позиций с отгрузкой " + items.length + " · папок " + Object.keys(fold).length
+          + " · без категории " + noCat.length
+          + " · спорных " + (rows2.length - noCat.length)
+          + (dupes.length ? " · задвоенные категории: " + dupes.join(", ") : ""),
+      dupes: dupes,
       from: from, to: to });
   }
 
