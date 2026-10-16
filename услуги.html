@@ -77,6 +77,15 @@ tr.d .rsp-in{font-weight:500;color:#9db0c9}
 .rsum-v{font-size:18px;font-weight:800;color:#5eead4}
 .rsum-s{font-size:11px;color:#8aa0bd;margin-top:3px}
 .saved{font-size:11.5px;color:#4ade80}
+/* Двенадцать месяцев в строку не влезают, и при горизонтальной прокрутке
+   таблица превращается в набор цифр без подписей. Первые две колонки —
+   название и ответственный — остаются на месте. */
+thead th:nth-child(1),tbody td:nth-child(1){position:sticky;left:0;z-index:2;background:#121b31;min-width:206px;max-width:206px}
+thead th:nth-child(2),tbody td:nth-child(2){position:sticky;left:206px;z-index:2;background:#121b31;box-shadow:1px 0 0 #233150}
+thead th:nth-child(1),thead th:nth-child(2){z-index:5;background:#0e1628}
+tr.d td:nth-child(1),tr.d td:nth-child(2){background:#0f1930}
+tr.g[style*="0e1628"] td:nth-child(1),tr.g[style*="0e1628"] td:nth-child(2){background:#0e1628}
+tr.g td.l{flex-wrap:wrap}
 td.tot{color:#5eead4;font-weight:800}
 td.zero{color:#33405c}
 .sh{display:inline-block;min-width:44px;font-size:11px;color:#8aa0bd}
