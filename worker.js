@@ -1331,6 +1331,8 @@ export default {
     if (url.pathname === "/api/baza") return handleBaza(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/erp") return handleErp(request, env, url)
+
+    if (url.pathname === "/api/uslugi") return handleUsl(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/paycal") return handlePaycal(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
@@ -2783,6 +2785,163 @@ async function handleSalesPlan(request, env, url) {
   };
   await env.PLAN.put(key, JSON.stringify(rec));
   return jsonResp(rec);
+}
+
+/* ——— Услуги по видам работ ———————————————————————————————————————
+   Один разрез айко (INCOMING_SERVICE — вкладка «Услуги» в поступлениях)
+   разложенный по видам работ, поставщикам и месяцам. Справочник ниже —
+   это та самая классификация из файла «Услуги по видам работ», только
+   ключом служит номенклатура айко, а не поставщик: один поставщик
+   нередко закрывает два разных вида (Экспресс-Сервис — и аренда, и
+   коммуналка), и по поставщику разрез разваливается. */
+const USL_VID = {
+  "Доставка": "Транспорт и доставка",
+  "Аренда": "Аренда помещений",
+  "Электроэнергия": "Коммунальные услуги",
+  "Холодная/Горячая вода": "Коммунальные услуги",
+  "Газ": "Коммунальные услуги",
+  "Услуги охраны": "Охрана",
+  "Вывоз мусора - м3": "Вывоз и утилизация отходов",
+  "Вывоз и утилизация биоотходов": "Вывоз и утилизация отходов",
+  "Химчистка": "Аренда и стирка спецодежды",
+  "Страхование": "Страхование",
+  "Интернет": "Связь и интернет",
+  "Дератизация,дезинсекция помещений": "Дезинсекция и дератизация",
+  "Ремонт произв оборуд": "Ремонт и обслуживание оборудования",
+  "Ремонт холодильника": "Ремонт и обслуживание оборудования",
+  "Расходной материал техотдела": "Ремонт и обслуживание оборудования",
+  "Заточка ножей мясорубки": "Ремонт и обслуживание оборудования",
+  "Перезарядка огнетушителя": "Ремонт и обслуживание оборудования",
+  "Заправка картриджа": "Ремонт и обслуживание оборудования",
+  "Удаленный доступ к программе \"Бухгалтерия-онлайн\"": "Программы и IT-сервисы",
+  "IIko-обслуживание термопринтеров": "Программы и IT-сервисы",
+  "Колл-центр IIko-лицензии (КафеСофт)": "Программы и IT-сервисы",
+  "IIko-обслуживание пакет Стандарт": "Программы и IT-сервисы",
+  "Облачный сервис Битрикс24": "Программы и IT-сервисы",
+  "Услуга Shared-хостинг тариф B-5": "Программы и IT-сервисы",
+  "Программа д/ЭВМ \"Green-API\"": "Программы и IT-сервисы",
+  "Настройка и запуск системы": "Программы и IT-сервисы",
+  "Производственный экологический контроль": "Сертификация, лаборатория, экология",
+  "Аттестация рабочих мест": "Сертификация, лаборатория, экология",
+  "Сертификат изготовление": "Сертификация, лаборатория, экология",
+  "Присвоение штрихкодов": "Сертификация, лаборатория, экология",
+  "Услуги медицинских лабораторий": "Сертификация, лаборатория, экология",
+  "Демонтажные работы": "Монтаж, стройка и ремонт помещений",
+  "Строительно-монтажные работы": "Монтаж, стройка и ремонт помещений",
+  "Монтаж оборудования": "Монтаж, стройка и ремонт помещений",
+  "Вентиляция": "Монтаж, стройка и ремонт помещений",
+  "Монтаж системы пожаротушения": "Монтаж, стройка и ремонт помещений",
+  "Видеонаблюдение (монтажные работы,материалы)": "Монтаж, стройка и ремонт помещений",
+  "Ремонт помещения": "Монтаж, стройка и ремонт помещений",
+  "Строительные материалы (разные) Услуга": "Монтаж, стройка и ремонт помещений",
+  "Работы разные": "Монтаж, стройка и ремонт помещений",
+  "Услуги повара": "Аутсорс персонала",
+  "Реклама в Соц сетях на популярных страницах": "Маркетинг и реклама",
+  "Аренда квартир": "Аренда жилья для сотрудников",
+  "Переделка": "Переделка продукции",
+  "Прочие услуги": "Прочие услуги",
+  "Расходы буд.периодов": "Прочие услуги",
+  "ГосУслуги РешениеВопросов": "Прочие услуги",
+  "Доплата за ИП|ТОО": "Прочие услуги",
+  "Корпоратив или подарки": "Прочие услуги",
+  "Комиссия банка": "Прочие услуги",
+};
+/* Справочно: это тоже проходит вкладкой «Услуги», но подрядными работами
+   не является — в итог по услугам не попадает, иначе 182 млн налогов
+   перебьют всё остальное и разрез перестанет о чём-либо говорить. */
+const USL_REF = {
+  "Налоги": "Налоги и сборы",
+  "Возмещение затрат": "Возмещение затрат площадкам",
+  "Возврат товара": "Возвраты товара",
+};
+
+async function handleUsl(request, env, url) {
+  const ck = new Request("https://usl.cache" + url.pathname + url.search);
+  const hit = await caches.default.match(ck);
+  if (hit) return hit;
+  const resp = await handleUslRaw(request, env, url);
+  if (resp.status === 200) {
+    const r2 = new Response(resp.clone().body, resp);
+    r2.headers.set("cache-control", "max-age=1800");
+    try { await caches.default.put(ck, r2); } catch (e) {}
+  }
+  return resp;
+}
+
+async function handleUslRaw(request, env, url) {
+  const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
+  const year = String(url.searchParams.get("year") || today.slice(0, 4)).replace(/\D/g, "").slice(0, 4) || today.slice(0, 4);
+  const from = year + "-01-01";
+  const to = (year === today.slice(0, 4)) ? today : year + "-12-31";
+
+  const tok = await iikoAuthCached();
+  const rr = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+    method: "POST", headers: { Cookie: `key=${tok}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      reportType: "TRANSACTIONS", buildSummary: "true",
+      groupByRowFields: ["Counteragent.Name", "Product.Name", "DateTime.Month"],
+      aggregateFields: ["Sum.Incoming"],
+      filters: {
+        "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM", from: from, to: to },
+        TransactionType: { filterType: "IncludeValues", values: ["INCOMING_SERVICE"] },
+      },
+    }),
+  });
+  if (!rr.ok) return jsonResp({ error: "айко ответил " + rr.status }, 502);
+  const pp = await rr.json();
+  const src = Array.isArray(pp && pp.data) ? pp.data : [];
+
+  const nm = (s) => String(s == null ? "" : s).replace(/\s+/g, " ").trim();
+  const mIdx = (s) => { const n = parseInt(String(s || "").slice(0, 2), 10); return (n >= 1 && n <= 12) ? n - 1 : -1; };
+
+  const map = new Map();
+  const unknown = new Set();
+  let lastMonth = -1;
+  src.forEach((x) => {
+    const sup = nm(x["Counteragent.Name"]) || "(без контрагента)";
+    const nom = nm(x["Product.Name"]) || "(без номенклатуры)";
+    const i = mIdx(x["DateTime.Month"]);
+    const v = Number(x["Sum.Incoming"]) || 0;
+    if (i < 0 || !v) return;
+    if (i > lastMonth) lastMonth = i;
+    const ref = USL_REF[nom] || null;
+    let vid = ref || USL_VID[nom];
+    if (!vid) { vid = "Прочие услуги"; unknown.add(nom); }
+    const k = vid + "\u0000" + sup + "\u0000" + nom;
+    let r = map.get(k);
+    if (!r) { r = { v: vid, s: sup, p: nom, ref: !!ref, m: new Array(12).fill(0), sum: 0 }; map.set(k, r); }
+    r.m[i] += v; r.sum += v;
+  });
+
+  const rows = [...map.values()].sort((a, b) => b.sum - a.sum);
+  const nMon = lastMonth + 1;
+  const svc = rows.filter((r) => !r.ref);
+  const ref = rows.filter((r) => r.ref);
+  const tot = (arr) => {
+    const m = new Array(12).fill(0); let s = 0;
+    arr.forEach((r) => { for (let i = 0; i < 12; i++) m[i] += r.m[i]; s += r.sum; });
+    return { m: m, sum: s };
+  };
+  /* Виды работ — со своими помесячными итогами: таблица на странице
+     раскрывается сверху вниз, и считать это в браузере заново незачем. */
+  const byVid = {};
+  svc.forEach((r) => {
+    const g = (byVid[r.v] = byVid[r.v] || { v: r.v, m: new Array(12).fill(0), sum: 0, sup: new Set(), n: 0 });
+    for (let i = 0; i < 12; i++) g.m[i] += r.m[i];
+    g.sum += r.sum; g.sup.add(r.s); g.n++;
+  });
+  const vids = Object.values(byVid).map((g) => ({ v: g.v, m: g.m, sum: g.sum, sup: g.sup.size, n: g.n }))
+    .sort((a, b) => b.sum - a.sum);
+
+  return jsonResp({
+    year: year, from: from, to: to, nMon: nMon,
+    rows: rows, vids: vids,
+    svcTot: tot(svc), refTot: tot(ref),
+    sup: new Set(svc.map((r) => r.s)).size,
+    unknown: [...unknown],
+    note: "Источник — проводки айко типа «Поступление услуг» (INCOMING_SERVICE) за " + from + " — " + to +
+          ". Налоги, возмещение затрат площадкам и возвраты товара показаны отдельно и в итог по услугам не входят.",
+  });
 }
 
 function jsonResp(obj, status) {
