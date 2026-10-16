@@ -343,6 +343,19 @@ const ERP_REPORTS = {
     cols: [["Product.Name", "Номенклатура", "l"], ["rev", "Выручка, ₸", "n"],
            ["cost", "Себестоимость, ₸", "n"], ["gp", "Валовая прибыль, ₸", "n"],
            ["mp", "Маржа, %", "p"]] },
+  cat: { n: "Категории SKU: спорные и непроставленные",
+    /* В айко у каждой позиции есть папка и отдельно «категория». Папка —
+       это место в дереве номенклатуры, категория — разрез для отчётности,
+       и проставляют её руками. Считаем для каждой папки преобладающую
+       категорию и показываем тех, кто из неё выбивается, плюс тех, у кого
+       категории нет вовсе. Это не приговор: бывает, что папка смешанная
+       намеренно, — но проверять надо именно эти строки. */
+    kind: "cat", types: ["OUTGOING_INVOICE_REVENUE"],
+    group: ["Product.Name", "Product.Category", "Product.Hierarchy"],
+    agg: ["Sum.Outgoing"],
+    cols: [["name", "Номенклатура", "l"], ["cat", "Категория сейчас", "l"],
+           ["dom", "Ожидается по папке", "l"], ["folder", "Папка", "l"],
+           ["sum", "Отгрузка за период, ₸", "n"]] },
   stock: { n: "Остатки на складах на дату",
     kind: "api", path: "/resto/api/v2/reports/balance/stores",
     cols: [["store", "Склад", "l"], ["product", "Номенклатура", "l"],
@@ -436,6 +449,48 @@ async function handleErpRaw(request, env, url) {
 
   const filters = { "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM", from: from, to: to } };
   if (d.types) filters.TransactionType = { filterType: "IncludeValues", values: d.types };
+
+  /* Разбор категорий: одна выгрузка, вся работа — после неё. */
+  if (d.kind === "cat") {
+    const tok = await iikoAuthCached();
+    const rr = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+      method: "POST", headers: { Cookie: `key=${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ reportType: "TRANSACTIONS", buildSummary: "true",
+        groupByRowFields: d.group, aggregateFields: d.agg, filters: filters }) });
+    if (!rr.ok) return jsonResp({ error: "айко ответил " + rr.status }, 502);
+    const pp = await rr.json();
+    const src = Array.isArray(pp && pp.data) ? pp.data : [];
+    const NO = "(не проставлена)";
+    const items = src.map((x) => ({
+      name: String(x["Product.Name"] || ""),
+      cat: x["Product.Category"] || NO,
+      folder: String(x["Product.Hierarchy"] || "").split("/").pop() || "",
+      sum: Number(x["Sum.Outgoing"]) || 0,
+    }));
+    const fold = {};
+    items.forEach((i) => {
+      const f = (fold[i.folder] = fold[i.folder] || { n: 0, c: {} });
+      f.n++; f.c[i.cat] = (f.c[i.cat] || 0) + 1;
+    });
+    Object.keys(fold).forEach((f) => {
+      const e = Object.entries(fold[f].c).sort((a, b) => b[1] - a[1]);
+      /* Преобладающей считаем только проставленную категорию: если в папке
+         больше всего пустых, ориентиром служит самая частая из заполненных. */
+      const named = e.filter((x) => x[0] !== NO);
+      fold[f].dom = named.length ? named[0][0] : NO;
+      fold[f].mixed = e.length > 1;
+    });
+    const rows2 = items
+      .filter((i) => i.cat === NO || (fold[i.folder].mixed && i.cat !== fold[i.folder].dom))
+      .map((i) => ({ name: i.name, cat: i.cat, dom: fold[i.folder].dom,
+                     folder: i.folder, sum: i.sum }))
+      .sort((a, b) => b.sum - a.sum);
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, 300), total: rows2.length,
+      sums: { sum: rows2.reduce((a, x) => a + x.sum, 0) },
+      note: "всего позиций с отгрузкой: " + items.length
+          + " · папок: " + Object.keys(fold).length,
+      from: from, to: to });
+  }
 
   /* Отчёт из двух выгрузок: считаем обе и складываем по ключу группировки. */
   if (d.two) {
