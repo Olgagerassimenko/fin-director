@@ -61,6 +61,22 @@ tr.g.open .caret{transform:rotate(90deg)}
 tr.d td{color:#9db0c9;font-weight:500;background:#0f1930}
 tr.d td.l{padding-left:30px}
 tr.d .nom{color:#64748b;font-size:11.5px;display:block;margin-top:2px}
+td.rsp{text-align:left;padding:5px 6px}
+.rsp-in{width:100%;min-width:118px;background:#0e1628;border:1px solid #233150;border-radius:7px;color:#cfe0f5;font:600 12px/1 Inter,system-ui,sans-serif;padding:7px 8px}
+.rsp-in::placeholder{color:#4a5a78;font-weight:500}
+.rsp-in:focus{outline:none;border-color:#2fa39a;background:#0b1324}
+tr.d .rsp-in{font-weight:500;color:#9db0c9}
+.rsp-in.seed{color:#8aa0bd;border-style:dashed}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{font:600 11.5px/1 Inter,system-ui,sans-serif;padding:7px 11px;border-radius:999px;background:#1b2742;border:1px solid #2b3b5e;color:#9db0c9;cursor:pointer}
+.chip.on{background:#2fa39a;border-color:#2fa39a;color:#04160e}
+.chip:hover{border-color:#2fa39a}
+.rsum{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-bottom:4px}
+.rsum-c{background:#0e1628;border:1px solid #233150;border-radius:12px;padding:12px 14px}
+.rsum-n{font-size:12.5px;font-weight:700;color:#e2e8f0;margin-bottom:5px}
+.rsum-v{font-size:18px;font-weight:800;color:#5eead4}
+.rsum-s{font-size:11px;color:#8aa0bd;margin-top:3px}
+.saved{font-size:11.5px;color:#4ade80}
 td.tot{color:#5eead4;font-weight:800}
 td.zero{color:#33405c}
 .sh{display:inline-block;min-width:44px;font-size:11px;color:#8aa0bd}
@@ -91,11 +107,14 @@ td.zero{color:#33405c}
     Берётся напрямую из айко — вкладка «Услуги» в поступлениях, — раскладывается по видам работ, поставщикам и месяцам.
     <b>Налоги, возмещение затрат площадкам и возвраты</b> проходят тем же документом, поэтому показаны отдельно и в итог по услугам не входят.</div>
 
+  <datalist id="ppl"></datalist>
   <div id="body"><div class="load">Загружаю из айко…</div></div>
 </div>
 
 <script>
 var D = null, OPEN = {}, YEAR = String(new Date().getFullYear());
+var RESP = {}, SEED = {}, RT = null;
+var NOBODY = '(не назначен)';
 var MN = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
 
 function fmt(n){ n = Math.round(n||0); return n ? n.toLocaleString('ru-RU').replace(/,/g,' ') : '—'; }
@@ -113,19 +132,56 @@ function yrBar(){
 async function load(){
   document.getElementById('body').innerHTML = '<div class="load">Загружаю из айко…</div>';
   try {
-    var r = await fetch('/api/uslugi?year='+YEAR, {cache:'no-store'});
-    D = await r.json();
+    var pair = await Promise.all([
+      fetch('/api/uslugi?year='+YEAR, {cache:'no-store'}).then(function(x){ return x.json(); }),
+      fetch('/api/uslresp', {cache:'no-store'}).then(function(x){ return x.json(); }).catch(function(){ return {}; })
+    ]);
+    D = pair[0];
     if (D.error) throw new Error(D.error);
+    RESP = (pair[1] && pair[1].resp) || {};
+    SEED = (pair[1] && pair[1].seed) || {};
     draw();
   } catch(e){
     document.getElementById('body').innerHTML = '<div class="warn">Не получилось забрать данные: '+String(e.message||e)+'. Попробуйте «Обновить» через минуту — айко иногда отвечает дольше обычного.</div>';
   }
 }
 
+/* Ответственный берётся сначала по конкретной строке, потом по виду работ,
+   и только потом из предзаполнения — так точечное назначение не слетает
+   при смене ответственного за весь вид. */
+function rkey(r){ return r.v+'\u0000'+r.s+'\u0000'+r.p; }
+function respRow(r){ return RESP[rkey(r)] || RESP[r.v] || SEED[r.v] || ''; }
+function respVid(v){ return RESP[v] || SEED[v] || ''; }
+function isSeed(v){ return !RESP[v] && !!SEED[v]; }
+function people(){
+  var m = {};
+  Object.keys(RESP).forEach(function(k){ if (RESP[k]) m[RESP[k]] = 1; });
+  Object.keys(SEED).forEach(function(k){ if (SEED[k]) m[SEED[k]] = 1; });
+  return Object.keys(m).sort(function(a,b){ return a.localeCompare(b,'ru'); });
+}
+function setResp(k, v){
+  v = String(v||'').replace(/\s+/g,' ').trim();
+  if (v) RESP[k] = v; else delete RESP[k];
+  clearTimeout(RT);
+  RT = setTimeout(saveResp, 1200);
+}
+async function saveResp(){
+  try {
+    await fetch('/api/uslresp', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(RESP)});
+    var e = document.getElementById('rsp-ok');
+    if (e){ e.textContent = '✓ сохранено'; setTimeout(function(){ if (e) e.textContent=''; }, 2500); }
+  } catch(err){
+    var e2 = document.getElementById('rsp-ok');
+    if (e2) e2.textContent = 'не сохранилось — обновите страницу';
+  }
+}
+
 function matches(r, q){
   if (!q) return true;
-  return (r.v+' '+r.s+' '+r.p).toLowerCase().indexOf(q) >= 0;
+  return (r.v+' '+r.s+' '+r.p+' '+respRow(r)).toLowerCase().indexOf(q) >= 0;
 }
+var FP = '';            // фильтр по ответственному
+function inPerson(r){ if (r.ref) return true; return !FP || (FP === NOBODY ? !respRow(r) : respRow(r) === FP); }
 
 function draw(){
   var q = (document.getElementById('f-srch') ? document.getElementById('f-srch').value : '').trim().toLowerCase();
@@ -150,12 +206,16 @@ function draw(){
      + '<div class="panel-n">без налогов, возмещений и возвратов</div></div>'
      + '<div class="chart-box"><canvas id="cv"></canvas></div></div>';
 
+  h += respSummary();
+
   h += '<div class="panel">'
      + '<div class="tools">'
-     +   '<input class="srch" id="f-srch" placeholder="Поиск по виду работ, поставщику или услуге…" value="'+esc(q)+'">'
+     +   '<input class="srch" id="f-srch" placeholder="Поиск по виду работ, поставщику, услуге или ответственному…" value="'+esc(q)+'">'
      +   '<label class="chk"><input type="checkbox" id="f-ref"'+(showRef?' checked':'')+'> показать налоги, возмещения и возвраты</label>'
      +   '<button class="btn" id="btn-all">Раскрыть всё</button>'
+     +   '<span id="rsp-ok" class="saved"></span>'
      + '</div>'
+     + '<div class="tools chips" id="f-ppl">'+personChips()+'</div>'
      + table(D.vids, false, q)
      + (showRef ? refTable(q) : '')
      + '<div class="foot">'+esc(D.note)+'</div>'
@@ -163,6 +223,7 @@ function draw(){
 
   document.getElementById('body').innerHTML = h;
   wire();
+  refreshPpl();
   chart();
 }
 
@@ -171,23 +232,24 @@ function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 
 function head(n){
   var nf = Math.max(1, D.nFull||D.nMon);
-  var h = '<tr><th class="l">Вид работ · поставщик</th>';
+  var h = '<tr><th class="l">Вид работ · поставщик</th><th class="l" style="min-width:140px">Ответственный<br>за подачу</th>';
   for (var i=0;i<n;i++) h += '<th'+(i>=nf?' style="color:#5b6c88" title="месяц ещё не закрыт — документы проводят по ходу дела"':'')+'>'+MN[i]+(i>=nf?' ·':'')+'</th>';
   return h + '<th>Итого</th><th>Σ/мес</th><th>Доля</th></tr>';
 }
 
 function table(vids, isRef, q){
   var n = Math.max(1, D.nMon), nf = Math.max(1, D.nFull||D.nMon), grand = (isRef?D.refTot:D.svcTot).sum;
-  var rows = D.rows.filter(function(r){ return !!r.ref === isRef; });
+  var rows = D.rows.filter(function(r){ return !!r.ref === isRef && inPerson(r); });
   var vis = vids.filter(function(g){
-    if (!q) return true;
     return rows.some(function(r){ return r.v === g.v && matches(r, q); });
   });
   var h = '<table class="'+(isRef?'ref-t':'')+'"><thead>'+head(n)+'</thead><tbody>';
   vis.forEach(function(g){
     var op = !!OPEN[g.v];
     h += '<tr class="g'+(op?' open':'')+'" data-v="'+esc(g.v)+'"><td class="l"><span class="caret">▶</span><span>'+esc(g.v)
-       + '</span><span class="pill">'+g.sup+' пост.</span></td>';
+       + '</span><span class="pill">'+g.sup+' пост.</span></td>'
+       + '<td class="rsp"><input class="rsp-in'+(isSeed(g.v)?' seed':'')+'" list="ppl" data-k="'+esc(g.v)
+       + '" value="'+esc(respVid(g.v))+'" placeholder="кто подаёт"></td>';
     for (var i=0;i<n;i++) h += '<td'+(g.m[i]?'':' class="zero"')+'>'+fmt(g.m[i])+'</td>';
     h += '<td class="tot">'+fmt(g.sum)+'</td><td>'+fmt(g.sum/nf)+'</td>'
        + '<td><span class="sh">'+(grand? (g.sum/grand*100).toFixed(1).replace('.',',') : '0')+'%</span>'
@@ -196,7 +258,9 @@ function table(vids, isRef, q){
       rows.filter(function(r){ return r.v === g.v && matches(r, q); })
           .sort(function(a,b){ return b.sum - a.sum; })
           .forEach(function(r){
-        h += '<tr class="d"><td class="l">'+esc(r.s)+'<span class="nom">'+esc(r.p)+'</span></td>';
+        h += '<tr class="d"><td class="l">'+esc(r.s)+'<span class="nom">'+esc(r.p)+'</span></td>'
+           + '<td class="rsp"><input class="rsp-in" list="ppl" data-k="'+esc(rkey(r))
+           + '" value="'+esc(RESP[rkey(r)]||'')+'" placeholder="'+esc(respVid(r.v)||'как у вида работ')+'"></td>';
         for (var i=0;i<n;i++) h += '<td'+(r.m[i]?'':' class="zero"')+'>'+fmt(r.m[i])+'</td>';
         h += '<td class="tot">'+fmt(r.sum)+'</td><td>'+fmt(r.sum/nf)+'</td>'
            + '<td><span class="sh">'+(grand? (r.sum/grand*100).toFixed(1).replace('.',',') : '0')+'%</span></td></tr>';
@@ -205,7 +269,7 @@ function table(vids, isRef, q){
   });
   var T = isRef?D.refTot:D.svcTot;
   h += '<tr class="g" style="background:#0e1628"><td class="l"><span class="caret" style="visibility:hidden">▶</span><b>'
-     + (isRef?'Итого справочно':'ИТОГО УСЛУГИ')+'</b></td>';
+     + (isRef?'Итого справочно':'ИТОГО УСЛУГИ')+'</b></td><td></td>';
   for (var i=0;i<n;i++) h += '<td>'+fmt(T.m[i])+'</td>';
   h += '<td class="tot">'+fmt(T.sum)+'</td><td>'+fmt(T.sum/nf)+'</td><td></td></tr>';
   return h + '</tbody></table>';
@@ -224,9 +288,66 @@ function refTable(q){
        + table(vids, true, q);
 }
 
+function personChips(){
+  var rows = D.rows.filter(function(r){ return !r.ref; });
+  var m = {}, none = 0;
+  rows.forEach(function(r){ var p = respRow(r); if (p) m[p] = (m[p]||0) + r.sum; else none += r.sum; });
+  var a = Object.keys(m).sort(function(x,y){ return m[y]-m[x]; });
+  var h = '<span class="chip'+(FP?'':' on')+'" data-p="">Все</span>';
+  a.forEach(function(p){ h += '<span class="chip'+(FP===p?' on':'')+'" data-p="'+esc(p)+'">'+esc(p)+' · '+mln(m[p])+'</span>'; });
+  if (none) h += '<span class="chip'+(FP===NOBODY?' on':'')+'" data-p="'+NOBODY+'">'+NOBODY+' · '+mln(none)+'</span>';
+  return h;
+}
+
+function respSummary(){
+  var nf = Math.max(1, D.nFull||D.nMon);
+  var rows = D.rows.filter(function(r){ return !r.ref; });
+  var m = {};
+  rows.forEach(function(r){
+    var p = respRow(r) || NOBODY;
+    var g = m[p] = m[p] || {sum:0, vid:{}, n:0};
+    g.sum += r.sum; g.vid[r.v] = 1; g.n++;
+  });
+  var a = Object.keys(m).sort(function(x,y){ return m[y].sum - m[x].sum; });
+  if (!a.length) return '';
+  var tot = D.svcTot.sum || 1;
+  var h = '<div class="panel"><div class="panel-h"><div class="panel-t">Кто за что отвечает</div>'
+        + '<div class="panel-n">бюджетная нарезка: сумма за период и сколько это в месяц</div></div><div class="rsum">';
+  a.forEach(function(p){
+    var g = m[p];
+    h += '<div class="rsum-c"><div class="rsum-n">'+esc(p)+'</div>'
+       + '<div class="rsum-v">'+mln(g.sum)+' ₸</div>'
+       + '<div class="rsum-s">'+fmt(g.sum/nf)+' ₸/мес · '+(g.sum/tot*100).toFixed(1).replace('.',',')+'% · '
+       + Object.keys(g.vid).length+' видов работ</div></div>';
+  });
+  return h + '</div></div>';
+}
+
+function refreshPpl(){
+  var dl = document.getElementById('ppl');
+  if (dl) dl.innerHTML = people().map(function(p){ return '<option value="'+esc(p)+'">'; }).join('');
+  var f = document.getElementById('f-ppl');
+  if (f){ f.innerHTML = personChips();
+    Array.prototype.forEach.call(f.querySelectorAll('.chip'), function(c){
+      c.onclick = function(){ FP = (FP === c.dataset.p) ? '' : c.dataset.p; draw(); };
+    });
+  }
+}
+
 function wire(){
   Array.prototype.forEach.call(document.querySelectorAll('tr.g[data-v]'), function(tr){
-    tr.onclick = function(){ var v = tr.dataset.v; OPEN[v] = !OPEN[v]; draw(); };
+    tr.onclick = function(e){
+      if (e.target && e.target.classList.contains('rsp-in')) return;   // правим имя, а не сворачиваем
+      var v = tr.dataset.v; OPEN[v] = !OPEN[v]; draw();
+    };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.rsp-in'), function(inp){
+    inp.onclick = function(e){ e.stopPropagation(); };
+    inp.onchange = function(){ setResp(inp.dataset.k, inp.value); inp.classList.remove('seed'); refreshPpl(); };
+    inp.onkeydown = function(e){ if (e.key === 'Enter') inp.blur(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#f-ppl .chip'), function(c){
+    c.onclick = function(){ FP = (FP === c.dataset.p) ? '' : c.dataset.p; draw(); };
   });
   var s = document.getElementById('f-srch');
   if (s){ var t; s.oninput = function(){ clearTimeout(t); t = setTimeout(draw, 220); }; }
@@ -265,7 +386,8 @@ function chart(){
 function xls(){
   if (!D) return;
   var n = Math.max(1, D.nMon), nf = Math.max(1, D.nFull||D.nMon);
-  var hdr = ['Вид работ','Поставщик','Услуга (номенклатура айко)'].concat(MN.slice(0,n)).concat(['Итого за период','В среднем за месяц','Группа']);
+  var hdr = ['Вид работ','Ответственный за подачу','Поставщик','Услуга (номенклатура айко)']
+            .concat(MN.slice(0,n)).concat(['Итого за период','В среднем за месяц','Группа']);
   var aoa = [
     ['Услуги по видам работ — факт из айко'],
     [D.note],
@@ -283,42 +405,67 @@ function xls(){
     }).sort(function(a,b){ return b.sum-a.sum; }).forEach(function(g){
       var gm = new Array(n).fill(0);
       g.rows.forEach(function(r){ for (var i=0;i<n;i++) gm[i] += r.m[i]; });
-      aoa.push([g.v,'','ИТОГО по виду работ'].concat(gm.map(Math.round))
+      aoa.push([g.v, isRef?'':respVid(g.v), '', 'ИТОГО по виду работ'].concat(gm.map(Math.round))
                .concat([Math.round(g.sum), Math.round(g.sum/nf), isRef?'справочно':'услуги']));
       g.rows.sort(function(a,b){ return b.sum-a.sum; }).forEach(function(r){
-        aoa.push([g.v, r.s, r.p].concat(r.m.slice(0,n).map(Math.round))
+        aoa.push([g.v, isRef?'':respRow(r), r.s, r.p].concat(r.m.slice(0,n).map(Math.round))
                  .concat([Math.round(r.sum), Math.round(r.sum/nf), isRef?'справочно':'услуги']));
       });
     });
   };
   push(false);
-  aoa.push(['ИТОГО УСЛУГИ','',''].concat(D.svcTot.m.slice(0,n).map(Math.round))
+  aoa.push(['ИТОГО УСЛУГИ','','',''].concat(D.svcTot.m.slice(0,n).map(Math.round))
            .concat([Math.round(D.svcTot.sum), Math.round(D.svcTot.sum/nf),'услуги']));
   aoa.push([]);
   push(true);
-  aoa.push(['ИТОГО СПРАВОЧНО','',''].concat(D.refTot.m.slice(0,n).map(Math.round))
+  aoa.push(['ИТОГО СПРАВОЧНО','','',''].concat(D.refTot.m.slice(0,n).map(Math.round))
            .concat([Math.round(D.refTot.sum), Math.round(D.refTot.sum/nf),'справочно']));
 
   var ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{wch:36},{wch:34},{wch:40}].concat(new Array(n).fill({wch:13}))
+  ws['!cols'] = [{wch:36},{wch:22},{wch:34},{wch:40}].concat(new Array(n).fill({wch:13}))
                 .concat([{wch:16},{wch:17},{wch:12}]);
-  ws['!freeze'] = {xSplit:3, ySplit:5};
+  ws['!freeze'] = {xSplit:4, ySplit:5};
   ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:4,c:0}, e:{r:aoa.length-1, c:hdr.length-1}})};
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Услуги по видам');
 
-  var s2 = [['Вид работ'].concat(MN.slice(0,n)).concat(['Итого','Σ/мес','Доля %','Поставщиков'])];
+  var s2 = [['Вид работ','Ответственный за подачу'].concat(MN.slice(0,n)).concat(['Итого','Σ/мес','Доля %','Поставщиков'])];
   D.vids.forEach(function(g){
-    s2.push([g.v].concat(g.m.slice(0,n).map(Math.round))
+    s2.push([g.v, respVid(g.v)].concat(g.m.slice(0,n).map(Math.round))
       .concat([Math.round(g.sum), Math.round(g.sum/nf),
                +(D.svcTot.sum? g.sum/D.svcTot.sum*100 : 0).toFixed(1), g.sup]));
   });
-  s2.push(['ИТОГО'].concat(D.svcTot.m.slice(0,n).map(Math.round))
+  s2.push(['ИТОГО',''].concat(D.svcTot.m.slice(0,n).map(Math.round))
     .concat([Math.round(D.svcTot.sum), Math.round(D.svcTot.sum/nf), 100, D.sup]));
   var w2 = XLSX.utils.aoa_to_sheet(s2);
-  w2['!cols'] = [{wch:38}].concat(new Array(n).fill({wch:13})).concat([{wch:16},{wch:14},{wch:9},{wch:13}]);
-  w2['!freeze'] = {xSplit:1, ySplit:1};
+  w2['!cols'] = [{wch:38},{wch:22}].concat(new Array(n).fill({wch:13})).concat([{wch:16},{wch:14},{wch:9},{wch:13}]);
+  w2['!freeze'] = {xSplit:2, ySplit:1};
   XLSX.utils.book_append_sheet(wb, w2, 'Свод по видам');
+
+  /* Третий лист — то, ради чего ответственные и заводились: бюджет
+     собирается по людям, каждому видно свою строку и свой месяц. */
+  var byP = {};
+  D.rows.filter(function(r){ return !r.ref; }).forEach(function(r){
+    var p = respRow(r) || '(не назначен)';
+    var g = byP[p] = byP[p] || {m:new Array(n).fill(0), sum:0, vid:{}, n:0};
+    for (var i=0;i<n;i++) g.m[i] += r.m[i];
+    g.sum += r.sum; g.vid[r.v] = 1; g.n++;
+  });
+  var s3 = [['Ответственный за подачу'].concat(MN.slice(0,n))
+            .concat(['Итого','Σ/мес','Доля %','Видов работ','Строк'])];
+  Object.keys(byP).sort(function(x,y){ return byP[y].sum - byP[x].sum; }).forEach(function(p){
+    var g = byP[p];
+    s3.push([p].concat(g.m.map(Math.round))
+      .concat([Math.round(g.sum), Math.round(g.sum/nf),
+               +(D.svcTot.sum? g.sum/D.svcTot.sum*100 : 0).toFixed(1),
+               Object.keys(g.vid).length, g.n]));
+  });
+  s3.push(['ИТОГО'].concat(D.svcTot.m.slice(0,n).map(Math.round))
+    .concat([Math.round(D.svcTot.sum), Math.round(D.svcTot.sum/nf), 100, D.vids.length, D.rows.filter(function(r){return !r.ref;}).length]));
+  var w3 = XLSX.utils.aoa_to_sheet(s3);
+  w3['!cols'] = [{wch:26}].concat(new Array(n).fill({wch:13})).concat([{wch:16},{wch:14},{wch:9},{wch:13},{wch:9}]);
+  w3['!freeze'] = {xSplit:1, ySplit:1};
+  XLSX.utils.book_append_sheet(wb, w3, 'Свод по ответственным');
 
   XLSX.writeFile(wb, 'Услуги по видам работ — '+D.year+'.xlsx');
 }
