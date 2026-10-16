@@ -172,6 +172,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
   background:rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(0,0,0,.38);}
 #p-sales{--g:#60a5fa} #p-fc{--g:#a78bfa} #p-cash{--g:#34d399} #p-win{--g:#fbbf24}
 #p-zak{--g:#38bdf8} #p-up{--g:#f87171} #p-fresh{--g:#a78bfa} #p-oliv{--g:#9ec948}
+#p-cat{--g:#f59e0b}
 /* Переключатель «+ Olive» — в цвете направления, чтобы было видно, что это
    кнопка, а не подпись, и чтобы включённое состояние читалось издалека. */
 .olv-sw{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;
@@ -396,6 +397,15 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-l" id="p-up-l">Подорожало за неделю</div>
         <div class="pt-v" id="p-up-v">—</div>
         <div class="pt-d" id="p-up-d">загрузка…</div>
+      </a>
+      <!-- Категории SKU: разметка номенклатуры в айко. Считается в айко
+           по запросу, поэтому плашка наполняется после загрузки страницы,
+           а ответ воркер держит в кэше 10 минут. -->
+      <a class="pt" href="%D0%B5%D1%80%D0%BF.html#mkt" id="p-cat"
+         title="Позиции с отгрузкой в этом месяце, у которых категория не проставлена или спорная. Открывает отчёт в разделе ЕРП.">
+        <div class="pt-l">Категории SKU</div>
+        <div class="pt-v" id="p-cat-v">—</div>
+        <div class="pt-d" id="p-cat-d">считаю в айко…</div>
       </a>
       <a class="pt" href="закуп.html" id="p-fresh" title="Позиции, которых раньше в закупе не было">
         <div class="pt-l">Взяли впервые</div>
@@ -1185,6 +1195,29 @@ a.card.key .card-title{padding-right:100px;}
            'Июнь':'июню','Июль':'июлю','Август':'августу','Сентябрь':'сентябрю','Октябрь':'октябрю',
            'Ноябрь':'ноябрю','Декабрь':'декабрю'};
   function dat(s){ var k=String(s||'').split(' ')[0]; return DAT[k]||String(s||'').toLowerCase(); }
+
+  /* Категории SKU. Запрос в айко идёт после отрисовки страницы и ничего
+     не блокирует: плашка догружается сама. Месяц — текущий. */
+  setTimeout(function(){
+    var a=new Date(Date.now()+5*3600000), q=function(x){ return ('0'+x).slice(-2); };
+    var y=a.getUTCFullYear(), m=q(a.getUTCMonth()+1);
+    var from=y+'-'+m+'-01', to=y+'-'+m+'-'+q(a.getUTCDate());
+    fetch('/api/erp?r=cat&from='+from+'&to='+to)
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if(!j||j.error||j.total==null){ set('p-cat','—','нет данных'); return; }
+        var no=0, dis=0;
+        (j.rows||[]).forEach(function(r){
+          if(r.cat==='(не проставлена)') no++; else dis++;
+        });
+        var dup=(j.dupes||[]).length;
+        set('p-cat', num(j.total)+' позиц.',
+          '<span class="down">'+no+'</span> без категории · '+dis+' спорных'
+          + (dup?' · '+dup+' задвоенные пары':'')
+          + ' · на разбор');
+      })
+      .catch(function(){ set('p-cat','—','айко не ответил'); });
+  }, 1500);
 
   var SUM=null;
   /* Считать ли Olive вместе с заводом. Выбор личный и хранится в браузере. */
