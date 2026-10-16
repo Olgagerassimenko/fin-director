@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Услуги по видам работ · Фуд Завод</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh}
+
+.hdr{display:flex;align-items:center;gap:10px;padding:14px 28px;border-bottom:1px solid #1e293b;flex-wrap:wrap}
+.back{font-size:12px;color:#9db0c9;text-decoration:none;padding:5px 10px;border:1px solid #1e293b;border-radius:8px;transition:all .15s;white-space:nowrap}
+.back:hover{color:#5eead4;border-color:#2fa39a}
+.hdr-title{font-size:16px;font-weight:800;margin-left:6px}
+.hdr-sp{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.yr{display:flex;gap:4px;background:#121b31;border:1px solid #233150;border-radius:10px;padding:3px}
+.yr button{background:none;border:0;color:#9db0c9;font:600 12px/1 Inter,system-ui,sans-serif;padding:7px 12px;border-radius:7px;cursor:pointer}
+.yr button.on{background:#2fa39a;color:#04160e}
+.btn{background:#1b2742;border:1px solid #2b3b5e;color:#cfe0f5;font:600 12px/1 Inter,system-ui,sans-serif;padding:9px 14px;border-radius:9px;cursor:pointer;transition:all .15s}
+.btn:hover{border-color:#2fa39a;color:#5eead4}
+.btn.pri{background:#15803d;border-color:#16a34a;color:#eafff3}
+.btn.pri:hover{background:#166534;color:#fff}
+
+.wrap{max-width:1480px;margin:0 auto;padding:20px 28px 60px}
+.lead{font-size:13px;color:#9db0c9;line-height:1.55;max-width:900px;margin-bottom:18px}
+.lead b{color:#e2e8f0}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:#121b31;border:1px solid #233150;border-radius:16px;padding:18px 20px}
+.kpi .k-l{font-size:11px;color:#8aa0bd;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-bottom:8px}
+.kpi .k-v{font-size:28px;font-weight:800;letter-spacing:-.5px;color:#f1f5f9}
+.kpi .k-s{font-size:12px;color:#8aa0bd;margin-top:5px}
+.kpi.acc{background:linear-gradient(135deg,#06332f,#0b4a44);border-color:#2fa39a55}
+.kpi.acc .k-v{color:#5eead4}
+
+.panel{background:#121b31;border:1px solid #233150;border-radius:16px;padding:18px 20px;margin-bottom:18px}
+.panel-h{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.panel-t{font-size:13px;font-weight:800;color:#e2e8f0}
+.panel-n{font-size:11px;color:#8aa0bd}
+.chart-box{height:190px}
+
+.tools{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.srch{flex:1;min-width:200px;max-width:380px;background:#0e1628;border:1px solid #233150;border-radius:9px;color:#e2e8f0;font:500 13px/1 Inter,system-ui,sans-serif;padding:10px 12px}
+.srch:focus{outline:none;border-color:#2fa39a}
+.chk{display:flex;align-items:center;gap:7px;font-size:12px;color:#9db0c9;cursor:pointer;user-select:none}
+.chk input{accent-color:#2fa39a;width:15px;height:15px;cursor:pointer}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{position:sticky;top:0;z-index:3;background:#0e1628;color:#8aa0bd;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:10px 8px;text-align:right;border-bottom:1px solid #233150;white-space:nowrap}
+thead th.l{text-align:left}
+tbody td{padding:9px 8px;text-align:right;border-bottom:1px solid #1b2742;white-space:nowrap;font-variant-numeric:tabular-nums}
+tbody td.l{text-align:left;white-space:normal}
+tr.g{cursor:pointer}
+tr.g:hover td{background:#17223c}
+tr.g td{font-weight:700;color:#e2e8f0}
+tr.g td.l{display:flex;align-items:center;gap:8px}
+.caret{display:inline-block;width:14px;color:#5eead4;transition:transform .15s;flex:0 0 14px}
+tr.g.open .caret{transform:rotate(90deg)}
+tr.d td{color:#9db0c9;font-weight:500;background:#0f1930}
+tr.d td.l{padding-left:30px}
+tr.d .nom{color:#64748b;font-size:11.5px;display:block;margin-top:2px}
+td.tot{color:#5eead4;font-weight:800}
+td.zero{color:#33405c}
+.sh{display:inline-block;min-width:44px;font-size:11px;color:#8aa0bd}
+.bar{height:4px;border-radius:2px;background:#2fa39a;display:block;margin-top:4px}
+.ref-t tr.g td{color:#fbbf24}
+.pill{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:#1b2742;color:#9db0c9}
+.warn{background:#2a1e05;border:1px solid #78500c;color:#fcd34d;border-radius:12px;padding:12px 16px;font-size:12.5px;line-height:1.5;margin-bottom:16px}
+.foot{font-size:11.5px;color:#64748b;line-height:1.5;margin-top:14px}
+.load{padding:60px;text-align:center;color:#8aa0bd;font-size:13px}
+@media(max-width:1100px){.kpis{grid-template-columns:1fr 1fr}}
+@media(max-width:720px){.wrap{padding:16px 14px 50px}.kpis{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <a class="back" href="index.html">← Пульс</a>
+  <div class="hdr-title">Услуги по видам работ</div>
+  <div class="hdr-sp">
+    <div class="yr" id="yr"></div>
+    <button class="btn" id="btn-go">Обновить</button>
+    <button class="btn pri" id="btn-xls">Выгрузить в Excel</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="lead">Что завод покупает <b>услугами</b>, а не товаром: аренда, коммуналка, доставка, охрана, ремонт, IT.
+    Берётся напрямую из айко — вкладка «Услуги» в поступлениях, — раскладывается по видам работ, поставщикам и месяцам.
+    <b>Налоги, возмещение затрат площадкам и возвраты</b> проходят тем же документом, поэтому показаны отдельно и в итог по услугам не входят.</div>
+
+  <div id="body"><div class="load">Загружаю из айко…</div></div>
+</div>
+
+<script>
+var D = null, OPEN = {}, YEAR = String(new Date().getFullYear());
+var MN = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+function fmt(n){ n = Math.round(n||0); return n ? n.toLocaleString('ru-RU').replace(/,/g,' ') : '—'; }
+function mln(n){ n = (n||0)/1e6; return (Math.abs(n)>=100? n.toFixed(0) : n.toFixed(1)).replace('.',',')+' млн'; }
+
+function yrBar(){
+  var y = new Date().getFullYear(), h = '';
+  for (var i=0;i<3;i++){ var v = String(y-i); h += '<button data-y="'+v+'"'+(v===YEAR?' class="on"':'')+'>'+v+'</button>'; }
+  document.getElementById('yr').innerHTML = h;
+  Array.prototype.forEach.call(document.querySelectorAll('#yr button'), function(b){
+    b.onclick = function(){ YEAR = b.dataset.y; yrBar(); load(); };
+  });
+}
+
+async function load(){
+  document.getElementById('body').innerHTML = '<div class="load">Загружаю из айко…</div>';
+  try {
+    var r = await fetch('/api/uslugi?year='+YEAR, {cache:'no-store'});
+    D = await r.json();
+    if (D.error) throw new Error(D.error);
+    draw();
+  } catch(e){
+    document.getElementById('body').innerHTML = '<div class="warn">Не получилось забрать данные: '+String(e.message||e)+'. Попробуйте «Обновить» через минуту — айко иногда отвечает дольше обычного.</div>';
+  }
+}
+
+function matches(r, q){
+  if (!q) return true;
+  return (r.v+' '+r.s+' '+r.p).toLowerCase().indexOf(q) >= 0;
+}
+
+function draw(){
+  var q = (document.getElementById('f-srch') ? document.getElementById('f-srch').value : '').trim().toLowerCase();
+  var showRef = document.getElementById('f-ref') ? document.getElementById('f-ref').checked : false;
+  var n = Math.max(1, D.nMon);
+  var svc = D.svcTot, perMon = svc.sum / n;
+
+  var h = '';
+  h += '<div class="kpis">'
+    +  kpi('acc','Услуги подрядчиков', mln(svc.sum)+' ₸', D.from.slice(5).split('-').reverse().join('.')+' — '+D.to.slice(5).split('-').reverse().join('.')+' · '+n+' мес.')
+    +  kpi('','В среднем за месяц', mln(perMon)+' ₸', 'ровным счётом по закрытым месяцам')
+    +  kpi('','Видов работ', String(D.vids.length), 'классификация по номенклатуре айко')
+    +  kpi('','Поставщиков услуг', String(D.sup), D.rows.filter(function(r){return !r.ref;}).length+' строк «поставщик × услуга»')
+    +  '</div>';
+
+  if (D.unknown && D.unknown.length)
+    h += '<div class="warn"><b>Новая номенклатура без вида работ:</b> '+D.unknown.map(esc).join(' · ')
+       + '. Пока попала в «Прочие услуги» — скажите, куда отнести, и я пропишу в справочнике.</div>';
+
+  h += '<div class="panel"><div class="panel-h"><div class="panel-t">Услуги по месяцам</div>'
+     + '<div class="panel-n">без налогов, возмещений и возвратов</div></div>'
+     + '<div class="chart-box"><canvas id="cv"></canvas></div></div>';
+
+  h += '<div class="panel">'
+     + '<div class="tools">'
+     +   '<input class="srch" id="f-srch" placeholder="Поиск по виду работ, поставщику или услуге…" value="'+esc(q)+'">'
+     +   '<label class="chk"><input type="checkbox" id="f-ref"'+(showRef?' checked':'')+'> показать налоги, возмещения и возвраты</label>'
+     +   '<button class="btn" id="btn-all">Раскрыть всё</button>'
+     + '</div>'
+     + table(D.vids, false, q)
+     + (showRef ? refTable(q) : '')
+     + '<div class="foot">'+esc(D.note)+'</div>'
+     + '</div>';
+
+  document.getElementById('body').innerHTML = h;
+  wire();
+  chart();
+}
+
+function kpi(cls,l,v,s){ return '<div class="kpi '+cls+'"><div class="k-l">'+l+'</div><div class="k-v">'+v+'</div><div class="k-s">'+esc(s)+'</div></div>'; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function head(n){
+  var h = '<tr><th class="l">Вид работ · поставщик</th>';
+  for (var i=0;i<n;i++) h += '<th>'+MN[i]+'</th>';
+  return h + '<th>Итого</th><th>Σ/мес</th><th>Доля</th></tr>';
+}
+
+function table(vids, isRef, q){
+  var n = Math.max(1, D.nMon), grand = (isRef?D.refTot:D.svcTot).sum;
+  var rows = D.rows.filter(function(r){ return !!r.ref === isRef; });
+  var vis = vids.filter(function(g){
+    if (!q) return true;
+    return rows.some(function(r){ return r.v === g.v && matches(r, q); });
+  });
+  var h = '<table class="'+(isRef?'ref-t':'')+'"><thead>'+head(n)+'</thead><tbody>';
+  vis.forEach(function(g){
+    var op = !!OPEN[g.v];
+    h += '<tr class="g'+(op?' open':'')+'" data-v="'+esc(g.v)+'"><td class="l"><span class="caret">▶</span><span>'+esc(g.v)
+       + '</span><span class="pill">'+g.sup+' пост.</span></td>';
+    for (var i=0;i<n;i++) h += '<td'+(g.m[i]?'':' class="zero"')+'>'+fmt(g.m[i])+'</td>';
+    h += '<td class="tot">'+fmt(g.sum)+'</td><td>'+fmt(g.sum/n)+'</td>'
+       + '<td><span class="sh">'+(grand? (g.sum/grand*100).toFixed(1).replace('.',',') : '0')+'%</span>'
+       + '<span class="bar" style="width:'+(grand? Math.max(2, g.sum/grand*100) : 0)+'%"></span></td></tr>';
+    if (op) {
+      rows.filter(function(r){ return r.v === g.v && matches(r, q); })
+          .sort(function(a,b){ return b.sum - a.sum; })
+          .forEach(function(r){
+        h += '<tr class="d"><td class="l">'+esc(r.s)+'<span class="nom">'+esc(r.p)+'</span></td>';
+        for (var i=0;i<n;i++) h += '<td'+(r.m[i]?'':' class="zero"')+'>'+fmt(r.m[i])+'</td>';
+        h += '<td class="tot">'+fmt(r.sum)+'</td><td>'+fmt(r.sum/n)+'</td>'
+           + '<td><span class="sh">'+(grand? (r.sum/grand*100).toFixed(1).replace('.',',') : '0')+'%</span></td></tr>';
+      });
+    }
+  });
+  var T = isRef?D.refTot:D.svcTot;
+  h += '<tr class="g" style="background:#0e1628"><td class="l"><span class="caret" style="visibility:hidden">▶</span><b>'
+     + (isRef?'Итого справочно':'ИТОГО УСЛУГИ')+'</b></td>';
+  for (var i=0;i<n;i++) h += '<td>'+fmt(T.m[i])+'</td>';
+  h += '<td class="tot">'+fmt(T.sum)+'</td><td>'+fmt(T.sum/n)+'</td><td></td></tr>';
+  return h + '</tbody></table>';
+}
+
+function refTable(q){
+  var byVid = {};
+  D.rows.filter(function(r){ return r.ref; }).forEach(function(r){
+    var g = byVid[r.v] = byVid[r.v] || {v:r.v, m:new Array(12).fill(0), sum:0, sup:{}, n:0};
+    for (var i=0;i<12;i++) g.m[i] += r.m[i];
+    g.sum += r.sum; g.sup[r.s] = 1; g.n++;
+  });
+  var vids = Object.keys(byVid).map(function(k){ var g=byVid[k]; return {v:g.v,m:g.m,sum:g.sum,sup:Object.keys(g.sup).length,n:g.n}; })
+             .sort(function(a,b){ return b.sum-a.sum; });
+  return '<div style="height:26px"></div><div class="panel-t" style="margin-bottom:10px">Справочно — не подрядные услуги</div>'
+       + table(vids, true, q);
+}
+
+function wire(){
+  Array.prototype.forEach.call(document.querySelectorAll('tr.g[data-v]'), function(tr){
+    tr.onclick = function(){ var v = tr.dataset.v; OPEN[v] = !OPEN[v]; draw(); };
+  });
+  var s = document.getElementById('f-srch');
+  if (s){ var t; s.oninput = function(){ clearTimeout(t); t = setTimeout(draw, 220); }; }
+  var c = document.getElementById('f-ref'); if (c) c.onchange = draw;
+  var a = document.getElementById('btn-all');
+  if (a) a.onclick = function(){
+    var any = Object.keys(OPEN).some(function(k){ return OPEN[k]; });
+    OPEN = {}; if (!any) D.vids.forEach(function(g){ OPEN[g.v] = true; });
+    draw();
+  };
+}
+
+var CH = null;
+function chart(){
+  var n = Math.max(1, D.nMon), cv = document.getElementById('cv');
+  if (!cv || !window.Chart) return;
+  if (CH) { try { CH.destroy(); } catch(e){} }
+  CH = new Chart(cv, {
+    type:'bar',
+    data:{ labels: MN.slice(0,n),
+      datasets:[{ data: D.svcTot.m.slice(0,n), backgroundColor:'#2fa39a', hoverBackgroundColor:'#5eead4',
+                  borderRadius:4, borderSkipped:false, maxBarThickness:46 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        tooltip:{ backgroundColor:'#0b1324', borderColor:'#2b3b5e', borderWidth:1, padding:10,
+          callbacks:{ label:function(c){ return fmt(c.parsed.y)+' ₸'; } } } },
+      scales:{
+        x:{ grid:{display:false}, border:{color:'#233150'}, ticks:{color:'#8aa0bd', font:{size:11}} },
+        y:{ grid:{color:'#1b2742'}, border:{display:false},
+            ticks:{color:'#8aa0bd', font:{size:11}, callback:function(v){ return (v/1e6).toFixed(0)+' млн'; }} } } }
+  });
+}
+
+function xls(){
+  if (!D) return;
+  var n = Math.max(1, D.nMon);
+  var hdr = ['Вид работ','Поставщик','Услуга (номенклатура айко)'].concat(MN.slice(0,n)).concat(['Итого за период','В среднем за месяц','Группа']);
+  var aoa = [
+    ['Услуги по видам работ — факт из айко'],
+    [D.note],
+    ['Период: '+D.from+' — '+D.to+'. Суммы в тенге.'],
+    [],
+    hdr
+  ];
+  var push = function(isRef){
+    var vids = {};
+    D.rows.filter(function(r){ return !!r.ref === isRef; }).forEach(function(r){
+      (vids[r.v] = vids[r.v] || []).push(r);
+    });
+    Object.keys(vids).map(function(k){
+      return {v:k, rows:vids[k], sum:vids[k].reduce(function(s,r){return s+r.sum;},0)};
+    }).sort(function(a,b){ return b.sum-a.sum; }).forEach(function(g){
+      var gm = new Array(n).fill(0);
+      g.rows.forEach(function(r){ for (var i=0;i<n;i++) gm[i] += r.m[i]; });
+      aoa.push([g.v,'','ИТОГО по виду работ'].concat(gm.map(Math.round))
+               .concat([Math.round(g.sum), Math.round(g.sum/n), isRef?'справочно':'услуги']));
+      g.rows.sort(function(a,b){ return b.sum-a.sum; }).forEach(function(r){
+        aoa.push([g.v, r.s, r.p].concat(r.m.slice(0,n).map(Math.round))
+                 .concat([Math.round(r.sum), Math.round(r.sum/n), isRef?'справочно':'услуги']));
+      });
+    });
+  };
+  push(false);
+  aoa.push(['ИТОГО УСЛУГИ','',''].concat(D.svcTot.m.slice(0,n).map(Math.round))
+           .concat([Math.round(D.svcTot.sum), Math.round(D.svcTot.sum/n),'услуги']));
+  aoa.push([]);
+  push(true);
+  aoa.push(['ИТОГО СПРАВОЧНО','',''].concat(D.refTot.m.slice(0,n).map(Math.round))
+           .concat([Math.round(D.refTot.sum), Math.round(D.refTot.sum/n),'справочно']));
+
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:36},{wch:34},{wch:40}].concat(new Array(n).fill({wch:13}))
+                .concat([{wch:16},{wch:17},{wch:12}]);
+  ws['!freeze'] = {xSplit:3, ySplit:5};
+  ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:4,c:0}, e:{r:aoa.length-1, c:hdr.length-1}})};
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Услуги по видам');
+
+  var s2 = [['Вид работ'].concat(MN.slice(0,n)).concat(['Итого','Σ/мес','Доля %','Поставщиков'])];
+  D.vids.forEach(function(g){
+    s2.push([g.v].concat(g.m.slice(0,n).map(Math.round))
+      .concat([Math.round(g.sum), Math.round(g.sum/n),
+               +(D.svcTot.sum? g.sum/D.svcTot.sum*100 : 0).toFixed(1), g.sup]));
+  });
+  s2.push(['ИТОГО'].concat(D.svcTot.m.slice(0,n).map(Math.round))
+    .concat([Math.round(D.svcTot.sum), Math.round(D.svcTot.sum/n), 100, D.sup]));
+  var w2 = XLSX.utils.aoa_to_sheet(s2);
+  w2['!cols'] = [{wch:38}].concat(new Array(n).fill({wch:13})).concat([{wch:16},{wch:14},{wch:9},{wch:13}]);
+  w2['!freeze'] = {xSplit:1, ySplit:1};
+  XLSX.utils.book_append_sheet(wb, w2, 'Свод по видам');
+
+  XLSX.writeFile(wb, 'Услуги по видам работ — '+D.year+'.xlsx');
+}
+
+document.getElementById('btn-go').onclick = load;
+document.getElementById('btn-xls').onclick = xls;
+yrBar();
+load();
+</script>
+<script src="nav.js"></script>
+</body>
+</html>
