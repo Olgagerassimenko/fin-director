@@ -80,8 +80,8 @@ tr.d .rsp-in{font-weight:500;color:#9db0c9}
 /* Двенадцать месяцев в строку не влезают, и при горизонтальной прокрутке
    таблица превращается в набор цифр без подписей. Первые две колонки —
    название и ответственный — остаются на месте. */
-thead th:nth-child(1),tbody td:nth-child(1){position:sticky;left:0;z-index:2;background:#121b31;min-width:206px;max-width:206px}
-thead th:nth-child(2),tbody td:nth-child(2){position:sticky;left:206px;z-index:2;background:#121b31;box-shadow:1px 0 0 #233150}
+thead th:nth-child(1),tbody td:nth-child(1){position:sticky;left:var(--navw,0px);z-index:2;background:#121b31;min-width:206px;max-width:206px}
+thead th:nth-child(2),tbody td:nth-child(2){position:sticky;left:calc(var(--navw,0px) + 206px);z-index:2;background:#121b31;box-shadow:1px 0 0 #233150}
 thead th:nth-child(1),thead th:nth-child(2){z-index:5;background:#0e1628}
 tr.d td:nth-child(1),tr.d td:nth-child(2){background:#0f1930}
 tr.g[style*="0e1628"] td:nth-child(1),tr.g[style*="0e1628"] td:nth-child(2){background:#0e1628}
@@ -234,7 +234,17 @@ function draw(){
   wire();
   refreshPpl();
   chart();
+  navw(); setTimeout(navw, 900);
 }
+
+/* Слева висит фиксированная панель навигации. Закреплённые колонки таблицы
+   липнут к краю окна, то есть уезжают под неё — отступ берём по её ширине. */
+function navw(){
+  var n = document.querySelector('nav');
+  var w = n && getComputedStyle(n).position === 'fixed' ? Math.round(n.getBoundingClientRect().width) : 0;
+  document.documentElement.style.setProperty('--navw', w + 'px');
+}
+window.addEventListener('resize', navw);
 
 function kpi(cls,l,v,s){ return '<div class="kpi '+cls+'"><div class="k-l">'+l+'</div><div class="k-v">'+v+'</div><div class="k-s">'+esc(s)+'</div></div>'; }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
