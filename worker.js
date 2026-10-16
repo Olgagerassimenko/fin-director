@@ -2915,6 +2915,11 @@ async function handleUslRaw(request, env, url) {
 
   const rows = [...map.values()].sort((a, b) => b.sum - a.sum);
   const nMon = lastMonth + 1;
+  /* Текущий месяц ещё не закрыт: документы за него проводят по ходу дела,
+     и если делить годовую сумму на него тоже, «в среднем за месяц» выйдет
+     заниженным. Среднее считаем по закрытым месяцам. */
+  const curY = today.slice(0, 4), curM = parseInt(today.slice(5, 7), 10);
+  const nFull = Math.max(1, (year === curY) ? Math.min(nMon, curM - 1) : nMon);
   const svc = rows.filter((r) => !r.ref);
   const ref = rows.filter((r) => r.ref);
   const tot = (arr) => {
@@ -2934,7 +2939,7 @@ async function handleUslRaw(request, env, url) {
     .sort((a, b) => b.sum - a.sum);
 
   return jsonResp({
-    year: year, from: from, to: to, nMon: nMon,
+    year: year, from: from, to: to, nMon: nMon, nFull: nFull,
     rows: rows, vids: vids,
     svcTot: tot(svc), refTot: tot(ref),
     sup: new Set(svc.map((r) => r.s)).size,
