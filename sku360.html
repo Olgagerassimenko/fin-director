@@ -146,6 +146,7 @@ thead th{top:0}
   <div class="ntab" onclick="switchMain('dynamics',this)">Динамика</div>
   <div class="ntab" onclick="switchMain('bcg',this)">BCG-матрица</div>
   <div class="ntab" onclick="switchMain('insights',this)">💡 Инсайты</div>
+  <div class="ntab" onclick="switchMain('cats',this)">🏷 Категории</div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:6px;padding-right:2px">
     <span style="font-size:11px;color:rgba(255,255,255,.55);font-weight:700;letter-spacing:.04em">МЕСЯЦ:</span>
     <select id="globMonth" onchange="setGlobMonth(this)" style="padding:5px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.25);font-size:13px;font-weight:600;background:#fff;color:#111827;cursor:pointer"></select>
@@ -304,6 +305,22 @@ thead th{top:0}
   <div id="signals-content" style="width:100%;margin-top:14px"></div>
   <div id="insights-bottom" style="width:100%;margin-top:14px"></div>
 </div>
+
+<!-- ====== КАТЕГОРИИ: живой отчёт из айко ====== -->
+<div id="view-cats" class="an-view" style="display:none">
+  <div style="width:100%;background:#fff;border-radius:14px;padding:16px 18px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <b style="font-size:15px;color:#111827">Категории SKU: спорные и непроставленные</b>
+      <span style="font-size:12px;color:#6b7280">месяц</span>
+      <input type="month" id="ct-mon" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:13px">
+      <button id="ct-go" style="padding:6px 14px;border:1px solid #c4b5fd;background:#f5f3ff;color:#6d28d9;border-radius:8px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">Сформировать</button>
+      <button id="ct-xls" hidden style="padding:6px 14px;border:1px solid #bbf7d0;background:#f0fdf4;color:#15803d;border-radius:8px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">Выгрузить в Excel</button>
+      <span id="ct-st" style="font-size:12px;color:#6b7280;margin-left:auto"></span>
+    </div>
+    <div id="ct-bd" style="font-size:13px;color:#6b7280">Отчёт не сформирован. Нажмите «Сформировать».</div>
+  </div>
+</div>
+
 
 <!-- ====== EXIT VIEW ====== -->
 
@@ -744,7 +761,7 @@ function switchMain(view,el){
   CUR_VIEW=view;
   document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['view-table','view-dynamics','view-bcg','view-top','view-signals','view-insights']
+  ['view-table','view-dynamics','view-bcg','view-top','view-signals','view-insights','view-cats']
     .forEach(id=>{var v=document.getElementById(id);if(v)v.style.display='none';});
   closeDetail();
   if(view==='table'){
@@ -759,6 +776,9 @@ function switchMain(view,el){
     document.getElementById('view-top').style.display='flex';
   } else if(view==='exit'){
     document.getElementById('view-exit').style.display='flex';
+  } else if(view==='cats'){
+    document.getElementById('view-cats').style.display='flex';
+    ctInit();
   } else if(view==='insights'){
     document.getElementById('view-insights').style.display='flex';
     buildInsights();
@@ -1931,5 +1951,111 @@ function buildTopRevList(){
   if(listEl) listEl.innerHTML = html;
 }
 
+</script>
+<script>
+/* ——— Категории SKU: считается в айко по кнопке ———
+   Разметку номенклатуры проставляют руками, и она разъезжается. Отчёт для
+   каждой папки берёт преобладающую категорию и показывает тех, кто из неё
+   выбивается, плюс позиции вовсе без категории. Период — месяц. */
+var CT_LAST=null, CT_BUSY=false;
+function ctLoadXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  return new Promise(function(ok,no){
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=ok; s.onerror=function(){ no(new Error('библиотека не загрузилась')); };
+    document.head.appendChild(s);
+  });
+}
+function ctEsc(s){ return String(s==null?'':s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function ctNum(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU').replace(/,/g,' '); }
+function ctInit(){
+  var mon=document.getElementById('ct-mon');
+  if(!mon || mon.dataset.ready) return;
+  mon.dataset.ready='1';
+  var a=new Date(Date.now()+5*3600e3), p=function(x){ return ('0'+x).slice(-2); };
+  mon.value=a.getUTCFullYear()+'-'+p(a.getUTCMonth()+1);
+  document.getElementById('ct-go').onclick=ctRun;
+  document.getElementById('ct-xls').onclick=ctXls;
+}
+function ctRun(){
+  if(CT_BUSY) return;
+  var mon=document.getElementById('ct-mon').value;
+  if(!/^\d{4}-\d{2}$/.test(mon)) return;
+  var y=+mon.slice(0,4), m=+mon.slice(5,7);
+  var a=new Date(Date.now()+5*3600e3), p=function(x){ return ('0'+x).slice(-2); };
+  var isCur=(a.getUTCFullYear()===y && a.getUTCMonth()+1===m);
+  var last=new Date(Date.UTC(y,m,0)).getUTCDate();
+  var from=mon+'-01', to=mon+'-'+p(isCur?a.getUTCDate():last);
+  var bd=document.getElementById('ct-bd'), st=document.getElementById('ct-st');
+  CT_BUSY=true; st.textContent='считаю в айко…';
+  bd.innerHTML='<div style="color:#9ca3af">запрос в айко, это занимает несколько секунд…</div>';
+  fetch('/api/erp?r=cat&from='+from+'&to='+to).then(function(r){ return r.json(); })
+    .then(function(j){
+      CT_BUSY=false;
+      if(!j||j.error){ st.textContent=''; bd.innerHTML='<div style="color:#b91c1c">не получилось: '
+        +ctEsc((j&&j.error)||'нет ответа')+'</div>'; return; }
+      CT_LAST=j;
+      document.getElementById('ct-xls').hidden=!(j.rows&&j.rows.length);
+      var h='<div style="overflow:auto;max-height:60vh;border:1px solid #e5e7eb;border-radius:10px">'
+        + '<table style="width:100%;border-collapse:collapse;font-size:12.5px">'
+        + '<thead><tr>'+j.cols.map(function(c){
+            return '<th style="position:sticky;top:0;background:#f9fafb;text-align:'
+              +(c[2]==='l'?'left':'right')+';padding:7px 10px;border-bottom:1px solid #e5e7eb;'
+              +'font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">'
+              +ctEsc(c[1])+'</th>'; }).join('')+'</tr></thead><tbody>';
+      j.rows.forEach(function(r){
+        h+='<tr>'+j.cols.map(function(c){
+          var v=r[c[0]];
+          var al=(c[2]==='l')?'left':'right';
+          var col=(c[0]==='cat'&&v==='(не проставлена)')?';color:#b91c1c;font-weight:600':'';
+          return '<td style="padding:6px 10px;border-bottom:1px solid #f3f4f6;text-align:'+al+col+'">'
+            +((c[2]==='n')?ctNum(v):ctEsc(v))+'</td>';
+        }).join('')+'</tr>';
+      });
+      h+='</tbody></table></div>';
+      bd.innerHTML=h;
+      st.textContent=(j.note||'')+' · '+from+' — '+to;
+    })
+    .catch(function(e){ CT_BUSY=false; st.textContent='';
+      bd.innerHTML='<div style="color:#b91c1c">не получилось: '+ctEsc(e.message)+'</div>'; });
+}
+function ctXls(){
+  if(!CT_LAST) return;
+  var j=CT_LAST, st=document.getElementById('ct-st');
+  st.textContent='готовлю файл…';
+  ctLoadXLSX().then(function(){
+    var aoa=[[j.n],['Период',j.from+' — '+j.to,'','Выгружено',new Date().toLocaleString('ru-RU')]];
+    if(j.note) aoa.push([j.note]);
+    aoa.push([]);
+    aoa.push(j.cols.map(function(c){ return c[1]; }));
+    j.rows.forEach(function(r){ aoa.push(j.cols.map(function(c){
+      var v=r[c[0]]; return c[2]==='n' ? (Number(v)||0) : String(v==null?'':v); })); });
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=j.cols.map(function(c){
+      return {wch: c[2]==='l' ? (c[0]==='name'||c[0]==='rec' ? 52 : 26) : 18}; });
+    ws['!freeze']={xSplit:0,ySplit:5};
+    ws['!autofilter']={ref:XLSX.utils.encode_range(
+      {s:{r:4,c:0}, e:{r:4+j.rows.length, c:j.cols.length-1}})};
+    var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Категории');
+    XLSX.writeFile(wb,'Категории SKU '+j.from+'_'+j.to+'.xlsx');
+    st.textContent='файл выгружен';
+  }).catch(function(e){ st.textContent='не вышло: '+e.message; });
+}
+
+/* Ссылка с плашки «Категории SKU» на главной приходит с #cats —
+   открываем сразу нужную вкладку. */
+(function(){
+  function openCats(){
+    if(location.hash!=='#cats') return;
+    var t=[].slice.call(document.querySelectorAll('.ntab'))
+            .filter(function(x){ return /Категории/.test(x.textContent); })[0];
+    if(t) t.click();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',openCats);
+  else openCats();
+  window.addEventListener('hashchange',openCats);
+})();
 </script>
 <script src="nav.js"></script>
