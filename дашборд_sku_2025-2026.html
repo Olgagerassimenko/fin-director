@@ -1633,5 +1633,19 @@ function ctXls(){
     st.textContent='файл выгружен';
   }).catch(function(e){ st.textContent='не вышло: '+e.message; });
 }
+/* Ссылка с плашки «Категории SKU» на главной приходит с #cats —
+   открываем сразу нужную вкладку. */
+(function(){
+  function openCats(){
+    if(location.hash!=='#cats') return;
+    var t=[].slice.call(document.querySelectorAll('.ntab'))
+            .filter(function(x){ return /Категории/.test(x.textContent); })[0];
+    if(t) t.click();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',openCats);
+  else openCats();
+  window.addEventListener('hashchange',openCats);
+})();
+
 </script>
 <script src="nav.js"></script>
