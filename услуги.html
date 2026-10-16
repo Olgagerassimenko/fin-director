@@ -130,13 +130,14 @@ function matches(r, q){
 function draw(){
   var q = (document.getElementById('f-srch') ? document.getElementById('f-srch').value : '').trim().toLowerCase();
   var showRef = document.getElementById('f-ref') ? document.getElementById('f-ref').checked : false;
-  var n = Math.max(1, D.nMon);
-  var svc = D.svcTot, perMon = svc.sum / n;
+  var n = Math.max(1, D.nMon), nf = Math.max(1, D.nFull||D.nMon);
+  var svc = D.svcTot, perMon = svc.sum / nf;
+  var closed = svc.m.slice(0, nf).reduce(function(a,b){return a+b;}, 0);
 
   var h = '';
   h += '<div class="kpis">'
     +  kpi('acc','Услуги подрядчиков', mln(svc.sum)+' ₸', D.from.slice(5).split('-').reverse().join('.')+' — '+D.to.slice(5).split('-').reverse().join('.')+' · '+n+' мес.')
-    +  kpi('','В среднем за месяц', mln(perMon)+' ₸', 'ровным счётом по закрытым месяцам')
+    +  kpi('','В среднем за месяц', mln(closed/nf)+' ₸', 'по '+nf+' закрытым месяцам'+(n>nf? ' — '+MN[n-1]+' ещё идёт':''))
     +  kpi('','Видов работ', String(D.vids.length), 'классификация по номенклатуре айко')
     +  kpi('','Поставщиков услуг', String(D.sup), D.rows.filter(function(r){return !r.ref;}).length+' строк «поставщик × услуга»')
     +  '</div>';
@@ -169,13 +170,14 @@ function kpi(cls,l,v,s){ return '<div class="kpi '+cls+'"><div class="k-l">'+l+'
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function head(n){
+  var nf = Math.max(1, D.nFull||D.nMon);
   var h = '<tr><th class="l">Вид работ · поставщик</th>';
-  for (var i=0;i<n;i++) h += '<th>'+MN[i]+'</th>';
+  for (var i=0;i<n;i++) h += '<th'+(i>=nf?' style="color:#5b6c88" title="месяц ещё не закрыт — документы проводят по ходу дела"':'')+'>'+MN[i]+(i>=nf?' ·':'')+'</th>';
   return h + '<th>Итого</th><th>Σ/мес</th><th>Доля</th></tr>';
 }
 
 function table(vids, isRef, q){
-  var n = Math.max(1, D.nMon), grand = (isRef?D.refTot:D.svcTot).sum;
+  var n = Math.max(1, D.nMon), nf = Math.max(1, D.nFull||D.nMon), grand = (isRef?D.refTot:D.svcTot).sum;
   var rows = D.rows.filter(function(r){ return !!r.ref === isRef; });
   var vis = vids.filter(function(g){
     if (!q) return true;
@@ -187,7 +189,7 @@ function table(vids, isRef, q){
     h += '<tr class="g'+(op?' open':'')+'" data-v="'+esc(g.v)+'"><td class="l"><span class="caret">▶</span><span>'+esc(g.v)
        + '</span><span class="pill">'+g.sup+' пост.</span></td>';
     for (var i=0;i<n;i++) h += '<td'+(g.m[i]?'':' class="zero"')+'>'+fmt(g.m[i])+'</td>';
-    h += '<td class="tot">'+fmt(g.sum)+'</td><td>'+fmt(g.sum/n)+'</td>'
+    h += '<td class="tot">'+fmt(g.sum)+'</td><td>'+fmt(g.sum/nf)+'</td>'
        + '<td><span class="sh">'+(grand? (g.sum/grand*100).toFixed(1).replace('.',',') : '0')+'%</span>'
        + '<span class="bar" style="width:'+(grand? Math.max(2, g.sum/grand*100) : 0)+'%"></span></td></tr>';
     if (op) {
@@ -196,7 +198,7 @@ function table(vids, isRef, q){
           .forEach(function(r){
         h += '<tr class="d"><td class="l">'+esc(r.s)+'<span class="nom">'+esc(r.p)+'</span></td>';
         for (var i=0;i<n;i++) h += '<td'+(r.m[i]?'':' class="zero"')+'>'+fmt(r.m[i])+'</td>';
-        h += '<td class="tot">'+fmt(r.sum)+'</td><td>'+fmt(r.sum/n)+'</td>'
+        h += '<td class="tot">'+fmt(r.sum)+'</td><td>'+fmt(r.sum/nf)+'</td>'
            + '<td><span class="sh">'+(grand? (r.sum/grand*100).toFixed(1).replace('.',',') : '0')+'%</span></td></tr>';
       });
     }
@@ -205,7 +207,7 @@ function table(vids, isRef, q){
   h += '<tr class="g" style="background:#0e1628"><td class="l"><span class="caret" style="visibility:hidden">▶</span><b>'
      + (isRef?'Итого справочно':'ИТОГО УСЛУГИ')+'</b></td>';
   for (var i=0;i<n;i++) h += '<td>'+fmt(T.m[i])+'</td>';
-  h += '<td class="tot">'+fmt(T.sum)+'</td><td>'+fmt(T.sum/n)+'</td><td></td></tr>';
+  h += '<td class="tot">'+fmt(T.sum)+'</td><td>'+fmt(T.sum/nf)+'</td><td></td></tr>';
   return h + '</tbody></table>';
 }
 
@@ -245,7 +247,9 @@ function chart(){
   CH = new Chart(cv, {
     type:'bar',
     data:{ labels: MN.slice(0,n),
-      datasets:[{ data: D.svcTot.m.slice(0,n), backgroundColor:'#2fa39a', hoverBackgroundColor:'#5eead4',
+      datasets:[{ data: D.svcTot.m.slice(0,n),
+                  backgroundColor: D.svcTot.m.slice(0,n).map(function(_,i){ return i < Math.max(1,D.nFull||D.nMon) ? '#2fa39a' : '#2fa39a55'; }),
+                  hoverBackgroundColor:'#5eead4',
                   borderRadius:4, borderSkipped:false, maxBarThickness:46 }] },
     options:{ responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false},
@@ -260,12 +264,12 @@ function chart(){
 
 function xls(){
   if (!D) return;
-  var n = Math.max(1, D.nMon);
+  var n = Math.max(1, D.nMon), nf = Math.max(1, D.nFull||D.nMon);
   var hdr = ['Вид работ','Поставщик','Услуга (номенклатура айко)'].concat(MN.slice(0,n)).concat(['Итого за период','В среднем за месяц','Группа']);
   var aoa = [
     ['Услуги по видам работ — факт из айко'],
     [D.note],
-    ['Период: '+D.from+' — '+D.to+'. Суммы в тенге.'],
+    ['Период: '+D.from+' — '+D.to+'. Суммы в тенге. Среднее за месяц — по '+nf+' закрытым месяцам'+(n>nf?' ('+MN[n-1]+' ещё идёт, в среднее не входит)':'')+'.'],
     [],
     hdr
   ];
@@ -280,20 +284,20 @@ function xls(){
       var gm = new Array(n).fill(0);
       g.rows.forEach(function(r){ for (var i=0;i<n;i++) gm[i] += r.m[i]; });
       aoa.push([g.v,'','ИТОГО по виду работ'].concat(gm.map(Math.round))
-               .concat([Math.round(g.sum), Math.round(g.sum/n), isRef?'справочно':'услуги']));
+               .concat([Math.round(g.sum), Math.round(g.sum/nf), isRef?'справочно':'услуги']));
       g.rows.sort(function(a,b){ return b.sum-a.sum; }).forEach(function(r){
         aoa.push([g.v, r.s, r.p].concat(r.m.slice(0,n).map(Math.round))
-                 .concat([Math.round(r.sum), Math.round(r.sum/n), isRef?'справочно':'услуги']));
+                 .concat([Math.round(r.sum), Math.round(r.sum/nf), isRef?'справочно':'услуги']));
       });
     });
   };
   push(false);
   aoa.push(['ИТОГО УСЛУГИ','',''].concat(D.svcTot.m.slice(0,n).map(Math.round))
-           .concat([Math.round(D.svcTot.sum), Math.round(D.svcTot.sum/n),'услуги']));
+           .concat([Math.round(D.svcTot.sum), Math.round(D.svcTot.sum/nf),'услуги']));
   aoa.push([]);
   push(true);
   aoa.push(['ИТОГО СПРАВОЧНО','',''].concat(D.refTot.m.slice(0,n).map(Math.round))
-           .concat([Math.round(D.refTot.sum), Math.round(D.refTot.sum/n),'справочно']));
+           .concat([Math.round(D.refTot.sum), Math.round(D.refTot.sum/nf),'справочно']));
 
   var ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = [{wch:36},{wch:34},{wch:40}].concat(new Array(n).fill({wch:13}))
@@ -306,11 +310,11 @@ function xls(){
   var s2 = [['Вид работ'].concat(MN.slice(0,n)).concat(['Итого','Σ/мес','Доля %','Поставщиков'])];
   D.vids.forEach(function(g){
     s2.push([g.v].concat(g.m.slice(0,n).map(Math.round))
-      .concat([Math.round(g.sum), Math.round(g.sum/n),
+      .concat([Math.round(g.sum), Math.round(g.sum/nf),
                +(D.svcTot.sum? g.sum/D.svcTot.sum*100 : 0).toFixed(1), g.sup]));
   });
   s2.push(['ИТОГО'].concat(D.svcTot.m.slice(0,n).map(Math.round))
-    .concat([Math.round(D.svcTot.sum), Math.round(D.svcTot.sum/n), 100, D.sup]));
+    .concat([Math.round(D.svcTot.sum), Math.round(D.svcTot.sum/nf), 100, D.sup]));
   var w2 = XLSX.utils.aoa_to_sheet(s2);
   w2['!cols'] = [{wch:38}].concat(new Array(n).fill({wch:13})).concat([{wch:16},{wch:14},{wch:9},{wch:13}]);
   w2['!freeze'] = {xSplit:1, ySplit:1};
