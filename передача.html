@@ -112,7 +112,7 @@ function calc(){
     var dd=D.mmDrops[i]+D.dsfDrops[i];
     var loss=D.mm[i]*S.disc/100;                 // скидка только на Маймарт
     var log=dd*per*S.vari/100;
-    var mkt=closed?D.mkt:D.mkt*18/30;
+    var mkt=D.mkt[i]||0;                       // фактическое возмещение затрат Маймарту по месяцам
     var ret=S.ret?D.retMM[i]:0;
     var net=-loss+log+mkt+ret;
     r.rows.push({m:D.months[i],mm:D.mm[i],dsf:D.dsf[i],drops:dd,left:D.drops[i]-dd,
@@ -149,7 +149,7 @@ function render(){
   /* ── калькулятор ── */
   h+='<div class="panel"><div class="ph"><span class="pn">01</span><span class="pt">Калькулятор сценария</span></div>'
    + '<div class="pd">Два параметра известны неточно: какую скидку запросит дистрибьютор и какая часть тарифа перевозчика привязана к рейсам, '
-   + 'а не к абонентской плате. Третий переключатель — живы ли возвраты Маймарта, которые обнулились в августе.</div>'
+   + 'а не к абонентской плате. Третий переключатель — живы ли возвраты Маймарта, которые обнулились в августе. '+'Экономия маркетинга берётся фактом по месяцам — это возмещение затрат Маймарту из айко, оно неровное: в июле и сентябре ноль, в августе 1,67 млн ₸.</div>'
    + '<div class="ctrl">'
    +   '<div class="c1"><label>Скидка дистрибьютора</label><div class="val" id="v-disc"></div>'
    +     '<input type="range" id="i-disc" min="0" max="30" step="0.1" value="'+S.disc+'"></div>'
