@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Передача Маймарт и DSF дистрибьютору · Фуд Завод</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="peredacha_data.js?v=1" onerror="window.PRD=null"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh}
+.hdr{display:flex;align-items:center;gap:10px;padding:14px 28px;border-bottom:1px solid #1e293b;flex-wrap:wrap}
+.back{font-size:12px;color:#9db0c9;text-decoration:none;padding:5px 10px;border:1px solid #1e293b;border-radius:8px}
+.back:hover{color:#fdba74;border-color:#ea580c}
+.hdr-t{font-size:16px;font-weight:800;margin-left:6px}
+.hdr-sp{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tag{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:#2a1e05;color:#fbbf24;border:1px solid #78500c}
+.btn{background:#1b2742;border:1px solid #2b3b5e;color:#cfe0f5;font:600 12px/1 Inter,system-ui,sans-serif;padding:9px 14px;border-radius:9px;cursor:pointer}
+.btn:hover{border-color:#ea580c;color:#fdba74}
+.btn.pri{background:#15803d;border-color:#16a34a;color:#eafff3}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+
+.hero{background:linear-gradient(135deg,#121a2b,#1c2b4a);border:1px solid #2b3b5e;border-radius:20px;padding:26px 28px;margin-bottom:16px}
+.hero .eyebrow{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7fd4f0;margin-bottom:10px}
+.hero h1{font-size:34px;line-height:1.12;font-weight:900;letter-spacing:-.8px}
+.hero h1 em{font-style:normal;color:#fdba74}
+.hero p{margin-top:12px;font-size:13.5px;line-height:1.6;color:#aebdd4;max-width:820px}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.kpi{border-radius:16px;padding:16px 18px;border:1px solid #233150;background:#121b31}
+.kpi .l{font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#8aa0bd;margin-bottom:7px}
+.kpi .v{font-size:30px;font-weight:900;letter-spacing:-.8px;line-height:1}
+.kpi .s{font-size:11.5px;color:#8aa0bd;margin-top:6px}
+.kpi.b{background:linear-gradient(135deg,#0b2a4a,#123a63);border-color:#2a78d655}.kpi.b .v{color:#7fb6f5}
+.kpi.o{background:linear-gradient(135deg,#3a1a0a,#5c2a11);border-color:#eb683455}.kpi.o .v{color:#fdba74}
+.kpi.g{background:linear-gradient(135deg,#06332f,#0b4a44);border-color:#1baf7a55}.kpi.g .v{color:#5eead4}
+.kpi.n .v{color:#f1f5f9}
+
+.panel{background:#121b31;border:1px solid #233150;border-radius:16px;padding:18px 20px;margin-bottom:16px}
+.ph{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;flex-wrap:wrap}
+.pn{font-size:12px;font-weight:900;color:#ea580c;letter-spacing:1px}
+.pt{font-size:14px;font-weight:800;color:#e2e8f0}
+.pd{font-size:12.5px;color:#9db0c9;line-height:1.55;margin:8px 0 14px;max-width:880px}
+.chart{height:300px}.chart.sm{height:230px}
+
+.ctrl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:end}
+.c1{display:flex;flex-direction:column;gap:7px}
+.c1 label{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#8aa0bd}
+.c1 .val{font-size:22px;font-weight:900;color:#fdba74}
+input[type=range]{width:100%;accent-color:#ea580c;cursor:pointer}
+.sw{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfe0f5;cursor:pointer;user-select:none;
+    background:#0e1628;border:1px solid #233150;border-radius:10px;padding:11px 13px}
+.sw input{accent-color:#1baf7a;width:16px;height:16px;cursor:pointer}
+
+.res{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.res div{background:#0e1628;border:1px solid #233150;border-radius:12px;padding:13px 15px}
+.res .l{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#8aa0bd;margin-bottom:5px}
+.res .v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+.neg{color:#fb7185}.pos{color:#4ade80}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{position:sticky;top:0;z-index:3;background:#0e1628;color:#8aa0bd;font-weight:700;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.3px;padding:9px 6px;text-align:right;border-bottom:1px solid #233150;white-space:nowrap}
+thead th.l{text-align:left}
+tbody td{padding:8px 6px;text-align:right;border-bottom:1px solid #1b2742;white-space:nowrap;font-variant-numeric:tabular-nums}
+tbody td.l{text-align:left}
+tbody tr.tot td{background:#0e1628;font-weight:800;color:#e2e8f0}
+tr.go td.l{color:#fdba74;font-weight:700}
+tr.stay td.l{color:#9db0c9}
+.fate{font-size:10px;font-weight:800;letter-spacing:.5px;padding:2px 7px;border-radius:999px;margin-left:7px}
+.fate.go{background:#3a1a0a;color:#fdba74}.fate.stay{background:#0f2237;color:#7fb6f5}
+.warn{background:#2a1e05;border:1px solid #78500c;color:#fcd34d;border-radius:12px;padding:13px 16px;font-size:12.5px;line-height:1.55}
+.foot{font-size:11px;color:#64748b;line-height:1.55;margin-top:12px}
+ol.todo{list-style:none;counter-reset:t}
+ol.todo li{counter-increment:t;display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #1b2742;font-size:12.5px;color:#b9c6dd;line-height:1.5}
+ol.todo li:last-child{border-bottom:0}
+ol.todo li::before{content:counter(t);flex:0 0 26px;height:26px;border-radius:8px;background:#ea580c;color:#1a0e04;
+  font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
+ol.todo b{color:#f1f5f9}
+@media(max-width:980px){.kpis,.res{grid-template-columns:1fr 1fr}.ctrl{grid-template-columns:1fr}.hero h1{font-size:26px}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <a class="back" href="продажи_2026.html">← Продажи</a>
+  <div class="hdr-t">Передача Маймарт и DSF дистрибьютору</div>
+  <div class="hdr-sp">
+    <span class="tag">служебная страница · не в меню</span>
+    <button class="btn pri" id="xls">Выгрузить в Excel</button>
+  </div>
+</div>
+
+<div class="wrap" id="root"><div style="padding:60px;text-align:center;color:#8aa0bd">Загрузка…</div></div>
+
+<script>
+var D=window.PRD, CH={};
+var f=function(n){n=Math.round(n||0);return (n<0?'−':'')+Math.abs(n).toLocaleString('ru-RU').replace(/,/g,' ');};
+var mln=function(n,d){d=d==null?1:d;return (n/1e6).toFixed(d).replace('.',',').replace(/^-/,'−')+' млн ₸';};
+var pc=function(n,d){d=d==null?1:d;return n.toFixed(d).replace('.',',')+' %';};
+var esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+
+var S={disc:16.3, vari:60, ret:false};
+
+function calc(){
+  var n=D.closed, r={rows:[],T:{mm:0,dsf:0,drops:0,left:0,loss:0,log:0,mkt:0,ret:0}};
+  for(var i=0;i<D.months.length;i++){
+    var closed=i<n;
+    var per=D.deliv[i]/D.drops[i];
+    var dd=D.mmDrops[i]+D.dsfDrops[i];
+    var loss=D.mm[i]*S.disc/100;                 // скидка только на Маймарт
+    var log=dd*per*S.vari/100;
+    var mkt=closed?D.mkt:D.mkt*18/30;
+    var ret=S.ret?D.retMM[i]:0;
+    var net=-loss+log+mkt+ret;
+    r.rows.push({m:D.months[i],mm:D.mm[i],dsf:D.dsf[i],drops:dd,left:D.drops[i]-dd,
+                 share:dd/D.drops[i]*100,loss:loss,log:log,mkt:mkt,ret:ret,net:net,closed:closed});
+    if(closed){var T=r.T;T.mm+=D.mm[i];T.dsf+=D.dsf[i];T.drops+=dd;T.left+=D.drops[i]-dd;
+      T.loss+=loss;T.log+=log;T.mkt+=mkt;T.ret+=ret;}
+  }
+  r.T.net=-r.T.loss+r.T.log+r.T.mkt+r.T.ret;
+  r.T.rev=r.T.mm+r.T.dsf;
+  r.totRev=D.rev.slice(0,n).reduce(function(a,b){return a+b;},0);
+  r.totDrops=D.drops.slice(0,n).reduce(function(a,b){return a+b;},0);
+  r.totDeliv=D.deliv.slice(0,n).reduce(function(a,b){return a+b;},0);
+  return r;
+}
+
+function render(){
+  var R=calc(), n=D.closed, sep=D.sep.slice().sort(function(a,b){return b.drops-a.drops;});
+  var td=sep.reduce(function(s,x){return s+x.drops;},0), ts=sep.reduce(function(s,x){return s+x.sum;},0);
+  var h='';
+
+  h+='<div class="hero"><div class="eyebrow">Фуд Завод · решение к 21 октября</div>'
+   + '<h1>Каждая вторая машина<br><em>везёт 39 килограммов</em></h1>'
+   + '<p>Маймарт забирает 40 % всех рейсов завода ради 10 % выручки. Вместе с DSF он может уйти дистрибьютору — '
+   + 'это стоит скидки, но высвобождает треть логистики. Ниже разбор по месяцам, цене и возвратам, '
+   + 'и калькулятор: подвигайте допущения и посмотрите, как меняется итог.</p></div>';
+
+  h+='<div class="kpis">'
+   + kpi('b','Рейсов за 9 месяцев',f(R.totDrops),f(R.totDeliv/R.totDrops)+' ₸ за рейс')
+   + kpi('o','Уходит рейсов',pc(R.T.drops/R.totDrops*100,0),'при '+pc(R.T.rev/R.totRev*100,0)+' выручки')
+   + kpi(R.T.net<0?'n':'g','Итог в месяц',mln(R.T.net/9,2).replace(' млн ₸',''),'млн ₸'+(R.T.net<0?' — почти ноль':' в плюс'))
+   + kpi('g','Маймарт, сентябрь','39 кг','средний вес доставки · по заводу 295')
+   + '</div>';
+
+  /* ── калькулятор ── */
+  h+='<div class="panel"><div class="ph"><span class="pn">01</span><span class="pt">Калькулятор сценария</span></div>'
+   + '<div class="pd">Два параметра известны неточно: какую скидку запросит дистрибьютор и какая часть тарифа перевозчика привязана к рейсам, '
+   + 'а не к абонентской плате. Третий переключатель — живы ли возвраты Маймарта, которые обнулились в августе.</div>'
+   + '<div class="ctrl">'
+   +   '<div class="c1"><label>Скидка дистрибьютора</label><div class="val" id="v-disc"></div>'
+   +     '<input type="range" id="i-disc" min="0" max="30" step="0.1" value="'+S.disc+'"></div>'
+   +   '<div class="c1"><label>Переменная часть тарифа</label><div class="val" id="v-vari"></div>'
+   +     '<input type="range" id="i-vari" min="0" max="100" step="5" value="'+S.vari+'"></div>'
+   +   '<label class="sw"><input type="checkbox" id="i-ret"'+(S.ret?' checked':'')+'>'
+   +     'возвраты Маймарта живы (+'+mln(D.retMM.slice(0,7).reduce(function(a,b){return a+b;},0)/7,1)+' в месяц)</label>'
+   + '</div>'
+   + '<div class="res">'
+   +   res('Скидка за 9 мес','−'+f(R.T.loss),'neg')
+   +   res('Экономия логистики','+'+f(R.T.log),'pos')
+   +   res('Экономия маркетинга','+'+f(R.T.mkt),'pos')
+   +   res('Итог в месяц',f(R.T.net/9),R.T.net<0?'neg':'pos')
+   + '</div></div>';
+
+  /* ── диспропорция ── */
+  h+='<div class="panel"><div class="ph"><span class="pn">02</span><span class="pt">Рейсы против выручки</span></div>'
+   + '<div class="pd">Дистрибьютор забирает 41 % выручки за 2 % рейсов. Маймарт — зеркально. Яндекс единственный, у кого сбалансировано.</div>'
+   + '<div class="chart"><canvas id="c1"></canvas></div></div>';
+
+  /* ── каналы ── */
+  h+='<div class="panel"><div class="ph"><span class="pn">03</span><span class="pt">Кто уходит, кто остаётся</span>'
+   + '<span style="font-size:11.5px;color:#8aa0bd">сентябрь 2026</span></div><table><thead><tr>'
+   + '<th class="l">Канал</th><th>Отгрузка, ₸</th><th>Доставок</th><th>Адресов</th><th>₸ на рейс</th><th>Доля рейсов</th>'
+   + '</tr></thead><tbody>';
+  sep.forEach(function(x){
+    h+='<tr class="'+x.fate+'"><td class="l">'+esc(x.g)
+     + '<span class="fate '+x.fate+'">'+(x.fate==='go'?'уходит':'остаётся')+'</span></td>'
+     + '<td>'+f(x.sum)+'</td><td>'+f(x.drops)+'</td><td>'+f(x.pts)+'</td>'
+     + '<td>'+f(x.sum/x.drops)+'</td><td>'+pc(x.drops/td*100)+'</td></tr>';
+  });
+  h+='<tr class="tot"><td class="l">ИТОГО</td><td>'+f(ts)+'</td><td>'+f(td)+'</td><td>'
+   + f(sep.reduce(function(s,x){return s+x.pts;},0))+'</td><td></td><td>100,0 %</td></tr>'
+   + '</tbody></table></div>';
+
+  /* ── Маймарт по месяцам ── */
+  h+='<div class="panel"><div class="ph"><span class="pn">04</span><span class="pt">Маймарт рос весь год</span></div>'
+   + '<div class="pd">Доля в выручке выросла вдвое — с 4,9 % до 10,4 %, рейсов стабильно около семисот в месяц. Канал не затухал сам.</div>'
+   + '<div class="chart sm"><canvas id="c2"></canvas></div>'
+   + '<div class="chart sm" style="margin-top:6px"><canvas id="c3"></canvas></div></div>';
+
+  /* ── цена ── */
+  h+='<div class="panel"><div class="ph"><span class="pn">05</span><span class="pt">По какой цене берёт дистрибьютор</span></div>'
+   + '<div class="pd">Сравнивались позиции, которые в одном и том же месяце уходили и дистрибьютору, и в розницу. '
+   + 'DSF уже работает по дистрибьюторской цене, поэтому скидку считаем только на Маймарт.</div>'
+   + '<table><thead><tr><th class="l">Месяц</th><th>Сопоставимых позиций</th><th>Доля объёма под сравнением</th><th>Разница в цене</th></tr></thead><tbody>'
+   + D.disc.map(function(d){return '<tr><td class="l">'+d.m+'</td><td>'+d.sku+'</td><td>'+pc(d.cov,0)
+       +'</td><td style="color:#fdba74;font-weight:800">'+pc(d.d)+'</td></tr>';}).join('')
+   + '</tbody></table>'
+   + '<div class="foot">Внутри месяца разброс большой: на крупной гофре скидка символическая (сосиска в тесте −2,9 %, пирожок с курицей −2,2 %, круассан −0,2 %), '
+   + 'на мелкой штучной рознице доходит до −26 %.</div></div>';
+
+  /* ── помесячно ── */
+  h+='<div class="panel"><div class="ph"><span class="pn">06</span><span class="pt">Прогноз помесячно</span>'
+   + '<span style="font-size:11.5px;color:#8aa0bd">пересчитывается ползунками</span></div><table><thead><tr>'
+   + '<th class="l">Месяц</th><th>Маймарт, ₸</th><th>DSF, ₸</th><th>Рейсов уходит</th><th>Остаётся</th><th>Доля</th>'
+   + '<th>Скидка, ₸</th><th>Логистика, ₸</th><th>Маркетинг, ₸</th>'+(S.ret?'<th>Возвраты, ₸</th>':'')+'<th>Итого, ₸</th>'
+   + '</tr></thead><tbody>';
+  R.rows.forEach(function(r){
+    h+='<tr'+(r.closed?'':' style="opacity:.55"')+'><td class="l">'+r.m+(r.closed?'':' ·')+'</td>'
+     + '<td>'+f(r.mm)+'</td><td>'+f(r.dsf)+'</td><td>'+f(r.drops)+'</td><td>'+f(r.left)+'</td><td>'+pc(r.share,0)+'</td>'
+     + '<td class="neg">−'+f(r.loss)+'</td><td class="pos">+'+f(r.log)+'</td><td class="pos">+'+f(r.mkt)+'</td>'
+     + (S.ret?'<td class="pos">+'+f(r.ret)+'</td>':'')
+     + '<td class="'+(r.net<0?'neg':'pos')+'" style="font-weight:800">'+f(r.net)+'</td></tr>';
+  });
+  h+='<tr class="tot"><td class="l">9 месяцев</td><td>'+f(R.T.mm)+'</td><td>'+f(R.T.dsf)+'</td><td>'+f(R.T.drops)
+   + '</td><td>'+f(R.T.left)+'</td><td>'+pc(R.T.drops/R.totDrops*100,0)+'</td><td class="neg">−'+f(R.T.loss)
+   + '</td><td class="pos">+'+f(R.T.log)+'</td><td class="pos">+'+f(R.T.mkt)+'</td>'
+   + (S.ret?'<td class="pos">+'+f(R.T.ret)+'</td>':'')
+   + '<td class="'+(R.T.net<0?'neg':'pos')+'">'+f(R.T.net)+'</td></tr></tbody></table>'
+   + '<div class="foot">Октябрь (помечен точкой) — по 18.10, расход на доставку за месяц ещё не закрыт; в девятимесячные итоги он не входит.</div></div>';
+
+  /* ── возвраты ── */
+  var r7=D.ret.slice(0,7).reduce(function(a,b){return a+b;},0), r7m=D.retMM.slice(0,7).reduce(function(a,b){return a+b;},0);
+  h+='<div class="panel"><div class="ph"><span class="pn">07</span><span class="pt">Возвраты — главный открытый вопрос</span></div>'
+   + '<div class="warn">С января по июль возвраты шли на <b>'+mln(r7/7)+' в месяц</b>, и '+pc(r7m/r7*100,0)
+   + ' из них — Маймарт. В августе и сентябре они обнулились: '+f(D.ret[7]+D.ret[8])+' ₸ за два месяца. '
+   + 'Что изменилось в августе — и есть вилка между «нейтрально» и «выгодно».</div>'
+   + '<table style="margin-top:14px"><thead><tr><th class="l">Месяц</th><th>Возвраты всего, ₸</th><th>в т. ч. Маймарт, ₸</th><th>Доля Маймарта</th></tr></thead><tbody>'
+   + D.months.map(function(m,i){return '<tr><td class="l">'+m+'</td><td>'+f(D.ret[i])+'</td><td>'+f(D.retMM[i])
+       +'</td><td>'+(D.ret[i]?pc(D.retMM[i]/D.ret[i]*100,0):'—')+'</td></tr>';}).join('')
+   + '</tbody></table></div>';
+
+  /* ── что сделать ── */
+  h+='<div class="panel"><div class="ph"><span class="pn">08</span><span class="pt">Что сделать до 21 октября</span></div><ol class="todo">'
+   + '<li><div><b>Поднять возвраты за август и сентябрь.</b> ±4,9 млн ₸ в месяц — больше всей экономии на логистике.</div></li>'
+   + '<li><div><b>Запросить у перевозчика структуру тарифа.</b> Сколько в 7,8 млн ₸ абонентской части — это ±1,2 млн ₸ в месяц в итоге.</div></li>'
+   + '<li><div><b>Взять прайс дистрибьютора на позиции, которых он не берёт.</b> 44–69 % объёма Маймарта — главный ценовой риск.</div></li>'
+   + '<li><div><b>Закрепить, что заказы не вернутся в обход.</b> Канал рос весь год; передача должна быть оформлена так, чтобы розница не возвращалась к заводу напрямую.</div></li>'
+   + '<li><div><b>Посчитать высвобождаемый персонал.</b> 58 адресов Маймарта обслуживают люди — их зарплата в расчёт не вошла.</div></li>'
+   + '</ol><div class="foot">Источник — проводки айко за 01.01–18.10.2026. Данные зафиксированы '+D.updated
+   + '; страница не обновляется автоматически и не выведена в меню Пульса.</div></div>';
+
+  document.getElementById('root').innerHTML=h;
+  wire(); draw(R);
+}
+function kpi(c,l,v,s){return '<div class="kpi '+c+'"><div class="l">'+l+'</div><div class="v">'+v+'</div><div class="s">'+esc(s)+'</div></div>';}
+function res(l,v,c){return '<div><div class="l">'+l+'</div><div class="v '+c+'">'+v+'</div></div>';}
+
+function wire(){
+  var d=document.getElementById('i-disc'), v=document.getElementById('i-vari'), r=document.getElementById('i-ret');
+  document.getElementById('v-disc').textContent=pc(S.disc);
+  document.getElementById('v-vari').textContent=pc(S.vari,0);
+  d.oninput=function(){S.disc=+d.value;document.getElementById('v-disc').textContent=pc(S.disc);soft();};
+  v.oninput=function(){S.vari=+v.value;document.getElementById('v-vari').textContent=pc(S.vari,0);soft();};
+  r.onchange=function(){S.ret=r.checked;render();};
+  document.getElementById('xls').onclick=xls;
+}
+var tmr=null;
+function soft(){clearTimeout(tmr);tmr=setTimeout(render,160);}
+
+function draw(R){
+  var sep=D.sep.slice().sort(function(a,b){return b.drops-a.drops;});
+  var td=sep.reduce(function(s,x){return s+x.drops;},0), ts=sep.reduce(function(s,x){return s+x.sum;},0);
+  var grid={color:'#1b2742'}, tick={color:'#8aa0bd',font:{size:11}};
+  Object.keys(CH).forEach(function(k){try{CH[k].destroy();}catch(e){}});
+
+  CH.c1=new Chart(document.getElementById('c1'),{type:'bar',
+    data:{labels:sep.map(function(x){return x.g;}),datasets:[
+      {label:'доля рейсов',data:sep.map(function(x){return x.drops/td*100;}),backgroundColor:'#eb6834',borderRadius:4},
+      {label:'доля выручки',data:sep.map(function(x){return x.sum/ts*100;}),backgroundColor:'#2a78d6',borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#9db0c9',boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+pc(c.parsed.x);}}}},
+      scales:{x:{grid:grid,border:{display:false},ticks:{color:'#8aa0bd',font:{size:10},callback:function(v){return v+' %';}}},
+              y:{grid:{display:false},border:{color:'#233150'},ticks:tick}}}});
+
+  var n=D.closed;
+  CH.c2=new Chart(document.getElementById('c2'),{type:'bar',
+    data:{labels:D.months.slice(0,n),datasets:[{label:'рейсов',data:D.mmDrops.slice(0,n),
+      backgroundColor:'#eb6834',borderRadius:4,maxBarThickness:42}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},title:{display:true,text:'Маймарт: рейсов в месяц',color:'#e2e8f0',
+        align:'start',font:{size:12,weight:'bold'}},tooltip:{callbacks:{label:function(c){return f(c.parsed.y)+' рейсов';}}}},
+      scales:{x:{grid:{display:false},border:{color:'#233150'},ticks:tick},
+              y:{grid:grid,border:{display:false},ticks:tick}}}});
+
+  CH.c3=new Chart(document.getElementById('c3'),{type:'line',
+    data:{labels:D.months.slice(0,n),datasets:[{label:'доля в выручке',
+      data:D.mm.slice(0,n).map(function(v,i){return v/D.rev[i]*100;}),
+      borderColor:'#2a78d6',backgroundColor:'#2a78d633',borderWidth:2.5,pointRadius:5,
+      pointBackgroundColor:'#2a78d6',tension:.3,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},title:{display:true,text:'…и его доля в выручке завода',color:'#e2e8f0',
+        align:'start',font:{size:12,weight:'bold'}},tooltip:{callbacks:{label:function(c){return pc(c.parsed.y);}}}},
+      scales:{x:{grid:{display:false},border:{color:'#233150'},ticks:tick},
+              y:{grid:grid,border:{display:false},ticks:{color:'#8aa0bd',font:{size:11},
+                 callback:function(v){return v+' %';}}}}}});
+}
+
+function xls(){
+  var R=calc(), n=D.closed;
+  var hdr=['Месяц','Маймарт, ₸','DSF, ₸','Рейсов уходит','Рейсов остаётся','Доля рейсов, %',
+           'Скидка, ₸','Экономия логистики, ₸','Экономия маркетинга, ₸','Возвраты, ₸','Итого, ₸'];
+  var aoa=[['Передача Маймарт и DSF дистрибьютору'],
+    ['Источник — проводки айко за 01.01–18.10.2026, зафиксировано '+D.updated],
+    ['Допущения: скидка дистрибьютора '+pc(S.disc)+', переменная часть тарифа '+pc(S.vari,0)
+      +', возвраты '+(S.ret?'учтены':'не учтены')],[],hdr];
+  R.rows.forEach(function(r){aoa.push([r.m,Math.round(r.mm),Math.round(r.dsf),r.drops,r.left,
+    +r.share.toFixed(1),-Math.round(r.loss),Math.round(r.log),Math.round(r.mkt),Math.round(r.ret),Math.round(r.net)]);});
+  aoa.push(['9 месяцев',Math.round(R.T.mm),Math.round(R.T.dsf),R.T.drops,R.T.left,
+    +(R.T.drops/R.totDrops*100).toFixed(1),-Math.round(R.T.loss),Math.round(R.T.log),
+    Math.round(R.T.mkt),Math.round(R.T.ret),Math.round(R.T.net)]);
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:14},{wch:15},{wch:14},{wch:14},{wch:15},{wch:13},{wch:15},{wch:19},{wch:19},{wch:14},{wch:15}];
+  ws['!freeze']={xSplit:1,ySplit:5};
+  var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Прогноз');
+
+  var s2=[['Канал','Судьба','Отгрузка, ₸','Доставок','Адресов','₸ на рейс']];
+  D.sep.slice().sort(function(a,b){return b.drops-a.drops;}).forEach(function(x){
+    s2.push([x.g,x.fate==='go'?'уходит':'остаётся',x.sum,x.drops,x.pts,Math.round(x.sum/x.drops)]);});
+  var w2=XLSX.utils.aoa_to_sheet(s2);
+  w2['!cols']=[{wch:18},{wch:12},{wch:16},{wch:11},{wch:10},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,w2,'Каналы · сентябрь');
+  XLSX.writeFile(wb,'Передача Маймарт и DSF — '+D.updated+'.xlsx');
+}
+
+if(!D){document.getElementById('root').innerHTML='<div class="warn">Не загрузились данные страницы.</div>';}
+else render();
+try{fetch('/track?p='+encodeURIComponent(location.pathname),{method:'GET',keepalive:true});}catch(e){}
+</script>
+</body>
+</html>
