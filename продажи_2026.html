@@ -1703,30 +1703,180 @@ details[open] .dc-caret{transform:rotate(90deg)}
 
 
 <!--PEREDACHA-START-->
-<div class="section" id="peredacha-link" style="padding-top:6px" data-rv="9">
-  <details class="opiu-check" open style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:0;overflow:hidden">
+<div class="section" id="peredacha-calc" style="padding-top:6px" data-rv="9">
+  <details id="pr-details" class="opiu-check" style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:0;overflow:hidden">
     <summary style="cursor:pointer;list-style:none;padding:14px 18px;font-size:14px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:8px;user-select:none;flex-wrap:wrap">
-      <a href="передача.html" style="color:#c9a94e;text-decoration:none">&#128667; Передача Маймарт и DSF дистрибьютору &rarr;</a>
-      <span style="font-weight:600;font-size:12px;color:#4ade80">+2,7 млн &#8376; в месяц &middot; 38&nbsp;% рейсов уходит при 12&nbsp;% выручки</span>
-      <span style="font-weight:500;font-size:12px;color:#94a3b8;margin-left:auto">решение к 21 октября</span>
+      <span style="color:#c9a94e"><span id="pr-caret">&#9656;</span> &#128667; Передача Маймарт и DSF дистрибьютору</span>
+      <span id="pr-sum" style="font-weight:600;font-size:12px;color:#4ade80"></span>
+      <span style="font-weight:500;font-size:12px;color:#94a3b8;margin-left:auto">решение к 21 октября &middot; нажмите, чтобы раскрыть</span>
     </summary>
-    <div style="padding:4px 18px 18px">
-      <p style="font-size:12.5px;line-height:1.6;color:#94a3b8;margin:6px 0 14px;max-width:880px">
-        Маймарт забирает 40&nbsp;% всех рейсов завода ради 10&nbsp;% выручки: 667 доставок в месяц на 58 адресов,
-        в среднем по 39&nbsp;кг против 295&nbsp;кг по заводу. Вместе с DSF он может уйти дистрибьютору — это стоит
-        скидки, но высвобождает треть логистики. Расчёт по месяцам, цене и возвратам вынесен на отдельную страницу,
-        там же калькулятор: скидка дистрибьютора, структура тарифа перевозчика и возвраты правятся ползунками. С июля возвраты Маймарта проводят актом приёма услуг, и в прежнем разрезе их не видно &mdash; по факту они выросли до 5,6 млн &#8376; в месяц.
-      </p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px">
-        <div class="card" style="padding:12px 14px"><div style="font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#64748b;margin-bottom:5px">Уходит рейсов</div><div style="font-size:22px;font-weight:800;color:#e2896b">38&nbsp;%</div></div>
-        <div class="card" style="padding:12px 14px"><div style="font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#64748b;margin-bottom:5px">Уходит выручки</div><div style="font-size:22px;font-weight:800;color:#f1f5f9">12&nbsp;%</div></div>
-        <div class="card" style="padding:12px 14px"><div style="font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#64748b;margin-bottom:5px">Итог в месяц</div><div style="font-size:22px;font-weight:800;color:#4ade80">+2,7 млн &#8376;</div></div>
-        <div class="card" style="padding:12px 14px"><div style="font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#64748b;margin-bottom:5px">Возвраты Маймарта</div><div style="font-size:22px;font-weight:800;color:#fb7185">5,6 млн &#8376;/мес</div></div>
-      </div>
-      <a href="передача.html" style="display:inline-block;background:#c9a94e;color:#1a1405;font-weight:800;font-size:13px;text-decoration:none;padding:11px 20px;border-radius:10px">Открыть расчёт &rarr;</a>
-      <div style="font-size:11px;color:#64748b;margin-top:10px">Данные айко за 01.01&ndash;18.10.2026, зафиксированы 19.10. Страница не выведена в меню Пульса.</div>
-    </div>
+    <div style="padding:4px 14px 18px" id="pr-body"></div>
   </details>
+  <script src="peredacha_data.js?v=3" onerror="window.PRD=null"></script>
+  <script>
+  (function(){
+    var D=window.PRD; if(!D) return;
+    var S={disc:16.3, vari:60, ret:true};
+    function f(n){ n=Math.round(n||0); return (n<0?'−':'')+Math.abs(n).toLocaleString('ru-RU').replace(/,/g,' '); }
+    function mln(n,d){ d=(d==null?1:d); return (n/1e6).toFixed(d).replace('.',',').replace(/^-/,'−')+' млн ₸'; }
+    function pc(n,d){ d=(d==null?1:d); return n.toFixed(d).replace('.',',')+' %'; }
+    function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function calc(){
+      var n=D.closed, r={rows:[],T:{mm:0,dsf:0,drops:0,left:0,loss:0,log:0,mkt:0,ret:0}};
+      for(var i=0;i<D.months.length;i++){
+        var closed=i<n, per=D.deliv[i]/D.drops[i], dd=D.mmDrops[i]+D.dsfDrops[i];
+        var loss=(D.mm[i]-D.retMM[i])*S.disc/100;
+        var log=dd*per*S.vari/100, mkt=D.mkt[i]||0, ret=S.ret?D.retMM[i]*D.cogs:0;
+        r.rows.push({m:D.months[i],mm:D.mm[i],dsf:D.dsf[i],drops:dd,left:D.drops[i]-dd,
+          share:dd/D.drops[i]*100,loss:loss,log:log,mkt:mkt,ret:ret,net:-loss+log+mkt+ret,closed:closed});
+        if(closed){var T=r.T;T.mm+=D.mm[i];T.dsf+=D.dsf[i];T.drops+=dd;T.left+=D.drops[i]-dd;
+          T.loss+=loss;T.log+=log;T.mkt+=mkt;T.ret+=ret;}
+      }
+      r.T.net=-r.T.loss+r.T.log+r.T.mkt+r.T.ret; r.T.rev=r.T.mm+r.T.dsf;
+      r.totRev=D.rev.slice(0,n).reduce(function(a,b){return a+b;},0);
+      r.totDrops=D.drops.slice(0,n).reduce(function(a,b){return a+b;},0);
+      r.totDeliv=D.deliv.slice(0,n).reduce(function(a,b){return a+b;},0);
+      return r;
+    }
+    function card(l,v,s,c){ return '<div class="card" style="padding:12px 14px">'
+      +'<div style="font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#64748b;margin-bottom:5px">'+l+'</div>'
+      +'<div style="font-size:22px;font-weight:800;color:'+c+'">'+v+'</div>'
+      +'<div style="font-size:11px;color:#64748b;margin-top:4px">'+esc(s)+'</div></div>'; }
+
+    function render(){
+      var R=calc(), sep=D.sep.slice().sort(function(a,b){return b.drops-a.drops;});
+      var td=sep.reduce(function(s,x){return s+x.drops;},0), ts=sep.reduce(function(s,x){return s+x.sum;},0);
+      var h='';
+      h+='<p style="font-size:12.5px;line-height:1.6;color:#94a3b8;margin:6px 0 14px;max-width:900px">'
+       + 'Маймарт забирает 40&nbsp;% всех рейсов завода ради 10&nbsp;% выручки и возвращает '+mln(D.retMM.slice(0,9).reduce(function(a,b){return a+b;},0)/9)+' в месяц. '
+       + 'Вместе с DSF он может уйти дистрибьютору: это стоит скидки, но снимает возвраты и треть логистики. '
+       + 'Допущения правятся ползунками — таблица и итог пересчитываются.</p>';
+      h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;margin-bottom:14px">'
+       + card('Рейсов за 9 месяцев',f(R.totDrops),f(R.totDeliv/R.totDrops)+' ₸ за рейс','#60a5fa')
+       + card('Уходит рейсов',pc(R.T.drops/R.totDrops*100,0),'при '+pc(R.T.rev/R.totRev*100,0)+' выручки','#e2896b')
+       + card('Итог в месяц',(R.T.net>=0?'+':'')+mln(R.T.net/9,2),'после передачи',R.T.net<0?'#fb7185':'#4ade80')
+       + card('Возвраты Маймарта',mln(D.retMM.slice(0,9).reduce(function(a,b){return a+b;},0)/9),'каждая четвёртая тенге отгрузки','#fb7185')
+       + '</div>';
+
+      h+='<div class="card" style="margin-bottom:12px"><div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:10px">&#9881;&#65039; Допущения</div>'
+       + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;align-items:end">'
+       +   '<div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;margin-bottom:5px">Скидка дистрибьютора</div>'
+       +     '<div id="pr-v1" style="font-size:20px;font-weight:800;color:#c9a94e;margin-bottom:5px"></div>'
+       +     '<input type="range" id="pr-i1" min="0" max="30" step="0.1" value="'+S.disc+'" style="width:100%;accent-color:#c9a94e"></div>'
+       +   '<div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;margin-bottom:5px">Переменная часть тарифа</div>'
+       +     '<div id="pr-v2" style="font-size:20px;font-weight:800;color:#c9a94e;margin-bottom:5px"></div>'
+       +     '<input type="range" id="pr-i2" min="0" max="100" step="5" value="'+S.vari+'" style="width:100%;accent-color:#c9a94e"></div>'
+       +   '<label style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cbd5e1;cursor:pointer;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:10px 12px">'
+       +     '<input type="checkbox" id="pr-i3"'+(S.ret?' checked':'')+' style="accent-color:#4ade80;width:16px;height:16px"> возвраты уходят вместе с каналом (себестоимость 47,5&nbsp;%)</label>'
+       + '</div>'
+       + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px">'
+       +   res('Скидка за 9 мес','−'+f(R.T.loss),'#fb7185')
+       +   res('Экономия логистики','+'+f(R.T.log),'#4ade80')
+       +   res('Экономия маркетинга','+'+f(R.T.mkt),'#4ade80')
+       +   res('Возвраты','+'+f(R.T.ret),'#4ade80')
+       +   res('Итог в месяц',(R.T.net>=0?'+':'')+f(R.T.net/9),R.T.net<0?'#fb7185':'#4ade80')
+       + '</div></div>';
+
+      h+='<div class="card" style="margin-bottom:12px"><div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:4px">&#128666; Рейсы против выручки</div>'
+       + '<div style="font-size:11.5px;color:#64748b;margin-bottom:8px">Дистрибьютор забирает 41&nbsp;% выручки за 2&nbsp;% рейсов, Маймарт — зеркально. Сентябрь 2026.</div>'
+       + '<div style="height:300px"><canvas id="pr-c1"></canvas></div></div>';
+
+      h+='<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">'
+       + '<div style="font-size:13px;font-weight:700;color:#f1f5f9">&#128197; Прогноз помесячно</div>'
+       + '<button type="button" id="pr-xls" style="background:#15803d;border:1px solid #16a34a;color:#eafff3;font:600 12px Inter,system-ui,sans-serif;padding:8px 13px;border-radius:9px;cursor:pointer">Выгрузить в Excel</button></div>'
+       + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:860px">'
+       + '<thead><tr>'+['Месяц','Маймарт, ₸','DSF, ₸','Рейсов уходит','Остаётся','Доля','Скидка, ₸','Логистика, ₸','Маркетинг, ₸','Возвраты, ₸','Итого, ₸']
+           .map(function(x,i){return '<th style="text-align:'+(i?'right':'left')+';padding:8px 6px;color:#64748b;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #334155;white-space:nowrap">'+x+'</th>';}).join('')
+       + '</tr></thead><tbody>';
+      R.rows.forEach(function(r){
+        h+='<tr'+(r.closed?'':' style="opacity:.55"')+'>'
+         + td_(r.m+(r.closed?'':' ·'),'left','#cbd5e1')+td_(f(r.mm))+td_(f(r.dsf))+td_(f(r.drops))+td_(f(r.left))+td_(pc(r.share,0))
+         + td_('−'+f(r.loss),'right','#fb7185')+td_('+'+f(r.log),'right','#4ade80')+td_('+'+f(r.mkt),'right','#4ade80')
+         + td_('+'+f(r.ret),'right','#4ade80')+td_((r.net>=0?'+':'')+f(r.net),'right',r.net<0?'#fb7185':'#4ade80',true)+'</tr>';
+      });
+      h+='<tr style="background:#0f172a">'+td_('9 месяцев','left','#f1f5f9',true)+td_(f(R.T.mm),'right','#e2e8f0',true)
+       + td_(f(R.T.dsf),'right','#e2e8f0',true)+td_(f(R.T.drops),'right','#e2e8f0',true)+td_(f(R.T.left),'right','#e2e8f0',true)
+       + td_(pc(R.T.drops/R.totDrops*100,0),'right','#e2e8f0',true)+td_('−'+f(R.T.loss),'right','#fb7185',true)
+       + td_('+'+f(R.T.log),'right','#4ade80',true)+td_('+'+f(R.T.mkt),'right','#4ade80',true)+td_('+'+f(R.T.ret),'right','#4ade80',true)
+       + td_((R.T.net>=0?'+':'')+f(R.T.net),'right',R.T.net<0?'#fb7185':'#4ade80',true)+'</tr></tbody></table></div></div>';
+
+      var tv=D.retTV.reduce(function(a,b){return a+b;},0), vm=D.retVM.reduce(function(a,b){return a+b;},0);
+      h+='<div style="background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.4);border-radius:10px;padding:11px 14px;font-size:12.5px;line-height:1.55;color:#fcd34d">'
+       + '<b>Возвраты не прекратились — их перенесли.</b> С июля их проводят актом приёма услуг: сначала на счёт «Торговая выручка» ('+mln(tv)+'), '
+       + 'с сентября — на новый счёт «Возвраты Ммарт» ('+mln(vm)+'). Июль '+mln(D.retMM[6])+', август '+mln(D.retMM[7])+', сентябрь '+mln(D.retMM[8])+'.</div>';
+
+      document.getElementById('pr-body').innerHTML=h;
+      document.getElementById('pr-sum').textContent=(R.T.net>=0?'+':'')+mln(R.T.net/9,1)+' в месяц · 38 % рейсов уходит при 12 % выручки';
+      wire(); chart(sep,td,ts);
+    }
+    function res(l,v,c){ return '<div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px 12px">'
+      +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px">'+l+'</div>'
+      +'<div style="font-size:16px;font-weight:800;color:'+c+';font-variant-numeric:tabular-nums">'+v+'</div></div>'; }
+    function td_(v,al,c,b){ return '<td style="text-align:'+(al||'right')+';padding:7px 6px;border-bottom:1px solid #1b2636;white-space:nowrap;'
+      +'font-variant-numeric:tabular-nums;color:'+(c||'#cbd5e1')+(b?';font-weight:800':'')+'">'+v+'</td>'; }
+
+    var tmr=null;
+    function wire(){
+      var a=document.getElementById('pr-i1'), b=document.getElementById('pr-i2'), c=document.getElementById('pr-i3');
+      document.getElementById('pr-v1').textContent=pc(S.disc);
+      document.getElementById('pr-v2').textContent=pc(S.vari,0);
+      a.oninput=function(){S.disc=+a.value;document.getElementById('pr-v1').textContent=pc(S.disc);soft();};
+      b.oninput=function(){S.vari=+b.value;document.getElementById('pr-v2').textContent=pc(S.vari,0);soft();};
+      c.onchange=function(){S.ret=c.checked;render();};
+      document.getElementById('pr-xls').onclick=xls;
+    }
+    function soft(){ clearTimeout(tmr); tmr=setTimeout(render,160); }
+
+    var CH=null;
+    function chart(sep,td,ts){
+      var cv=document.getElementById('pr-c1'); if(!cv||!window.Chart) return;
+      try{ var ex=Chart.getChart?Chart.getChart(cv):null; if(ex) ex.destroy(); }catch(e){}
+      CH=new Chart(cv.getContext('2d'),{type:'bar',
+        data:{labels:sep.map(function(x){return x.g;}),datasets:[
+          {label:'доля рейсов',data:sep.map(function(x){return x.drops/td*100;}),backgroundColor:'#e2896b',borderRadius:4},
+          {label:'доля выручки',data:sep.map(function(x){return x.sum/ts*100;}),backgroundColor:'#60a5fa',borderRadius:4}]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:'#cbd5e1',boxWidth:12,font:{size:11}}},datalabels:{display:false},
+            tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+pc(c.parsed.x);}}}},
+          scales:{x:{grid:{color:'rgba(51,65,85,.4)'},ticks:{color:'#64748b',font:{size:10},callback:function(v){return v+' %';}}},
+                  y:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:11}}}}}});
+    }
+
+    function xls(){
+      if(!window.XLSX){ var s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        s.onload=xls; document.head.appendChild(s); return; }
+      var R=calc(), n=D.closed;
+      var aoa=[['Передача Маймарт и DSF дистрибьютору'],
+        ['Источник — проводки айко за 01.01–18.10.2026, зафиксировано '+D.updated],
+        ['Допущения: скидка '+pc(S.disc)+', переменная часть тарифа '+pc(S.vari,0)+', возвраты '+(S.ret?'учтены':'не учтены')],[],
+        ['Месяц','Маймарт, ₸','DSF, ₸','Рейсов уходит','Рейсов остаётся','Доля рейсов, %','Скидка, ₸','Логистика, ₸','Маркетинг, ₸','Возвраты, ₸','Итого, ₸']];
+      R.rows.forEach(function(r){ aoa.push([r.m,Math.round(r.mm),Math.round(r.dsf),r.drops,r.left,+r.share.toFixed(1),
+        -Math.round(r.loss),Math.round(r.log),Math.round(r.mkt),Math.round(r.ret),Math.round(r.net)]); });
+      aoa.push(['9 месяцев',Math.round(R.T.mm),Math.round(R.T.dsf),R.T.drops,R.T.left,
+        +(R.T.drops/R.totDrops*100).toFixed(1),-Math.round(R.T.loss),Math.round(R.T.log),Math.round(R.T.mkt),
+        Math.round(R.T.ret),Math.round(R.T.net)]);
+      var ws=XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols']=[{wch:14},{wch:15},{wch:14},{wch:14},{wch:15},{wch:13},{wch:15},{wch:16},{wch:17},{wch:14},{wch:15}];
+      ws['!freeze']={xSplit:1,ySplit:5};
+      var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Прогноз');
+      var s2=[['Месяц','Обратная реализация, ₸','Акт «Торговая выручка», ₸','Акт «Возвраты Ммарт», ₸','Всего, ₸']];
+      D.months.forEach(function(m,i){ s2.push([m,D.retInv[i],D.retTV[i],D.retVM[i],D.retMM[i]]); });
+      var w2=XLSX.utils.aoa_to_sheet(s2); w2['!cols']=[{wch:14},{wch:24},{wch:26},{wch:25},{wch:16}];
+      XLSX.utils.book_append_sheet(wb,w2,'Возвраты Маймарта');
+      XLSX.writeFile(wb,'Передача Маймарт и DSF — '+D.updated+'.xlsx');
+    }
+
+    var det=document.getElementById('pr-details'), done=false;
+    function open_(){ var c=document.getElementById('pr-caret'); if(c) c.textContent=det.open?'▾':'▸';
+      if(det.open&&!done){ done=true; render(); } else if(det.open){ render(); } }
+    det.addEventListener('toggle',open_);
+    /* сводку в заголовке считаем сразу, чтобы была видна в свёрнутом виде */
+    (function(){ var R=calc(); var e=document.getElementById('pr-sum');
+      if(e) e.textContent=(R.T.net>=0?'+':'')+mln(R.T.net/9,1)+' в месяц · 38 % рейсов уходит при 12 % выручки'; })();
+  })();
+  </script>
 </div>
 <!--PEREDACHA-END-->
 
