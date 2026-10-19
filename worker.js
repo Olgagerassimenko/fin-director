@@ -1809,7 +1809,17 @@ async function payWeek(env, url) {
       возвратов вместо пяти с половиной миллионов (см. iiko_export.py).      */
 const RET_TYPE_INVOICE = "INCOMING_RETURNED_INVOICE_REVENUE";
 const RET_TYPE_SERVICE = "INCOMING_SERVICE";
-const RET_SERVICE_ACCOUNT = "Торговая выручка";
+/* 19.10.2026. Счёт у этих актов уже меняли: июль–август «Торговая выручка»,
+   с сентября завели «Возвраты Ммарт» — и 7,4 млн ₸ выпали из всех отчётов
+   (сентябрь показывал 4,1 млн вместо 7,0, октябрь — ноль вместо 4,6).
+   Поэтому ловим не по счёту, а по номенклатуре «Возврат товара»: она одна
+   и та же независимо от того, на какой счёт бухгалтерия положит документ.
+   Список счетов оставлен как подстраховка на случай пустой номенклатуры. */
+const RET_SERVICE_PRODUCT = "возврат товара";
+const RET_SERVICE_ACCOUNTS = ["Торговая выручка", "Возвраты Ммарт"];
+const isRetService = (acc, prod) =>
+  String(prod || "").trim().toLowerCase() === RET_SERVICE_PRODUCT ||
+  RET_SERVICE_ACCOUNTS.indexOf(String(acc || "").trim()) >= 0;
 
 async function olapReturns(token, from, toExcl) {
   const ask = async (types, groupAccount) => {
@@ -1819,7 +1829,7 @@ async function olapReturns(token, from, toExcl) {
       body: JSON.stringify({
         reportType: "TRANSACTIONS", buildSummary: "true",
         groupByRowFields: groupAccount
-          ? ["Counteragent.Name", "Account.Name"] : ["Counteragent.Name"],
+          ? ["Counteragent.Name", "Account.Name", "Product.Name"] : ["Counteragent.Name"],
         aggregateFields: ["Sum.Incoming"],
         filters: {
           "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM",
@@ -1840,7 +1850,7 @@ async function olapReturns(token, from, toExcl) {
   for (const x of await ask([RET_TYPE_INVOICE], false))
     add(x["Counteragent.Name"], x["Sum.Incoming"] || 0);
   for (const x of await ask([RET_TYPE_SERVICE], true)) {
-    if (String(x["Account.Name"] || "").trim() !== RET_SERVICE_ACCOUNT) continue;
+    if (!isRetService(x["Account.Name"], x["Product.Name"])) continue;
     add(x["Counteragent.Name"], x["Sum.Incoming"] || 0);
   }
   return agg;
