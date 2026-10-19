@@ -136,8 +136,7 @@ function render(){
   h+='<div class="hero"><div class="eyebrow">Фуд Завод · решение к 21 октября</div>'
    + '<h1>Каждая вторая машина<br><em>везёт 39 килограммов</em></h1>'
    + '<p>Маймарт забирает 40 % всех рейсов завода ради 10 % выручки. Вместе с DSF он может уйти дистрибьютору — '
-   + 'это стоит скидки, но высвобождает треть логистики. Ниже разбор по месяцам, цене и возвратам, '
-   + 'и калькулятор: подвигайте допущения и посмотрите, как меняется итог.</p></div>';
+   + 'это стоит скидки, но высвобождает треть логистики. Подвигайте допущения в калькуляторе — весь расчёт пересчитается.</p></div>';
 
   h+='<div class="kpis">'
    + kpi('b','Рейсов за 9 месяцев',f(R.totDrops),f(R.totDeliv/R.totDrops)+' ₸ за рейс')
@@ -167,43 +166,11 @@ function render(){
 
   /* ── диспропорция ── */
   h+='<div class="panel"><div class="ph"><span class="pn">02</span><span class="pt">Рейсы против выручки</span></div>'
-   + '<div class="pd">Дистрибьютор забирает 41 % выручки за 2 % рейсов. Маймарт — зеркально. Яндекс единственный, у кого сбалансировано.</div>'
+   + '<div class="pd">Дистрибьютор забирает 41 % выручки за 2 % рейсов, Маймарт — зеркально: 40 % рейсов ради 10 % выручки, 667 доставок на 58 адресов по 39 кг при заводской норме 295. '+ 'Вместе с DSF это 38 % всех рейсов. Цена вопроса — скидка: по сопоставимым позициям дистрибьютор платит на 13,7–19,4 % меньше, в среднем на 16,3 %.</div>'
    + '<div class="chart"><canvas id="c1"></canvas></div></div>';
 
-  /* ── каналы ── */
-  h+='<div class="panel"><div class="ph"><span class="pn">03</span><span class="pt">Кто уходит, кто остаётся</span>'
-   + '<span style="font-size:11.5px;color:#8aa0bd">сентябрь 2026</span></div><table><thead><tr>'
-   + '<th class="l">Канал</th><th>Отгрузка, ₸</th><th>Доставок</th><th>Адресов</th><th>₸ на рейс</th><th>Доля рейсов</th>'
-   + '</tr></thead><tbody>';
-  sep.forEach(function(x){
-    h+='<tr class="'+x.fate+'"><td class="l">'+esc(x.g)
-     + '<span class="fate '+x.fate+'">'+(x.fate==='go'?'уходит':'остаётся')+'</span></td>'
-     + '<td>'+f(x.sum)+'</td><td>'+f(x.drops)+'</td><td>'+f(x.pts)+'</td>'
-     + '<td>'+f(x.sum/x.drops)+'</td><td>'+pc(x.drops/td*100)+'</td></tr>';
-  });
-  h+='<tr class="tot"><td class="l">ИТОГО</td><td>'+f(ts)+'</td><td>'+f(td)+'</td><td>'
-   + f(sep.reduce(function(s,x){return s+x.pts;},0))+'</td><td></td><td>100,0 %</td></tr>'
-   + '</tbody></table></div>';
-
-  /* ── Маймарт по месяцам ── */
-  h+='<div class="panel"><div class="ph"><span class="pn">04</span><span class="pt">Маймарт рос весь год</span></div>'
-   + '<div class="pd">Доля в выручке выросла вдвое — с 4,9 % до 10,4 %, рейсов стабильно около семисот в месяц. Канал не затухал сам.</div>'
-   + '<div class="chart sm"><canvas id="c2"></canvas></div>'
-   + '<div class="chart sm" style="margin-top:6px"><canvas id="c3"></canvas></div></div>';
-
-  /* ── цена ── */
-  h+='<div class="panel"><div class="ph"><span class="pn">05</span><span class="pt">По какой цене берёт дистрибьютор</span></div>'
-   + '<div class="pd">Сравнивались позиции, которые в одном и том же месяце уходили и дистрибьютору, и в розницу. '
-   + 'DSF уже работает по дистрибьюторской цене, поэтому скидку считаем только на Маймарт.</div>'
-   + '<table><thead><tr><th class="l">Месяц</th><th>Сопоставимых позиций</th><th>Доля объёма под сравнением</th><th>Разница в цене</th></tr></thead><tbody>'
-   + D.disc.map(function(d){return '<tr><td class="l">'+d.m+'</td><td>'+d.sku+'</td><td>'+pc(d.cov,0)
-       +'</td><td style="color:#fdba74;font-weight:800">'+pc(d.d)+'</td></tr>';}).join('')
-   + '</tbody></table>'
-   + '<div class="foot">Внутри месяца разброс большой: на крупной гофре скидка символическая (сосиска в тесте −2,9 %, пирожок с курицей −2,2 %, круассан −0,2 %), '
-   + 'на мелкой штучной рознице доходит до −26 %.</div></div>';
-
   /* ── помесячно ── */
-  h+='<div class="panel"><div class="ph"><span class="pn">06</span><span class="pt">Прогноз помесячно</span>'
+  h+='<div class="panel"><div class="ph"><span class="pn">03</span><span class="pt">Прогноз помесячно</span>'
    + '<span style="font-size:11.5px;color:#8aa0bd">пересчитывается ползунками</span></div><table><thead><tr>'
    + '<th class="l">Месяц</th><th>Маймарт, ₸</th><th>DSF, ₸</th><th>Рейсов уходит</th><th>Остаётся</th><th>Доля</th>'
    + '<th>Скидка, ₸</th><th>Логистика, ₸</th><th>Маркетинг, ₸</th>'+(S.ret?'<th>Возвраты, ₸</th>':'')+'<th>Итого, ₸</th>'
@@ -224,22 +191,16 @@ function render(){
 
   /* ── возвраты ── */
   var r7=D.ret.slice(0,7).reduce(function(a,b){return a+b;},0), r7m=D.retMM.slice(0,7).reduce(function(a,b){return a+b;},0);
-  h+='<div class="panel"><div class="ph"><span class="pn">07</span><span class="pt">Возвраты — главный открытый вопрос</span></div>'
+  h+='<div class="panel"><div class="ph"><span class="pn">04</span><span class="pt">Главный открытый вопрос</span></div>'
    + '<div class="warn">С января по июль возвраты шли на <b>'+mln(r7/7)+' в месяц</b>, и '+pc(r7m/r7*100,0)
    + ' из них — Маймарт. В августе и сентябре они обнулились: '+f(D.ret[7]+D.ret[8])+' ₸ за два месяца. '
-   + 'Что изменилось в августе — и есть вилка между «нейтрально» и «выгодно».</div>'
-   + '<table style="margin-top:14px"><thead><tr><th class="l">Месяц</th><th>Возвраты всего, ₸</th><th>в т. ч. Маймарт, ₸</th><th>Доля Маймарта</th></tr></thead><tbody>'
-   + D.months.map(function(m,i){return '<tr><td class="l">'+m+'</td><td>'+f(D.ret[i])+'</td><td>'+f(D.retMM[i])
-       +'</td><td>'+(D.ret[i]?pc(D.retMM[i]/D.ret[i]*100,0):'—')+'</td></tr>';}).join('')
-   + '</tbody></table></div>';
+   + 'Если возвраты живы, передача даёт плюс; если прекратились — выходит в ноль. Это и есть галочка в калькуляторе.</div></div>';
 
   /* ── что сделать ── */
-  h+='<div class="panel"><div class="ph"><span class="pn">08</span><span class="pt">Что сделать до 21 октября</span></div><ol class="todo">'
+  h+='<div class="panel"><div class="ph"><span class="pn">05</span><span class="pt">Что сделать до 21 октября</span></div><ol class="todo">'
    + '<li><div><b>Поднять возвраты за август и сентябрь.</b> ±4,9 млн ₸ в месяц — больше всей экономии на логистике.</div></li>'
    + '<li><div><b>Запросить у перевозчика структуру тарифа.</b> Сколько в 7,8 млн ₸ абонентской части — это ±1,2 млн ₸ в месяц в итоге.</div></li>'
    + '<li><div><b>Взять прайс дистрибьютора на позиции, которых он не берёт.</b> 44–69 % объёма Маймарта — главный ценовой риск.</div></li>'
-   + '<li><div><b>Закрепить, что заказы не вернутся в обход.</b> Канал рос весь год; передача должна быть оформлена так, чтобы розница не возвращалась к заводу напрямую.</div></li>'
-   + '<li><div><b>Посчитать высвобождаемый персонал.</b> 58 адресов Маймарта обслуживают люди — их зарплата в расчёт не вошла.</div></li>'
    + '</ol><div class="foot">Источник — проводки айко за 01.01–18.10.2026. Данные зафиксированы '+D.updated
    + '; страница не обновляется автоматически и не выведена в меню Пульса.</div></div>';
 
@@ -277,27 +238,6 @@ function draw(R){
       scales:{x:{grid:grid,border:{display:false},ticks:{color:'#8aa0bd',font:{size:10},callback:function(v){return v+' %';}}},
               y:{grid:{display:false},border:{color:'#233150'},ticks:tick}}}});
 
-  var n=D.closed;
-  CH.c2=new Chart(document.getElementById('c2'),{type:'bar',
-    data:{labels:D.months.slice(0,n),datasets:[{label:'рейсов',data:D.mmDrops.slice(0,n),
-      backgroundColor:'#eb6834',borderRadius:4,maxBarThickness:42}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},title:{display:true,text:'Маймарт: рейсов в месяц',color:'#e2e8f0',
-        align:'start',font:{size:12,weight:'bold'}},tooltip:{callbacks:{label:function(c){return f(c.parsed.y)+' рейсов';}}}},
-      scales:{x:{grid:{display:false},border:{color:'#233150'},ticks:tick},
-              y:{grid:grid,border:{display:false},ticks:tick}}}});
-
-  CH.c3=new Chart(document.getElementById('c3'),{type:'line',
-    data:{labels:D.months.slice(0,n),datasets:[{label:'доля в выручке',
-      data:D.mm.slice(0,n).map(function(v,i){return v/D.rev[i]*100;}),
-      borderColor:'#2a78d6',backgroundColor:'#2a78d633',borderWidth:2.5,pointRadius:5,
-      pointBackgroundColor:'#2a78d6',tension:.3,fill:true}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},title:{display:true,text:'…и его доля в выручке завода',color:'#e2e8f0',
-        align:'start',font:{size:12,weight:'bold'}},tooltip:{callbacks:{label:function(c){return pc(c.parsed.y);}}}},
-      scales:{x:{grid:{display:false},border:{color:'#233150'},ticks:tick},
-              y:{grid:grid,border:{display:false},ticks:{color:'#8aa0bd',font:{size:11},
-                 callback:function(v){return v+' %';}}}}}});
 }
 
 function xls(){
