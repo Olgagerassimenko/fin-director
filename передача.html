@@ -102,7 +102,7 @@ var mln=function(n,d){d=d==null?1:d;return (n/1e6).toFixed(d).replace('.',',').r
 var pc=function(n,d){d=d==null?1:d;return n.toFixed(d).replace('.',',')+' %';};
 var esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
 
-var S={disc:16.3, vari:60, ret:false};
+var S={disc:16.3, vari:60, ret:true};
 
 function calc(){
   var n=D.closed, r={rows:[],T:{mm:0,dsf:0,drops:0,left:0,loss:0,log:0,mkt:0,ret:0}};
@@ -110,10 +110,11 @@ function calc(){
     var closed=i<n;
     var per=D.deliv[i]/D.drops[i];
     var dd=D.mmDrops[i]+D.dsfDrops[i];
-    var loss=D.mm[i]*S.disc/100;                 // скидка только на Маймарт
+    var mmNet=D.mm[i]-D.retMM[i];                // чистая отгрузка: возвраты мы и так не продали
+    var loss=mmNet*S.disc/100;                   // скидка только на Маймарт
     var log=dd*per*S.vari/100;
     var mkt=D.mkt[i]||0;                       // фактическое возмещение затрат Маймарту по месяцам
-    var ret=S.ret?D.retMM[i]:0;
+    var ret=S.ret?D.retMM[i]*D.cogs:0;           // безвозвратно теряется себестоимость возврата
     var net=-loss+log+mkt+ret;
     r.rows.push({m:D.months[i],mm:D.mm[i],dsf:D.dsf[i],drops:dd,left:D.drops[i]-dd,
                  share:dd/D.drops[i]*100,loss:loss,log:log,mkt:mkt,ret:ret,net:net,closed:closed});
@@ -148,14 +149,14 @@ function render(){
   /* ── калькулятор ── */
   h+='<div class="panel"><div class="ph"><span class="pn">01</span><span class="pt">Калькулятор сценария</span></div>'
    + '<div class="pd">Два параметра известны неточно: какую скидку запросит дистрибьютор и какая часть тарифа перевозчика привязана к рейсам, '
-   + 'а не к абонентской плате. Третий переключатель — живы ли возвраты Маймарта, которые обнулились в августе. '+'Экономия маркетинга берётся фактом по месяцам — это возмещение затрат Маймарту из айко, оно неровное: в июле и сентябре ноль, в августе 1,67 млн ₸.</div>'
+   + 'а не к абонентской плате. Скидка считается на чистую отгрузку — за вычетом возвратов, которые мы и так не продали. '+'Экономия маркетинга берётся фактом по месяцам: возмещение затрат Маймарту из айко, оно неровное — в июле и сентябре ноль, в августе 1,67 млн ₸.</div>'
    + '<div class="ctrl">'
    +   '<div class="c1"><label>Скидка дистрибьютора</label><div class="val" id="v-disc"></div>'
    +     '<input type="range" id="i-disc" min="0" max="30" step="0.1" value="'+S.disc+'"></div>'
    +   '<div class="c1"><label>Переменная часть тарифа</label><div class="val" id="v-vari"></div>'
    +     '<input type="range" id="i-vari" min="0" max="100" step="5" value="'+S.vari+'"></div>'
    +   '<label class="sw"><input type="checkbox" id="i-ret"'+(S.ret?' checked':'')+'>'
-   +     'возвраты Маймарта живы — как в январе–июле</label>'
+   +     'возвраты уходят вместе с каналом (теряем себестоимость, 47,5 %)</label>'
    + '</div>'
    + '<div class="res">'
    +   res('Скидка за 9 мес','−'+f(R.T.loss),'neg')
@@ -190,11 +191,19 @@ function render(){
    + '<div class="foot">Октябрь (помечен точкой) — по 18.10, расход на доставку за месяц ещё не закрыт; в девятимесячные итоги он не входит.</div></div>';
 
   /* ── возвраты ── */
-  var r7=D.ret.slice(0,7).reduce(function(a,b){return a+b;},0), r7m=D.retMM.slice(0,7).reduce(function(a,b){return a+b;},0);
-  h+='<div class="panel"><div class="ph"><span class="pn">04</span><span class="pt">Главный открытый вопрос</span></div>'
-   + '<div class="warn">С января по июль возвраты шли на <b>'+mln(r7/7)+' в месяц</b>, и '+pc(r7m/r7*100,0)
-   + ' из них — Маймарт. В августе и сентябре они обнулились: '+f(D.ret[7]+D.ret[8])+' ₸ за два месяца. '
-   + 'Если возвраты живы, передача даёт плюс; если прекратились — выходит в ноль. Это и есть галочка в калькуляторе.</div></div>';
+  var r9=D.retMM.slice(0,9).reduce(function(a,b){return a+b;},0);
+  var all9=D.ret.slice(0,9).reduce(function(a,b){return a+b;},0);
+  h+='<div class="panel"><div class="ph"><span class="pn">04</span><span class="pt">Возвраты никуда не делись</span></div>'
+   + '<div class="warn">С июля возвраты Маймарта проводят не обратной реализацией, а <b>актом приёма услуг</b> — '
+   + 'в айко это выглядит как услуга «Возврат товара», и в прежнем разрезе их не видно. По факту они не прекратились, а выросли: '
+   + 'июль '+mln(D.retMM[6])+', август '+mln(D.retMM[7])+', сентябрь '+mln(D.retMM[8])+'. '
+   + 'За девять месяцев — <b>'+mln(r9,0)+'</b>, это '+pc(r9/all9*100,0)+' всех возвратов завода и '+mln(r9/9)+' в месяц.</div>'
+   + '<table style="margin-top:14px"><thead><tr><th class="l">Месяц</th><th>Возвраты Маймарта, ₸</th>'
+   + '<th>в т. ч. актами услуг, ₸</th><th>Отгрузка Маймарта, ₸</th><th>Доля возвратов</th></tr></thead><tbody>'
+   + D.months.map(function(m,i){ return '<tr><td class="l">'+m+'</td><td>'+f(D.retMM[i])+'</td><td>'+f(D.retAkt[i])
+       +'</td><td>'+f(D.mm[i])+'</td><td style="color:#fb7185;font-weight:700">'
+       +(D.mm[i]?pc(D.retMM[i]/D.mm[i]*100,0):'—')+'</td></tr>';}).join('')
+   + '</tbody></table></div>';
 
   /* ── что сделать ── */
   h+='<div class="panel"><div class="ph"><span class="pn">05</span><span class="pt">Что сделать до 21 октября</span></div><ol class="todo">'
