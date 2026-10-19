@@ -1801,10 +1801,23 @@ details[open] .dc-caret{transform:rotate(90deg)}
        + td_('+'+f(R.T.log),'right','#4ade80',true)+td_('+'+f(R.T.mkt),'right','#4ade80',true)+td_('+'+f(R.T.ret),'right','#4ade80',true)
        + td_((R.T.net>=0?'+':'')+f(R.T.net),'right',R.T.net<0?'#fb7185':'#4ade80',true)+'</tr></tbody></table></div></div>';
 
+      var mkT=D.mkt.reduce(function(a,b){return a+b;},0), mkN=D.mkt.filter(function(v){return v>0;}).length;
+      h+='<div class="card" style="margin-bottom:12px"><div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:4px">&#128227; Из чего экономия маркетинга</div>'
+       + '<div style="font-size:11.5px;color:#64748b;margin-bottom:10px">Вся статья — возмещение затрат Маймарту (счёт «2.4.Маркетинг», номенклатура «Возмещение затрат»). '
+       + 'Реклама в соцсетях и возмещение Яндексу с дистрибьютором остаются заводу в любом случае, в расчёт не входят. '
+       + 'Итого '+f(mkT)+' \u20b8 за '+mkN+' месяцев из девяти.</div>'
+       + '<div style="display:flex;flex-wrap:wrap;gap:7px">'
+       + D.months.map(function(m,i){ var v=D.mkt[i];
+           return '<span style="background:#0f172a;border:1px solid '+(v?'#334155':'#4a2c0e')+';border-radius:9px;padding:6px 10px;font-size:12px;color:'+(v?'#cbd5e1':'#c9a94e')+'">'
+             +'<b style="color:'+(v?'#e2e8f0':'#c9a94e')+'">'+m.slice(0,3)+'</b> '+(v?f(v):'не выставлено')+'</span>'; }).join('')
+       + '</div>'
+       + '<div style="font-size:11.5px;color:#c9a94e;line-height:1.55;margin-top:10px">&#9888;&#65039; Возмещение выставляют с задержкой: в июле ноль, а в августе 1,67 млн \u20b8 — это июль и август вместе. '
+       + 'За сентябрь и октябрь счёт ещё не пришёл, поэтому экономия по ним в прогнозе занижена примерно на 0,6 млн \u20b8 в месяц.</div></div>';
+
       var tv=D.retTV.reduce(function(a,b){return a+b;},0), vm=D.retVM.reduce(function(a,b){return a+b;},0);
       h+='<div style="background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.4);border-radius:10px;padding:11px 14px;font-size:12.5px;line-height:1.55;color:#fcd34d">'
        + '<b>Возвраты не прекратились — их перенесли.</b> С июля их проводят актом приёма услуг: сначала на счёт «Торговая выручка» ('+mln(tv)+'), '
-       + 'с сентября — на новый счёт «Возвраты Ммарт» ('+mln(vm)+'). Июль '+mln(D.retMM[6])+', август '+mln(D.retMM[7])+', сентябрь '+mln(D.retMM[8])+'.</div>';
+       + 'с сентября — на новый счёт «Возвраты Ммарт» ('+mln(vm)+'); ещё 55 тыс \u20b8 ушло на «Себестоимость продуктовую». Июль '+mln(D.retMM[6])+', август '+mln(D.retMM[7])+', сентябрь '+mln(D.retMM[8])+'.</div>';
 
       document.getElementById('pr-body').innerHTML=h;
       document.getElementById('pr-sum').textContent=(R.T.net>=0?'+':'')+mln(R.T.net/9,1)+' в месяц · 38 % рейсов уходит при 12 % выручки';
