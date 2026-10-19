@@ -193,17 +193,18 @@ function render(){
 
   /* ── возвраты ── */
   var r9=D.retMM.slice(0,9).reduce(function(a,b){return a+b;},0);
-  var all9=D.ret.slice(0,9).reduce(function(a,b){return a+b;},0);
-  h+='<div class="panel"><div class="ph"><span class="pn">04</span><span class="pt">Возвраты никуда не делись</span></div>'
-   + '<div class="warn">С июля возвраты Маймарта проводят не обратной реализацией, а <b>актом приёма услуг</b> — '
-   + 'в айко это выглядит как услуга «Возврат товара», и в прежнем разрезе их не видно. По факту они не прекратились, а выросли: '
+  var tv=D.retTV.reduce(function(a,b){return a+b;},0), vm=D.retVM.reduce(function(a,b){return a+b;},0);
+  h+='<div class="panel"><div class="ph"><span class="pn">04</span><span class="pt">Возвраты никуда не делись — их перенесли</span></div>'
+   + '<div class="warn">С июля возвраты Маймарта проводят не обратной реализацией, а <b>актом приёма услуг</b>. '
+   + 'Сначала их клали на счёт «Торговая выручка» ('+mln(tv)+'), с сентября — на новый счёт <b>«Возвраты Ммарт»</b> ('+mln(vm)+'), '
+   + 'и этот второй счёт не ловит ни один отчёт Пульса. По факту возвраты не прекратились, а выросли: '
    + 'июль '+mln(D.retMM[6])+', август '+mln(D.retMM[7])+', сентябрь '+mln(D.retMM[8])+'. '
-   + 'За девять месяцев — <b>'+mln(r9,0)+'</b>, это '+pc(r9/all9*100,0)+' всех возвратов завода и '+mln(r9/9)+' в месяц.</div>'
-   + '<table style="margin-top:14px"><thead><tr><th class="l">Месяц</th><th>Возвраты Маймарта, ₸</th>'
-   + '<th>в т. ч. актами услуг, ₸</th><th>Отгрузка Маймарта, ₸</th><th>Доля возвратов</th></tr></thead><tbody>'
-   + D.months.map(function(m,i){ return '<tr><td class="l">'+m+'</td><td>'+f(D.retMM[i])+'</td><td>'+f(D.retAkt[i])
-       +'</td><td>'+f(D.mm[i])+'</td><td style="color:#fb7185;font-weight:700">'
-       +(D.mm[i]?pc(D.retMM[i]/D.mm[i]*100,0):'—')+'</td></tr>';}).join('')
+   + 'За девять месяцев — <b>'+mln(r9,0)+'</b>, это '+mln(r9/9)+' в месяц.</div>'
+   + '<table style="margin-top:14px"><thead><tr><th class="l">Месяц</th><th>Обратная реализация, ₸</th>'
+   + '<th>Акт · «Торговая выручка», ₸</th><th>Акт · «Возвраты Ммарт», ₸</th><th>Всего, ₸</th><th>Доля от отгрузки</th></tr></thead><tbody>'
+   + D.months.map(function(m,i){ return '<tr><td class="l">'+m+'</td><td>'+f(D.retInv[i])+'</td><td>'+f(D.retTV[i])
+       +'</td><td'+(D.retVM[i]?' style="color:#fb7185;font-weight:700"':'')+'>'+f(D.retVM[i])+'</td><td style="font-weight:700">'
+       +f(D.retMM[i])+'</td><td>'+(D.mm[i]?pc(D.retMM[i]/D.mm[i]*100,0):'—')+'</td></tr>';}).join('')
    + '</tbody></table></div>';
 
   /* ── что сделать ── */
