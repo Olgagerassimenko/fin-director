@@ -406,23 +406,6 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
      {l:'Доля в продажах завода', v:(sh===null?pc(D.share):pc(sh))+'%',
       s: (sh0===null?'':'было '+pc(sh0)+'% в январе · ')+'за год '+pc(D.share)+'%'}
    ];
-   var vp='Olive выросла с <b>'+mln(MS[0].total_rev)+' ₸</b> в '+pre(MS[0].label)
-     +' до <b>'+mln(LASTFULL?LASTFULL.total_rev:LAST.total_rev)+' ₸</b> в '
-     + pre((LASTFULL||LAST).label)+' — это <b>×'+Math.round(growth)+'</b> по дневному темпу. ';
-   if(sh!==null&&sh0!==null) vp+='Доля направления в продажах завода поднялась с <b>'+pc(sh0)+'%</b> до <b>'+pc(sh)+'%</b>. ';
-   if(DZ){
-     var dd=DZ.debt-DZ.prev;
-     vp+='Долг на '+DZ.date+' — <b>'+mln(DZ.debt)+' ₸</b> ('+(dd>=0?'вырос':'снизился')+' за неделю на '
-       + mln(Math.abs(dd))+'), это <b>'+Math.round(DZ.dso)+' '+plw(Math.round(DZ.dso),'день','дня','дней')
-       +'</b> отгрузок. ';
-     var rs=DZ.ships.slice(0,2).reduce(function(a,b){return a+b;},0),
-         rp=DZ.pays.slice(0,2).reduce(function(a,b){return a+b;},0);
-     vp += (DZ.paySum>=DZ.shipSum)
-       ? 'За восемь недель оплачено больше, чем отгружено.'
-       : 'За восемь недель отгружено на <b>'+mln(DZ.shipSum-DZ.paySum)+' ₸</b> больше, чем оплачено.';
-     if(rs>rp) vp+=' Но последние две недели платят меньше, чем берут (<b>'+mln(rp)+'</b> против <b>'
-       + mln(rs)+'</b>) — отсюда и рост долга.';
-   }
    return '<div class="hero">'
      + '<div class="hero-top"><div><div class="hero-tag">НАПРАВЛЕНИЕ OLIVE · '+esc(LAST.label.toUpperCase())+'</div>'
      + '<div class="hero-h">Сколько Olive приносит заводу и чем это обеспечено</div>'
@@ -432,8 +415,7 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
      + '<div class="v">'+fcTxt+' ₸</div><div class="s">'+esc(LAST.label)+'</div></div></div>'
      + '<div class="hero-k">'+k.map(function(x){ return '<div class="hk"><div class="l">'+x.l+'</div>'
          + '<div class="v">'+x.v+'</div><div class="s">'+x.s+'</div></div>'; }).join('')+'</div>'
-     + '<div class="hero-v"><div style="font-size:19px;line-height:1.2">🧭</div><div>'
-     + '<div class="vt">ВЗГЛЯД ФИНДИРЕКТОРА</div><div class="p">'+vp+'</div></div></div></div>';
+     + '</div>';
  }
 
  function moneyHtml(){
