@@ -3026,10 +3026,18 @@ const DOORS = [
   { path: "/sku", kv: "sku360:v1", cook: "fz_sku", page: "sku360.html",
     title: "SKU-аналитика 360°",
     files: ["sku_live.js"], api: ["/api/erp"] },
+  { path: "/zakup", kv: "zakup:v1", cook: "fz_zakup", page: "закуп.html",
+    title: "Закуп",
+    files: ["zakup_data.js"], api: ["/api/halal"] },
 ];
 /* Живые запросы, которые странице разрешено делать за дверью. Обработчик
    зовём напрямую: через свой же origin не выйдет — там пароль Пульса. */
-const SHARE_API = { "/api/erp": (rq, env, u) => handleErp(rq, env, u) };
+const SHARE_API = {
+  "/api/erp":   (rq, env, u) => handleErp(rq, env, u),
+  /* халяль-пометки коллеги не только читают, но и ставят: форма
+     требует ФИО и пишет его в журнал — иначе страница бесполезна. */
+  "/api/halal": (rq, env, u) => handleHalal(rq, env),
+};
 function doorFor(p) {
   for (const d of DOORS) if (p === d.path || p.indexOf(d.path + "/") === 0) return d;
   return null;
