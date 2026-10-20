@@ -1184,7 +1184,7 @@ async function authGate(request, env, url) {
   if (p === "/__passwd") return await authHandlePasswd(request, env);
   if (p === "/__logout") return authRedirect("/", authCookie(""));
   if (AUTH_OPEN.has(p)) return null;
-  if (p === "/k" || p.indexOf("/k/") === 0) return null;   // своя дверь, см. handleTeam
+  if (doorFor(p)) return null;   // у общих дверей свой пароль, см. handleShare
   // Сборщик данных (GitHub Actions и cron) ходит со своим токеном.
   if (svcOk(url.searchParams, env)) return null;
   // Галерея «Мальдивы» закрыта собственным кодом — её не трогаем.
@@ -1354,9 +1354,9 @@ export default {
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/salesplan") return handleSalesPlan(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
-    if (url.pathname === "/k" || url.pathname.indexOf("/k/") === 0)
-      return handleTeam(request, env, url).catch((e) => new Response(String(e).slice(0,160), { status: 500 }));
-    if (url.pathname === "/__team") return handleTeamAdmin(request, env);
+    if (doorFor(url.pathname))
+      return handleShare(request, env, url).catch((e) => new Response(String(e).slice(0,160), { status: 500 }));
+    if (url.pathname === "/__team") return handleShareAdmin(request, env, url);
     if (url.pathname === "/track") return handleTrack(url, request, env, ctx);
     if (url.pathname === "/mstats") return handleStats(url, env);
     if (url.pathname === "/mlabel") return handleLabel(url, env);
@@ -3004,66 +3004,75 @@ async function handleUslResp(request, env, url) {
   return jsonResp({ resp: saved || {}, seed: USL_RESP_SEED, saved: !!saved });
 }
 
-/* ——— Копия продаж для коллег ——————————————————————————————————
-   Коллегам нужна живая страница продаж, но не нужен вход в Пульс.
-   Поэтому отдельная дверь: адрес /k, свой общий пароль (его задаёт
-   владелец на /__team, сюда приходит только SHA-256) и белый список
-   файлов — наружу уходит ровно то, из чего собрана страница продаж,
-   и ничего больше. Данные те же самые, что на Пульсе: ночная сборка
-   из айко обновляет их, копия читает те же файлы. */
-const TEAM_KEY  = "team:v1";
-const TEAM_COOK = "fz_team";
-const TEAM_DAYS = 30;
-const TEAM_PAGE = "продажи_2026.html";
-/* Файлы, которые тянет страница продаж. Всё, чего здесь нет, за дверь
-   не выходит — в том числе nav.js: меню уводило бы в закрытый Пульс. */
-const TEAM_FILES = ["sku_analytics.js", "sales_meta.js", "peredacha_data.js", "dz_kz.js",
-                    "contractor_items.js", "sales_live.js", "opiu_rev.js", "returns_meta.js",
-                    "astana_meta.js", "revisions.js", "sales_today.js"];
-
-async function teamRec(env) {
-  try { return JSON.parse((await env.PLAN.get(TEAM_KEY)) || "null"); } catch (e) { return null; }
+/* ——— Общие двери для коллег ——————————————————————————————————
+   Коллегам нужна живая страница, но не нужен вход в Пульс. Поэтому
+   отдельные двери: свой адрес, свой общий пароль (его задаёт владелец
+   на /__team, сюда приходит только SHA-256) и белый список файлов —
+   наружу уходит ровно то, из чего собрана страница, и ничего больше.
+   Данные те же самые, что на Пульсе: ночная сборка из айко обновляет
+   их, копия читает те же файлы.
+   Новую дверь заводим одной записью в DOORS: адрес, страница, список
+   её файлов — больше нигде ничего менять не нужно. */
+const SHARE_DAYS = 30;
+const DOORS = [
+  { path: "/k", kv: "team:v1",  cook: "fz_team",  page: "продажи_2026.html",
+    title: "Продажи",
+    files: ["sku_analytics.js", "sales_meta.js", "peredacha_data.js", "dz_kz.js",
+            "contractor_items.js", "sales_live.js", "opiu_rev.js", "returns_meta.js",
+            "astana_meta.js", "revisions.js", "sales_today.js"] },
+  { path: "/o", kv: "olive:v1", cook: "fz_olive", page: "olive.html",
+    title: "Продажи Olive",
+    files: ["oliv_data.js", "sales_sum.js", "dz_kz.js", "sales_meta.js"] },
+];
+function doorFor(p) {
+  for (const d of DOORS) if (p === d.path || p.indexOf(d.path + "/") === 0) return d;
+  return null;
 }
-async function teamToken(rec) {
+
+async function shareRec(env, d) {
+  try { return JSON.parse((await env.PLAN.get(d.kv)) || "null"); } catch (e) { return null; }
+}
+async function shareToken(rec) {
   return await sha256hex(rec.hash + "|" + rec.salt + "|team-session-v1");
 }
-function teamCookie(v) {
-  const base = `${TEAM_COOK}=${v}; Path=/k; HttpOnly; Secure; SameSite=Lax`;
-  return v ? `${base}; Max-Age=${TEAM_DAYS * 86400}` : `${base}; Max-Age=0`;
+function shareCookie(d, v) {
+  const base = `${d.cook}=${v}; Path=${d.path}; HttpOnly; Secure; SameSite=Lax`;
+  return v ? `${base}; Max-Age=${SHARE_DAYS * 86400}` : `${base}; Max-Age=0`;
 }
-function teamPage(err) {
+function sharePage(d, err) {
   return new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
-<title>Продажи · Фуд Завод</title><style>${AUTH_CSS}</style></head><body><div class="box">
-<div class="sub">Фуд Завод</div><h1>Продажи</h1>
+<title>${d.title} · Фуд Завод</title><style>${AUTH_CSS}</style></head><body><div class="box">
+<div class="sub">Фуд Завод</div><h1>${d.title}</h1>
 ${err ? `<div class="err">${err}</div>` : ""}
-<p class="lead">Страница продаж для команды. Пароль спросите у финансового директора.</p>
-<form method="POST" action="/k/__login">
+<p class="lead">Страница для команды. Пароль спросите у финансового директора.</p>
+<form method="POST" action="${d.path}/__login">
 <label>Пароль<input name="p" type="password" autocomplete="current-password" required autofocus></label>
 <button type="submit">Открыть</button>
-<p class="hint">Вход запомнится на ${TEAM_DAYS} дней на этом устройстве.</p></form>
+<p class="hint">Вход запомнится на ${SHARE_DAYS} дней на этом устройстве.</p></form>
 </div></body></html>`, { status: err ? 401 : 200,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
 
-async function handleTeam(request, env, url) {
-  const rest = url.pathname.replace(/^\/k\/?/, "");
+async function handleShare(request, env, url) {
+  const d = doorFor(url.pathname);
+  const rest = url.pathname.slice(d.path.length).replace(/^\//, "");
 
   if (rest === "__login" && request.method === "POST") {
-    const rec = await teamRec(env);
-    if (!rec) return teamPage("Пароль для команды ещё не задан.");
+    const rec = await shareRec(env, d);
+    if (!rec) return sharePage(d, "Пароль ещё не задан.");
     const form = await request.formData();
     const pw = String(form.get("p") || "");
-    if (!eqConst(await sha256hex(pw + "|" + rec.salt), rec.hash)) return teamPage("Неверный пароль.");
+    if (!eqConst(await sha256hex(pw + "|" + rec.salt), rec.hash)) return sharePage(d, "Неверный пароль.");
     return new Response("", { status: 303,
-      headers: { location: "/k", "set-cookie": teamCookie(await teamToken(rec)), "cache-control": "no-store" } });
+      headers: { location: d.path, "set-cookie": shareCookie(d, await shareToken(rec)), "cache-control": "no-store" } });
   }
   if (rest === "__logout") {
-    return new Response("", { status: 303, headers: { location: "/k", "set-cookie": teamCookie("") } });
+    return new Response("", { status: 303, headers: { location: d.path, "set-cookie": shareCookie(d, "") } });
   }
 
-  const rec = await teamRec(env);
-  if (!rec) return teamPage("Доступ ещё не открыт: владелец не задал пароль.");
+  const rec = await shareRec(env, d);
+  if (!rec) return sharePage(d, "Доступ ещё не открыт: владелец не задал пароль.");
   /* Владельцу второй пароль ни к чему: если он уже вошёл в Пульс, пускаем —
      иначе невозможно посмотреть глазами коллеги, не заводя себе вход заново. */
   let owner = false;
@@ -3071,22 +3080,22 @@ async function handleTeam(request, env, url) {
     const ar = await authGet(env);
     owner = !!ar && eqConst(cookieGet(request, AUTH_COOK), await authToken(ar));
   } catch (e) {}
-  if (!owner && !eqConst(cookieGet(request, TEAM_COOK), await teamToken(rec))) {
+  if (!owner && !eqConst(cookieGet(request, d.cook), await shareToken(rec))) {
     const wantsHtml = (request.headers.get("accept") || "").indexOf("text/html") >= 0;
-    return wantsHtml ? teamPage(null)
+    return wantsHtml ? sharePage(d, null)
                      : new Response("unauthorized", { status: 401, headers: { "cache-control": "no-store" } });
   }
 
   /* сама страница */
-  if (!rest || rest === "/" ) {
-    const r = await env.ASSETS.fetch(new URL("/" + encodeURIComponent(TEAM_PAGE), url.origin));
+  if (!rest || rest === "/") {
+    const r = await env.ASSETS.fetch(new URL("/" + encodeURIComponent(d.page), url.origin));
     if (!r.ok) return new Response("страница не найдена", { status: 404 });
     let t = await r.text();
-    /* Пути к данным перевешиваем на /k: иначе страница постучится в корень,
+    /* Пути к данным перевешиваем на дверь: иначе страница постучится в корень,
        а он закрыт паролем Пульса и ответит 401. */
-    for (const n of TEAM_FILES) {
-      t = t.split('"/' + n).join('"/k/' + n).split("'/" + n).join("'/k/" + n);
-      t = t.split('src="' + n).join('src="/k/' + n);
+    for (const n of d.files) {
+      t = t.split('"/' + n).join('"' + d.path + "/" + n).split("'/" + n).join("'" + d.path + "/" + n);
+      t = t.split('src="' + n).join('src="' + d.path + "/" + n);
     }
     t = t.replace(/<script src="[^"]*nav\.js[^"]*"[^>]*>\s*<\/script>/g, "");
     /* Ссылки обратно в Пульс коллегам ни к чему: там их ждёт пароль. */
@@ -3097,38 +3106,51 @@ async function handleTeam(request, env, url) {
 
   /* данные — только из белого списка */
   const name = rest.split("?")[0];
-  if (TEAM_FILES.indexOf(name) < 0) return new Response("нет доступа", { status: 403 });
+  if (d.files.indexOf(name) < 0) return new Response("нет доступа", { status: 403 });
   const r = await env.ASSETS.fetch(new URL("/" + name, url.origin));
   if (!r.ok) return new Response("", { status: r.status });
   return new Response(r.body, { status: 200,
     headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-store" } });
 }
 
-/* Пароль для коллег задаёт владелец из своей сессии — страница под общим
+/* Пароли для коллег задаёт владелец из своей сессии — страница под общим
    паролем Пульса, поэтому постороннему сюда не попасть. */
-async function handleTeamAdmin(request, env) {
-  const page = (msg) => new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+async function handleShareAdmin(request, env, url) {
+  const sel = (url.searchParams.get("d") || "/k");
+  const page = async (msg, cur) => {
+    const rows = [];
+    for (const d of DOORS) {
+      const rec = await shareRec(env, d);
+      rows.push(`<label style="display:flex;gap:10px;align-items:center;margin:6px 0;cursor:pointer">
+<input type="radio" name="d" value="${d.path}" ${d.path === cur ? "checked" : ""} style="width:auto;margin:0">
+<span><b>${d.title}</b> — <code>${d.path}</code>
+<span style="opacity:.6">${rec ? "пароль задан" : "пароля ещё нет"}</span></span></label>`);
+    }
+    return new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Доступ для команды</title>
 <style>${AUTH_CSS}</style></head><body><div class="box"><div class="sub">Фуд Завод</div>
 <h1>Доступ для команды</h1>${msg
   ? `<div class="err" style="${/Готово/.test(msg)
       ? "background:#052e16;border-color:#15803d;color:#86efac" : ""}">${msg}</div>` : ""}
-<p class="lead">Общий пароль к копии страницы продаж по адресу <b>/k</b>.
-Коллеги видят только продажи — остальной Пульс остаётся закрытым.</p>
+<p class="lead">Общий пароль к отдельной странице для коллег.
+Открыта только она — остальной Пульс остаётся закрытым.</p>
 <form method="POST" action="/__team">
+${rows.join("")}
 <label>Новый пароль<input name="p" type="password" minlength="4" required autofocus></label>
 <button type="submit">Сохранить</button>
 <p class="hint">Пароль хранится только отпечатком, увидеть его потом нельзя — можно задать новый.</p></form>
 </div></body></html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+  };
 
-  if (request.method !== "POST") return page(null);
+  if (request.method !== "POST") return page(null, sel);
   const form = await request.formData();
+  const d = doorFor(String(form.get("d") || "/k")) || DOORS[0];
   const pw = String(form.get("p") || "");
-  if (pw.length < 4) return page("Слишком короткий пароль.");
+  if (pw.length < 4) return page("Слишком короткий пароль.", d.path);
   const salt = crypto.randomUUID();
-  await env.PLAN.put(TEAM_KEY, JSON.stringify({
+  await env.PLAN.put(d.kv, JSON.stringify({
     v: 1, salt, hash: await sha256hex(pw + "|" + salt), at: new Date().toISOString() }));
-  return page("Готово! Пароль сохранён. Отправьте коллегам адрес /k и этот пароль — разными сообщениями.");
+  return page(`Готово! Пароль для «${d.title}» сохранён. Отправьте коллегам адрес ${d.path} и пароль — разными сообщениями.`, d.path);
 }
 
 function jsonResp(obj, status) {
