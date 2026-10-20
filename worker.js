@@ -1184,6 +1184,7 @@ async function authGate(request, env, url) {
   if (p === "/__passwd") return await authHandlePasswd(request, env);
   if (p === "/__logout") return authRedirect("/", authCookie(""));
   if (AUTH_OPEN.has(p)) return null;
+  if (p === "/k" || p.indexOf("/k/") === 0) return null;   // своя дверь, см. handleTeam
   // Сборщик данных (GitHub Actions и cron) ходит со своим токеном.
   if (svcOk(url.searchParams, env)) return null;
   // Галерея «Мальдивы» закрыта собственным кодом — её не трогаем.
@@ -1353,6 +1354,9 @@ export default {
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/salesplan") return handleSalesPlan(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/k" || url.pathname.indexOf("/k/") === 0)
+      return handleTeam(request, env, url).catch((e) => new Response(String(e).slice(0,160), { status: 500 }));
+    if (url.pathname === "/__team") return handleTeamAdmin(request, env);
     if (url.pathname === "/track") return handleTrack(url, request, env, ctx);
     if (url.pathname === "/mstats") return handleStats(url, env);
     if (url.pathname === "/mlabel") return handleLabel(url, env);
@@ -2998,6 +3002,122 @@ async function handleUslResp(request, env, url) {
   let saved = null;
   try { saved = JSON.parse((await env.PLAN.get(USL_RESP_KEY)) || "null"); } catch (e) {}
   return jsonResp({ resp: saved || {}, seed: USL_RESP_SEED, saved: !!saved });
+}
+
+/* ——— Копия продаж для коллег ——————————————————————————————————
+   Коллегам нужна живая страница продаж, но не нужен вход в Пульс.
+   Поэтому отдельная дверь: адрес /k, свой общий пароль (его задаёт
+   владелец на /__team, сюда приходит только SHA-256) и белый список
+   файлов — наружу уходит ровно то, из чего собрана страница продаж,
+   и ничего больше. Данные те же самые, что на Пульсе: ночная сборка
+   из айко обновляет их, копия читает те же файлы. */
+const TEAM_KEY  = "team:v1";
+const TEAM_COOK = "fz_team";
+const TEAM_DAYS = 30;
+const TEAM_PAGE = "продажи_2026.html";
+/* Файлы, которые тянет страница продаж. Всё, чего здесь нет, за дверь
+   не выходит — в том числе nav.js: меню уводило бы в закрытый Пульс. */
+const TEAM_FILES = ["sku_analytics.js", "sales_meta.js", "peredacha_data.js", "dz_kz.js",
+                    "contractor_items.js", "sales_live.js", "opiu_rev.js", "returns_meta.js",
+                    "astana_meta.js", "revisions.js", "sales_today.js"];
+
+async function teamRec(env) {
+  try { return JSON.parse((await env.PLAN.get(TEAM_KEY)) || "null"); } catch (e) { return null; }
+}
+async function teamToken(rec) {
+  return await sha256hex(rec.hash + "|" + rec.salt + "|team-session-v1");
+}
+function teamCookie(v) {
+  const base = `${TEAM_COOK}=${v}; Path=/k; HttpOnly; Secure; SameSite=Lax`;
+  return v ? `${base}; Max-Age=${TEAM_DAYS * 86400}` : `${base}; Max-Age=0`;
+}
+function teamPage(err) {
+  return new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Продажи · Фуд Завод</title><style>${AUTH_CSS}</style></head><body><div class="box">
+<div class="sub">Фуд Завод</div><h1>Продажи</h1>
+${err ? `<div class="err">${err}</div>` : ""}
+<p class="lead">Страница продаж для команды. Пароль спросите у финансового директора.</p>
+<form method="POST" action="/k/__login">
+<label>Пароль<input name="p" type="password" autocomplete="current-password" required autofocus></label>
+<button type="submit">Открыть</button>
+<p class="hint">Вход запомнится на ${TEAM_DAYS} дней на этом устройстве.</p></form>
+</div></body></html>`, { status: err ? 401 : 200,
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+
+async function handleTeam(request, env, url) {
+  const rest = url.pathname.replace(/^\/k\/?/, "");
+
+  if (rest === "__login" && request.method === "POST") {
+    const rec = await teamRec(env);
+    if (!rec) return teamPage("Пароль для команды ещё не задан.");
+    const form = await request.formData();
+    const pw = String(form.get("p") || "");
+    if (!eqConst(await sha256hex(pw + "|" + rec.salt), rec.hash)) return teamPage("Неверный пароль.");
+    return new Response("", { status: 303,
+      headers: { location: "/k", "set-cookie": teamCookie(await teamToken(rec)), "cache-control": "no-store" } });
+  }
+  if (rest === "__logout") {
+    return new Response("", { status: 303, headers: { location: "/k", "set-cookie": teamCookie("") } });
+  }
+
+  const rec = await teamRec(env);
+  if (!rec) return teamPage("Доступ ещё не открыт: владелец не задал пароль.");
+  if (!eqConst(cookieGet(request, TEAM_COOK), await teamToken(rec))) {
+    const wantsHtml = (request.headers.get("accept") || "").indexOf("text/html") >= 0;
+    return wantsHtml ? teamPage(null)
+                     : new Response("unauthorized", { status: 401, headers: { "cache-control": "no-store" } });
+  }
+
+  /* сама страница */
+  if (!rest || rest === "/" ) {
+    const r = await env.ASSETS.fetch(new URL("/" + encodeURIComponent(TEAM_PAGE), url.origin));
+    if (!r.ok) return new Response("страница не найдена", { status: 404 });
+    let t = await r.text();
+    /* Пути к данным перевешиваем на /k: иначе страница постучится в корень,
+       а он закрыт паролем Пульса и ответит 401. */
+    for (const n of TEAM_FILES) {
+      t = t.split('"/' + n).join('"/k/' + n).split("'/" + n).join("'/k/" + n);
+      t = t.split('src="' + n).join('src="/k/' + n);
+    }
+    t = t.replace(/<script src="[^"]*nav\.js[^"]*"[^>]*>\s*<\/script>/g, "");
+    t = t.replace(/<a [^>]*class="back"[^>]*>[\s\S]*?<\/a>/, "");
+    return new Response(t, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+  }
+
+  /* данные — только из белого списка */
+  const name = rest.split("?")[0];
+  if (TEAM_FILES.indexOf(name) < 0) return new Response("нет доступа", { status: 403 });
+  const r = await env.ASSETS.fetch(new URL("/" + name, url.origin));
+  if (!r.ok) return new Response("", { status: r.status });
+  return new Response(r.body, { status: 200,
+    headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-store" } });
+}
+
+/* Пароль для коллег задаёт владелец из своей сессии — страница под общим
+   паролем Пульса, поэтому постороннему сюда не попасть. */
+async function handleTeamAdmin(request, env) {
+  const page = (msg) => new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Доступ для команды</title>
+<style>${AUTH_CSS}</style></head><body><div class="box"><div class="sub">Фуд Завод</div>
+<h1>Доступ для команды</h1>${msg ? `<div class="err">${msg}</div>` : ""}
+<p class="lead">Общий пароль к копии страницы продаж по адресу <b>/k</b>.
+Коллеги видят только продажи — остальной Пульс остаётся закрытым.</p>
+<form method="POST" action="/__team">
+<label>Новый пароль<input name="p" type="password" minlength="4" required autofocus></label>
+<button type="submit">Сохранить</button>
+<p class="hint">Пароль хранится только отпечатком, увидеть его потом нельзя — можно задать новый.</p></form>
+</div></body></html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+
+  if (request.method !== "POST") return page(null);
+  const form = await request.formData();
+  const pw = String(form.get("p") || "");
+  if (pw.length < 4) return page("Слишком короткий пароль.");
+  const salt = crypto.randomUUID();
+  await env.PLAN.put(TEAM_KEY, JSON.stringify({
+    v: 1, salt, hash: await sha256hex(pw + "|" + salt), at: new Date().toISOString() }));
+  return page("Готово. Адрес для коллег: /k");
 }
 
 function jsonResp(obj, status) {
