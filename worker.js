@@ -1334,8 +1334,6 @@ export default {
 
     if (url.pathname === "/api/uslugi") return handleUsl(request, env, url)
 
-    if (url.pathname === "/api/natura") return handleNatura(request, env, url)
-
     if (url.pathname === "/api/uslresp") return handleUslResp(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/paycal") return handlePaycal(request, env, url)
@@ -3000,98 +2998,6 @@ async function handleUslResp(request, env, url) {
   let saved = null;
   try { saved = JSON.parse((await env.PLAN.get(USL_RESP_KEY)) || "null"); } catch (e) {}
   return jsonResp({ resp: saved || {}, seed: USL_RESP_SEED, saved: !!saved });
-}
-
-/* ——— Натуральный разрез: сколько штук, а не тенге ————————————————
-   Та же логика, что в SKU-аналитике 360, но в отчёте нет ни одной
-   денежной величины: выпуск, отгрузка, возвраты и списания только в
-   единицах измерения номенклатуры. Один запрос в айко на все четыре
-   типа проводок — разбор уже здесь. */
-const NAT_TYPES = ["PRODUCTION", "OUTGOING_INVOICE_REVENUE",
-                   "INCOMING_RETURNED_INVOICE_REVENUE", "WRITEOFF"];
-/* Единицы, которые считаются штучными: в них лежит готовая продукция. */
-const NAT_PIECE = ["шт", "порц", "пар", "пач", "рул"];
-
-async function handleNatura(request, env, url) {
-  const ck = new Request("https://nat.cache/v1" + url.pathname + url.search);
-  const hit = await caches.default.match(ck);
-  if (hit) return hit;
-  const resp = await handleNaturaRaw(request, env, url);
-  if (resp.status === 200) {
-    const r2 = new Response(resp.clone().body, resp);
-    r2.headers.set("cache-control", "max-age=900");
-    try { await caches.default.put(ck, r2); } catch (e) {}
-  }
-  return resp;
-}
-
-async function handleNaturaRaw(request, env, url) {
-  const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
-  const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
-  let from = ok(url.searchParams.get("from")) ? url.searchParams.get("from") : today.slice(0, 8) + "01";
-  /* В айко правая граница периода не включается, поэтому «по» всегда
-     завтрашний день месяца: иначе из отчёта пропадает последний день. */
-  let to = ok(url.searchParams.get("to")) ? url.searchParams.get("to") : null;
-  if (!to) { const d = new Date(from + "T00:00:00Z"); d.setUTCMonth(d.getUTCMonth() + 1); to = d.toISOString().slice(0, 10); }
-
-  const tok = await iikoAuthCached();
-  const rr = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
-    method: "POST", headers: { Cookie: `key=${tok}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      reportType: "TRANSACTIONS", buildSummary: "true",
-      groupByRowFields: ["Product.Name", "Product.MeasureUnit", "Product.Category",
-                         "Product.Hierarchy", "TransactionType"],
-      aggregateFields: ["Amount"],
-      filters: {
-        "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM", from, to },
-        TransactionType: { filterType: "IncludeValues", values: NAT_TYPES },
-      },
-    }),
-  });
-  if (!rr.ok) return jsonResp({ error: "айко ответил " + rr.status }, 502);
-  const pp = await rr.json();
-  const src = Array.isArray(pp && pp.data) ? pp.data : [];
-
-  const KEY = { PRODUCTION: "prod", OUTGOING_INVOICE_REVENUE: "out",
-                INCOMING_RETURNED_INVOICE_REVENUE: "ret", WRITEOFF: "wo" };
-  const map = new Map();
-  for (const x of src) {
-    const n = String(x["Product.Name"] || "").trim();
-    if (!n) continue;
-    const k = KEY[x["TransactionType"]];
-    if (!k) continue;
-    let r = map.get(n);
-    if (!r) {
-      const path = String(x["Product.Hierarchy"] || "");
-      r = { n, u: String(x["Product.MeasureUnit"] || "").trim(),
-            cat: String(x["Product.Category"] || "").trim() || "(не проставлена)",
-            folder: path.split("/").pop() || "", path,
-            prod: 0, out: 0, ret: 0, wo: 0 };
-      map.set(n, r);
-    }
-    r[k] += Math.abs(Number(x.Amount) || 0);
-  }
-  const rows = [...map.values()];
-  rows.forEach((r) => {
-    r.net = r.out - r.ret;                       // отгрузка за вычетом возвратов
-    r.bal = r.prod - r.out - r.wo;               // выпустили минус ушло
-    r.retPct = r.out ? +(r.ret / r.out * 100).toFixed(1) : 0;
-  });
-  rows.sort((a, b) => b.out - a.out);
-
-  const units = {};
-  rows.forEach((r) => {
-    const u = units[r.u] || (units[r.u] = { u: r.u, n: 0, prod: 0, out: 0, ret: 0, wo: 0 });
-    u.n++; u.prod += r.prod; u.out += r.out; u.ret += r.ret; u.wo += r.wo;
-  });
-
-  return jsonResp({
-    from, to, piece: NAT_PIECE,
-    rows, units: Object.values(units).sort((a, b) => b.out - a.out),
-    cats: [...new Set(rows.map((r) => r.cat))].sort(),
-    note: "Проводки айко за " + from + " — " + to + " (правая граница не включается). " +
-          "Выпуск, отгрузка, возвраты и списания — в единицах измерения номенклатуры, без денег.",
-  });
 }
 
 function jsonResp(obj, status) {
