@@ -3064,7 +3064,14 @@ async function handleTeam(request, env, url) {
 
   const rec = await teamRec(env);
   if (!rec) return teamPage("Доступ ещё не открыт: владелец не задал пароль.");
-  if (!eqConst(cookieGet(request, TEAM_COOK), await teamToken(rec))) {
+  /* Владельцу второй пароль ни к чему: если он уже вошёл в Пульс, пускаем —
+     иначе невозможно посмотреть глазами коллеги, не заводя себе вход заново. */
+  let owner = false;
+  try {
+    const ar = await authGet(env);
+    owner = !!ar && eqConst(cookieGet(request, AUTH_COOK), await authToken(ar));
+  } catch (e) {}
+  if (!owner && !eqConst(cookieGet(request, TEAM_COOK), await teamToken(rec))) {
     const wantsHtml = (request.headers.get("accept") || "").indexOf("text/html") >= 0;
     return wantsHtml ? teamPage(null)
                      : new Response("unauthorized", { status: 401, headers: { "cache-control": "no-store" } });
