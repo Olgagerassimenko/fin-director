@@ -3101,7 +3101,9 @@ async function handleTeamAdmin(request, env) {
   const page = (msg) => new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Доступ для команды</title>
 <style>${AUTH_CSS}</style></head><body><div class="box"><div class="sub">Фуд Завод</div>
-<h1>Доступ для команды</h1>${msg ? `<div class="err">${msg}</div>` : ""}
+<h1>Доступ для команды</h1>${msg
+  ? `<div class="err" style="${/Готово/.test(msg)
+      ? "background:#052e16;border-color:#15803d;color:#86efac" : ""}">${msg}</div>` : ""}
 <p class="lead">Общий пароль к копии страницы продаж по адресу <b>/k</b>.
 Коллеги видят только продажи — остальной Пульс остаётся закрытым.</p>
 <form method="POST" action="/__team">
@@ -3117,7 +3119,7 @@ async function handleTeamAdmin(request, env) {
   const salt = crypto.randomUUID();
   await env.PLAN.put(TEAM_KEY, JSON.stringify({
     v: 1, salt, hash: await sha256hex(pw + "|" + salt), at: new Date().toISOString() }));
-  return page("Готово. Адрес для коллег: /k");
+  return page("Готово! Пароль сохранён. Отправьте коллегам адрес /k и этот пароль — разными сообщениями.");
 }
 
 function jsonResp(obj, status) {
