@@ -3082,7 +3082,9 @@ async function handleTeam(request, env, url) {
       t = t.split('src="' + n).join('src="/k/' + n);
     }
     t = t.replace(/<script src="[^"]*nav\.js[^"]*"[^>]*>\s*<\/script>/g, "");
-    t = t.replace(/<a [^>]*class="back"[^>]*>[\s\S]*?<\/a>/, "");
+    /* Ссылки обратно в Пульс коллегам ни к чему: там их ждёт пароль. */
+    t = t.replace(/<a [^>]*href="(?:\/)?index\.html"[^>]*>[\s\S]*?<\/a>/g, "");
+    t = t.replace(/<a [^>]*class="back"[^>]*>[\s\S]*?<\/a>/g, "");
     return new Response(t, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
   }
 
