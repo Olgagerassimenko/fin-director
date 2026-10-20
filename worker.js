@@ -3023,7 +3023,13 @@ const DOORS = [
   { path: "/o", kv: "olive:v1", cook: "fz_olive", page: "olive.html",
     title: "Продажи Olive",
     files: ["oliv_data.js", "sales_sum.js", "dz_kz.js", "sales_meta.js"] },
+  { path: "/sku", kv: "sku360:v1", cook: "fz_sku", page: "sku360.html",
+    title: "SKU-аналитика 360°",
+    files: ["sku_live.js"], api: ["/api/erp"] },
 ];
+/* Живые запросы, которые странице разрешено делать за дверью. Обработчик
+   зовём напрямую: через свой же origin не выйдет — там пароль Пульса. */
+const SHARE_API = { "/api/erp": (rq, env, u) => handleErp(rq, env, u) };
 function doorFor(p) {
   for (const d of DOORS) if (p === d.path || p.indexOf(d.path + "/") === 0) return d;
   return null;
@@ -3097,11 +3103,22 @@ async function handleShare(request, env, url) {
       t = t.split('"/' + n).join('"' + d.path + "/" + n).split("'/" + n).join("'" + d.path + "/" + n);
       t = t.split('src="' + n).join('src="' + d.path + "/" + n);
     }
+    for (const a of (d.api || [])) {
+      t = t.split('"' + a).join('"' + d.path + a).split("'" + a).join("'" + d.path + a);
+    }
     t = t.replace(/<script src="[^"]*nav\.js[^"]*"[^>]*>\s*<\/script>/g, "");
     /* Ссылки обратно в Пульс коллегам ни к чему: там их ждёт пароль. */
     t = t.replace(/<a [^>]*href="(?:\/)?index\.html"[^>]*>[\s\S]*?<\/a>/g, "");
     t = t.replace(/<a [^>]*class="back"[^>]*>[\s\S]*?<\/a>/g, "");
     return new Response(t, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+  }
+
+  /* живой запрос в айко — только из белого списка */
+  if (rest.indexOf("api/") === 0) {
+    const ap = "/" + rest.split("?")[0];
+    if ((d.api || []).indexOf(ap) < 0 || !SHARE_API[ap])
+      return new Response("нет доступа", { status: 403 });
+    return SHARE_API[ap](request, env, new URL(ap + url.search, url.origin));
   }
 
   /* данные — только из белого списка */
