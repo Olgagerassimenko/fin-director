@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Аналитика в штуках · Фуд Завод</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;min-height:100vh;overflow-x:hidden}
+.hdr{display:flex;align-items:center;gap:10px;padding:14px 28px;border-bottom:1px solid #1e293b;flex-wrap:wrap}
+.back{font-size:12px;color:#9db0c9;text-decoration:none;padding:5px 10px;border:1px solid #1e293b;border-radius:8px}
+.back:hover{color:#a5b4fc;border-color:#6366f1}
+.hdr-t{font-size:16px;font-weight:800;margin-left:6px}
+.hdr-sp{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{background:#1b2742;border:1px solid #2b3b5e;color:#cfe0f5;font:600 12px/1 Inter,system-ui,sans-serif;padding:9px 13px;border-radius:9px;cursor:pointer}
+.btn:hover{border-color:#6366f1;color:#a5b4fc}
+.btn.pri{background:#15803d;border-color:#16a34a;color:#eafff3}
+select{background:#0e1628;border:1px solid #233150;color:#e2e8f0;font:600 12px Inter,system-ui,sans-serif;padding:8px 10px;border-radius:9px;cursor:pointer}
+.wrap{max-width:1320px;margin:0 auto;padding:20px 20px 60px}
+.lead{font-size:13px;color:#9db0c9;line-height:1.55;max-width:900px;margin-bottom:16px}
+.lead b{color:#e2e8f0}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:#121b31;border:1px solid #233150;border-radius:16px;padding:16px 18px}
+.kpi .l{font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#8aa0bd;margin-bottom:7px}
+.kpi .v{font-size:27px;font-weight:900;letter-spacing:-.6px;line-height:1}
+.kpi .s{font-size:11.5px;color:#8aa0bd;margin-top:6px}
+.kpi.a .v{color:#818cf8}.kpi.b .v{color:#5eead4}.kpi.c .v{color:#fb7185}.kpi.d .v{color:#fbbf24}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{font:700 12.5px Inter,system-ui,sans-serif;padding:9px 15px;border-radius:999px;background:#121b31;border:1px solid #233150;color:#9db0c9;cursor:pointer}
+.tab.on{background:#6366f1;border-color:#6366f1;color:#0b1020}
+.panel{background:#121b31;border:1px solid #233150;border-radius:16px;padding:18px 20px;margin-bottom:16px}
+.pt{font-size:13.5px;font-weight:800;color:#e2e8f0;margin-bottom:4px}
+.pd{font-size:12px;color:#8aa0bd;line-height:1.55;margin-bottom:12px}
+.chart{height:280px}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.srch{flex:1;min-width:190px;max-width:360px;background:#0e1628;border:1px solid #233150;border-radius:9px;color:#e2e8f0;font:500 13px Inter,system-ui,sans-serif;padding:10px 12px}
+.srch:focus{outline:none;border-color:#6366f1}
+.chip{font:600 11.5px Inter,system-ui,sans-serif;padding:7px 11px;border-radius:999px;background:#1b2742;border:1px solid #2b3b5e;color:#9db0c9;cursor:pointer}
+.chip.on{background:#6366f1;border-color:#6366f1;color:#0b1020}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{position:sticky;top:0;z-index:3;background:#0e1628;color:#8aa0bd;font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;padding:9px 7px;text-align:right;border-bottom:1px solid #233150;white-space:nowrap;cursor:pointer;user-select:none}
+thead th.l{text-align:left}
+thead th.s{color:#a5b4fc}
+tbody td{padding:8px 7px;text-align:right;border-bottom:1px solid #1b2742;white-space:nowrap;font-variant-numeric:tabular-nums}
+tbody td.l{text-align:left;white-space:normal}
+tbody tr:hover td{background:#17223c}
+tbody tr.tot td{background:#0e1628;font-weight:800;color:#e2e8f0}
+.sub{display:block;font-size:11px;color:#64748b;margin-top:2px}
+.u{font-size:10.5px;font-weight:700;color:#818cf8;background:#1e1b4b;border-radius:6px;padding:2px 6px}
+.zero{color:#33405c}
+.warnc{color:#fb7185;font-weight:700}
+.foot{font-size:11px;color:#64748b;line-height:1.5;margin-top:12px}
+.load{padding:60px;text-align:center;color:#8aa0bd;font-size:13px}
+@media(max-width:980px){.kpis{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <a class="back" href="index.html">← Пульс</a>
+  <div class="hdr-t">Аналитика в штуках</div>
+  <div class="hdr-sp">
+    <select id="mon"></select>
+    <button class="btn" id="go">Обновить</button>
+    <button class="btn pri" id="xls">Выгрузить в Excel</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="lead">Тот же разрез, что в SKU-аналитике 360, но <b>без единой денежной величины</b>:
+    сколько штук выпустили, сколько отгрузили, сколько вернулось и сколько списали.
+    Когда цены и себестоимость в сторону, видно другое — где производство расходится с отгрузкой
+    и какие позиции возвращаются пачками независимо от своей цены.</div>
+  <div id="body"><div class="load">Загружаю из айко…</div></div>
+</div>
+
+<script>
+var D=null, CH=null;
+var ST={tab:'out', q:'', unit:'шт', sort:'out', dir:-1};
+var MN=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+
+function f(n){ n=Math.round(n||0); return n? n.toLocaleString('ru-RU').replace(/,/g,' ') : '—'; }
+function pc(n,d){ d=(d==null?1:d); return n.toFixed(d).replace('.',',')+' %'; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function monBar(){
+  var now=new Date(), h='';
+  for(var i=0;i<10;i++){
+    var d=new Date(Date.UTC(now.getFullYear(), now.getMonth()-i, 1));
+    var v=d.toISOString().slice(0,8)+'01';
+    h+='<option value="'+v+'">'+MN[d.getUTCMonth()]+' '+d.getUTCFullYear()+'</option>';
+  }
+  document.getElementById('mon').innerHTML=h;
+}
+
+async function load(){
+  document.getElementById('body').innerHTML='<div class="load">Загружаю из айко…</div>';
+  try{
+    var from=document.getElementById('mon').value;
+    var r=await fetch('/api/natura?from='+from, {cache:'no-store'});
+    D=await r.json();
+    if(D.error) throw new Error(D.error);
+    draw();
+  }catch(e){
+    document.getElementById('body').innerHTML='<div class="panel" style="color:#fcd34d">Не получилось забрать данные: '
+      +esc(e.message||e)+'. Попробуйте «Обновить» через минуту.</div>';
+  }
+}
+
+function unitRows(){
+  var rows=D.rows;
+  if(ST.unit==='шт') rows=rows.filter(function(r){ return D.piece.indexOf(r.u)>=0; });
+  else if(ST.unit==='вес') rows=rows.filter(function(r){ return D.piece.indexOf(r.u)<0; });
+  return rows;
+}
+function visRows(){
+  var q=ST.q.trim().toLowerCase();
+  var rows=unitRows().filter(function(r){
+    if(ST.tab==='prod') return r.prod>0;
+    if(ST.tab==='ret')  return r.ret>0;
+    if(ST.tab==='wo')   return r.wo>0;
+    if(ST.tab==='gap')  return Math.abs(r.bal)>0.5;
+    return r.out>0;
+  });
+  if(q) rows=rows.filter(function(r){ return (r.n+' '+r.cat+' '+r.folder).toLowerCase().indexOf(q)>=0; });
+  var k=ST.sort;
+  rows.sort(function(a,b){
+    var x=(k==='n')?String(a.n).localeCompare(String(b.n),'ru'):(a[k]-b[k]);
+    return ST.dir<0? -x : x;
+  });
+  return rows;
+}
+
+function draw(){
+  var all=unitRows();
+  var T=all.reduce(function(s,r){ s.prod+=r.prod; s.out+=r.out; s.ret+=r.ret; s.wo+=r.wo; return s; },
+                   {prod:0,out:0,ret:0,wo:0});
+  var h='';
+  h+='<div class="kpis">'
+   + kpi('a','Выпущено',f(T.prod),all.filter(function(r){return r.prod>0;}).length+' позиций')
+   + kpi('b','Отгружено',f(T.out),'возвраты сюда не входят')
+   + kpi('c','Вернулось',f(T.ret),T.out? pc(T.ret/T.out*100)+' от отгрузки':'—')
+   + kpi('d','Списано',f(T.wo),T.prod? pc(T.wo/T.prod*100)+' от выпуска':'—')
+   + '</div>';
+
+  h+='<div class="tabs">'
+   + tab('out','Отгрузка') + tab('prod','Выпуск') + tab('ret','Возвраты')
+   + tab('wo','Списания') + tab('gap','Выпуск против отгрузки')
+   + '</div>';
+
+  h+='<div class="panel"><div class="pt">Топ-15 позиций · '+tabName()+'</div>'
+   + '<div class="pd">Только количество. Единица измерения — у каждой позиции своя, поэтому столбики сравнимы внутри одной группы единиц.</div>'
+   + '<div class="chart"><canvas id="cv"></canvas></div></div>';
+
+  h+='<div class="panel">'
+   + '<div class="tools">'
+   +   '<input class="srch" id="q" placeholder="Поиск по названию, категории или папке…" value="'+esc(ST.q)+'">'
+   +   '<span class="chip'+(ST.unit==='шт'?' on':'')+'" data-u="шт">штучные</span>'
+   +   '<span class="chip'+(ST.unit==='вес'?' on':'')+'" data-u="вес">вес и объём</span>'
+   +   '<span class="chip'+(ST.unit==='все'?' on':'')+'" data-u="все">все единицы</span>'
+   + '</div>'
+   + table()
+   + '<div class="foot">'+esc(D.note)+'</div>'
+   + '</div>';
+
+  document.getElementById('body').innerHTML=h;
+  wire(); chart();
+}
+function kpi(c,l,v,s){ return '<div class="kpi '+c+'"><div class="l">'+l+'</div><div class="v">'+v+'</div><div class="s">'+esc(s)+'</div></div>'; }
+function tab(k,t){ return '<span class="tab'+(ST.tab===k?' on':'')+'" data-t="'+k+'">'+t+'</span>'; }
+function tabName(){ return {out:'отгрузка',prod:'выпуск',ret:'возвраты',wo:'списания',gap:'расхождение выпуска и отгрузки'}[ST.tab]; }
+
+function table(){
+  var rows=visRows(), lim=rows.slice(0,400);
+  var cols=[['n','Позиция','l'],['u','Ед.',''],['prod','Выпущено',''],['out','Отгружено',''],
+            ['ret','Вернулось',''],['retPct','% возврата',''],['wo','Списано',''],['bal','Выпуск − отгрузка','']];
+  var h='<table><thead><tr>';
+  cols.forEach(function(c){ h+='<th class="'+(c[2]||'')+(ST.sort===c[0]?' s':'')+'" data-k="'+c[0]+'">'
+    +c[1]+(ST.sort===c[0]?(ST.dir<0?' ↓':' ↑'):'')+'</th>'; });
+  h+='</tr></thead><tbody>';
+  lim.forEach(function(r){
+    h+='<tr><td class="l">'+esc(r.n)+'<span class="sub">'+esc(r.cat)+' · '+esc(r.folder)+'</span></td>'
+     + '<td><span class="u">'+esc(r.u)+'</span></td>'
+     + '<td'+(r.prod?'':' class="zero"')+'>'+f(r.prod)+'</td>'
+     + '<td'+(r.out?'':' class="zero"')+'>'+f(r.out)+'</td>'
+     + '<td'+(r.ret?' class="warnc"':' class="zero"')+'>'+f(r.ret)+'</td>'
+     + '<td'+(r.retPct>=10?' class="warnc"':'')+'>'+(r.out?pc(r.retPct):'—')+'</td>'
+     + '<td'+(r.wo?'':' class="zero"')+'>'+f(r.wo)+'</td>'
+     + '<td'+(Math.abs(r.bal)>0.5?' class="warnc"':' class="zero"')+'>'+f(r.bal)+'</td></tr>';
+  });
+  var T=rows.reduce(function(s,r){ s.prod+=r.prod;s.out+=r.out;s.ret+=r.ret;s.wo+=r.wo;s.bal+=r.bal; return s; },
+                    {prod:0,out:0,ret:0,wo:0,bal:0});
+  h+='<tr class="tot"><td class="l">ИТОГО · '+rows.length+' позиций</td><td></td><td>'+f(T.prod)+'</td><td>'+f(T.out)
+   + '</td><td>'+f(T.ret)+'</td><td>'+(T.out?pc(T.ret/T.out*100):'—')+'</td><td>'+f(T.wo)+'</td><td>'+f(T.bal)+'</td></tr>';
+  h+='</tbody></table>';
+  if(rows.length>400) h+='<div class="foot">Показаны первые 400 строк из '+rows.length+'. Уточните поиск или выгрузите в Excel — там все.</div>';
+  return h;
+}
+
+function wire(){
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(e){
+    e.onclick=function(){ ST.tab=e.dataset.t; ST.sort=({prod:'prod',ret:'ret',wo:'wo',gap:'bal',out:'out'})[ST.tab]; ST.dir=-1; draw(); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('.chip[data-u]'),function(e){
+    e.onclick=function(){ ST.unit=e.dataset.u; draw(); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('thead th[data-k]'),function(e){
+    e.onclick=function(){ var k=e.dataset.k; if(ST.sort===k) ST.dir=-ST.dir; else { ST.sort=k; ST.dir=(k==='n'?1:-1); } draw(); }; });
+  var q=document.getElementById('q');
+  if(q){ var t; q.oninput=function(){ clearTimeout(t); t=setTimeout(function(){ ST.q=q.value; draw(); },220); }; }
+}
+
+function chart(){
+  var cv=document.getElementById('cv'); if(!cv||!window.Chart) return;
+  if(CH){ try{CH.destroy();}catch(e){} }
+  var k={out:'out',prod:'prod',ret:'ret',wo:'wo',gap:'bal'}[ST.tab];
+  var rows=visRows().slice(0,15);
+  CH=new Chart(cv.getContext('2d'),{type:'bar',
+    data:{labels:rows.map(function(r){ return r.n.length>34? r.n.slice(0,34)+'…' : r.n; }),
+      datasets:[{data:rows.map(function(r){ return Math.abs(r[k]); }),
+        backgroundColor:ST.tab==='ret'?'#fb7185':(ST.tab==='wo'?'#fbbf24':(ST.tab==='prod'?'#818cf8':'#5eead4')),
+        borderRadius:4,maxBarThickness:22}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){
+        return f(c.parsed.x)+' '+(rows[c.dataIndex]?rows[c.dataIndex].u:''); }}}},
+      scales:{x:{grid:{color:'#1b2742'},border:{display:false},ticks:{color:'#8aa0bd',font:{size:10}}},
+              y:{grid:{display:false},border:{color:'#233150'},ticks:{color:'#9db0c9',font:{size:11}}}}}});
+}
+
+function xls(){
+  if(!D) return;
+  var rows=unitRows();
+  var aoa=[['Аналитика в штуках — без денежных величин'],
+           [D.note],[],
+           ['Позиция','Ед.','Категория','Папка','Выпущено','Отгружено','Вернулось','% возврата','Списано','Выпуск − отгрузка']];
+  rows.forEach(function(r){ aoa.push([r.n,r.u,r.cat,r.folder,Math.round(r.prod),Math.round(r.out),
+    Math.round(r.ret),r.retPct,Math.round(r.wo),Math.round(r.bal)]); });
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:46},{wch:7},{wch:22},{wch:22},{wch:12},{wch:12},{wch:12},{wch:12},{wch:11},{wch:18}];
+  ws['!freeze']={xSplit:1,ySplit:4};
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:3,c:0},e:{r:aoa.length-1,c:9}})};
+  var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'В штуках');
+  var s2=[['Единица','Позиций','Выпущено','Отгружено','Вернулось','Списано']];
+  D.units.forEach(function(u){ s2.push([u.u,u.n,Math.round(u.prod),Math.round(u.out),Math.round(u.ret),Math.round(u.wo)]); });
+  var w2=XLSX.utils.aoa_to_sheet(s2); w2['!cols']=[{wch:10},{wch:10},{wch:13},{wch:13},{wch:12},{wch:11}];
+  XLSX.utils.book_append_sheet(wb,w2,'По единицам');
+  XLSX.writeFile(wb,'Аналитика в штуках — '+D.from+'.xlsx');
+}
+
+monBar();
+document.getElementById('go').onclick=load;
+document.getElementById('mon').onchange=load;
+document.getElementById('xls').onclick=xls;
+load();
+try{ fetch('/track?p='+encodeURIComponent(location.pathname),{method:'GET',keepalive:true}); }catch(e){}
+</script>
+</body>
+</html>
