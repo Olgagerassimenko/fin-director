@@ -427,7 +427,6 @@ function execSummary(mk){
  const html='<style>'+EXEC_CSS+'</style><div class="exec">'
   +'<div class="exec-hd"><div><div class="exec-sub">'+subLine+'</div></div><div class="exec-mark">₸</div></div>'
   +'<div class="exec-grid">'+kh+'</div>'
-  +'<div class="exec-verdict"><div class="ev-ic">🧭</div><div><div class="ev-t">ВЕРДИКТ ФИНДИРЕКТОРА</div><div class="ev-p">'+v+'</div></div></div>'
   +'</div>';
  const el=document.getElementById('exec_summary');if(el)el.innerHTML=html;
  requestAnimationFrame(()=>{document.querySelectorAll('#exec_summary .ekpi-v[data-raw]').forEach(vEl=>{
