@@ -3205,6 +3205,20 @@ async function handleShare(request, env, url) {
 
 /* Пароли для коллег задаёт владелец из своей сессии — страница под общим
    паролем Пульса, поэтому постороннему сюда не попасть. */
+/* Когда пароль задавали последний раз. Нужно, чтобы владелец видел,
+   сохранилась ли правка: сам пароль не показать — он хранится отпечатком. */
+function whenSet(rec){
+  if (!rec || !rec.at) return "";
+  const d = new Date(rec.at);
+  if (isNaN(d)) return "";
+  const p = (x) => String(x).padStart(2, "0");
+  const mins = Math.round((Date.now() - d.getTime()) / 60000);
+  const when = `${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  if (mins < 1)  return "— только что";
+  if (mins < 60) return `— ${mins} мин назад`;
+  return "— " + when;
+}
+
 async function handleShareAdmin(request, env, url) {
   const sel = (url.searchParams.get("d") || "/k");
   const page = async (msg, cur) => {
@@ -3214,7 +3228,7 @@ async function handleShareAdmin(request, env, url) {
       rows.push(`<label style="display:flex;gap:10px;align-items:center;margin:6px 0;cursor:pointer">
 <input type="radio" name="d" value="${d.path}" ${d.path === cur ? "checked" : ""} style="width:auto;margin:0">
 <span><b>${d.title}</b> — <code>${d.path}</code>
-<span style="opacity:.6">${rec ? "пароль задан" : "пароля ещё нет"}</span></span></label>`);
+<span style="opacity:.6">${rec ? ("пароль задан " + whenSet(rec)) : "пароля ещё нет"}</span></span></label>`);
     }
     return new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Доступ для команды</title>
