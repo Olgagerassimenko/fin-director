@@ -3024,7 +3024,7 @@ const DOORS = [
     title: "Продажи Olive",
     files: ["oliv_data.js", "sales_sum.js", "dz_kz.js", "sales_meta.js"] },
   { path: "/sku", kv: "sku360:v1", cook: "fz_sku", page: "sku360.html",
-    title: "SKU-аналитика 360°",
+    title: "SKU-аналитика 360°", nocopy: true,
     files: ["sku_live.js"], api: ["/api/erp"] },
   { path: "/zakup", kv: "zakup:v1", cook: "fz_zakup", page: "закуп.html",
     title: "Закуп",
@@ -3162,8 +3162,7 @@ const NOCOPY = `
     var n=document.querySelectorAll('button,a,div,span');
     for(var i=0;i<n.length;i++){
       var s=(n[i].textContent||'').toLowerCase();
-      if(s.length<40 && (s.indexOf('выгрузить в excel')>=0 || s.indexOf('скачать в excel')>=0
-         || s.indexOf('выгрузка в excel')>=0 || s.indexOf('в excel')>=0)) n[i].style.display='none';
+      if(s.length<40 && (s.indexOf('excel')>=0 || s.indexOf('xlsx')>=0)) n[i].style.display='none';
     }
   };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',kill); else kill();
