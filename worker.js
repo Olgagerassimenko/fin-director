@@ -3016,7 +3016,7 @@ async function handleUslResp(request, env, url) {
 const SHARE_DAYS = 30;
 const DOORS = [
   { path: "/k", kv: "team:v1",  cook: "fz_team",  page: "продажи_2026.html",
-    title: "Продажи",
+    title: "Продажи", nocopy: true,
     files: ["sku_analytics.js", "sales_meta.js", "peredacha_data.js", "dz_kz.js",
             "contractor_items.js", "sales_live.js", "opiu_rev.js", "returns_meta.js",
             "astana_meta.js", "revisions.js", "sales_today.js"] },
@@ -3115,6 +3115,62 @@ function doorFor(p) {
   return null;
 }
 
+
+/* ——— Защита копии от копирования ————————————————————————————
+   Полностью закрыть данные нельзя: браузер всё равно их получает,
+   иначе страницу не нарисовать. Это защита от лёгкого копирования —
+   выделения, правой кнопки, Ctrl+C/S/P, перетаскивания и печати —
+   плюс водяной знак, который остаётся на скриншоте. */
+const NOCOPY = `
+<style id="nc">
+  *:not(input):not(textarea){ -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+    -webkit-touch-callout:none; }
+  img,table,canvas{ -webkit-user-drag:none; user-drag:none; pointer-events:auto; }
+  @media print{ body>*{display:none!important} body::after{
+    content:"Печать этой страницы отключена. Вопросы — финансовому директору.";
+    display:block;padding:40px;font:600 16px -apple-system,sans-serif;color:#111} }
+  #ncwm{position:fixed;inset:0;z-index:2147483000;pointer-events:none;opacity:.055;
+    background-repeat:repeat;background-position:0 0}
+</style>
+<div id="ncwm"></div>
+<script>(function(){
+  var W=document.getElementById('ncwm');
+  if(W){ var d=new Date(), p=function(x){return ('0'+x).slice(-2);};
+    var txt='ФУД ЗАВОД · копия для команды · '+p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear();
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="420" height="190">'
+      +'<text x="0" y="110" transform="rotate(-28 0 110)" font-family="Arial" font-size="19" font-weight="700" fill="#94a3b8">'
+      +txt+'</text></svg>';
+    W.style.backgroundImage='url("data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)))+'")'; }
+  var stop=function(e){ e.preventDefault(); e.stopPropagation(); return false; };
+  ['contextmenu','copy','cut','dragstart','selectstart'].forEach(function(n){
+    document.addEventListener(n, function(e){
+      var t=e.target||{}; if(t.tagName==='INPUT'||t.tagName==='TEXTAREA') return;
+      return stop(e);
+    }, true);
+  });
+  document.addEventListener('keydown', function(e){
+    var k=(e.key||'').toLowerCase(), c=e.ctrlKey||e.metaKey;
+    if(k==='f12') return stop(e);
+    if(c && e.shiftKey && (k==='i'||k==='j'||k==='c')) return stop(e);
+    if(c && (k==='c'||k==='x'||k==='s'||k==='p'||k==='u'||k==='a')){
+      var t=e.target||{}; if(t.tagName==='INPUT'||t.tagName==='TEXTAREA') return;
+      return stop(e);
+    }
+  }, true);
+  /* выгрузку в Excel за дверью не оставляем */
+  var kill=function(){
+    var n=document.querySelectorAll('button,a,div,span');
+    for(var i=0;i<n.length;i++){
+      var s=(n[i].textContent||'').toLowerCase();
+      if(s.length<40 && (s.indexOf('выгрузить в excel')>=0 || s.indexOf('скачать в excel')>=0
+         || s.indexOf('выгрузка в excel')>=0 || s.indexOf('в excel')>=0)) n[i].style.display='none';
+    }
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',kill); else kill();
+  setTimeout(kill,1500); setTimeout(kill,4000);
+  window.XLSX=undefined;
+})();<\/script>`;
+
 async function shareRec(env, d) {
   try { return JSON.parse((await env.PLAN.get(d.kv)) || "null"); } catch (e) { return null; }
 }
@@ -3193,6 +3249,9 @@ async function handleShare(request, env, url) {
     /* Ссылки обратно в Пульс коллегам ни к чему: там их ждёт пароль. */
     t = t.replace(/<a [^>]*href="(?:\/)?index\.html"[^>]*>[\s\S]*?<\/a>/g, "");
     t = t.replace(/<a [^>]*class="back"[^>]*>[\s\S]*?<\/a>/g, "");
+    if (d.nocopy) {
+      t = t.indexOf("</body>") >= 0 ? t.replace("</body>", NOCOPY + "</body>") : t + NOCOPY;
+    }
     return new Response(t, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
   }
 
@@ -3207,6 +3266,14 @@ async function handleShare(request, env, url) {
   /* данные — только из белого списка */
   const name = rest.split("?")[0];
   if (d.files.indexOf(name) < 0) return new Response("нет доступа", { status: 403 });
+  /* Файл данных имеет смысл только как скрипт своей страницы. Открыть его
+     отдельной вкладкой и сохранить — уже не выйдет. */
+  if (d.nocopy) {
+    const dest = request.headers.get("sec-fetch-dest") || "";
+    const site = request.headers.get("sec-fetch-site") || "";
+    if (dest === "document" || (site && site !== "same-origin"))
+      return new Response("нет доступа", { status: 403 });
+  }
   const r = await env.ASSETS.fetch(new URL("/" + name, url.origin));
   if (!r.ok) return new Response("", { status: r.status });
   return new Response(r.body, { status: 200,
