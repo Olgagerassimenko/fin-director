@@ -3089,6 +3089,12 @@ const DOORS = [
   { path: "/jurnal", kv: "jurnal:v1", cook: "fz_jurnal", page: "журнал.html",
     title: "Журнал изменений",
     files: [] },
+  { path: "/korol", kv: "korol:v1", cook: "fz_korol", page: "korol.html",
+    title: "Король качества",
+    files: [] },
+  { path: "/oplaty", kv: "oplaty:v1", cook: "fz_oplaty", page: "bitrix_отчёт_оплаты.html",
+    title: "Согласование оплат",
+    files: [] },
 ];
 /* Живые запросы, которые странице разрешено делать за дверью. Обработчик
    зовём напрямую: через свой же origin не выйдет — там пароль Пульса. */
@@ -3240,7 +3246,7 @@ async function handleShareAdmin(request, env, url) {
 Открыта только она — остальной Пульс остаётся закрытым.</p>
 <form method="POST" action="/__team">
 ${rows.join("")}
-<label>Новый пароль<input name="p" type="password" minlength="4" required autofocus></label>
+<label>Новый пароль<input name="p" type="password" minlength="3" required autofocus></label>
 <button type="submit">Сохранить</button>
 <p class="hint">Пароль хранится только отпечатком, увидеть его потом нельзя — можно задать новый.</p></form>
 </div></body></html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
@@ -3250,7 +3256,7 @@ ${rows.join("")}
   const form = await request.formData();
   const d = doorFor(String(form.get("d") || "/k")) || DOORS[0];
   const pw = String(form.get("p") || "");
-  if (pw.length < 4) return page("Слишком короткий пароль.", d.path);
+  if (pw.length < 3) return page("Слишком короткий пароль.", d.path);
   const salt = crypto.randomUUID();
   await env.PLAN.put(d.kv, JSON.stringify({
     v: 1, salt, hash: await sha256hex(pw + "|" + salt), at: new Date().toISOString() }));
