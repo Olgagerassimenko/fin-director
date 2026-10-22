@@ -3091,6 +3091,7 @@ const DOORS = [
     files: [] },
   { path: "/korol", kv: "korol:v1", cook: "fz_korol", page: "korol.html",
     title: "Король качества",
+    open: true,   // решение владельца 22.10.2026: журнал рекламаций открыт без пароля
     files: [] },
   { path: "/oplaty", kv: "oplaty:v1", cook: "fz_oplaty", page: "bitrix_отчёт_оплаты.html",
     title: "Согласование оплат",
@@ -3156,19 +3157,22 @@ async function handleShare(request, env, url) {
     return new Response("", { status: 303, headers: { location: d.path, "set-cookie": shareCookie(d, "") } });
   }
 
-  const rec = await shareRec(env, d);
-  if (!rec) return sharePage(d, "Доступ ещё не открыт: владелец не задал пароль.");
-  /* Владельцу второй пароль ни к чему: если он уже вошёл в Пульс, пускаем —
-     иначе невозможно посмотреть глазами коллеги, не заводя себе вход заново. */
-  let owner = false;
-  try {
-    const ar = await authGet(env);
-    owner = !!ar && eqConst(cookieGet(request, AUTH_COOK), await authToken(ar));
-  } catch (e) {}
-  if (!owner && !eqConst(cookieGet(request, d.cook), await shareToken(rec))) {
-    const wantsHtml = (request.headers.get("accept") || "").indexOf("text/html") >= 0;
-    return wantsHtml ? sharePage(d, null)
-                     : new Response("unauthorized", { status: 401, headers: { "cache-control": "no-store" } });
+  /* Дверь с open:true пускает всех: пароль не спрашиваем и cookie не проверяем. */
+  if (!d.open) {
+    const rec = await shareRec(env, d);
+    if (!rec) return sharePage(d, "Доступ ещё не открыт: владелец не задал пароль.");
+    /* Владельцу второй пароль ни к чему: если он уже вошёл в Пульс, пускаем —
+       иначе невозможно посмотреть глазами коллеги, не заводя себе вход заново. */
+    let owner = false;
+    try {
+      const ar = await authGet(env);
+      owner = !!ar && eqConst(cookieGet(request, AUTH_COOK), await authToken(ar));
+    } catch (e) {}
+    if (!owner && !eqConst(cookieGet(request, d.cook), await shareToken(rec))) {
+      const wantsHtml = (request.headers.get("accept") || "").indexOf("text/html") >= 0;
+      return wantsHtml ? sharePage(d, null)
+                       : new Response("unauthorized", { status: 401, headers: { "cache-control": "no-store" } });
+    }
   }
 
   /* сама страница */
