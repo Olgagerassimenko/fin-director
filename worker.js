@@ -3027,7 +3027,7 @@ const DOORS = [
     title: "SKU-аналитика 360°", nocopy: true,
     files: ["sku_live.js"], api: ["/api/erp"] },
   { path: "/zakup", kv: "zakup:v1", cook: "fz_zakup", page: "закуп.html",
-    title: "Закуп",
+    title: "Закуп", nocopy: true,
     files: ["zakup_data.js"], api: ["/api/halal"] },
   { path: "/dengi", kv: "dengi:v1", cook: "fz_dengi", page: "дашборд_ддс.html",
     title: "Про деньги",
@@ -3162,9 +3162,14 @@ const NOCOPY = `
     var n=document.querySelectorAll('button,a,div,span');
     for(var i=0;i<n.length;i++){
       var s=(n[i].textContent||'').toLowerCase();
-      if(s.length<40 && (s.indexOf('excel')>=0 || s.indexOf('xlsx')>=0)) n[i].style.display='none';
+      if(s.length<40 && (s.indexOf('excel')>=0 || s.indexOf('xlsx')>=0 || s.indexOf('csv')>=0
+         || s.indexOf('скачать')>=0 || s.indexOf('выгруз')>=0)) n[i].style.display='none';
     }
+    var a=document.querySelectorAll('a[download]');
+    for(var j=0;j<a.length;j++) a[j].style.display='none';
   };
+  /* сохранение файла из скрипта страницы тоже закрываем */
+  try{ var _c=URL.createObjectURL; URL.createObjectURL=function(){ return 'about:blank'; }; }catch(e){}
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',kill); else kill();
   setTimeout(kill,1500); setTimeout(kill,4000);
   window.XLSX=undefined;
