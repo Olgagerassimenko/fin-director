@@ -97,12 +97,12 @@
   window.addEventListener('load',fitAll);
   window.addEventListener('resize',fitAll);
 
-  // ── Подпись / автор внизу страницы (на всех дашбордах) ──
+  // ── Подпись внизу страницы (на всех дашбордах). Имя убрано 22.10.2026 ──
   function addSig(){
     if(document.getElementById('psig'))return;
     var f=document.createElement('footer');f.id='psig';
     f.style.cssText='text-align:center;color:#475569;font-size:12px;line-height:1.7;padding:22px 16px 34px;border-top:1px solid #1e293b;margin-top:22px;font-family:Inter,-apple-system,sans-serif';
-    f.innerHTML='Система «Пульс» · Фуд Завод<br><b style="color:#94a3b8">Ольга Герасименко</b> · финансовый директор · данные из iiko, обновляются ежедневно<br><a href="/metrics.html" style="color:#a78bfa;text-decoration:none;font-weight:600">🔒 Аналитика посещений</a>';
+    f.innerHTML='Система «Пульс» · Фуд Завод<br>данные из iiko, обновляются ежедневно<br><a href="/metrics.html" style="color:#a78bfa;text-decoration:none;font-weight:600">🔒 Аналитика посещений</a>';
     document.body.appendChild(f);
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',addSig);}else{addSig();}
