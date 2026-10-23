@@ -450,7 +450,15 @@ async function handleErpRaw(request, env, url) {
                       sums: sums, from: to, to: to });
   }
 
-  const filters = { "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM", from: from, to: to } };
+  /* В айко граница «to» у DateRange НЕ включается: запросив по 20-е, получишь
+     по 19-е. Поэтому в фильтр отдаём следующий день, а пользователю
+     возвращаем ту дату, которую он выбрал. */
+  const nextDay = (s) => {
+    const d0 = new Date(s + "T00:00:00Z");
+    d0.setUTCDate(d0.getUTCDate() + 1);
+    return d0.toISOString().slice(0, 10);
+  };
+  const filters = { "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM", from: from, to: nextDay(to) } };
   if (d.types) filters.TransactionType = { filterType: "IncludeValues", values: d.types };
 
   /* Разбор категорий: одна выгрузка, вся работа — после неё. */
