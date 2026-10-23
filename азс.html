@@ -1,0 +1,238 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RP АЗС · Пульс</title>
+<!-- Фуд Завод · © 2026. Страница статическая: срез на 23.10.2026 (RP АЗС). -->
+<script src="nav.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#070c17;--line:#1c2740;--line2:#26334d;--ink:#eef3fb;--ink2:#c3d0e2;--mut:#7b8ca6;
+ --mm:#34d399;--mm2:#047857;--good:#4ade80;--bad:#f87171;--warn:#fbbf24;--blue:#60a5fa}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
+ -webkit-font-smoothing:antialiased;background:
+ radial-gradient(900px 520px at 6% -8%,rgba(52,211,153,.12),transparent 60%),
+ radial-gradient(780px 460px at 97% 0%,rgba(96,165,250,.08),transparent 60%),var(--bg);background-attachment:fixed}
+.topbar{display:flex;align-items:center;gap:16px;padding:15px 30px;position:sticky;top:0;z-index:60;
+ background:rgba(10,16,29,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.backbtn{display:inline-flex;align-items:center;background:#16203a;color:var(--ink2);border:1px solid var(--line2);
+ font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;text-decoration:none}
+.backbtn:hover{background:var(--mm);color:#052e23;border-color:var(--mm)}
+.topbar h1{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;font-size:11.5px;color:#a7f3d0;background:rgba(52,211,153,.12);
+ border:1px solid rgba(52,211,153,.4);border-radius:999px;padding:6px 13px;font-weight:700}
+.section{padding:20px 30px 60px;max-width:1260px;margin:0 auto}
+.hero{border:1px solid var(--line2);border-radius:20px;padding:26px 28px;margin-bottom:18px;
+ background:linear-gradient(135deg,rgba(52,211,153,.10),rgba(10,16,29,.6))}
+.tag{font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--mm);text-transform:uppercase}
+.hero h2{font-size:26px;font-weight:900;margin:10px 0 8px;letter-spacing:-.6px;line-height:1.15}
+.hero p{color:var(--ink2);font-size:14.5px;line-height:1.55;max-width:900px}
+.hero p+p{margin-top:10px}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin:18px 0}
+.k{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.k .l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.k .v{font-size:25px;font-weight:900;margin-top:6px;letter-spacing:-.6px}
+.k .s{font-size:11.5px;color:var(--mut);margin-top:4px}
+h3{font-size:18px;font-weight:800;margin:30px 0 4px;letter-spacing:-.3px}
+.sub{font-size:12.5px;color:var(--mut);margin-bottom:14px}
+.card{background:rgba(255,255,255,.028);border:1px solid var(--line);border-radius:18px;padding:20px}
+.chart{display:flex;align-items:flex-end;gap:10px;height:260px;padding-top:10px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;height:100%}
+.bcol{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:5px}
+.b{width:40%;border-radius:6px 6px 0 0;position:relative;min-height:3px}
+.b span{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:800;white-space:nowrap}
+.b-rev{background:linear-gradient(180deg,#34d399,#047857)}
+.b-rev span{color:#6ee7b7}
+.b-ret{background:linear-gradient(180deg,#f87171,#991b1b)}
+.b-ret span{color:#fca5a5}
+.blab{font-size:11.5px;color:var(--ink2);margin-top:8px;font-weight:700}
+.bsh{font-size:10.5px;color:var(--bad);font-weight:800}
+.leg{display:flex;gap:18px;font-size:12px;color:var(--mut);margin-top:14px}
+.leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);
+ font-weight:800;padding:0 10px 10px 0;border-bottom:1px solid var(--line)}
+td{padding:9px 10px 9px 0;border-bottom:1px solid var(--line);color:var(--ink2)}
+td.n,th.n{text-align:right}
+tr:last-child td{border-bottom:0}
+.bad{color:var(--bad)}.warn{color:var(--warn)}.good{color:var(--good)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.flow{display:grid;grid-template-columns:1fr auto;gap:2px 16px;font-size:14px;max-width:620px}
+.flow div{padding:9px 0;border-bottom:1px solid var(--line)}
+.flow .r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.flow .tot{border-bottom:0;border-top:2px solid var(--mm);font-weight:900;font-size:17px;padding-top:13px}
+.note{font-size:12px;color:var(--mut);line-height:1.6;margin-top:12px}
+ul.todo{list-style:none;margin-top:6px}
+ul.todo li{padding:12px 0 12px 30px;border-bottom:1px solid var(--line);position:relative;
+ font-size:14px;color:var(--ink2);line-height:1.5}
+ul.todo li:last-child{border-bottom:0}
+ul.todo li:before{content:"→";position:absolute;left:4px;color:var(--mm);font-weight:900}
+ul.todo b{color:var(--ink)}
+@media(max-width:860px){.two{grid-template-columns:1fr}.section{padding:16px 14px 50px}.chart{height:200px}}
+</style></head><body>
+<div class="topbar"><a href="index.html" class="backbtn">← На Пульс</a>
+ <div><h1>⛽ RP АЗС</h1><p>74 заправки: выпечка навынос, ровная цена и рваный объём</p></div>
+ <div class="live">данные из программы айко на 23.10.2026</div></div>
+
+<div class="section">
+ <div class="hero">
+  <div class="tag">Канал 99 · январь–октябрь 2026</div>
+  <h2>Единственный канал, который продаёт по честной средней цене</h2>
+  <p>RP АЗС — это <b>74 заправки</b> и 9% выручки завода. Цена ровно рыночная:
+  <b>+0,2% к средней цене завода</b>, никакой скидки и никакой премии.
+  Возмещения нет вовсе. Маржинальный вклад сентября — <b class="good">11 084 230 ₸</b>,
+  при полной себестоимости — <b>ровно в ноль, −22 450 ₸</b>.</p>
+  <p>Но объём рваный: 11,4 млн в феврале, 43,4 млн в июле, 22,3 млн в октябре.
+  Разброс вчетверо внутри одного года — такого нет ни у одного другого канала.</p>
+ </div>
+
+ <div class="kpi">
+  <div class="k"><div class="l">Отгрузка за 10 мес.</div><div class="v">230 839 068</div><div class="s">3 961 накладных, 74 точки</div></div>
+  <div class="k"><div class="l">Цена к средней по заводу</div><div class="v">+0,2%</div><div class="s">июль–октябрь, сопоставимая корзина</div></div>
+  <div class="k"><div class="l">Разброс по месяцам</div><div class="v bad">×3,8</div><div class="s">от 11,4 до 43,4 млн ₸</div></div>
+  <div class="k"><div class="l">Марж. вклад за сентябрь</div><div class="v good">11 084 230</div><div class="s">45,2% нетто · при полной в ноль</div></div>
+ </div>
+
+ <h3>1 · Место канала в заводе</h3>
+ <div class="sub">Сентябрь, последний полный месяц</div>
+ <div class="card">
+  <table>
+   <tr><th>Показатель</th><th class=n>RP АЗС</th><th class=n>Весь завод</th><th class=n>Доля</th></tr>
+   <tr><td>Выручка</td><td class=n>24 501 832</td><td class=n>280 406 634</td><td class=n><b>8,7%</b></td></tr>
+   <tr><td>Накладных (доставок)</td><td class=n>363</td><td class=n>1 913</td><td class=n><b class="bad">19,0%</b></td></tr>
+   <tr><td>Точек обслуживания</td><td class=n>74</td><td class=n>250</td><td class=n>29,6%</td></tr>
+   <tr><td>Выручка на доставку</td><td class=n>67 498</td><td class=n>146 580</td><td class=n><b class="bad">×0,46</b></td></tr>
+  </table>
+  <div class="note">Вторая по дробности сеть после Маймарта: 19% доставок ради 8,7% выручки.
+  Выручка на доставку вдвое ниже средней по заводу. Логистика съедает 1 313 697 ₸ в месяц.</div>
+ </div>
+
+ <h3>2 · Из чего складывается вклад</h3>
+ <div class="sub">Сентябрь, от отгрузки до денег</div>
+ <div class="card">
+  <div class="two">
+   <div>
+    <div class="tag" style="color:var(--mut)">Маржинальный расчёт</div>
+    <div class="flow" style="margin-top:12px">
+     <div>Отгрузка</div><div class="r">24 501 832</div>
+     <div>Возврат</div><div class="r">0</div>
+     <div>Выручка нетто</div><div class="r">24 501 832</div>
+     <div>Продуктовая себестоимость (49,4%)</div><div class="r">−12 103 905</div>
+     <div>Логистика (363 доставки)</div><div class="r">−1 313 697</div>
+     <div>Возмещение</div><div class="r">0</div>
+     <div class="tot">Маржинальный вклад</div><div class="r tot good">11 084 230</div>
+    </div>
+   </div>
+   <div>
+    <div class="tag" style="color:var(--mut)">С полной себестоимостью</div>
+    <div class="flow" style="margin-top:12px">
+     <div>Маржинальный вклад</div><div class="r good">11 084 230</div>
+     <div>ЗП производства с налогами и питанием <span style="opacity:.5">24,0%</span></div><div class="r">−5 882 890</div>
+     <div>ЗП администрации с налогами <span style="opacity:.5">9,7%</span></div><div class="r">−2 379 128</div>
+     <div>Коммунальные услуги <span style="opacity:.5">3,6%</span></div><div class="r">−872 265</div>
+     <div>Аренда производства <span style="opacity:.5">2,5%</span></div><div class="r">−610 096</div>
+     <div>Охрана, IT, банк, прочее администрации <span style="opacity:.5">2,5%</span></div><div class="r">−607 645</div>
+     <div>Расходные материалы и спецодежда <span style="opacity:.5">1,4%</span></div><div class="r">−347 926</div>
+     <div>Ремонт и обслуживание <span style="opacity:.5">0,9%</span></div><div class="r">−215 616</div>
+     <div>Потери и инвентаризация <span style="opacity:.5">0,8%</span></div><div class="r">−191 114</div>
+
+     <div style="opacity:.6;font-size:12.5px">Итого остальные затраты — 45,3% нетто</div><div class="r" style="opacity:.6">−11 106 680</div>
+     <div class="tot">Результат канала</div><div class="r tot bad">−22 450</div>
+    </div>
+    <div class="note" style="margin-top:14px"><b>49,4% — только продуктовая себестоимость</b>,
+    сырьё по счёту «1.1.Себестоимость продуктовая». По заводу она 49,2% выручки за январь–сентябрь,
+    а цена канала равна средней — поэтому доля почти та же. Остальные 45,3% — доли статей ОПиУ,
+    разнесённые пропорционально выручке.</div>
+   </div>
+  </div>
+ </div>
+
+ <h3>3 · Цена</h3>
+ <div class="sub">Июль–октябрь. Каждую позицию считаем по средней цене завода по всем каналам</div>
+ <div class="card">
+  <div class="flow">
+   <div>Если бы АЗС брали по средней цене завода</div><div class="r">119 929 411</div>
+   <div>Фактически отгружено</div><div class="r">120 178 750</div>
+   <div class="tot">Отклонение</div><div class="r tot">+249 339</div>
+  </div>
+  <div class="note">Расхождение <b>+0,2%</b> — на уровне погрешности. Это единственный канал,
+  который берёт ровно по средней цене завода: ДФЗ на 7% дешевле, Яндекс Лавка на 9% дороже,
+  Маймарт на 17% дороже. Возмещения по АЗС нет вовсе, то есть никаких скрытых скидок
+  в маркетинге тоже не прячется.</div>
+ </div>
+
+ <h3>4 · Как менялось по месяцам</h3>
+ <div class="sub">Отгрузка и число накладных, 2026 год. Октябрь — по 23-е число</div>
+ <div class="card">
+  <div class="chart"><div class="bar"><div class="bcol"><div class="b b-rev" style="height:30.0%"><span>13,0</span></div></div><div class="blab">янв</div><div class="bsh" style="color:var(--mut)">291 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:26.3%"><span>11,4</span></div></div><div class="blab">фев</div><div class="bsh" style="color:var(--mut)">326 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:43.5%"><span>18,9</span></div></div><div class="blab">мар</div><div class="bsh" style="color:var(--mut)">382 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:43.6%"><span>18,9</span></div></div><div class="blab">апр</div><div class="bsh" style="color:var(--mut)">420 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:46.0%"><span>20,0</span></div></div><div class="blab">май</div><div class="bsh" style="color:var(--mut)">441 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:65.5%"><span>28,4</span></div></div><div class="blab">июн</div><div class="bsh" style="color:var(--mut)">518 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:100.0%"><span>43,4</span></div></div><div class="blab">июл</div><div class="bsh" style="color:var(--mut)">486 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:69.1%"><span>30,0</span></div></div><div class="blab">авг</div><div class="bsh" style="color:var(--mut)">387 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:56.4%"><span>24,5</span></div></div><div class="blab">сен</div><div class="bsh" style="color:var(--mut)">363 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:51.3%"><span>22,3</span></div></div><div class="blab">окт</div><div class="bsh" style="color:var(--mut)">347 накл.</div></div></div>
+  <div class="leg"><span><i style="background:#34d399"></i>отгрузка, млн ₸</span>
+   <span>под месяцем — сколько накладных</span></div>
+  <div class="note">Разброс в 3,8 раза: минимум 11,4 млн в феврале, пик 43,4 млн в июле,
+  сейчас 22,3. При этом число накладных держится на 290–520 — то есть меняется не частота
+  поездок, а объём каждой. Похоже на сезон и на разовые крупные закупки сети под акции,
+  а не на органический спрос.</div>
+ </div>
+ <div class="card" style="margin-top:16px">
+  <h3 style="margin-top:0">Для сравнения — 2025 год</h3>
+  <div class="sub">тот же канал годом раньше</div>
+  <table style="max-width:420px"><tr><th>Месяц</th><th class=n>Отгрузка, ₸</th></tr><tr><td>июн 2025</td><td class=n>26 203 382</td></tr><tr><td>июл 2025</td><td class=n>41 143 734</td></tr><tr><td>авг 2025</td><td class=n>43 431 638</td></tr><tr><td>сен 2025</td><td class=n>26 786 034</td></tr><tr><td>окт 2025</td><td class=n>30 269 892</td></tr><tr><td>ноя 2025</td><td class=n>19 291 242</td></tr><tr><td>дек 2025</td><td class=n>20 665 488</td></tr></table>
+  <div class="note">В 2025 году была та же картина: пик 43,4 млн в августе, провал до 19,3 млн
+  в ноябре. Рваность — это свойство канала, а не случайность 2026 года.</div>
+ </div>
+
+ <h3>5 · По точкам</h3>
+ <div class="sub">Десять крупнейших заправок из 74, отгрузка за 2026 год</div>
+ <div class="card">
+  <table><tr><th>Точка</th><th class=n>Выручка</th><th class=n>Накл.</th><th class=n>Средняя</th></tr>
+  <tr><td>RP АЗС 201</td><td class=n>20 473 705</td><td class=n>50</td><td class=n>409 474</td></tr><tr><td>RP АЗС 204</td><td class=n>13 299 284</td><td class=n>37</td><td class=n>359 440</td></tr><tr><td>RP АЗС 202</td><td class=n>11 009 270</td><td class=n>36</td><td class=n>305 813</td></tr><tr><td>RP АЗС 306</td><td class=n>9 057 275</td><td class=n>36</td><td class=n>251 591</td></tr><tr><td>RP АЗС 72</td><td class=n>8 190 055</td><td class=n>42</td><td class=n>195 001</td></tr><tr><td>RP АЗС 303</td><td class=n>7 326 158</td><td class=n>37</td><td class=n>198 004</td></tr><tr><td>RP АЗС 203</td><td class=n>6 904 558</td><td class=n>42</td><td class=n>164 394</td></tr><tr><td>RP АЗС 305</td><td class=n>6 834 380</td><td class=n>25</td><td class=n>273 375</td></tr><tr><td>RP АЗС 206</td><td class=n>6 384 010</td><td class=n>24</td><td class=n>266 000</td></tr><tr><td>RP АЗС 26</td><td class=n>6 103 544</td><td class=n>109</td><td class=n>55 996</td></tr></table>
+  <div class="note">Десять заправок из 74 дают 41% канала. АЗС 201 одна отгружает 20,5 млн —
+  больше, чем весь Crave Cafe за год. Обратите внимание на АЗС 26: 109 накладных
+  при средней 56 тыс. ₸ — туда ездят втрое чаще, чем на остальные, и возят втрое меньше.</div>
+ </div>
+
+ <h3>6 · Что возит канал</h3>
+ <div class="sub">Десять крупнейших позиций за 2026 год</div>
+ <div class="card">
+  <table><tr><th>Позиция</th><th class=n>Выручка</th><th class=n>Доля</th></tr><tr><td>Сосиска в тесте (30 шт, гофра)</td><td class=n>37 213 437</td><td class=n>16,1%</td></tr><tr><td>Пирожок с курицей и сыром (30 шт)</td><td class=n>21 610 770</td><td class=n>9,4%</td></tr><tr><td>Круассан миндальный (10 шт)</td><td class=n>15 148 180</td><td class=n>6,6%</td></tr><tr><td>Пирожок с картофелем (30 шт)</td><td class=n>14 418 482</td><td class=n>6,2%</td></tr><tr><td>Сосиска в тесте — обычная упаковка</td><td class=n>11 673 540</td><td class=n>5,1%</td></tr><tr><td>Брецель-дог (20 шт)</td><td class=n>11 273 440</td><td class=n>4,9%</td></tr><tr><td>Пирожок с капустой (30 шт)</td><td class=n>10 738 785</td><td class=n>4,7%</td></tr><tr><td>Сочник творожный (30 шт)</td><td class=n>8 368 800</td><td class=n>3,6%</td></tr><tr><td>Маффин апельсиновый (24 шт)</td><td class=n>7 680 288</td><td class=n>3,3%</td></tr><tr><td>Маффин шоколадный (24 шт)</td><td class=n>7 666 293</td><td class=n>3,3%</td></tr></table>
+  <div class="note">Самый концентрированный ассортимент на заводе: сосиска в тесте одна даёт 16%,
+  а десять позиций — 63% канала. Это не еда на вынос в широком смысле, а выпечка под кофе:
+  пирожки, круассаны, маффины, брецели. Почти всё едет в гофротаре по 20–30 штук
+  со специальным артикулом RP*.</div>
+ </div>
+
+ <h3>7 · Деньги</h3>
+ <div class="sub">По балансу расчётов на 23.10.2026</div>
+ <div class="card">
+  <table style="max-width:640px">
+   <tr><th>Показатель</th><th class=n>Сумма, ₸</th></tr>
+   <tr><td>Долг на 23.10.2026</td><td class=n><b>25 033 457</b></td></tr>
+   <tr><td>Отгружено за восемь недель</td><td class=n>48 941 036</td></tr>
+   <tr><td>Оплачено за восемь недель</td><td class=n>50 000 000</td></tr>
+   <tr><td>Разница</td><td class=n><b class="good">+1 058 964</b></td></tr>
+  </table>
+  <div class="note">Платят ровно: 50 млн ₸ за восемь недель против 48,9 отгрузки.
+  Долг 25,0 млн ₸ — примерно месяц отгрузок при нынешнем объёме.</div>
+ </div>
+
+ <h3>8 · Что с этим делать</h3>
+ <div class="sub">по убыванию денег</div>
+ <div class="card"><ul class="todo">
+  <li><b>Поднять цену.</b> Это единственный канал без премии и без скидки, при этом
+  с самым узким ассортиментом и готовностью брать гофротару. Плюс 5% к цене — это
+  около 1,2 млн ₸ в месяц, что сразу выводит канал в плюс при полной себестоимости.</li>
+  <li><b>Укрупнить поставки на мелкие точки.</b> АЗС 26 забирает 109 накладных в год
+  при средней 56 тыс. ₸. Таких точек в хвосте десятки — они и делают 19% доставок при 8,7% выручки.</li>
+  <li><b>Понять природу всплесков.</b> Июль дал 43,4 млн, февраль 11,4. Если это акции сети,
+  их надо планировать заранее: под них нужен другой график производства.</li>
+  <li><b>Использовать концентрацию.</b> Десять позиций дают 63% канала —
+  это редкая возможность договариваться о цене по короткому списку, а не по всей матрице.</li>
+ </ul></div>
+
+ <div class="note" style="margin-top:22px">Источник — данные из программы айко: расходные накладные
+ по контрагентам группы «99-», баланс расчётов на 23.10.2026, управленческий ОПиУ
+ за январь–сентябрь для долей затрат. Себестоимость — только продуктовая: 49,2% по заводу
+ за январь–сентябрь с поправкой на индекс цен канала. Сравнение цен — по средней цене
+ каждой позиции по всем каналам за июль–октябрь.</div>
+</div>
+</body></html>
