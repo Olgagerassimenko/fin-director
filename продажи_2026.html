@@ -431,7 +431,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
   var now=new Date(Date.now()+5*3600e3), p=function(x){return ('0'+x).slice(-2);};
   var y=now.getUTCFullYear(), m=now.getUTCMonth()+1, d=now.getUTCDate();
   T.value=y+'-'+p(m)+'-'+p(d); F.value=y+'-'+p(m)+'-01';
-  var BASE=(location.pathname.indexOf('/k')===0?'/k':'');
+  /* Адрес не подклеиваем руками: за дверью /k воркер сам переписывает
+     '/api/erp' в '/k/api/erp'. Если добавить префикс ещё и здесь,
+     получится /k/k/api/erp и дверь ответит «нет доступа». */
   function money(v){ return Math.round(v||0); }
   function load(cb){
     if(window.XLSX) return cb();
@@ -445,7 +447,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     if(!f||!t){ S.textContent='укажите обе даты'; return; }
     if(f>t){ S.textContent='начало позже конца'; return; }
     B.disabled=true; S.style.color='#94a3b8'; S.textContent='считаю в айко…';
-    fetch(BASE+'/api/erp?r=shipit&all=1&from='+f+'&to='+t)
+    fetch('/api/erp?r=shipit&all=1&from='+f+'&to='+t)
       .then(function(r){ return r.json(); })
       .then(function(j){
         if(!j || j.error) throw new Error(j && j.error ? j.error : 'нет ответа');
