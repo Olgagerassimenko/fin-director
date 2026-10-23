@@ -1615,4 +1615,6 @@
     OPEN_CTR[i] = !OPEN_CTR[i];
     window.drawCtr();
   };
+
+  try{ window.skuCat = skuCat; }catch(e){}
 })();
