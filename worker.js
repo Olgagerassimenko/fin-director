@@ -3018,7 +3018,7 @@ async function handleUslResp(request, env, url) {
 const SHARE_DAYS = 30;
 const DOORS = [
   { path: "/k", kv: "team:v1",  cook: "fz_team",  page: "продажи_2026.html",
-    title: "Продажи", nocopy: true, api: ["/api/erp"],
+    title: "Продажи", api: ["/api/erp"],   /* 23.10.2026: защиту от копирования сняли — копия работает один в один с Пульсом */
     files: ["sku_analytics.js", "sales_meta.js", "peredacha_data.js", "dz_kz.js",
             "contractor_items.js", "sales_live.js", "opiu_rev.js", "returns_meta.js",
             "astana_meta.js", "revisions.js", "sales_today.js"] },
