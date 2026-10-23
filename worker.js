@@ -417,6 +417,8 @@ async function handleErpRaw(request, env, url) {
   if (!d) return jsonResp({ error: "неизвестный отчёт" }, 400);
 
   const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
+  /* На экране хватает 300 строк, для выгрузки в Excel нужен весь список. */
+  const LIM = url.searchParams.get("all") === "1" ? 100000 : 300;
   const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);  // Алматы
   const to = ok(url.searchParams.get("to")) ? url.searchParams.get("to") : today;
   const from = ok(url.searchParams.get("from")) ? url.searchParams.get("from") : to.slice(0, 8) + "01";
@@ -444,7 +446,7 @@ async function handleErpRaw(request, env, url) {
     rows.sort((a, b) => b.sum - a.sum);
     const sums = { amount: rows.reduce((s2, x) => s2 + x.amount, 0),
                    sum: rows.reduce((s2, x) => s2 + x.sum, 0) };
-    return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, 300), total: rows.length,
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, LIM), total: rows.length,
                       sums: sums, from: to, to: to });
   }
 
@@ -575,7 +577,7 @@ async function handleErpRaw(request, env, url) {
     rows2.sort((a, b) => b.gp - a.gp);
     const sRev = rows2.reduce((s2, x) => s2 + x.rev, 0);
     const sCost = rows2.reduce((s2, x) => s2 + x.cost, 0);
-    return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, 300), total: rows2.length,
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, LIM), total: rows2.length,
       sums: { rev: sRev, cost: sCost, gp: sRev - sCost, mp: sRev ? ((sRev - sCost) / sRev) * 100 : 0 },
       from: from, to: to });
   }
@@ -599,7 +601,7 @@ async function handleErpRaw(request, env, url) {
   }
   const sums = {};
   d.agg.forEach((k) => { sums[k] = rows.reduce((s, x) => s + (x[k] || 0), 0); });
-  return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, 300), total: rows.length,
+  return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, LIM), total: rows.length,
                     sums: sums, from: from, to: to });
 }
 
@@ -1345,7 +1347,7 @@ export default {
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     // Отладчик OLAP: им калибруем новые сборщики, не гоняя GitHub Actions.
     if (url.pathname === "/api/olap-probe") return iikoProbe(url)
-      .catch((e) => jsonResp({ error: String(e).slice(0, 300) }, 500));
+      .catch((e) => jsonResp({ error: String(e).slice(0, LIM) }, 500));
     if (url.pathname === "/api/calc") return handleCalc(request, env, url)
       .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
     if (url.pathname === "/api/zp") return handleZp(request, env, url)
@@ -2994,7 +2996,7 @@ async function handleUslResp(request, env, url) {
     const clean = {};
     Object.keys(body).slice(0, 2000).forEach((k) => {
       const v = String(body[k] == null ? "" : body[k]).replace(/\s+/g, " ").trim().slice(0, 80);
-      if (v) clean[String(k).slice(0, 300)] = v;
+      if (v) clean[String(k).slice(0, LIM)] = v;
     });
     await env.PLAN.put(USL_RESP_KEY, JSON.stringify(clean).slice(0, 180000));
     return jsonResp({ ok: true, n: Object.keys(clean).length });
@@ -3016,7 +3018,7 @@ async function handleUslResp(request, env, url) {
 const SHARE_DAYS = 30;
 const DOORS = [
   { path: "/k", kv: "team:v1",  cook: "fz_team",  page: "продажи_2026.html",
-    title: "Продажи", nocopy: true,
+    title: "Продажи", nocopy: true, api: ["/api/erp"],
     files: ["sku_analytics.js", "sales_meta.js", "peredacha_data.js", "dz_kz.js",
             "contractor_items.js", "sales_live.js", "opiu_rev.js", "returns_meta.js",
             "astana_meta.js", "revisions.js", "sales_today.js"] },
@@ -3162,6 +3164,7 @@ const NOCOPY = `
     var n=document.querySelectorAll('button,a,div,span');
     for(var i=0;i<n.length;i++){
       var s=(n[i].textContent||'').toLowerCase();
+      if(n[i].hasAttribute('data-keep') || n[i].closest('[data-keep]')) continue;
       if(s.length<40 && (s.indexOf('excel')>=0 || s.indexOf('xlsx')>=0 || s.indexOf('csv')>=0
          || s.indexOf('скачать')>=0 || s.indexOf('выгруз')>=0)) n[i].style.display='none';
     }
@@ -3169,7 +3172,8 @@ const NOCOPY = `
     for(var j=0;j<a.length;j++) a[j].style.display='none';
   };
   /* сохранение файла из скрипта страницы тоже закрываем */
-  try{ var _c=URL.createObjectURL; URL.createObjectURL=function(){ return 'about:blank'; }; }catch(e){}
+  try{ var _c=URL.createObjectURL;
+       URL.createObjectURL=function(b){ return window.__fzExport ? _c.call(URL,b) : 'about:blank'; }; }catch(e){}
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',kill); else kill();
   setTimeout(kill,1500); setTimeout(kill,4000);
   window.XLSX=undefined;
