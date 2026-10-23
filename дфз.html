@@ -1,0 +1,233 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ДФЗ · Пульс</title>
+<!-- Фуд Завод · © 2026. Страница статическая: срез на 23.10.2026 (ДФЗ). -->
+<script src="nav.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#070c17;--line:#1c2740;--line2:#26334d;--ink:#eef3fb;--ink2:#c3d0e2;--mut:#7b8ca6;
+ --mm:#60a5fa;--mm2:#1d4ed8;--good:#4ade80;--bad:#f87171;--warn:#fbbf24;--blue:#60a5fa}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
+ -webkit-font-smoothing:antialiased;background:
+ radial-gradient(900px 520px at 6% -8%,rgba(96,165,250,.14),transparent 60%),
+ radial-gradient(780px 460px at 97% 0%,rgba(96,165,250,.08),transparent 60%),var(--bg);background-attachment:fixed}
+.topbar{display:flex;align-items:center;gap:16px;padding:15px 30px;position:sticky;top:0;z-index:60;
+ background:rgba(10,16,29,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.backbtn{display:inline-flex;align-items:center;background:#16203a;color:var(--ink2);border:1px solid var(--line2);
+ font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;text-decoration:none}
+.backbtn:hover{background:var(--mm);color:#06142b;border-color:var(--mm)}
+.topbar h1{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;font-size:11.5px;color:#bfdbfe;background:rgba(96,165,250,.12);
+ border:1px solid rgba(96,165,250,.4);border-radius:999px;padding:6px 13px;font-weight:700}
+.section{padding:20px 30px 60px;max-width:1260px;margin:0 auto}
+.hero{border:1px solid var(--line2);border-radius:20px;padding:26px 28px;margin-bottom:18px;
+ background:linear-gradient(135deg,rgba(96,165,250,.10),rgba(10,16,29,.6))}
+.tag{font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--mm);text-transform:uppercase}
+.hero h2{font-size:26px;font-weight:900;margin:10px 0 8px;letter-spacing:-.6px;line-height:1.15}
+.hero p{color:var(--ink2);font-size:14.5px;line-height:1.55;max-width:900px}
+.hero p+p{margin-top:10px}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin:18px 0}
+.k{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.k .l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.k .v{font-size:25px;font-weight:900;margin-top:6px;letter-spacing:-.6px}
+.k .s{font-size:11.5px;color:var(--mut);margin-top:4px}
+h3{font-size:18px;font-weight:800;margin:30px 0 4px;letter-spacing:-.3px}
+.sub{font-size:12.5px;color:var(--mut);margin-bottom:14px}
+.card{background:rgba(255,255,255,.028);border:1px solid var(--line);border-radius:18px;padding:20px}
+.chart{display:flex;align-items:flex-end;gap:10px;height:260px;padding-top:10px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;height:100%}
+.bcol{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:5px}
+.b{width:40%;border-radius:6px 6px 0 0;position:relative;min-height:3px}
+.b span{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:800;white-space:nowrap}
+.b-rev{background:linear-gradient(180deg,#60a5fa,#1d4ed8)}
+.b-rev span{color:#93c5fd}
+.b-ret{background:linear-gradient(180deg,#f87171,#991b1b)}
+.b-ret span{color:#fca5a5}
+.blab{font-size:11.5px;color:var(--ink2);margin-top:8px;font-weight:700}
+.bsh{font-size:10.5px;color:var(--bad);font-weight:800}
+.leg{display:flex;gap:18px;font-size:12px;color:var(--mut);margin-top:14px}
+.leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);
+ font-weight:800;padding:0 10px 10px 0;border-bottom:1px solid var(--line)}
+td{padding:9px 10px 9px 0;border-bottom:1px solid var(--line);color:var(--ink2)}
+td.n,th.n{text-align:right}
+tr:last-child td{border-bottom:0}
+.bad{color:var(--bad)}.warn{color:var(--warn)}.good{color:var(--good)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.flow{display:grid;grid-template-columns:1fr auto;gap:2px 16px;font-size:14px;max-width:620px}
+.flow div{padding:9px 0;border-bottom:1px solid var(--line)}
+.flow .r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.flow .tot{border-bottom:0;border-top:2px solid var(--mm);font-weight:900;font-size:17px;padding-top:13px}
+.note{font-size:12px;color:var(--mut);line-height:1.6;margin-top:12px}
+ul.todo{list-style:none;margin-top:6px}
+ul.todo li{padding:12px 0 12px 30px;border-bottom:1px solid var(--line);position:relative;
+ font-size:14px;color:var(--ink2);line-height:1.5}
+ul.todo li:last-child{border-bottom:0}
+ul.todo li:before{content:"→";position:absolute;left:4px;color:var(--mm);font-weight:900}
+ul.todo b{color:var(--ink)}
+@media(max-width:860px){.two{grid-template-columns:1fr}.section{padding:16px 14px 50px}.chart{height:200px}}
+</style></head><body>
+<div class="topbar"><a href="index.html" class="backbtn">← На Пульс</a>
+ <div><h1>🚛 ДФЗ</h1><p>дистрибьютор: объём, скидка и чего он стоит заводу</p></div>
+ <div class="live">данные из программы айко на 23.10.2026</div></div>
+
+<div class="section">
+ <div class="hero">
+  <div class="tag">Канал 85 · январь–октябрь 2026</div>
+  <h2>Самый дешёвый в обслуживании канал и самый дорогой по скидке</h2>
+  <p>ДФЗ даёт <b>41% выручки завода</b> и забирает <b>4% доставок</b>. За десять месяцев
+  отгружено <b>987 296 341 ₸</b> всего 1 063 накладными, возвратов почти нет —
+  <b>25 450 ₸</b> за весь год. Маржинальный вклад сентября — <b class="good">58 653 273 ₸</b>,
+  при полной себестоимости <b class="good">+6,6 млн ₸</b>.</p>
+  <p>Плата за это — цена. На сопоставимой корзине ДФЗ покупает <b class="bad">на 20,9% дешевле</b>
+  остальных каналов: 325 996 023 ₸ вместо 412 154 408 ₸ за июль–октябрь.</p>
+ </div>
+
+ <div class="kpi">
+  <div class="k"><div class="l">Отгрузка за 10 мес.</div><div class="v">987 296 341</div><div class="s">1 063 накладных</div></div>
+  <div class="k"><div class="l">Возвраты</div><div class="v good">25 450</div><div class="s">0,003% отгрузки</div></div>
+  <div class="k"><div class="l">Средняя накладная</div><div class="v">928 783</div><div class="s">в 27 раз больше, чем у Маймарта</div></div>
+  <div class="k"><div class="l">Марж. вклад за сентябрь</div><div class="v good">58 653 273</div><div class="s">51,1% нетто · при полной +6,6 млн</div></div>
+ </div>
+
+ <h3>1 · Место канала в заводе</h3>
+ <div class="sub">Сентябрь, последний полный месяц</div>
+ <div class="card">
+  <table>
+   <tr><th>Показатель</th><th class=n>ДФЗ</th><th class=n>Весь завод</th><th class=n>Доля</th></tr>
+   <tr><td>Выручка</td><td class=n>114 763 103</td><td class=n>280 406 634</td><td class=n><b>40,9%</b></td></tr>
+   <tr><td>Накладных (доставок)</td><td class=n>81</td><td class=n>1 913</td><td class=n><b class="good">4,2%</b></td></tr>
+   <tr><td>Точек обслуживания</td><td class=n>1</td><td class=n>250</td><td class=n>0,4%</td></tr>
+   <tr><td>Выручка на доставку</td><td class=n>1 416 828</td><td class=n>146 580</td><td class=n><b class="good">×8,7</b></td></tr>
+  </table>
+  <div class="note">Одна доставка по заводу стоит 3 619 ₸. На ДФЗ приходится 293 139 ₸ логистики
+  в месяц — против 2,5 млн ₸ у Маймарта при вчетверо меньшей выручке. Это противоположность
+  Маймарту: один контрагент, крупные партии, забирает сам.</div>
+ </div>
+
+ <h3>2 · Из чего складывается вклад</h3>
+ <div class="sub">Сентябрь, от отгрузки до денег</div>
+ <div class="card">
+  <div class="two">
+   <div>
+    <div class="tag" style="color:var(--mut)">Маржинальный расчёт</div>
+    <div class="flow" style="margin-top:12px">
+     <div>Отгрузка</div><div class="r">114 763 103</div>
+     <div>Возврат</div><div class="r">0</div>
+     <div>Выручка нетто</div><div class="r">114 763 103</div>
+     <div>Продуктовая себестоимость (47,5%)</div><div class="r">−54 512 474</div>
+     <div>Логистика (81 доставка)</div><div class="r">−293 139</div>
+     <div>Возмещение ДФЗ</div><div class="r">−1 304 217</div>
+     <div class="tot">Маржинальный вклад</div><div class="r tot good">58 653 273</div>
+    </div>
+   </div>
+   <div>
+    <div class="tag" style="color:var(--mut)">С полной себестоимостью</div>
+    <div class="flow" style="margin-top:12px">
+     <div>Маржинальный вклад</div><div class="r good">58 653 273</div>
+     <div>ЗП производства с налогами и питанием <span style="opacity:.5">24,0%</span></div><div class="r">−27 554 621</div>
+     <div>ЗП администрации с налогами <span style="opacity:.5">9,7%</span></div><div class="r">−11 143 497</div>
+     <div>Коммунальные услуги <span style="opacity:.5">3,6%</span></div><div class="r">−4 085 566</div>
+     <div>Аренда производства <span style="opacity:.5">2,5%</span></div><div class="r">−2 857 601</div>
+     <div>Охрана, IT, банк, прочее администрации <span style="opacity:.5">2,5%</span></div><div class="r">−2 846 125</div>
+     <div>Расходные материалы и спецодежда <span style="opacity:.5">1,4%</span></div><div class="r">−1 629 636</div>
+     <div>Ремонт и обслуживание <span style="opacity:.5">0,9%</span></div><div class="r">−1 009 915</div>
+     <div>Потери и инвентаризация <span style="opacity:.5">0,8%</span></div><div class="r">−895 152</div>
+
+     <div style="opacity:.6;font-size:12.5px">Итого остальные затраты — 45,3% нетто</div><div class="r" style="opacity:.6">−52 022 115</div>
+     <div class="tot">Результат канала</div><div class="r tot good">+6 631 158</div>
+    </div>
+    <div class="note" style="margin-top:14px"><b>47,5% — только продуктовая себестоимость</b>,
+    сырьё по счёту «1.1.Себестоимость продуктовая». Остальные 45,3% — доли статей ОПиУ
+    за январь–сентябрь, разнесённые пропорционально выручке. По заводу полная себестоимость
+    съедает 99,3% выручки, поэтому плюс в 6,6 млн ₸ — это и есть то, чем ДФЗ держит завод.</div>
+   </div>
+  </div>
+ </div>
+
+ <h3>3 · Чего стоит скидка</h3>
+ <div class="sub">Июль–октябрь, 197 позиций, которые идут и в ДФЗ, и в другие каналы</div>
+ <div class="card">
+  <div class="flow">
+   <div>Если бы ДФЗ брал по ценам других каналов</div><div class="r">412 154 408</div>
+   <div>Фактически отгружено</div><div class="r">325 996 023</div>
+   <div class="tot">Скидка за четыре месяца</div><div class="r tot bad">−86 158 385</div>
+  </div>
+  <div class="note">Это <b class="bad">20,9%</b> от стоимости корзины, около
+  <b>21 539 596 ₸ в месяц</b>. Сравнение честное: по каждой позиции берём количество ДФЗ
+  и умножаем на среднюю цену той же позиции в остальных каналах. Разница в ассортименте
+  на результат не влияет.<br><br>
+  Скидка — это цена за объём, отсутствие возвратов и самовывоз. Вопрос не в том, давать ли её,
+  а в том, не стала ли она больше, чем экономия на обслуживании: 86 млн ₸ скидки за четыре месяца
+  против примерно 1 млн ₸ сэкономленной логистики за тот же срок.</div>
+ </div>
+
+ <h3>4 · Как менялось по месяцам</h3>
+ <div class="sub">Отгрузка и число накладных, 2026 год. Октябрь — по 23-е число</div>
+ <div class="card">
+  <div class="chart"><div class="bar"><div class="bcol"><div class="b b-rev" style="height:79.5%"><span>91,2</span></div></div><div class="blab">янв</div><div class="bsh" style="color:var(--mut)">105 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:80.0%"><span>91,8</span></div></div><div class="blab">фев</div><div class="bsh" style="color:var(--mut)">110 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:82.6%"><span>94,8</span></div></div><div class="blab">мар</div><div class="bsh" style="color:var(--mut)">142 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:88.9%"><span>102,0</span></div></div><div class="blab">апр</div><div class="bsh" style="color:var(--mut)">139 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:83.9%"><span>96,3</span></div></div><div class="blab">май</div><div class="bsh" style="color:var(--mut)">138 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:80.2%"><span>92,0</span></div></div><div class="blab">июн</div><div class="bsh" style="color:var(--mut)">129 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:90.7%"><span>104,1</span></div></div><div class="blab">июл</div><div class="bsh" style="color:var(--mut)">82 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:98.3%"><span>112,8</span></div></div><div class="blab">авг</div><div class="bsh" style="color:var(--mut)">80 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:100.0%"><span>114,8</span></div></div><div class="blab">сен</div><div class="bsh" style="color:var(--mut)">81 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:76.2%"><span>87,5</span></div></div><div class="blab">окт</div><div class="bsh" style="color:var(--mut)">57 накл.</div></div></div>
+  <div class="leg"><span><i style="background:#60a5fa"></i>отгрузка, млн ₸</span>
+   <span>под месяцем — сколько накладных</span></div>
+  <div class="note">Объём ровный: 91–115 млн в месяц, без сезонных провалов.
+  Зато накладных стало вдвое меньше — со 142 в марте до 81 в сентябре при той же выручке:
+  партии укрупнились, обслуживание подешевело.</div>
+ </div>
+ <div class="card" style="margin-top:16px">
+  <h3 style="margin-top:0">Для сравнения — 2025 год</h3>
+  <div class="sub">тот же канал годом раньше</div>
+  <table style="max-width:420px"><tr><th>Месяц</th><th class=n>Отгрузка, ₸</th></tr><tr><td>июн 2025</td><td class=n>110 094 418</td></tr><tr><td>июл 2025</td><td class=n>104 835 274</td></tr><tr><td>авг 2025</td><td class=n>106 708 059</td></tr><tr><td>сен 2025</td><td class=n>116 453 606</td></tr><tr><td>окт 2025</td><td class=n>114 607 877</td></tr><tr><td>ноя 2025</td><td class=n>100 947 058</td></tr><tr><td>дек 2025</td><td class=n>105 710 950</td></tr></table>
+  <div class="note">Год назад канал давал 101–116 млн. То есть ДФЗ не растёт — он держит планку.
+  Весь рост завода за 2026 год пришёл из других каналов.</div>
+ </div>
+
+ <h3>5 · Что возит ДФЗ</h3>
+ <div class="sub">Двенадцать крупнейших позиций за 2026 год</div>
+ <div class="card">
+  <table><tr><th>Позиция</th><th class=n>Выручка</th><th class=n>Доля</th></tr><tr><td>Гуйру цомян</td><td class=n>21 355 203</td><td class=n>2,2%</td></tr><tr><td>Кимпаб с тунцом</td><td class=n>21 162 560</td><td class=n>2,1%</td></tr><tr><td>Кимпаб с курицей</td><td class=n>21 097 160</td><td class=n>2,1%</td></tr><tr><td>Кимпаб с тунцом Magnum Chef 220 г</td><td class=n>20 979 640</td><td class=n>2,1%</td></tr><tr><td>Плов по-ташкентски</td><td class=n>19 039 727</td><td class=n>1,9%</td></tr><tr><td>Бризоль с рисом</td><td class=n>18 411 750</td><td class=n>1,9%</td></tr><tr><td>Кимпаб с курицей Magnum Chef 220 г</td><td class=n>17 383 896</td><td class=n>1,8%</td></tr><tr><td>Курица с сыром, рис и паутини</td><td class=n>16 433 979</td><td class=n>1,7%</td></tr><tr><td>Шницель куриный с пюре</td><td class=n>15 788 231</td><td class=n>1,6%</td></tr><tr><td>Манты с говядиной</td><td class=n>15 069 438</td><td class=n>1,5%</td></tr><tr><td>Курица с сыром и пюре</td><td class=n>14 305 646</td><td class=n>1,4%</td></tr><tr><td>Курица с сыром и гречкой</td><td class=n>14 004 734</td><td class=n>1,4%</td></tr></table>
+  <div class="note">Ассортимент предельно ровный: крупнейшая позиция даёт 2,2%,
+  а все двенадцать вместе — меньше 22%. Концентрации нет, поэтому уход одной позиции
+  каналу не страшен — в отличие от Маймарта, где двенадцать позиций дают весь возврат.</div>
+ </div>
+
+ <h3>6 · Деньги</h3>
+ <div class="sub">По балансу расчётов на 23.10.2026</div>
+ <div class="card">
+  <table style="max-width:640px">
+   <tr><th>Показатель</th><th class=n>Сумма, ₸</th></tr>
+   <tr><td>Долг ДФЗ на 23.10.2026</td><td class=n><b>40 658 416</b></td></tr>
+   <tr><td>Отгружено за восемь недель</td><td class=n>210 434 091</td></tr>
+   <tr><td>Оплачено за восемь недель</td><td class=n>212 464 000</td></tr>
+   <tr><td>Разница</td><td class=n><b class="good">+2 029 909</b></td></tr>
+  </table>
+  <div class="note">ДФЗ платит больше, чем берёт: за восемь недель оплат на 2,0 млн ₸ больше отгрузки.
+  Долг 40,7 млн ₸ — это примерно десять дней отгрузок, нормальный рабочий остаток
+  для дистрибьютора такого объёма. Для сравнения: у DSF при вчетверо меньшей отгрузке
+  долг почти такой же.</div>
+ </div>
+
+ <h3>7 · Что с этим делать</h3>
+ <div class="sub">по убыванию денег</div>
+ <div class="card"><ul class="todo">
+  <li><b>Пересмотреть скидку по позициям, а не целиком.</b> 21% — средняя по корзине.
+  Внутри наверняка есть позиции, где скидка больше, а оборот не оправдывает:
+  именно там 86 млн ₸ за четыре месяца и зарабатываются обратно.</li>
+  <li><b>Закрепить укрупнение партий.</b> Накладных стало вдвое меньше при той же выручке —
+  это уже сэкономленные деньги, и условие стоит зафиксировать в договоре,
+  а не держаться на доброй воле.</li>
+  <li><b>Следить за долей.</b> 41% выручки в одном контрагенте — это риск:
+  уход ДФЗ закрывает завод. Рост других каналов здесь важнее, чем торг по цене.</li>
+  <li><b>Сверить возмещение.</b> 1,3 млн ₸ в месяц проходит как маркетинг,
+  хотя по сути это та же скидка. В отчётности её стоит показывать рядом с ценой,
+  иначе настоящая скидка выглядит меньше, чем она есть.</li>
+ </ul></div>
+
+ <div class="note" style="margin-top:22px">Источник — данные из программы айко: расходные накладные
+ по контрагенту «85-ДФЗ (дистрибьютор)», баланс расчётов на 23.10.2026, управленческий ОПиУ
+ за январь–сентябрь для долей затрат. Себестоимость — только продуктовая, 47,5% от выручки.
+ Сравнение цен — по 197 позициям, которые отгружались и в ДФЗ, и в другие каналы.</div>
+</div>
+</body></html>
