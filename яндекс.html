@@ -1,0 +1,233 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Яндекс Лавка · Пульс</title>
+<!-- Фуд Завод · © 2026. Страница статическая: срез на 23.10.2026 (Яндекс Лавка). -->
+<script src="nav.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#070c17;--line:#1c2740;--line2:#26334d;--ink:#eef3fb;--ink2:#c3d0e2;--mut:#7b8ca6;
+ --mm:#fbbf24;--mm2:#b45309;--good:#4ade80;--bad:#f87171;--warn:#fbbf24;--blue:#60a5fa}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
+ -webkit-font-smoothing:antialiased;background:
+ radial-gradient(900px 520px at 6% -8%,rgba(251,191,36,.13),transparent 60%),
+ radial-gradient(780px 460px at 97% 0%,rgba(96,165,250,.08),transparent 60%),var(--bg);background-attachment:fixed}
+.topbar{display:flex;align-items:center;gap:16px;padding:15px 30px;position:sticky;top:0;z-index:60;
+ background:rgba(10,16,29,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.backbtn{display:inline-flex;align-items:center;background:#16203a;color:var(--ink2);border:1px solid var(--line2);
+ font-weight:700;font-size:12.5px;padding:7px 13px;border-radius:999px;text-decoration:none}
+.backbtn:hover{background:var(--mm);color:#1a1205;border-color:var(--mm)}
+.topbar h1{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;font-size:11.5px;color:#fde68a;background:rgba(251,191,36,.12);
+ border:1px solid rgba(251,191,36,.4);border-radius:999px;padding:6px 13px;font-weight:700}
+.section{padding:20px 30px 60px;max-width:1260px;margin:0 auto}
+.hero{border:1px solid var(--line2);border-radius:20px;padding:26px 28px;margin-bottom:18px;
+ background:linear-gradient(135deg,rgba(251,191,36,.10),rgba(10,16,29,.6))}
+.tag{font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--mm);text-transform:uppercase}
+.hero h2{font-size:26px;font-weight:900;margin:10px 0 8px;letter-spacing:-.6px;line-height:1.15}
+.hero p{color:var(--ink2);font-size:14.5px;line-height:1.55;max-width:900px}
+.hero p+p{margin-top:10px}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin:18px 0}
+.k{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.k .l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.k .v{font-size:25px;font-weight:900;margin-top:6px;letter-spacing:-.6px}
+.k .s{font-size:11.5px;color:var(--mut);margin-top:4px}
+h3{font-size:18px;font-weight:800;margin:30px 0 4px;letter-spacing:-.3px}
+.sub{font-size:12.5px;color:var(--mut);margin-bottom:14px}
+.card{background:rgba(255,255,255,.028);border:1px solid var(--line);border-radius:18px;padding:20px}
+.chart{display:flex;align-items:flex-end;gap:10px;height:260px;padding-top:10px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;height:100%}
+.bcol{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:5px}
+.b{width:40%;border-radius:6px 6px 0 0;position:relative;min-height:3px}
+.b span{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:800;white-space:nowrap}
+.b-rev{background:linear-gradient(180deg,#fbbf24,#b45309)}
+.b-rev span{color:#fcd34d}
+.b-ret{background:linear-gradient(180deg,#f87171,#991b1b)}
+.b-ret span{color:#fca5a5}
+.blab{font-size:11.5px;color:var(--ink2);margin-top:8px;font-weight:700}
+.bsh{font-size:10.5px;color:var(--bad);font-weight:800}
+.leg{display:flex;gap:18px;font-size:12px;color:var(--mut);margin-top:14px}
+.leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);
+ font-weight:800;padding:0 10px 10px 0;border-bottom:1px solid var(--line)}
+td{padding:9px 10px 9px 0;border-bottom:1px solid var(--line);color:var(--ink2)}
+td.n,th.n{text-align:right}
+tr:last-child td{border-bottom:0}
+.bad{color:var(--bad)}.warn{color:var(--warn)}.good{color:var(--good)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.flow{display:grid;grid-template-columns:1fr auto;gap:2px 16px;font-size:14px;max-width:620px}
+.flow div{padding:9px 0;border-bottom:1px solid var(--line)}
+.flow .r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.flow .tot{border-bottom:0;border-top:2px solid var(--mm);font-weight:900;font-size:17px;padding-top:13px}
+.note{font-size:12px;color:var(--mut);line-height:1.6;margin-top:12px}
+ul.todo{list-style:none;margin-top:6px}
+ul.todo li{padding:12px 0 12px 30px;border-bottom:1px solid var(--line);position:relative;
+ font-size:14px;color:var(--ink2);line-height:1.5}
+ul.todo li:last-child{border-bottom:0}
+ul.todo li:before{content:"→";position:absolute;left:4px;color:var(--mm);font-weight:900}
+ul.todo b{color:var(--ink)}
+@media(max-width:860px){.two{grid-template-columns:1fr}.section{padding:16px 14px 50px}.chart{height:200px}}
+</style></head><body>
+<div class="topbar"><a href="index.html" class="backbtn">← На Пульс</a>
+ <div><h1>🛵 Яндекс Лавка</h1><p>16 дарксторов: премиальная цена и падающий объём</p></div>
+ <div class="live">данные из программы айко на 23.10.2026</div></div>
+
+<div class="section">
+ <div class="hero">
+  <div class="tag">Канал 102 · январь–октябрь 2026</div>
+  <h2>Премиальная цена, но канал сжимается четвёртый месяц подряд</h2>
+  <p>Яндекс Лавка даёт <b>17% выручки завода</b> через 16 дарксторов и покупает
+  <b class="good">на 10,2% дороже средней цены завода</b> — это самый выгодный по цене канал
+  после Маймарта. Маржинальный вклад сентября — <b class="good">23 917 194 ₸</b>,
+  при полной себестоимости <b class="good">+2,5 млн ₸</b>.</p>
+  <p>Проблема не в цене, а в объёме: с марта канал потерял <b class="bad">24 223 251 ₸ в месяц</b> —
+  с 67,1 млн до 42,9 млн. При этом возмещение Лавке растёт и составляет 1 808 430 ₸ в месяц.</p>
+ </div>
+
+ <div class="kpi">
+  <div class="k"><div class="l">Отгрузка за 10 мес.</div><div class="v">548 950 706</div><div class="s">2 919 накладных, 16 точек</div></div>
+  <div class="k"><div class="l">Цена к средней по заводу</div><div class="v good">+10,2%</div><div class="s">июль–октябрь, сопоставимая корзина</div></div>
+  <div class="k"><div class="l">Падение с марта</div><div class="v bad">−24 223 251</div><div class="s">в месяц, четыре месяца подряд</div></div>
+  <div class="k"><div class="l">Марж. вклад за сентябрь</div><div class="v good">23 917 194</div><div class="s">50,5% нетто · при полной +2,5 млн</div></div>
+ </div>
+
+ <h3>1 · Место канала в заводе</h3>
+ <div class="sub">Сентябрь, последний полный месяц</div>
+ <div class="card">
+  <table>
+   <tr><th>Показатель</th><th class=n>Яндекс Лавка</th><th class=n>Весь завод</th><th class=n>Доля</th></tr>
+   <tr><td>Выручка</td><td class=n>47 344 255</td><td class=n>280 406 634</td><td class=n><b>16,9%</b></td></tr>
+   <tr><td>Накладных (доставок)</td><td class=n>296</td><td class=n>1 913</td><td class=n>15,5%</td></tr>
+   <tr><td>Точек обслуживания</td><td class=n>16</td><td class=n>250</td><td class=n>6,4%</td></tr>
+   <tr><td>Выручка на доставку</td><td class=n>159 947</td><td class=n>146 580</td><td class=n><b>×1,1</b></td></tr>
+  </table>
+  <div class="note">По нагрузке на логистику Лавка ровно посередине: доля доставок почти равна доле
+  выручки. Это нормальный, сбалансированный канал — в отличие от Маймарта, где 37% доставок
+  дают 10% выручки, и от ДФЗ, где 4% доставок дают 41%.</div>
+ </div>
+
+ <h3>2 · Из чего складывается вклад</h3>
+ <div class="sub">Сентябрь, от отгрузки до денег</div>
+ <div class="card">
+  <div class="two">
+   <div>
+    <div class="tag" style="color:var(--mut)">Маржинальный расчёт</div>
+    <div class="flow" style="margin-top:12px">
+     <div>Отгрузка</div><div class="r">47 344 255</div>
+     <div>Возврат</div><div class="r">0</div>
+     <div>Выручка нетто</div><div class="r">47 344 255</div>
+     <div>Продуктовая себестоимость (43,4%)</div><div class="r">−20 547 407</div>
+     <div>Логистика (296 доставок)</div><div class="r">−1 071 224</div>
+     <div>Возмещение Лавке</div><div class="r">−1 808 430</div>
+     <div class="tot">Маржинальный вклад</div><div class="r tot good">23 917 194</div>
+    </div>
+   </div>
+   <div>
+    <div class="tag" style="color:var(--mut)">С полной себестоимостью</div>
+    <div class="flow" style="margin-top:12px">
+     <div>Маржинальный вклад</div><div class="r good">23 917 194</div>
+     <div>ЗП производства с налогами и питанием <span style="opacity:.5">24,0%</span></div><div class="r">−11 367 356</div>
+     <div>ЗП администрации с налогами <span style="opacity:.5">9,7%</span></div><div class="r">−4 597 127</div>
+     <div>Коммунальные услуги <span style="opacity:.5">3,6%</span></div><div class="r">−1 685 455</div>
+     <div>Аренда производства <span style="opacity:.5">2,5%</span></div><div class="r">−1 178 872</div>
+     <div>Охрана, IT, банк, прочее администрации <span style="opacity:.5">2,5%</span></div><div class="r">−1 174 138</div>
+     <div>Расходные материалы и спецодежда <span style="opacity:.5">1,4%</span></div><div class="r">−672 288</div>
+     <div>Ремонт и обслуживание <span style="opacity:.5">0,9%</span></div><div class="r">−416 629</div>
+     <div>Потери и инвентаризация <span style="opacity:.5">0,8%</span></div><div class="r">−369 285</div>
+
+     <div style="opacity:.6;font-size:12.5px">Итого остальные затраты — 45,3% нетто</div><div class="r" style="opacity:.6">−21 461 151</div>
+     <div class="tot">Результат канала</div><div class="r tot good">+2 456 044</div>
+    </div>
+    <div class="note" style="margin-top:14px"><b>43,4% — только продуктовая себестоимость</b>,
+    сырьё по счёту «1.1.Себестоимость продуктовая». По заводу она 47,5% выручки, но Лавка берёт
+    дороже средней цены — при тех же штуках доля себестоимости у неё ниже. Остальные 45,3% —
+    доли статей ОПиУ за январь–сентябрь, разнесённые пропорционально выручке.</div>
+   </div>
+  </div>
+ </div>
+
+ <h3>3 · Цена</h3>
+ <div class="sub">Июль–октябрь. Каждую позицию считаем по средней цене завода по всем каналам</div>
+ <div class="card">
+  <div class="flow">
+   <div>Если бы Лавка брала по средней цене завода</div><div class="r">175 074 812</div>
+   <div>Фактически отгружено</div><div class="r">192 987 213</div>
+   <div class="tot">Премия к средней цене</div><div class="r tot good">+17 912 401</div>
+  </div>
+  <div class="note">Плюс <b class="good">10,2%</b> к средней цене завода, около
+  <b>4 478 100 ₸ в месяц</b>. Для сравнения: Маймарт берёт на 17% дороже, ДФЗ — на 7% дешевле.
+  <br><br>Но часть премии возвращается обратно: возмещение Лавке — 1 808 430 ₸ в месяц,
+  или 18,1 млн ₸ с начала года. Чистая премия примерно вдвое меньше номинальной,
+  и в отчётности её стоит показывать рядом с ценой, а не отдельной строкой в маркетинге.</div>
+ </div>
+
+ <h3>4 · Как менялось по месяцам</h3>
+ <div class="sub">Отгрузка и число накладных, 2026 год. Октябрь — по 23-е число</div>
+ <div class="card">
+  <div class="chart"><div class="bar"><div class="bcol"><div class="b b-rev" style="height:88.1%"><span>59,1</span></div></div><div class="blab">янв</div><div class="bsh" style="color:var(--mut)">265 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:75.3%"><span>50,6</span></div></div><div class="blab">фев</div><div class="bsh" style="color:var(--mut)">280 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:100.0%"><span>67,1</span></div></div><div class="blab">мар</div><div class="bsh" style="color:var(--mut)">340 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:84.1%"><span>56,4</span></div></div><div class="blab">апр</div><div class="bsh" style="color:var(--mut)">329 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:93.6%"><span>62,8</span></div></div><div class="blab">май</div><div class="bsh" style="color:var(--mut)">277 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:89.2%"><span>59,9</span></div></div><div class="blab">июн</div><div class="bsh" style="color:var(--mut)">299 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:74.7%"><span>50,1</span></div></div><div class="blab">июл</div><div class="bsh" style="color:var(--mut)">281 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:78.4%"><span>52,6</span></div></div><div class="blab">авг</div><div class="bsh" style="color:var(--mut)">314 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:70.5%"><span>47,3</span></div></div><div class="blab">сен</div><div class="bsh" style="color:var(--mut)">296 накл.</div></div><div class="bar"><div class="bcol"><div class="b b-rev" style="height:63.9%"><span>42,9</span></div></div><div class="blab">окт</div><div class="bsh" style="color:var(--mut)">238 накл.</div></div></div>
+  <div class="leg"><span><i style="background:#fbbf24"></i>отгрузка, млн ₸</span>
+   <span>под месяцем — сколько накладных</span></div>
+  <div class="note">Пик был в марте — 67,1 млн. С тех пор канал теряет объём почти каждый месяц:
+  июль 50,1, август 52,6, сентябрь 47,3, октябрь по 23-е уже 42,9. Число точек при этом
+  не менялось — 16 с начала года. Значит падает не охват, а продажи в тех же дарксторах.
+  <br><br>Канал стартовал в ноябре 2025 года: 52,4 млн в ноябре и 79,9 млн в декабре —
+  это был лучший месяц за всю историю, с тех пор повторить его не удалось.</div>
+ </div>
+
+ <h3>5 · По точкам</h3>
+ <div class="sub">Все 16 дарксторов, отгрузка за 2026 год</div>
+ <div class="card">
+  <table><tr><th>Даркстор</th><th class=n>Выручка</th><th class=n>Накл.</th><th class=n>Средняя</th></tr>
+  <tr><td>Абылай хана, 62</td><td class=n>66 320 044</td><td class=n>266</td><td class=n>249 323</td></tr><tr><td>Кожамкулова, 202</td><td class=n>59 000 784</td><td class=n>263</td><td class=n>224 338</td></tr><tr><td>Бережинского, 20 (Илийский р-н)</td><td class=n>55 262 238</td><td class=n>36</td><td class=n>1 535 062</td></tr><tr><td>Розыбакиева, 275А</td><td class=n>53 226 107</td><td class=n>264</td><td class=n>201 614</td></tr><tr><td>Васнецова, 25</td><td class=n>50 462 881</td><td class=n>267</td><td class=n>189 000</td></tr><tr><td>Сатпаева, 90/21</td><td class=n>43 719 022</td><td class=n>267</td><td class=n>163 742</td></tr><tr><td>Самал-2, дом 105</td><td class=n>42 309 668</td><td class=n>265</td><td class=n>159 659</td></tr><tr><td>Навои, 58/1</td><td class=n>39 000 531</td><td class=n>263</td><td class=n>148 291</td></tr><tr><td>Тимирязева, 38/1</td><td class=n>32 612 951</td><td class=n>260</td><td class=n>125 434</td></tr><tr><td>Мамыр-3, д. 3</td><td class=n>31 223 348</td><td class=n>262</td><td class=n>119 173</td></tr><tr><td>Конаев, Заречный (Арна)</td><td class=n>22 464 901</td><td class=n>12</td><td class=n>1 872 075</td></tr><tr><td>Коктерек, 2</td><td class=n>18 207 398</td><td class=n>260</td><td class=n>70 028</td></tr><tr><td>Толе би, 51 · Астана</td><td class=n>8 748 553</td><td class=n>44</td><td class=n>198 831</td></tr><tr><td>Бухар Жырау, 25/1 · Астана</td><td class=n>8 271 508</td><td class=n>50</td><td class=n>165 430</td></tr><tr><td>Байтурсынова, 4/1 · Астана</td><td class=n>6 676 917</td><td class=n>49</td><td class=n>136 264</td></tr><tr><td>Айтеке би, 16 · Астана</td><td class=n>6 450 113</td><td class=n>45</td><td class=n>143 336</td></tr></table>
+  <div class="note">Четыре точки в Астане дают 30,1 млн — 5,5% канала. Бережинского и Конаев
+  работают по-другому: 36 и 12 накладных вместо 260 — это склады, куда возят крупными партиями,
+  а не ежедневные дарксторы. Четыре крупнейшие точки Алматы дают 42% всего канала.</div>
+ </div>
+
+ <h3>6 · Что возит Лавка</h3>
+ <div class="sub">Десять крупнейших позиций за 2026 год</div>
+ <div class="card">
+  <table><tr><th>Позиция</th><th class=n>Выручка</th><th class=n>Доля</th></tr><tr><td>Хлеб Тосканский СМ (6 шт)</td><td class=n>21 375 696</td><td class=n>3,9%</td></tr><tr><td>Гуйру цомян</td><td class=n>20 776 627</td><td class=n>3,8%</td></tr><tr><td>Багет чесночный СМ (8 шт)</td><td class=n>18 207 600</td><td class=n>3,3%</td></tr><tr><td>Хлеб Тартин с семечками (4 шт)</td><td class=n>17 550 500</td><td class=n>3,2%</td></tr><tr><td>Плов по-ташкентски</td><td class=n>17 034 593</td><td class=n>3,1%</td></tr><tr><td>Курица с сыром и пюре</td><td class=n>15 421 885</td><td class=n>2,8%</td></tr><tr><td>Том ям с курицей</td><td class=n>15 263 585</td><td class=n>2,8%</td></tr><tr><td>Кимпаб с тунцом</td><td class=n>15 156 919</td><td class=n>2,8%</td></tr><tr><td>Блины с ветчиной и сыром (3 шт)</td><td class=n>14 981 863</td><td class=n>2,7%</td></tr><tr><td>Круассан с индейкой</td><td class=n>12 704 480</td><td class=n>2,3%</td></tr></table>
+  <div class="note">Отличие от других каналов — хлеб. Тосканский, багет чесночный и тартин
+  с семечками вместе дают 10,4% канала и в топе больше нигде не встречаются.
+  Лавка — единственный канал, где хлебная группа сопоставима с готовыми блюдами.</div>
+ </div>
+
+ <h3>7 · Деньги</h3>
+ <div class="sub">По балансу расчётов на 23.10.2026</div>
+ <div class="card">
+  <table style="max-width:640px">
+   <tr><th>Показатель</th><th class=n>Сумма, ₸</th></tr>
+   <tr><td>Долг Лавки на 23.10.2026</td><td class=n><b>34 509 417</b></td></tr>
+   <tr><td>Отгружено за восемь недель</td><td class=n>89 347 173</td></tr>
+   <tr><td>Оплачено за восемь недель</td><td class=n>92 049 234</td></tr>
+   <tr><td>Разница</td><td class=n><b class="good">+2 702 061</b></td></tr>
+  </table>
+  <div class="note">Платят лучше, чем берут: за восемь недель оплат на 2,7 млн ₸ больше отгрузки.
+  Долг 34,5 млн ₸ — около трёх недель отгрузок. Претензий по расчётам нет.</div>
+ </div>
+
+ <h3>8 · Что с этим делать</h3>
+ <div class="sub">по убыванию денег</div>
+ <div class="card"><ul class="todo">
+  <li><b>Разобраться с падением, а не с ценой.</b> Канал потерял 24,2 млн ₸ в месяц с марта
+  при тех же 16 точках. Это минус примерно 10 млн ₸ маржинального вклада в месяц —
+  больше, чем даёт любая оптимизация затрат.</li>
+  <li><b>Посмотреть, что именно просело по точкам.</b> Все 16 дарксторов на месте,
+  значит упали конкретные позиции или полки. Стоит сравнить сентябрь с мартом по SKU.</li>
+  <li><b>Свести премию и возмещение в одну цифру.</b> Сейчас +10,2% премии и 1,8 млн ₸
+  возмещения живут в разных отчётах, поэтому реальная цена канала не видна ни в одном.</li>
+  <li><b>Не трогать логистику.</b> Доля доставок равна доле выручки — здесь оптимизировать нечего,
+  в отличие от Маймарта.</li>
+ </ul></div>
+
+ <div class="note" style="margin-top:22px">Источник — данные из программы айко: расходные накладные
+ по контрагентам группы «102-», баланс расчётов на 23.10.2026, управленческий ОПиУ
+ за январь–сентябрь для долей затрат. Себестоимость — только продуктовая: 47,5% по заводу
+ с поправкой на индекс цен канала. Сравнение цен — по средней цене каждой позиции
+ по всем каналам за июль–октябрь.</div>
+</div>
+</body></html>
