@@ -502,7 +502,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
         rows.forEach(function(x,idx){
           var share=total? x.rev/total*100 : 0; acc+=share;
           var r=ws.getRow(6+idx);
-          var vals=[idx+1, x.name, cat(x.name), x.qty, x.rev,
+          var vals=[idx+1, x.name, cat(x.name), Math.round(x.qty*1000)/1000, x.rev,
                     (x.price===null? '' : Math.round(x.price)),
                     +share.toFixed(2), +acc.toFixed(1)];
           vals.forEach(function(v,i2){
@@ -525,7 +525,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 
         var last=5+rows.length+1;
         var tr=ws.getRow(last);
-        [['A','ИТОГО'],['B',rows.length+' позиций'],['D',totQty],['E',Math.round(total)],['G',100]]
+        [['A','ИТОГО'],['B',rows.length+' позиций'],['D',Math.round(totQty*100)/100],['E',Math.round(total)],['G',100]]
           .forEach(function(pair){ tr.getCell(pair[0]).value=pair[1]; });
         for(var k=1;k<=8;k++){
           var c=tr.getCell(k);
