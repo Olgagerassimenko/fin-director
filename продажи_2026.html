@@ -427,54 +427,134 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
   var F=document.getElementById('pe-from'), T=document.getElementById('pe-to'),
       B=document.getElementById('pe-go'),  S=document.getElementById('pe-st');
   if(!F||!T||!B) return;
-  /* по умолчанию — текущий месяц по вчера */
   var now=new Date(Date.now()+5*3600e3), p=function(x){return ('0'+x).slice(-2);};
-  var y=now.getUTCFullYear(), m=now.getUTCMonth()+1, d=now.getUTCDate();
-  T.value=y+'-'+p(m)+'-'+p(d); F.value=y+'-'+p(m)+'-01';
+  T.value=now.getUTCFullYear()+'-'+p(now.getUTCMonth()+1)+'-'+p(now.getUTCDate());
+  F.value=now.getUTCFullYear()+'-'+p(now.getUTCMonth()+1)+'-01';
+  var RU=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  function ru(s){ var a=s.split('-'); return (+a[2])+' '+RU[+a[1]-1]+' '+a[0]; }
   /* Адрес не подклеиваем руками: за дверью /k воркер сам переписывает
-     '/api/erp' в '/k/api/erp'. Если добавить префикс ещё и здесь,
-     получится /k/k/api/erp и дверь ответит «нет доступа». */
-  function money(v){ return Math.round(v||0); }
-  function load(cb){
-    if(window.XLSX) return cb();
-    var s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    s.onload=cb; s.onerror=function(){ S.textContent='не удалось загрузить модуль Excel'; };
-    document.head.appendChild(s);
-  }
+     '/api/erp' в '/k/api/erp'. Префикс здесь дал бы /k/k/api/erp. */
+
+  var NAVY='FF0B141F', GREY='FFEDEDED', ZEBRA='FFF7F9FC', LINE='FFE5E7EB',
+      INK='FF16211C', MUTE='FF8B9A92', AMBER='FFB45309';
+  function thin(){ return {style:'thin', color:{argb:LINE}}; }
+
   B.onclick=function(){
     var f=F.value, t=T.value;
-    if(!f||!t){ S.textContent='укажите обе даты'; return; }
-    if(f>t){ S.textContent='начало позже конца'; return; }
+    if(!f||!t){ S.style.color='#f87171'; S.textContent='укажите обе даты'; return; }
+    if(f>t){ S.style.color='#f87171'; S.textContent='начало позже конца'; return; }
+    if(typeof ExcelJS==='undefined'){ S.style.color='#f87171'; S.textContent='модуль Excel ещё грузится — повторите через секунду'; return; }
     B.disabled=true; S.style.color='#94a3b8'; S.textContent='считаю в айко…';
     fetch('/api/erp?r=shipit&all=1&from='+f+'&to='+t)
       .then(function(r){ return r.json(); })
       .then(function(j){
         if(!j || j.error) throw new Error(j && j.error ? j.error : 'нет ответа');
-        var rows=j.rows||[];
+        var rows=(j.rows||[]).map(function(x){
+          var q=Math.abs(x['Amount']||0), r2=x['Sum.Outgoing']||0;
+          return { name:String(x['Product.Name']||''), qty:q, rev:r2, price:q? r2/q : null };
+        }).filter(function(x){ return x.rev || x.qty; });
         if(!rows.length) throw new Error('за этот период отгрузок нет');
+        rows.sort(function(a,b){ return b.rev-a.rev; });
         S.textContent='собираю файл… ('+rows.length+' позиций)';
-        load(function(){
-          var cat = (typeof window.skuCat==='function') ? window.skuCat : function(){ return ''; };
-          var tot = rows.reduce(function(s,x){ return s+(x['Sum.Outgoing']||0); },0);
-          var aoa=[['№','Позиция','Категория','Кол-во','Выручка, ₸','Цена за ед., ₸','Доля, %']];
-          rows.forEach(function(x,i){
-            /* айко отдаёт расход со знаком минус — в выгрузке показываем штуки как есть */
-            var q=Math.abs(x['Amount']||0), r2=x['Sum.Outgoing']||0;
-            aoa.push([i+1, x['Product.Name']||'', cat(x['Product.Name']||''),
-                      Math.round(q*100)/100, money(r2),
-                      q? Math.round(r2/q) : '', tot? +((r2/tot*100).toFixed(2)) : 0]);
+
+        var cat=(typeof window.skuCat==='function')? window.skuCat : function(){ return ''; };
+        var total=rows.reduce(function(s,x){ return s+x.rev; },0);
+        var totQty=rows.reduce(function(s,x){ return s+x.qty; },0);
+
+        var wb=new ExcelJS.Workbook();
+        wb.creator='Пульс · Фуд Завод';
+        var ws=wb.addWorksheet('Отгрузка', {
+          views:[{state:'frozen', ySplit:5}],
+          pageSetup:{orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:0,
+                     printTitlesRow:'5:5', margins:{left:.3,right:.3,top:.5,bottom:.5,header:.2,footer:.2}}
+        });
+        ws.columns=[{width:6},{width:52},{width:17},{width:12},{width:16},{width:15},{width:10},{width:13}];
+
+        ws.mergeCells('A1:H1');
+        var t1=ws.getCell('A1');
+        t1.value='Продажи · отгрузка по номенклатуре';
+        t1.font={name:'Arial', size:16, bold:true, color:{argb:NAVY}};
+        ws.getRow(1).height=26;
+        ws.mergeCells('A2:H2');
+        var t2=ws.getCell('A2');
+        t2.value='Период: '+ru(f)+' — '+ru(t)+'   ·   '+rows.length+' позиций   ·   выручка '
+                 +Math.round(total).toLocaleString('ru-RU')+' ₸';
+        t2.font={name:'Arial', size:10, color:{argb:MUTE}};
+        ws.mergeCells('A3:H3');
+        var t3=ws.getCell('A3');
+        t3.value='Источник — программа айко, расходные накладные. Выгружено '
+                 +new Date().toLocaleString('ru-RU').replace(',','');
+        t3.font={name:'Arial', size:9, italic:true, color:{argb:MUTE}};
+        ws.getRow(4).height=6;
+
+        var head=['№','Позиция','Категория','Кол-во','Выручка, ₸','Цена за ед., ₸','Доля, %','Накоплено, %'];
+        var hr=ws.getRow(5);
+        head.forEach(function(v,i2){
+          var c=hr.getCell(i2+1);
+          c.value=v;
+          c.font={name:'Arial', size:10, bold:true, color:{argb:'FFFFFFFF'}};
+          c.fill={type:'pattern', pattern:'solid', fgColor:{argb:NAVY}};
+          c.alignment={vertical:'middle', horizontal:(i2>=3?'right':'left'), indent:1, wrapText:true};
+        });
+        hr.height=24;
+
+        var acc=0;
+        rows.forEach(function(x,idx){
+          var share=total? x.rev/total*100 : 0; acc+=share;
+          var r=ws.getRow(6+idx);
+          var vals=[idx+1, x.name, cat(x.name), x.qty, x.rev,
+                    (x.price===null? '' : Math.round(x.price)),
+                    +share.toFixed(2), +acc.toFixed(1)];
+          vals.forEach(function(v,i2){
+            var c=r.getCell(i2+1);
+            c.value=v;
+            c.font={name:'Arial', size:9.5, color:{argb:INK}};
+            c.border={bottom:thin()};
+            c.alignment={vertical:'middle', horizontal:(i2>=3?'right':'left'), indent:1};
+            if(idx%2===0) c.fill={type:'pattern', pattern:'solid', fgColor:{argb:ZEBRA}};
           });
-          aoa.push([]);
-          aoa.push(['', 'ИТОГО '+rows.length+' позиций', '', '', money(tot), '', 100]);
-          var ws=XLSX.utils.aoa_to_sheet(aoa);
-          ws['!cols']=[{w:6},{w:52},{w:18},{w:12},{w:16},{w:15},{w:10}];
-          ws['!freeze']={xSplit:0,ySplit:1};
-          var wb=XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb, ws, 'Отгрузка');
+          r.getCell(2).font={name:'Arial', size:9.5, bold:(idx<10), color:{argb:INK}};
+          r.getCell(4).numFmt='#,##0.##';
+          r.getCell(5).numFmt='#,##0';
+          r.getCell(5).font={name:'Arial', size:9.5, bold:true, color:{argb:INK}};
+          r.getCell(6).numFmt='#,##0';
+          r.getCell(7).numFmt='0.00"%"';
+          r.getCell(8).numFmt='0.0"%"';
+          if(acc<=80) r.getCell(8).font={name:'Arial', size:9.5, bold:true, color:{argb:AMBER}};
+        });
+
+        var last=5+rows.length+1;
+        var tr=ws.getRow(last);
+        [['A','ИТОГО'],['B',rows.length+' позиций'],['D',totQty],['E',Math.round(total)],['G',100]]
+          .forEach(function(pair){ tr.getCell(pair[0]).value=pair[1]; });
+        for(var k=1;k<=8;k++){
+          var c=tr.getCell(k);
+          c.font={name:'Arial', size:11, bold:true, color:{argb:NAVY}};
+          c.fill={type:'pattern', pattern:'solid', fgColor:{argb:'FFF1EFE7'}};
+          c.border={top:{style:'medium', color:{argb:NAVY}}};
+          c.alignment={vertical:'middle', horizontal:(k>=4?'right':'left'), indent:1};
+        }
+        tr.getCell(4).numFmt='#,##0.##';
+        tr.getCell(5).numFmt='#,##0';
+        tr.getCell(7).numFmt='0"%"';
+        tr.height=22;
+
+        ws.autoFilter='A5:H'+(5+rows.length);
+
+        var note=ws.getRow(last+2);
+        ws.mergeCells('A'+(last+2)+':H'+(last+2));
+        note.getCell(1).value='Жирным выделены позиции, дающие первые 80% выручки. '
+          +'Количество — в единицах отгрузки, цена за единицу посчитана как выручка ÷ количество.';
+        note.getCell(1).font={name:'Arial', size:9, italic:true, color:{argb:MUTE}};
+
+        wb.xlsx.writeBuffer().then(function(buf){
+          var blob=new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
           window.__fzExport=true;
-          XLSX.writeFile(wb, 'Продажи '+f+' — '+t+'.xlsx');
-          setTimeout(function(){ window.__fzExport=false; }, 2000);
+          var a=document.createElement('a');
+          a.href=URL.createObjectURL(blob);
+          a.download='Продажи '+f+' — '+t+'.xlsx';
+          document.body.appendChild(a); a.click();
+          setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); window.__fzExport=false; }, 1500);
           S.style.color='#4ade80'; S.textContent='готово: '+rows.length+' позиций';
           B.disabled=false;
         });
