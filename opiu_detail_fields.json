@@ -1,5 +1,5 @@
 {
- "built": "2026-10-26 13:45",
+ "built": "2026-10-26 21:07",
  "dateField": "DateTime.DateTyped",
  "docField": "Document",
  "commentFields": [
@@ -138,7 +138,7 @@
   "2026-10"
  ],
  "meta": {
-  "built": "2026-10-26 13:33",
+  "built": "2026-10-26 20:55",
   "dept": "Фуд завод",
   "top": 150,
   "cuts": [
@@ -309,6 +309,6 @@
    "Store.Name"
   ],
   "trimmed": [],
-  "bytes": 8545989
+  "bytes": 8545777
  }
 }
