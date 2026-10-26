@@ -1,0 +1,528 @@
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Инструкция: как создать продажу · Фуд Завод</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#070c17;--line:#1c2740;--line2:#26334d;--ink:#eef3fb;--ink2:#c3d0e2;--mut:#7b8ca6;
+ --c1:#2dd4bf;--c2:#0f766e;--good:#4ade80;--bad:#f87171;--warn:#fbbf24}
+body{font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);min-height:100vh;
+ -webkit-font-smoothing:antialiased;background:
+ radial-gradient(900px 520px at 6% -8%,rgba(45,212,191,.13),transparent 60%),
+ radial-gradient(780px 460px at 97% 0%,rgba(45,212,191,.07),transparent 60%),var(--bg);background-attachment:fixed}
+.topbar{display:flex;align-items:center;gap:16px;padding:15px 30px;position:sticky;top:0;z-index:60;
+ background:rgba(10,16,29,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.topbar h1{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.topbar p{font-size:11.5px;color:var(--mut);margin-top:2px}
+.live{margin-left:auto;font-size:11.5px;color:#99f6e4;background:rgba(45,212,191,.12);
+ border:1px solid rgba(45,212,191,.4);border-radius:999px;padding:6px 13px;font-weight:700}
+.section{padding:20px 30px 80px;max-width:1120px;margin:0 auto}
+.hero{border:1px solid var(--line2);border-radius:20px;padding:26px 28px;margin-bottom:20px;
+ background:linear-gradient(135deg,rgba(45,212,191,.10),rgba(10,16,29,.6))}
+.tag{font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--c1);text-transform:uppercase}
+.hero h2{font-size:26px;font-weight:900;margin:10px 0 10px;letter-spacing:-.6px;line-height:1.18}
+.hero p{color:var(--ink2);font-size:14.5px;line-height:1.6;max-width:880px}
+.hero p+p{margin-top:9px}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0 6px}
+.k{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:16px;padding:15px 17px}
+.k .l{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.k .v{font-size:23px;font-weight:900;margin-top:6px;letter-spacing:-.6px}
+.k .s{font-size:11.5px;color:var(--mut);margin-top:4px;line-height:1.45}
+.toc{background:rgba(255,255,255,.028);border:1px solid var(--line);border-radius:18px;padding:18px 22px;margin:20px 0 10px}
+.toc b{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut);font-weight:800}
+.toc ol{margin:12px 0 0 20px;columns:2;column-gap:34px}
+.toc li{font-size:13.5px;margin-bottom:7px;break-inside:avoid}
+.toc a{color:var(--ink2);text-decoration:none;border-bottom:1px dotted var(--line2)}
+.toc a:hover{color:var(--c1);border-color:var(--c1)}
+h3{font-size:19px;font-weight:900;margin:38px 0 4px;letter-spacing:-.3px;scroll-margin-top:80px}
+h3 em{font-style:normal;color:var(--c1);margin-right:9px}
+h4{font-size:14.5px;font-weight:800;margin:22px 0 8px;color:var(--ink)}
+.sub{font-size:12.5px;color:var(--mut);margin-bottom:14px;line-height:1.55}
+.card{background:rgba(255,255,255,.028);border:1px solid var(--line);border-radius:18px;padding:20px 22px;margin-top:12px}
+p.t{font-size:14px;color:var(--ink2);line-height:1.65;margin-top:10px}
+p.t b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);
+ font-weight:800;padding:0 12px 10px 0;border-bottom:1px solid var(--line);vertical-align:bottom}
+td{padding:10px 12px 10px 0;border-bottom:1px solid var(--line);color:var(--ink2);vertical-align:top;line-height:1.5}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td b{color:var(--ink)}
+tr:last-child td{border-bottom:0}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px;
+ background:rgba(45,212,191,.11);border:1px solid rgba(45,212,191,.26);border-radius:5px;padding:1px 6px;color:#99f6e4}
+.bad{color:var(--bad)}.warn{color:var(--warn)}.good{color:var(--good)}.mut{color:var(--mut)}
+.box{border-radius:14px;padding:15px 18px;margin-top:14px;font-size:13.5px;line-height:1.6;color:var(--ink2)}
+.box b{color:var(--ink)}
+.box.stop{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.34)}
+.box.warn{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.32)}
+.box.ok{background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.3)}
+.box .h{font-size:10.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:7px}
+.box.stop .h{color:#fca5a5}.box.warn .h{color:#fcd34d}.box.ok .h{color:#86efac}
+ol.steps{list-style:none;counter-reset:s;margin-top:6px}
+ol.steps>li{counter-increment:s;position:relative;padding:14px 0 14px 42px;border-bottom:1px solid var(--line);
+ font-size:14px;color:var(--ink2);line-height:1.6}
+ol.steps>li:last-child{border-bottom:0}
+ol.steps>li:before{content:counter(s);position:absolute;left:0;top:13px;width:26px;height:26px;border-radius:9px;
+ background:rgba(45,212,191,.14);border:1px solid rgba(45,212,191,.4);color:#99f6e4;
+ font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center}
+ol.steps>li b{color:var(--ink)}
+ul.pl{list-style:none;margin-top:8px}
+ul.pl li{position:relative;padding:8px 0 8px 22px;font-size:13.5px;color:var(--ink2);line-height:1.6}
+ul.pl li:before{content:"—";position:absolute;left:0;color:var(--c1);font-weight:900}
+ul.pl li b{color:var(--ink)}
+.chk{list-style:none;margin-top:8px}
+.chk li{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line);
+ font-size:13.5px;color:var(--ink2);line-height:1.5;cursor:pointer}
+.chk li:last-child{border-bottom:0}
+.chk li i{flex:0 0 19px;height:19px;margin-top:1px;border-radius:6px;border:1.5px solid var(--line2);
+ background:rgba(255,255,255,.03);display:block;position:relative;transition:.12s}
+.chk li.on i{background:var(--c1);border-color:var(--c1)}
+.chk li.on i:after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+ color:#042f2e;font-size:13px;font-weight:900}
+.chk li.on span{color:var(--mut);text-decoration:line-through}
+.chk b{color:var(--ink)}
+.flow{display:grid;grid-template-columns:auto 1fr;gap:0 16px;margin-top:10px}
+.flow .s{font-size:11px;font-weight:900;color:var(--c1);padding:11px 0;white-space:nowrap}
+.flow .d{font-size:13.5px;color:var(--ink2);padding:11px 0;border-bottom:1px solid var(--line);line-height:1.55}
+.flow .s{border-bottom:1px solid var(--line)}
+.flow>div:nth-last-child(-n+2){border-bottom:0}
+.note{font-size:12px;color:var(--mut);line-height:1.65;margin-top:14px}
+.foot{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);font-size:11.5px;color:var(--mut);line-height:1.7}
+@media(max-width:860px){.section{padding:16px 14px 60px}.toc ol{columns:1}table{font-size:12.5px}}
+@media print{body{background:#fff;color:#000}.topbar{position:static}.box,.card,.toc{border-color:#ccc}
+ h3{page-break-after:avoid}table{page-break-inside:avoid}}
+</style></head><body>
+
+<div class="topbar">
+ <div><h1>📋 Как создать продажу</h1><p>расходная накладная в айке · регламент для менеджера и оператора</p></div>
+ <div class="live">редакция 26.10.2026</div></div>
+
+<div class="section">
+
+ <div class="hero">
+  <div class="tag">Фуд Завод · внутренний регламент</div>
+  <h2>Накладная — это не «бумажка для водителя». Это одновременно списание со склада, выручка завода и долг покупателя</h2>
+  <p>Одна расходная накладная в айке делает <b>три проводки сразу</b>: снимает товар
+  со склада по себестоимости, ставит выручку на счёт «Торговая выручка» и создаёт
+  задолженность покупателя. Ошибка в одном поле расходится по всем трём — и дальше
+  по ОПиУ, по дебиторке, по Пульсу и по 1С.</p>
+  <p>Инструкция написана по фактическим данным айки за январь–октябрь 2026 года:
+  <b>20&nbsp;840 расходных накладных на 2&nbsp;645&nbsp;880&nbsp;025&nbsp;₸</b>. Каждое правило ниже —
+  это то, как оформлены 99% накладных, а каждый пример ошибки — реальный документ,
+  который сейчас лежит в базе.</p>
+ </div>
+
+ <div class="kpi">
+  <div class="k"><div class="l">Накладных за 10 мес.</div><div class="v">20 840</div>
+    <div class="s">в среднем 21 позиция, медиана 13</div></div>
+  <div class="k"><div class="l">Одно юрлицо</div><div class="v">Фуд завод</div>
+    <div class="s">других вариантов в поле нет</div></div>
+  <div class="k"><div class="l">Один склад</div><div class="v">99,7%</div>
+    <div class="s">Склад ГП ФЗ</div></div>
+  <div class="k"><div class="l">Одна пара счетов</div><div class="v">99,2%</div>
+    <div class="s">Торговая выручка / 1.1.Себестоимость продуктовая</div></div>
+ </div>
+
+ <div class="toc"><b>Содержание</b>
+  <ol>
+   <li><a href="#s1">Кто оформляет и в какой момент</a></li>
+   <li><a href="#s2">Что происходит при проведении</a></li>
+   <li><a href="#s3">Пять проверок до создания документа</a></li>
+   <li><a href="#s4">Шапка документа: каждое поле</a></li>
+   <li><a href="#s5">Строки: номенклатура, количество, цена</a></li>
+   <li><a href="#s6">Проведение и самопроверка</a></li>
+   <li><a href="#s7">Если ошиблись: порядок исправления</a></li>
+   <li><a href="#s8">Что делать запрещено</a></li>
+   <li><a href="#s9">Чек-лист перед проведением</a></li>
+   <li><a href="#s10">Приложение А. Префиксы контрагентов</a></li>
+   <li><a href="#s11">Приложение Б. Прайс-листы и проценты</a></li>
+   <li><a href="#s12">Приложение В. Что сейчас не так в базе</a></li>
+  </ol>
+ </div>
+
+ <!-- ───────────────────────────── 1 ───────────────────────────── -->
+ <h3 id="s1"><em>01</em>Кто оформляет и в какой момент</h3>
+ <div class="sub">Накладная создаётся по факту отгрузки, а не «под заявку» и не «под оплату».</div>
+ <div class="card">
+  <div class="flow">
+   <div class="s">ШАГ 1</div><div class="d"><b>Заявка от покупателя.</b> Для сетей заявки приходят
+     автоматически через Docrobot (с 09.10.2026 загружено 1 814 заказов, 3 партнёра).
+     Для остальных — почта, WhatsApp, менеджер. Заявка — основание, но не документ.</div>
+   <div class="s">ШАГ 2</div><div class="d"><b>Сборка и отгрузка со склада.</b> Кладовщик собирает
+     по заявке фактическое количество. Расхождение с заявкой фиксируем сразу — в накладную идёт
+     <b>фактически отгруженное</b>, не заказанное.</div>
+   <div class="s">ШАГ 3</div><div class="d"><b>Расходная накладная в айке</b> — в день отгрузки,
+     тем же днём. Это и есть «создать продажу».</div>
+   <div class="s">ШАГ 4</div><div class="d"><b>Передача в 1С</b> — реализация. Суммы в айке и 1С
+     должны совпадать до тенге (за январь–июль 2026 по DSF, например, они совпадают ровно).</div>
+   <div class="s">ШАГ 5</div><div class="d"><b>Контроль оплаты</b> — по сроку оплаты из накладной.
+     Отсюда растёт дебиторка и отчёт «Работа с просрочкой».</div>
+  </div>
+  <div class="box warn"><span class="h">Правило дня</span>
+   Накладная оформляется <b>в день фактической отгрузки</b>. Не раньше — иначе товар уйдёт со
+   склада днём, которого не было. Не позже — иначе отчёт за день закроется без неё.</div>
+ </div>
+
+ <!-- ───────────────────────────── 2 ───────────────────────────── -->
+ <h3 id="s2"><em>02</em>Что происходит при проведении</h3>
+ <div class="sub">Понимание этого снимает 90% вопросов «а почему так посчиталось».</div>
+ <div class="card">
+  <table>
+   <tr><th>Что делает документ</th><th>Куда попадает</th><th>Что сломается при ошибке</th></tr>
+   <tr><td><b>Списывает товар со склада</b> по себестоимости на дату документа</td>
+       <td>счёт <code>1.1.Себестоимость продуктовая</code></td>
+       <td>остатки на складе, себестоимость, ОПиУ, инвентаризация</td></tr>
+   <tr><td><b>Начисляет выручку</b> на сумму накладной</td>
+       <td>счёт <code>Торговая выручка</code></td>
+       <td>продажи по каналам, Пульс, план-факт, ОПиУ</td></tr>
+   <tr><td><b>Создаёт долг покупателя</b> на сумму накладной со сроком оплаты</td>
+       <td>расчёты с контрагентом</td>
+       <td>дебиторка, просрочка, план оплат</td></tr>
+  </table>
+  <p class="t">Поэтому <b>нельзя «просто поправить потом»</b>: любое изменение проведённого
+  документа — это пересчёт себестоимости за период, пересчёт остатков и расхождение с 1С,
+  если документ туда уже ушёл.</p>
+ </div>
+
+ <!-- ───────────────────────────── 3 ───────────────────────────── -->
+ <h3 id="s3"><em>03</em>Пять проверок до создания документа</h3>
+ <div class="sub">Тридцать секунд здесь экономят час разбирательств в конце месяца.</div>
+ <div class="card">
+  <ol class="steps">
+   <li><b>Есть заявка или подтверждение покупателя.</b> Для сетей — заказ в Docrobot с номером
+     и датой поставки. Без основания накладную не создаём.</li>
+   <li><b>Контрагент есть в справочнике и назван правильно</b> — с префиксом канала
+     (например <code>96-ТОО DSF (дистрибьютор)</code>). Нет в справочнике — заводит не менеджер,
+     а ответственный за справочник. Самовольно созданный контрагент без префикса выпадает
+     из всей аналитики: сейчас таких <b class="warn">82 контрагента на 3 478 865 ₸</b>.</li>
+   <li><b>У контрагента есть свой прайс</b> и он актуален. Прайс канала — не «цена из головы»,
+     а список из «Каталога» (см. <a href="#s11" style="color:var(--c1)">приложение Б</a>).</li>
+   <li><b>Товар физически есть на складе</b> на дату отгрузки. Накладная на отсутствующий
+     товар даст минус по складу и неверную себестоимость.</li>
+   <li><b>Дата отгрузки — сегодня или в прошлом.</b> Если просят оформить «вперёд» —
+     это не оформляется, см. <a href="#s8" style="color:var(--c1)">раздел 8</a>.</li>
+  </ol>
+ </div>
+
+ <!-- ───────────────────────────── 4 ───────────────────────────── -->
+ <h3 id="s4"><em>04</em>Шапка документа: каждое поле</h3>
+ <div class="sub">Колонка «как заполнено сейчас» — это фактическая статистика по 20 840 накладным
+  за январь–октябрь 2026. Отклонение от неё должно быть осознанным, а не случайным.</div>
+ <div class="card">
+  <table>
+   <tr><th style="width:17%">Поле</th><th style="width:30%">Что ставим</th>
+       <th style="width:27%">Как заполнено сейчас</th><th>Типовая ошибка</th></tr>
+
+   <tr><td><b>Дата документа</b></td>
+       <td>Дата <b>фактической отгрузки</b>. Время — не принципиально, в учёте работает день.</td>
+       <td>По дате документа считают все отчёты и Пульс</td>
+       <td class="bad">Дата вперёд. Сейчас 18 проведённых накладных стоят будущими датами
+         на 14 098 808 ₸ — из них 12,5 млн по DSF и одна от <b>07.10.2027</b></td></tr>
+
+   <tr><td><b>Номер</b></td>
+       <td>Сквозной номер, который даёт программа. Не переписываем руками.</td>
+       <td>20 789 уникальных номеров на 20 840 накладных</td>
+       <td class="bad">51 дубль номера. Пример: № 51612 стоит на двух накладных —
+         12.10 и 15.10, вместе 5 335 634 ₸</td></tr>
+
+   <tr><td><b>Юрлицо</b></td>
+       <td><code>Фуд завод</code></td>
+       <td>100% накладных — одно юрлицо</td>
+       <td class="mut">Вариантов нет, поле менять не нужно</td></tr>
+
+   <tr><td><b>Склад отгрузки</b></td>
+       <td><code>Склад ГП ФЗ</code> — готовая продукция</td>
+       <td>20 780 из 20 840 (99,7%). Остальное: Пекарня+Кондитерка — 50,
+         Производство — 8, Основной (несъедобное) — 1, Склад ГП −25 °C — 1</td>
+       <td class="bad">Отгрузка со склада производства или сырья вместо склада готовой
+         продукции — ломает и остатки, и себестоимость</td></tr>
+
+   <tr><td><b>Контрагент (покупатель)</b></td>
+       <td>Из справочника, <b>строго с префиксом канала</b>. Для сетей — конкретная точка,
+         а не «сеть вообще»: у Яндекс Лавки 17 контрагентов, у RP АЗС — 78, у Маймарта — 69.</td>
+       <td>Префикс определяет канал во всей аналитике</td>
+       <td class="bad">Выбрана не та точка сети или контрагент без префикса</td></tr>
+
+   <tr><td><b>Тип покупателя</b></td>
+       <td><code>Поставщик/контрагент</code> — для всех юрлиц и ИП</td>
+       <td>supplier — 20 237, пусто — 1 221, гость — 466, сотрудник — 132</td>
+       <td class="warn">Пустое поле у 1 221 накладной. «Сотрудник» ставим только для продажи
+         своим, «Гость» — для разовой продажи физлицу</td></tr>
+
+   <tr><td><b>Счёт выручки</b></td>
+       <td><code>Торговая выручка</code></td>
+       <td>20 838 из 20 840</td>
+       <td class="bad">1 накладная (3 990 ₸) имеет «Торговую выручку» в обоих полях —
+         и в выручке, и в расходе. Это не продажа, это ошибка</td></tr>
+
+   <tr><td><b>Счёт расхода<br>(себестоимость)</b></td>
+       <td><code>1.1.Себестоимость продуктовая</code></td>
+       <td>20 676 из 20 840 (99,2%)</td>
+       <td class="warn">161 накладная списана на <code>2.4.Маркетинг</code> (на 4 510 ₸) —
+         это дегустации и образцы. Если это не образцы — счёт выбран неверно</td></tr>
+
+   <tr><td><b>Срок оплаты</b></td>
+       <td>Дата документа + отсрочка по договору. Стандарт по заводу — <b>14 дней</b>.</td>
+       <td>Заполнен только у 10 423 из 20 840 (ровно половина).
+         У Маймарта, RP, Яндекса, Kaspi, DSF — 14 дней</td>
+       <td class="bad">Не заполнен → накладная не попадает в контроль просрочки.
+         У ДФЗ средний срок <b>−17 дней</b>, у Базилика <b>−176 дней</b>: срок оплаты стоит
+         раньше даты документа — так быть не может</td></tr>
+
+   <tr><td><b>Прочие поля</b><br><span class="mut">счёт-фактура, ТТН, договор,
+         подразделение, плательщик, сотрудник, дата доставки</span></td>
+       <td>Не заполняем, если нет прямого указания бухгалтерии</td>
+       <td>За 10 месяцев не заполнены ни разу</td>
+       <td class="mut">Заполнение «на всякий случай» создаёт разнобой</td></tr>
+  </table>
+ </div>
+
+ <!-- ───────────────────────────── 5 ───────────────────────────── -->
+ <h3 id="s5"><em>05</em>Строки: номенклатура, количество, цена</h3>
+ <div class="sub">Типичная накладная — 13 позиций, средняя — 21, самая большая за год — 389 позиций.</div>
+ <div class="card">
+  <h4>Номенклатура</h4>
+  <ul class="pl">
+   <li><b>Только товар.</b> В накладных продаж за весь год нет ни одной строки «услуга»,
+     «логистика», «бонус», «скидка», «возврат» — и появляться они там не должны.
+     Логистика и бонусы сетей оформляются отдельными документами.</li>
+   <li><b>Выбираем позицию из справочника</b>, а не похожую по названию. Одна и та же
+     продукция под разными SKU — это разная себестоимость и разная цена.</li>
+   <li><b>Фасовка и единица измерения</b> должны соответствовать той, в которой ведётся учёт
+     позиции. Килограммы и штуки путать нельзя: цена за кг, подставленная к штукам,
+     даёт ошибку в десятки раз.</li>
+  </ul>
+
+  <h4>Количество</h4>
+  <ul class="pl">
+   <li>Ставим <b>фактически отгруженное</b> количество, сверенное со склада.</li>
+   <li>Если отгрузили меньше заявки — в накладной меньше. Дописывать «до заявки»
+     нельзя: товар числится у покупателя, а физически он на заводе.</li>
+  </ul>
+
+  <h4>Цена</h4>
+  <ul class="pl">
+   <li>Цена берётся <b>из прайс-листа этого контрагента</b>. Базовый прайс — «100 прайс»
+     (228 позиций), от него считаются прайсы каналов с процентом
+     (см. <a href="#s11" style="color:var(--c1)">приложение Б</a>).</li>
+   <li><b>Руками цену не правим.</b> Если цена в прайсе устарела — меняется прайс, а не
+     отдельная накладная. Иначе завод теряет контроль цены, а в аналитике канал выглядит
+     дешевле или дороже, чем он есть.</li>
+   <li>Разовая цена возможна только по письменному согласованию и с отметкой,
+     от кого согласование.</li>
+  </ul>
+
+  <h4>НДС</h4>
+  <div class="box warn"><span class="h">Как это устроено сейчас</span>
+   В <b>442 456 строках из 442 715</b> (99,94%) ставка НДС в накладной стоит <b>0</b> —
+   НДС начисляется в 1С, а не в айке. Ставка 16% за год проставлена всего в 259 строках.
+   Значит: <b>ставку НДС в накладной не трогаем</b>, кроме случаев, которые отдельно
+   назвала бухгалтерия.</div>
+
+  <div class="box ok"><span class="h">Как проверить сумму</span>
+   Сумма строки = количество × цена. Итог накладной = сумма строк. Если итог «красивый»
+   (ровно 100 000, ровно 0) — почти всегда что-то не заполнено. Сейчас в базе
+   <b>3 проведённые накладные с суммой 0 ₸</b>.</div>
+ </div>
+
+ <!-- ───────────────────────────── 6 ───────────────────────────── -->
+ <h3 id="s6"><em>06</em>Проведение и самопроверка</h3>
+ <div class="sub">Пока документ не проведён, он ни на что не влияет: ни склад, ни выручка, ни долг.</div>
+ <div class="card">
+  <ol class="steps">
+   <li><b>Сохраняем черновик</b> и перечитываем шапку. Статус черновика —
+     <code>новый</code>, он не виден в отчётах.</li>
+   <li><b>Сверяем итог накладной</b> с тем, что отгрузили физически, и с заявкой.
+     Расхождение с заявкой — объяснимое.</li>
+   <li><b>Проводим.</b> Статус становится <code>проведён</code>. С этой секунды документ
+     в складе, в выручке и в дебиторке.</li>
+   <li><b>Проверяем остаток по складу</b> по ключевым позициям: минус в остатках —
+     сигнал, что дата или склад выбраны неверно.</li>
+   <li><b>Печатаем комплект для водителя</b> и отдаём с товаром.</li>
+   <li><b>В конце дня</b> сверяем количество накладных и сумму за день с отгрузками склада.
+     Разница — ищем сразу, не в конце месяца.</li>
+  </ol>
+  <div class="box ok"><span class="h">Как проверить себя за месяц</span>
+   Сумма проведённых расходных накладных за месяц в айке должна совпадать с реализацией
+   в 1С. По DSF за январь–июль 2026 совпадение <b>до тенге</b>. Если расхождение есть —
+   ищите три причины: накладные будущими датами (в 1С их ещё нет), удалённые и перевыпущенные
+   документы, документы на границе месяца.</div>
+ </div>
+
+ <!-- ───────────────────────────── 7 ───────────────────────────── -->
+ <h3 id="s7"><em>07</em>Если ошиблись: порядок исправления</h3>
+ <div class="sub">Порядок зависит только от одного: проведён документ или нет, и ушёл ли он в 1С.</div>
+ <div class="card">
+  <table>
+   <tr><th style="width:26%">Ситуация</th><th>Что делаем</th></tr>
+   <tr><td><b>Документ не проведён</b></td>
+       <td>Правим свободно и проводим. Ничего согласовывать не нужно.</td></tr>
+   <tr><td><b>Проведён, день не закрыт, в 1С не ушёл</b></td>
+       <td>Распроводим → правим → проводим заново. Обязательно с пересчётом себестоимости.
+         После этого перепроверяем остаток по складу.</td></tr>
+   <tr><td><b>Проведён и ушёл в 1С</b></td>
+       <td>Сами не правим. Сообщаем бухгалтеру: номер, дату, контрагента, что именно неверно.
+         Исправление оформляется корректировкой или возвратом от покупателя — так,
+         чтобы в айке и в 1С получилось одно и то же.</td></tr>
+   <tr><td><b>Закрыт период / сдана отчётность</b></td>
+       <td>Только через главного бухгалтера. Задним числом в закрытом периоде не правим ничего.</td></tr>
+  </table>
+  <div class="box stop"><span class="h">Так — нельзя</span>
+   <b>Удалить документ и выписать заново другой датой.</b> Реальный случай: накладная
+   № 50082 от 05.10 на 2 713 620 ₸ удалена, а вместо неё выписаны две накладные от 30.09
+   на ту же сумму. Результат: в айке эти деньги в сентябре, в 1С — в октябре.
+   Расхождение между системами — <b>2 713 620 ₸</b> на пустом месте. По одному только DSF
+   за год 17 удалённых документов.</div>
+ </div>
+
+ <!-- ───────────────────────────── 8 ───────────────────────────── -->
+ <h3 id="s8"><em>08</em>Что делать запрещено</h3>
+ <div class="sub">Восемь запретов. Каждый — с реальным последствием, которое уже есть в базе.</div>
+ <div class="card">
+  <table>
+   <tr><th style="width:4%" class="n">№</th><th style="width:38%">Запрещено</th><th>Почему</th></tr>
+   <tr><td class="n">1</td><td><b>Ставить дату вперёд</b> — «отгрузим в понедельник, оформлю
+       сейчас»</td><td>Октябрь по DSF в отчёте показывает 12,7 млн ₸ вместо 6,7 млн фактических.
+       Товар списывается днём, которого не было; в 1С накладной нет</td></tr>
+   <tr><td class="n">2</td><td><b>Удалять проведённый документ</b> и выписывать новый
+       другой датой</td><td>Расхождение айка ↔ 1С. Пример выше — 2 713 620 ₸</td></tr>
+   <tr><td class="n">3</td><td><b>Править цену руками</b> вместо изменения прайса</td>
+       <td>Завод теряет контроль цены, канал в аналитике выглядит не тем, что он есть</td></tr>
+   <tr><td class="n">4</td><td><b>Создавать контрагента без префикса канала</b></td>
+       <td>82 контрагента на 3 478 865 ₸ не попадают ни в один отчёт по каналам</td></tr>
+   <tr><td class="n">5</td><td><b>Оставлять срок оплаты пустым</b></td>
+       <td>Половина накладных за год без срока — они не видны в контроле просрочки</td></tr>
+   <tr><td class="n">6</td><td><b>Писать номер документа руками</b></td>
+       <td>51 дубль номера за год, в том числе на 5,3 млн ₸</td></tr>
+   <tr><td class="n">7</td><td><b>Добавлять в накладную услуги, логистику, бонусы, скидки
+       отдельной строкой</b></td><td>Это не выручка от товара; искажаются и продажи,
+       и себестоимость позиции</td></tr>
+   <tr><td class="n">8</td><td><b>Проводить накладную на 0 ₸</b> или «чтобы просто была»</td>
+       <td>3 такие накладные уже проведены; одна — № 0001 от 07.10.2027 на Crave</td></tr>
+  </table>
+ </div>
+
+ <!-- ───────────────────────────── 9 ───────────────────────────── -->
+ <h3 id="s9"><em>09</em>Чек-лист перед проведением</h3>
+ <div class="sub">Нажми на пункт, чтобы отметить. Двенадцать галочек — и документ можно проводить.</div>
+ <div class="card">
+  <ul class="chk" id="chk">
+   <li><i></i><span>Есть <b>заявка или подтверждение</b> покупателя</span></li>
+   <li><i></i><span><b>Дата</b> = день фактической отгрузки, не вперёд</span></li>
+   <li><i></i><span><b>Номер</b> присвоен программой, руками не менялся</span></li>
+   <li><i></i><span>Юрлицо — <b>Фуд завод</b></span></li>
+   <li><i></i><span>Склад — <b>Склад ГП ФЗ</b> (или осознанно другой)</span></li>
+   <li><i></i><span><b>Контрагент</b> — нужная точка, с префиксом канала</span></li>
+   <li><i></i><span><b>Тип покупателя</b> заполнен</span></li>
+   <li><i></i><span>Счёт выручки — <b>Торговая выручка</b></span></li>
+   <li><i></i><span>Счёт расхода — <b>1.1.Себестоимость продуктовая</b></span></li>
+   <li><i></i><span><b>Срок оплаты</b> стоит и он позже даты документа</span></li>
+   <li><i></i><span><b>Количество</b> = фактически отгруженное, единицы верные</span></li>
+   <li><i></i><span><b>Цены</b> из прайса контрагента, итог сходится с отгрузкой</span></li>
+  </ul>
+ </div>
+
+ <!-- ───────────────────────────── 10 ───────────────────────────── -->
+ <h3 id="s10"><em>10</em>Приложение А. Префиксы контрагентов</h3>
+ <div class="sub">Префикс в названии — это канал. По нему строится вся аналитика продаж.
+  Январь–октябрь 2026, проведённые расходные накладные.</div>
+ <div class="card">
+  <table>
+   <tr><th style="width:9%">Префикс</th><th>Канал</th><th class="n">Контрагентов</th>
+       <th class="n">Накладных</th><th class="n">Сумма, ₸</th></tr>
+   <tr><td><b>85-</b></td><td>ДФЗ (дистрибьютор)</td><td class="n">1</td><td class="n">1 066</td><td class="n">989 922 109</td></tr>
+   <tr><td><b>102-</b></td><td>Яндекс Лавка</td><td class="n">17</td><td class="n">2 949</td><td class="n">552 393 149</td></tr>
+   <tr><td><b>99-</b></td><td>RP АЗС</td><td class="n">78</td><td class="n">3 993</td><td class="n">232 812 788</td></tr>
+   <tr><td><b>90-</b></td><td>Маймарт</td><td class="n">69</td><td class="n">6 682</td><td class="n">215 005 489</td></tr>
+   <tr><td><b>7-</b></td><td>Kaspi Банк</td><td class="n">1</td><td class="n">589</td><td class="n">189 163 330</td></tr>
+   <tr><td><b>96-</b></td><td>ТОО DSF (дистрибьютор)</td><td class="n">1</td><td class="n">125</td><td class="n">128 500 782</td></tr>
+   <tr><td><b>98-</b></td><td>O-live</td><td class="n">1</td><td class="n">521</td><td class="n">70 350 839</td></tr>
+   <tr><td><b>1-, 2-, 9-</b></td><td>Базилик (точки)</td><td class="n">5</td><td class="n">683</td><td class="n">100 140 998</td></tr>
+   <tr><td><b>110</b></td><td>АЗС Sinooil</td><td class="n">29</td><td class="n">427</td><td class="n">32 860 004</td></tr>
+   <tr><td><b>111</b></td><td>Глово</td><td class="n">3</td><td class="n">410</td><td class="n">30 583 881</td></tr>
+   <tr><td><b>86-, 100-</b></td><td>Crave Cafe</td><td class="n">2</td><td class="n">1 248</td><td class="n">35 054 765</td></tr>
+   <tr><td><b>113-</b></td><td>Wolt</td><td class="n">3</td><td class="n">370</td><td class="n">10 264 706</td></tr>
+   <tr><td><b>115-</b></td><td>Даркстор</td><td class="n">13</td><td class="n">431</td><td class="n">9 621 908</td></tr>
+   <tr><td><b>97-</b></td><td>Кейтеринг (ИП Ник и Ко)</td><td class="n">1</td><td class="n">46</td><td class="n">7 791 764</td></tr>
+   <tr><td><b>0</b></td><td>Частное лицо Покупатель</td><td class="n">1</td><td class="n">760</td><td class="n">9 329 559</td></tr>
+   <tr><td class="bad"><b>нет</b></td><td class="bad">без префикса — выпадают из аналитики</td>
+       <td class="n bad">82</td><td class="n bad">172</td><td class="n bad">3 478 865</td></tr>
+  </table>
+  <div class="note">Остальные префиксы (103–128: Алга экспресс, GO Market, DQ12, QazMarketPro,
+   TREND ENERGY, Noa Coffee, SET24, PRO OIL, Туар и др.) — мелкие клиенты, правило то же:
+   префикс обязателен.</div>
+ </div>
+
+ <!-- ───────────────────────────── 11 ───────────────────────────── -->
+ <h3 id="s11"><em>11</em>Приложение Б. Прайс-листы и проценты</h3>
+ <div class="sub">Базовый прайс — «100 прайс». Прайс канала = база ± процент. Цену в накладной
+  берём из прайса контрагента, а не из базы.</div>
+ <div class="card">
+  <table>
+   <tr><th>Прайс-лист</th><th class="n">% к базе</th><th class="n">Позиций</th>
+       <th class="n">Обновлён</th><th>Комментарий</th></tr>
+   <tr><td><b>100 прайс</b></td><td class="n">база</td><td class="n">228</td><td class="n">13.10.2026</td><td>базовый, от него считаются остальные</td></tr>
+   <tr><td>Каспи банк</td><td class="n good">+90</td><td class="n">421</td><td class="n">23.10.2026</td><td>самый дорогой канал</td></tr>
+   <tr><td>Кейтеринг</td><td class="n good">+67</td><td class="n">25</td><td class="n">23.10.2026</td><td></td></tr>
+   <tr><td>RP Шымкент</td><td class="n good">+20</td><td class="n">21</td><td class="n">13.10.2026</td><td></td></tr>
+   <tr><td>Яндекс Лавка</td><td class="n">0</td><td class="n">258</td><td class="n">20.10.2026</td><td>цены ведутся отдельно, не процентом</td></tr>
+   <tr><td>Basilic</td><td class="n">0</td><td class="n">230</td><td class="n">13.10.2026</td><td></td></tr>
+   <tr><td>Crave</td><td class="n">0</td><td class="n">77</td><td class="n">20.10.2026</td><td></td></tr>
+   <tr><td>Дала бренд</td><td class="n bad">−15</td><td class="n">228</td><td class="n">13.10.2026</td><td></td></tr>
+   <tr><td>Иналка</td><td class="n bad">−20</td><td class="n">228</td><td class="n">13.10.2026</td><td></td></tr>
+   <tr><td>DSF</td><td class="n bad">−22</td><td class="n">228</td><td class="n">21.10.2026</td><td>дистрибьютор</td></tr>
+   <tr><td>ДФЗ</td><td class="n bad">−26</td><td class="n">326</td><td class="n">13.10.2026</td><td>дистрибьютор, самая большая скидка</td></tr>
+   <tr><td>RP</td><td class="n bad">−26</td><td class="n">47</td><td class="n">13.10.2026</td><td></td></tr>
+   <tr><td>Яндекс образцы</td><td class="n">—</td><td class="n">17</td><td class="n">22.10.2026</td><td>образцы, списываются на маркетинг</td></tr>
+   <tr><td class="mut">WB Office Food</td><td class="n mut">—</td><td class="n mut">0</td><td class="n mut">—</td><td class="mut">прайс пустой</td></tr>
+  </table>
+ </div>
+
+ <!-- ───────────────────────────── 12 ───────────────────────────── -->
+ <h3 id="s12"><em>12</em>Приложение В. Что сейчас не так в базе</h3>
+ <div class="sub">Срез на 26.10.2026. Это не упрёк, а список того, что инструкция должна прекратить.</div>
+ <div class="card">
+  <table>
+   <tr><th style="width:42%">Что нашли</th><th class="n">Сколько</th><th class="n">Сумма, ₸</th><th>Как лечится</th></tr>
+   <tr><td>Накладные с датой в будущем</td><td class="n bad">18</td><td class="n bad">14 098 808</td>
+       <td>перевыставить фактической датой отгрузки</td></tr>
+   <tr><td>&nbsp;&nbsp;· из них по DSF</td><td class="n">6</td><td class="n">12 522 970</td><td class="mut">27–30.10 и 02.11</td></tr>
+   <tr><td>&nbsp;&nbsp;· из них по Яндекс Лавке</td><td class="n">10</td><td class="n">1 323 330</td><td class="mut">28.10 и 01.11</td></tr>
+   <tr><td>&nbsp;&nbsp;· накладная № 0001 от <b>07.10.2027</b></td><td class="n">1</td><td class="n">0</td>
+       <td>явная опечатка в годе, удалить/исправить</td></tr>
+   <tr><td>Дубли номеров документа</td><td class="n bad">51</td><td class="n">—</td><td>нумерация только программой</td></tr>
+   <tr><td>Контрагенты без префикса канала</td><td class="n bad">82</td><td class="n bad">3 478 865</td>
+       <td>переименовать по правилу «№-Название»</td></tr>
+   <tr><td>Накладные без срока оплаты</td><td class="n bad">10 417</td><td class="n">—</td>
+       <td>проставить срок по договору</td></tr>
+   <tr><td>Срок оплаты раньше даты документа (ДФЗ, Базилик)</td><td class="n warn">есть</td><td class="n">—</td>
+       <td>проверить настройку договора</td></tr>
+   <tr><td>Проведённые накладные на 0 ₸</td><td class="n bad">3</td><td class="n">0</td><td>распровести и разобраться</td></tr>
+   <tr><td>Списание продажи на счёт «2.4.Маркетинг»</td><td class="n warn">161</td><td class="n">4 510</td>
+       <td>если это образцы — правильно; если нет — исправить счёт</td></tr>
+   <tr><td>Накладная со счётом «Торговая выручка» в расходе</td><td class="n bad">1</td><td class="n">3 990</td>
+       <td>исправить счёт расхода</td></tr>
+   <tr><td>Тип покупателя не заполнен</td><td class="n warn">1 221</td><td class="n">—</td><td>проставить</td></tr>
+  </table>
+ </div>
+
+ <div class="box warn" style="margin-top:26px"><span class="h">Что нужно утвердить</span>
+  Разделы <b>07 (порядок исправления)</b> и <b>08 (запреты)</b> — это предложенные правила.
+  Их нужно утвердить у главного бухгалтера и довести до менеджеров и операторов под подпись:
+  после этого они становятся обязательными, а не рекомендательными.</div>
+
+ <div class="foot">
+  Инструкция составлена по фактическим данным программы айко за январь–октябрь 2026 года
+  (20 840 проведённых расходных накладных на 2 645 880 025 ₸), срез на 26.10.2026.<br>
+  Все примеры ошибок — реальные документы в базе на дату составления.<br>
+  Фуд Завод · внутренний документ, не для передачи третьим лицам.
+ </div>
+</div>
+
+<script>
+document.getElementById('chk').addEventListener('click', function(e){
+  var li = e.target.closest('li'); if(!li) return; li.classList.toggle('on');
+});
+</script>
+</body></html>
