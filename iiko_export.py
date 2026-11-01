@@ -41,7 +41,16 @@ RETURN_TYPE_CODE = "INCOMING_RETURNED_INVOICE_REVENUE"   # возврат от �
 # только контрагент и сумма, — но выручку они уменьшают так же. Без них
 # август показывал 20 тысяч возвратов вместо пяти с половиной миллионов.
 SERVICE_RETURN_TYPE = "INCOMING_SERVICE"
-SERVICE_RETURN_ACCOUNT = "Торговая выручка"
+# Счёт, на который ложится такой возврат, меняли на ходу: до августа — «Торговая
+# выручка», в сентябре параллельно появился «Возвраты Ммарт», а с октября
+# возвраты идут только на него. Пока здесь был один счёт, октябрь показывал
+# ноль вместо семи миллионов — поэтому берём список, а не одно значение.
+SERVICE_RETURN_ACCOUNTS = ["Торговая выручка", "Возвраты Ммарт"]
+# «Переделки, недовозы» — соседний счёт: товар не вернули, но и не довезли или
+# переделали. Это не возврат в чистом виде, поэтому считаем его отдельной
+# полосой, но в общий итог анализа включаем (решение Ольги от 01.11.2026).
+REWORK_ACCOUNTS = ["Переделки, недовозы"]
+SERVICE_RETURN_ACCOUNT = "», «".join(SERVICE_RETURN_ACCOUNTS)   # для подписи на странице
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARCH = os.path.join(HERE, "архив выгрузок")
@@ -87,14 +96,16 @@ def pull_service_returns(s, H, d_from, d_to_exclusive):
                verify=False, timeout=600)
     if r.status_code != 200:
         raise RuntimeError(f"OLAP {r.status_code}: {r.text[:300]}")
+    keep = set(SERVICE_RETURN_ACCOUNTS) | set(REWORK_ACCOUNTS)
     out = []
     for x in r.json().get("data", []):
-        if str(x.get("Account.Name") or "").strip() != SERVICE_RETURN_ACCOUNT:
+        acc = str(x.get("Account.Name") or "").strip()
+        if acc not in keep:
             continue
         v = x.get("Sum.Incoming") or 0
         if v > 0.5:
             out.append({"Counteragent.Name": str(x.get("Counteragent.Name") or "—"),
-                        "Sum.Incoming": v})
+                        "Account.Name": acc, "Sum.Incoming": v})
     return out
 
 
@@ -180,8 +191,11 @@ def main():
     p_mon = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0]))
     p_qty = defaultdict(float)
     svc_by_m = {}                      # возвраты актами услуг по месяцам
+    fix_by_m = {}                      # переделки и недовозы по месяцам
     svc_ctr = defaultdict(float)       # и по контрагентам
     svc_ctr_mon = defaultdict(lambda: defaultdict(float))
+    fix_ctr = defaultdict(float)       # переделки и недовозы по контрагентам
+    fix_ctr_mon = defaultdict(lambda: defaultdict(float))
     for m in range(1, 13):
         d1 = date(YEAR, m, 1)
         if d1 > last_full:
@@ -200,14 +214,21 @@ def main():
             svc = []
         if svc:
             mo_key = f"{YEAR}-{m:02d}"
-            ssum = 0.0
+            ssum = fsum = 0.0
             for x in svc:
                 v = x["Sum.Incoming"]
-                svc_ctr[x["Counteragent.Name"]] += v
-                svc_ctr_mon[x["Counteragent.Name"]][mo_key] += v
-                ssum += v
-            svc_by_m[mo_key] = round(ssum)
-            log(f"{m:02d}      возвраты актами услуг: -{ssum:>15,.0f}  ({len(svc)} строк)")
+                if x.get("Account.Name") in REWORK_ACCOUNTS:
+                    fix_ctr[x["Counteragent.Name"]] += v
+                    fix_ctr_mon[x["Counteragent.Name"]][mo_key] += v
+                    fsum += v
+                else:
+                    svc_ctr[x["Counteragent.Name"]] += v
+                    svc_ctr_mon[x["Counteragent.Name"]][mo_key] += v
+                    ssum += v
+            if ssum: svc_by_m[mo_key] = round(ssum)
+            if fsum: fix_by_m[mo_key] = round(fsum)
+            log(f"{m:02d}      возвраты актами услуг: -{ssum:>15,.0f}  "
+                f"переделки/недовозы: -{fsum:>12,.0f}  ({len(svc)} строк)")
         agg = {}
         for x in sales:
             k = (str(x.get("Counteragent.Name") or ""), str(x.get("Product.Name") or ""))
@@ -302,9 +323,14 @@ def main():
           "m": {k: round(x) for k, x in svc_ctr_mon.get(nm, {}).items() if x > 0.5}}
          for nm, v in svc_ctr.items() if v > 0.5),
         key=lambda z: -z["r"])
+    fix_rows = sorted(
+        ({"n": nm, "r": round(v),
+          "m": {k: round(x) for k, x in fix_ctr_mon.get(nm, {}).items() if x > 0.5}}
+         for nm, v in fix_ctr.items() if v > 0.5),
+        key=lambda z: -z["r"])
     all_by_m = {}
-    for k in set(list(returns_by_m.keys()) + list(svc_by_m.keys())):
-        all_by_m[k] = round(returns_by_m.get(k, 0) + svc_by_m.get(k, 0))
+    for k in set(list(returns_by_m.keys()) + list(svc_by_m.keys()) + list(fix_by_m.keys())):
+        all_by_m[k] = round(returns_by_m.get(k, 0) + svc_by_m.get(k, 0) + fix_by_m.get(k, 0))
 
     detail = {"by_month": returns_by_m,
               "months": sorted(k for k, v in returns_by_m.items() if v),
@@ -315,6 +341,10 @@ def main():
               "svc_contractors": svc_rows,
               "svc_total": round(sum(svc_by_m.values())),
               "svc_account": SERVICE_RETURN_ACCOUNT,
+              "fix_by_month": fix_by_m,
+              "fix_contractors": fix_rows,
+              "fix_total": round(sum(fix_by_m.values())),
+              "fix_account": ", ".join(REWORK_ACCOUNTS),
               "all_by_month": all_by_m,
               "all_total": round(sum(all_by_m.values())),
               "_pulled": meta["pulled"], "_through": meta["through"]}

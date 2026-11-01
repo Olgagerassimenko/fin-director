@@ -845,8 +845,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
     function setSummary(){
       var D=window.RETURNS_DETAIL, e=document.getElementById("ra-sum"); if(!e||!D) return;
       var t=D.total||Object.keys(D.by_month||{}).reduce(function(s,k){return s+(D.by_month[k]||0);},0);
-      var sv=D.svc_total||0, all=(D.all_total||t+sv);
-      e.textContent="возвраты −"+fmt(all)+" с начала года"+(sv?(" (из них −"+fmt(sv)+" актами услуг)"):"");
+      var sv=D.svc_total||0, fx=D.fix_total||0, all=(D.all_total||t+sv+fx);
+      var parts=[]; if(sv) parts.push("−"+fmt(sv)+" актами услуг"); if(fx) parts.push("−"+fmt(fx)+" переделки и недовозы");
+      e.textContent="возвраты −"+fmt(all)+" с начала года"+(parts.length?(" (из них "+parts.join(", ")+")"):"");
       var u=unpostedMonth(), w=document.getElementById("ra-warn");
       if(w&&u){
         var nm=MN[parseInt(u.k.split("-")[1],10)]||u.k;
@@ -863,7 +864,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
             +" часть возвратов проводится не обратной реализацией, а <b>актом приёма услуг</b> (счёт «"
             +(D.svc_account||"Торговая выручка")+"»): "+fmt(D.svc_total)+" ₸. В таком документе нет номенклатуры, "
             +"поэтому по товарам эти возвраты не расписаны и из выручки по SKU <b>не вычтены</b> — "
-            +"в разрезе товаров ниже их нет, а в помесячном графике они показаны отдельным цветом.";
+            +"в разрезе товаров ниже их нет, а в помесячном графике они показаны отдельным цветом."
+            +(D.fix_total?(" Отдельной полосой идут <b>переделки и недовозы</b> (счёт «"+(D.fix_account||"Переделки, недовозы")
+              +"»): "+fmt(D.fix_total)+" ₸ — товар не вернули, но и не довезли или переделали."):"");
           w2.style.display="";
         } else { w2.style.display="none"; }
       }
@@ -987,7 +990,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       var labels=keys.map(function(k){return MS[parseInt(k.split("-")[1],10)]||k;});
       var vals=keys.map(function(k){return +(((D.by_month[k]||0))/1e6).toFixed(2);});
       var svals=keys.map(function(k){return +((((D.svc_by_month||{})[k]||0))/1e6).toFixed(2);});
+      var fvals=keys.map(function(k){return +((((D.fix_by_month||{})[k]||0))/1e6).toFixed(2);});
       var hasSvc=svals.some(function(v){return v>0;});
+      var hasFix=fvals.some(function(v){return v>0;});
       /* Знаменатель — отгрузка: выручка плюс возвраты обратной реализацией.
          Возвраты актами услуг из выручки не вычитались, второй раз их в
          знаменатель добавлять нельзя. */
@@ -999,11 +1004,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
           data:{labels:labels,datasets:[
             {label:hasSvc?"Обратной реализацией":"Возвраты, ₸",data:vals,backgroundColor:"#e2896b",borderRadius:6,yAxisID:"y",order:3,stack:"r"},
             {label:"Актом приёма услуг",data:svals,backgroundColor:"#60a5fa",borderRadius:6,yAxisID:"y",order:2,stack:"r",hidden:!hasSvc},
+            {label:"Переделки и недовозы",data:fvals,backgroundColor:"#a78bfa",borderRadius:6,yAxisID:"y",order:2,stack:"r",hidden:!hasFix},
             {label:"% от выручки",data:pcts,type:"line",borderColor:"#c9a94e",backgroundColor:"#c9a94e",borderWidth:2,tension:.3,pointRadius:3,yAxisID:"y1",order:1}
           ]},
           options:{responsive:true,maintainAspectRatio:false,
             plugins:{legend:{labels:{color:"#cbd5e1",font:{size:12}}},
-              tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+(c.datasetIndex===0?(c.parsed.y+" М"):(String(c.parsed.y).replace(".",",")+"%"));}}},
+              tooltip:{callbacks:{label:function(c){var pct=c.dataset.type==="line";return c.dataset.label+": "+(pct?(String(c.parsed.y).replace(".",",")+"%"):(String(c.parsed.y).replace(".",",")+" М"));}}},
               datalabels:{display:false}},
             scales:{
               x:{stacked:true,ticks:{color:"#94a3b8",font:{size:12,weight:"600"}},grid:{display:false}},
