@@ -1731,12 +1731,17 @@ function parseKz(rows) {
   const topCol = kzOnly.length ? kzOnly[kzOnly.length - 1][0] : lastCol;
 
   // Кредиторка = ОТРИЦАТЕЛЬНЫЕ остатки (мы должны). Положительные — авансы, не КЗ.
+  const kzPrevCol = kzOnly.length > 1 ? kzOnly[kzOnly.length - 2][0]
+                  : (debtCols.length > 1 ? debtCols[debtCols.length - 2][0] : -1);
   const top = [];
   for (const row of data) {
     const name = (row[0] || "").trim();
     if (!isCompany(name)) continue;
     const v = topCol < row.length ? num(row[topCol]) : null;
-    if (v && v < 0) top.push({ name, debt: Math.round(-v) });
+    if (v && v < 0) {
+      const pv = (kzPrevCol >= 0 && kzPrevCol < row.length) ? num(row[kzPrevCol]) : null;
+      top.push({ name, debt: Math.round(-v), prev: (pv && pv < 0) ? Math.round(-pv) : 0 });
+    }
   }
   top.sort((a, b) => b.debt - a.debt);
 
@@ -1779,12 +1784,19 @@ function parseDz(rows) {
   }
 
   const [lastCol, lastDate] = dzCols[dzCols.length - 1];
+  /* Остаток на прошлую дату нужен странице для колонки «Δ нед.»: без него
+     она молча пустая. Так же это делает parse_dz_kz.py. */
+  const prevCol = dzCols.length > 1 ? dzCols[dzCols.length - 2][0] : -1;
   const top = []; let latestTotal = 0;
   for (const row of data) {
     const name = (row[0] || "").trim();
     if (!isCompany(name)) continue;
     const v = lastCol < row.length ? num(row[lastCol]) : null;
-    if (v && v > 0) { latestTotal += v; top.push({ name, debt: Math.round(v) }); }
+    if (v && v > 0) {
+      latestTotal += v;
+      const pv = (prevCol >= 0 && prevCol < row.length) ? num(row[prevCol]) : null;
+      top.push({ name, debt: Math.round(v), prev: (pv && pv > 0) ? Math.round(pv) : 0 });
+    }
   }
   top.sort((a, b) => b.debt - a.debt);
 
