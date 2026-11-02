@@ -15,6 +15,22 @@ const CACHE_TTL = 3600; // секунд
 // Файлы данных, которые пересобирает ежедневный прогон. Их нельзя кэшировать:
 // имя не меняется, а содержимое меняется по нескольку раз в день.
 // (*_meta.js ловится отдельно регулярным выражением.)
+// Пути, по которым файл из репозитория главнее сборки воркера (см. _repoWins).
+// Служебный токен для машинных запросов (сборщики данных и кроны).
+// До 24.09.2026 это была строка прямо в этом файле, а репозиторий публичный:
+// по ней любой мог дёрнуть /balance, /sales_week и /pay_week и получить цифры
+// мимо пароля на сайте. Настоящее значение теперь лежит в секретах Cloudflare
+// (env.PULSE_TOKEN) и в секретах GitHub — в коде его нет.
+// Прежнее значение из кода убрано 24.09.2026, после того как все прогоны
+// перешли на секрет: пока оно принималось, дыра оставалась открытой.
+function svcOk(p, env) {
+  const t = (p && p.get) ? (p.get("t") || "") : "";
+  const real = (env && env.PULSE_TOKEN) || "";
+  return !!real && eqConst(t, real);
+}
+
+const REPO_WINS = new Set(["/dz_kz.js", "/sales_live.js", "/sku_live.js"]);
+
 const DATA_FILES = new Set([
   "/zakup_data.js", "/dz_kz.js", "/kz_ana.js", "/opiu_audit.js", "/opiu_iiko.js", "/ddsp_days.js",
   "/sku_live.js", "/sku_analytics.js", "/contractor_items.js", "/contractors.js",
@@ -22,12 +38,17 @@ const DATA_FILES = new Set([
   // 09.09.2026: эти пересобираются каждым прогоном, но в списке их не было —
   // Cloudflare отдавал их из кэша, и страница рисовала вчерашние цифры.
   "/opiu_detail.js", "/sales_sum.js", "/sku_margin.js",
+  // 30.09.2026: nav.js держался в кэше браузера, и новая ссылка в подвале
+  // («План-факт») до людей не доезжала. sales_days.js успел закэшироваться
+  // как 404 — его собрали позже страницы, и раздел «День за днём» писал,
+  // что данных нет, хотя они уже лежали.
+  "/nav.js", "/sales_days.js", "/sales_meta.js", "/realizaciya.js",
 ]);
 
 // ── Метрики посещений («что смотрят») ──
 const M_KEY = "metrics:v1";
 // SHA-256 пароля вкладки «Метрики» (сам пароль в репозиторий не попадает)
-const METRICS_HASH = "2391eadda6fbf6a5907d84883fdd4e84da1614f7de7db7dd74e4eb7e7ed1d67b";
+const METRICS_HASH = "83cf8b609de60036a8277bd0e96135751bbc07eb234256d4b65b893360651bf2";
 /* Запасная вставка счётчика в <head>. На деле до страниц она не доезжает:
    Cloudflare отдаёт файлы из [assets] в обход скрипта воркера, и HTMLRewriter
    ниже срабатывает только для HTML, собранного самим воркером. Настоящий
@@ -120,10 +141,1092 @@ async function handleGallery(request, env, url) {
   return galJson({ error: "неизвестный запрос" }, 404);
 }
 
+
+// ── Упаковка: фото позиции и ручная цена ─────────────────────────────────────
+//  Фото нужны закупщику: по названию «У* Лоток 187*137*45 ФС 504 шт/кор»
+//  на складе ничего не узнать, а ошибка в заявке стоит денег. Картинка лежит
+//  в том же KV, ключ — нормализованное название позиции, поэтому фото
+//  переживает пересборку upak_data.js и видно всем, кто вошёл на сайт.
+//  Ручная цена — для позиций, по которым за год не было приходной накладной:
+//  количество к заказу считается, а умножать его не на что.
+//  Доступ закрыт общим паролем сайта (authGate), отдельного кода нет.
+const UPF_PREFIX = "upf:f:";
+const UPF_PRICE_KEY = "upf:prices";
+// Стоп-лист: позиция, которую решили не заказывать. В заявку она не идёт
+// и в сумму не входит. Решение общее для всех, поэтому не в браузере.
+const UPF_STOP_KEY = "upf:stops";
+// Срок запаса по отдельной позиции: общий «минимальный запас, недель» —
+// умолчание, но по конкретной SKU его можно задать свой.
+const UPF_WEEKS_KEY = "upf:weeks";
+// Позиции упаковки, заведённые руками: их нет в номенклатуре iiko, но
+// заказывать и держать неснижаемый остаток по ним надо. Хранятся отдельно
+// и подмешиваются к данным из iiko уже на странице.
+const UPF_SKU_KEY = "upf:sku";
+/* «Айка»: отметки по отклонениям закрытого периода. Контроль — это не
+   только увидеть расхождение, но и закрыть его: кто разобрал, что выяснил.
+   Ключ отметки — счёт+месяц+момент сверки либо блюдо+момент. */
+const AIKA_MARKS_KEY = "aika:marks";
+/* База компании. Заготовка карточек лежит в baza_seed.js и пересобирается
+   из айко; здесь — только то, что вписали руками, по ключу карточки.
+   Поэтому заготовку можно обновлять сколько угодно: ручное не затрётся. */
+const BAZA_KEY = "baza:rows";
+/* Баланс по контрагентам. Основа приходит из айко файлом balans.js; здесь —
+   только те кредиторы и дебиторы, которых в айко нет, и их операции. */
+const BALANS_KEY = "balans:manual";
+/* Доска задач раздела CRM: хранится целиком одним ключом. Страница
+   сохраняет её не на каждый щелчок, а через паузу после последнего
+   изменения — на бесплатном плане Cloudflare всего 1000 записей в KV
+   в сутки, и доска не должна их съедать. */
+const CRM_KEY = "crm:v1";
+/* Платёжный календарь: плановые платежи вводятся руками — в айко их нет,
+   там только факт. Факт и остаток денег страница берёт из своих данных. */
+const PAYCAL_KEY = "paycal:v1";
+
+// ── Налоговый калькулятор: ставки и история расчётов ────────────────────────
+//  Ставки держим в KV, а не в коде: меняется МРП, МЗП или сама ставка —
+//  финдиректор правит их на странице, без выкладки сайта. История расчётов
+//  общая: сохранил расчёт — его видят все, кто вошёл.
+const CALC_RATES_KEY = "calc:rates";
+const CALC_HIST_KEY = "calc:hist";
+const CALC_HIST_MAX = 300;
+
+async function handleCalc(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+
+  if (act === "list") {
+    let rates = null, hist = [];
+    try { rates = JSON.parse((await env.PLAN.get(CALC_RATES_KEY)) || "null"); } catch (e) {}
+    try { hist = JSON.parse((await env.PLAN.get(CALC_HIST_KEY)) || "[]") || []; } catch (e) {}
+    return jsonResp({ rates, hist });
+  }
+
+  if (act === "rates" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    if (!body || typeof body !== "object") return jsonResp({ error: "пустой запрос" }, 400);
+    await env.PLAN.put(CALC_RATES_KEY, JSON.stringify(body).slice(0, 20000));
+    return jsonResp({ ok: true });
+  }
+
+  if (act === "save" && request.method === "POST") {
+    let rec = {};
+    try { rec = await request.json(); } catch (e) {}
+    if (!rec || !rec.kind) return jsonResp({ error: "нечего сохранять" }, 400);
+    let hist = [];
+    try { hist = JSON.parse((await env.PLAN.get(CALC_HIST_KEY)) || "[]") || []; } catch (e) {}
+    rec.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    rec.at = new Date().toISOString();
+    hist.unshift(rec);
+    if (hist.length > CALC_HIST_MAX) hist = hist.slice(0, CALC_HIST_MAX);
+    await env.PLAN.put(CALC_HIST_KEY, JSON.stringify(hist));
+    return jsonResp({ ok: true, id: rec.id, count: hist.length });
+  }
+
+  if (act === "del" && request.method === "POST") {
+    const id = url.searchParams.get("id") || "";
+    let hist = [];
+    try { hist = JSON.parse((await env.PLAN.get(CALC_HIST_KEY)) || "[]") || []; } catch (e) {}
+    const before = hist.length;
+    hist = hist.filter((r) => r && r.id !== id);
+    await env.PLAN.put(CALC_HIST_KEY, JSON.stringify(hist));
+    return jsonResp({ ok: true, removed: before - hist.length });
+  }
+
+  return jsonResp({ error: "неизвестный запрос" }, 404);
+}
+
+// ── Раздел «Зарплата»: свой пароль и общий список сотрудников ───────────────
+//  Пароль раздела отдельный от пароля сайта и от пароля «Метрик». В облаке
+//  лежит только SHA-256 — сам пароль нигде не хранится и не передаётся.
+//  Первый, кто открыл раздел, задаёт пароль; дальше вход только по нему.
+//  Забыли — удалить ключ zp:auth в KV, и раздел снова попросит задать новый.
+const ZP_AUTH_KEY = "zp:auth";
+const ZP_DATA_KEY = "zp:data";
+
+async function zpOk(env, h) {
+  if (!isHex64(h)) return false;
+  const cur = await env.PLAN.get(ZP_AUTH_KEY);
+  return !!cur && cur === h;
+}
+
+async function handleZp(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  const h = (url.searchParams.get("h") || "").toLowerCase();
+
+  if (act === "state") {
+    const cur = await env.PLAN.get(ZP_AUTH_KEY);
+    return jsonResp({ set: !!cur });
+  }
+
+  if (act === "setup" && request.method === "POST") {
+    const cur = await env.PLAN.get(ZP_AUTH_KEY);
+    if (cur) return jsonResp({ error: "Пароль раздела уже задан" }, 409);
+    if (!isHex64(h)) return jsonResp({ error: "Браузер не смог обработать пароль" }, 400);
+    await env.PLAN.put(ZP_AUTH_KEY, h);
+    return jsonResp({ ok: true });
+  }
+
+  if (act === "login") {
+    return (await zpOk(env, h))
+      ? jsonResp({ ok: true })
+      : jsonResp({ error: "Неверный пароль" }, 401);
+  }
+
+  if (act === "passwd" && request.method === "POST") {
+    const nw = (url.searchParams.get("n") || "").toLowerCase();
+    if (!(await zpOk(env, h))) return jsonResp({ error: "Текущий пароль неверен" }, 401);
+    if (!isHex64(nw)) return jsonResp({ error: "Новый пароль не принят" }, 400);
+    await env.PLAN.put(ZP_AUTH_KEY, nw);
+    return jsonResp({ ok: true });
+  }
+
+  if (act === "load") {
+    if (!(await zpOk(env, h))) return jsonResp({ error: "Неверный пароль" }, 401);
+    let d = null;
+    try { d = JSON.parse((await env.PLAN.get(ZP_DATA_KEY)) || "null"); } catch (e) {}
+    return jsonResp({ data: d });
+  }
+
+  if (act === "save" && request.method === "POST") {
+    if (!(await zpOk(env, h))) return jsonResp({ error: "Неверный пароль" }, 401);
+    let body = null;
+    try { body = await request.json(); } catch (e) {}
+    if (!body || typeof body !== "object") return jsonResp({ error: "пустой запрос" }, 400);
+    await env.PLAN.put(ZP_DATA_KEY, JSON.stringify(body).slice(0, 900000));
+    return jsonResp({ ok: true });
+  }
+
+  return jsonResp({ error: "неизвестный запрос" }, 404);
+}
+
+
+
+
+/* ══════════════════════════════════════════════════════════════════
+   ОТЧЁТЫ РАЗДЕЛА ЕРП — считаются в айко по запросу, а не берутся из
+   собранных файлов. Это и есть «как в 1С»: выбрал период, нажал
+   «Сформировать» — отчёт построился. Набор отчётов закрытый: что
+   не перечислено здесь, через этот адрес не спросить.
+   ══════════════════════════════════════════════════════════════════ */
+const ERP_REPORTS = {
+  osv: { n: "Оборотно-сальдовая ведомость по счетам",
+    group: ["Account.Name"], agg: ["Sum.Incoming", "Sum.Outgoing"],
+    cols: [["Account.Name", "Счёт", "l"], ["Sum.Incoming", "Приход", "n"], ["Sum.Outgoing", "Расход", "n"]] },
+  cash: { n: "Движение денежных средств по статьям",
+    types: ["PAYIN", "PAYOUT"], group: ["Account.Name"], agg: ["Sum.Incoming", "Sum.Outgoing"],
+    cols: [["Account.Name", "Статья", "l"], ["Sum.Incoming", "Поступление", "n"], ["Sum.Outgoing", "Выплата", "n"]] },
+  ship: { n: "Отгрузка по контрагентам",
+    types: ["OUTGOING_INVOICE_REVENUE"], group: ["Counteragent.Name"], agg: ["Sum.Outgoing"],
+    cols: [["Counteragent.Name", "Покупатель", "l"], ["Sum.Outgoing", "Отгружено, ₸", "n"]] },
+  shipit: { n: "Отгрузка по номенклатуре",
+    types: ["OUTGOING_INVOICE_REVENUE"], group: ["Product.Name"], agg: ["Amount", "Sum.Outgoing"],
+    cols: [["Product.Name", "Номенклатура", "l"], ["Amount", "Количество", "q"], ["Sum.Outgoing", "Сумма, ₸", "n"]] },
+  buy: { n: "Закупки по поставщикам",
+    types: ["INVOICE"], group: ["Counteragent.Name"], agg: ["Sum.Incoming"],
+    cols: [["Counteragent.Name", "Поставщик", "l"], ["Sum.Incoming", "Приход, ₸", "n"]] },
+  buyit: { n: "Закупки по номенклатуре",
+    types: ["INVOICE"], group: ["Product.Name"], agg: ["Amount", "Sum.Incoming"],
+    cols: [["Product.Name", "Номенклатура", "l"], ["Amount", "Количество", "q"], ["Sum.Incoming", "Сумма, ₸", "n"]] },
+  prod: { n: "Выпуск продукции",
+    types: ["PRODUCTION"], group: ["Product.Name"], agg: ["Amount", "Sum.Incoming"],
+    cols: [["Product.Name", "Продукция", "l"], ["Amount", "Выпущено", "q"], ["Sum.Incoming", "Себестоимость, ₸", "n"]] },
+  gp: { n: "Валовая прибыль по позициям",
+    /* Расходная накладная создаёт в айко две проводки: выручку
+       (OUTGOING_INVOICE_REVENUE) и списание себестоимости со склада
+       (OUTGOING_INVOICE). Берём обе и вычитаем — это и есть валовая
+       прибыль по позиции. Сверено за сентябрь: 267,6 млн выручки
+       против 127,1 млн себестоимости, то есть 47,5 % — ровно норматив
+       «1.1.Себестоимость продуктовая» из ОПиУ. */
+    two: { a: { types: ["OUTGOING_INVOICE_REVENUE"], agg: ["Sum.Outgoing"], as: "rev" },
+           b: { types: ["OUTGOING_INVOICE"], agg: ["Sum.Outgoing"], as: "cost" } },
+    group: ["Product.Name"],
+    cols: [["Product.Name", "Номенклатура", "l"], ["rev", "Выручка, ₸", "n"],
+           ["cost", "Себестоимость, ₸", "n"], ["gp", "Валовая прибыль, ₸", "n"],
+           ["mp", "Маржа, %", "p"]] },
+  cat: { n: "Категории SKU: спорные и непроставленные",
+    /* В айко у каждой позиции есть папка и отдельно «категория». Папка —
+       это место в дереве номенклатуры, категория — разрез для отчётности,
+       и проставляют её руками. Считаем для каждой папки преобладающую
+       категорию и показываем тех, кто из неё выбивается, плюс тех, у кого
+       категории нет вовсе. Это не приговор: бывает, что папка смешанная
+       намеренно, — но проверять надо именно эти строки. */
+    kind: "cat", types: ["OUTGOING_INVOICE_REVENUE"],
+    group: ["Product.Name", "Product.Category", "Product.Hierarchy"],
+    agg: ["Sum.Outgoing"],
+    cols: [["name", "Номенклатура", "l"], ["path", "Классификация", "l"],
+           ["cat", "Категория сейчас", "l"], ["dom", "Должна быть", "l"],
+           ["act", "Действие", "l"], ["rec", "Что сделать", "l"],
+           ["sum", "Отгрузка за период, ₸", "n"]] },
+  stock: { n: "Остатки на складах на дату",
+    kind: "api", path: "/resto/api/v2/reports/balance/stores",
+    cols: [["store", "Склад", "l"], ["product", "Номенклатура", "l"],
+           ["amount", "Количество", "q"], ["sum", "Сумма, ₸", "n"]] },
+  shipday: { n: "Отгрузка по дням",
+    types: ["OUTGOING_INVOICE_REVENUE"], group: ["DateTime.DateTyped"], agg: ["Sum.Outgoing"], bydate: 1,
+    cols: [["DateTime.DateTyped", "Дата", "l"], ["Sum.Outgoing", "Отгружено, ₸", "n"]] },
+  buyday: { n: "Закупки по дням",
+    types: ["INVOICE"], group: ["DateTime.DateTyped"], agg: ["Sum.Incoming"], bydate: 1,
+    cols: [["DateTime.DateTyped", "Дата", "l"], ["Sum.Incoming", "Приход, ₸", "n"]] },
+  cashday: { n: "Движение денежных средств по дням",
+    types: ["PAYIN", "PAYOUT"], group: ["DateTime.DateTyped"], agg: ["Sum.Incoming", "Sum.Outgoing"], bydate: 1,
+    cols: [["DateTime.DateTyped", "Дата", "l"], ["Sum.Incoming", "Поступление", "n"], ["Sum.Outgoing", "Выплата", "n"]] },
+  prodstore: { n: "Выпуск по складам",
+    types: ["PRODUCTION"], group: ["Store"], agg: ["Amount", "Sum.Incoming"],
+    cols: [["Store", "Склад", "l"], ["Amount", "Выпущено", "q"], ["Sum.Incoming", "Себестоимость, ₸", "n"]] },
+  movestore: { n: "Обороты по складам",
+    group: ["Store"], agg: ["Sum.Incoming", "Sum.Outgoing"],
+    cols: [["Store", "Склад", "l"], ["Sum.Incoming", "Приход, ₸", "n"], ["Sum.Outgoing", "Расход, ₸", "n"]] },
+  chess: { n: "Обороты: счёт и корреспондирующий счёт",
+    group: ["Account.Name", "Contr-Account.Name"], agg: ["Sum.Incoming"],
+    cols: [["Account.Name", "Счёт", "l"], ["Contr-Account.Name", "Корр. счёт", "l"],
+           ["Sum.Incoming", "Оборот, ₸", "n"]] },
+  docs: { n: "Журнал документов",
+    group: ["TransactionType", "Document"], agg: ["Sum.Incoming"],
+    cols: [["TransactionType", "Вид операции", "l"], ["Document", "Документ", "l"],
+           ["Sum.Incoming", "Сумма, ₸", "n"]] },
+  wo: { n: "Списания, брак и недостачи",
+    types: ["WRITEOFF"], group: ["Account.Name", "Product.Name"], agg: ["Amount", "Sum.Outgoing"],
+    cols: [["Account.Name", "Склад / статья", "l"], ["Product.Name", "Номенклатура", "l"],
+           ["Amount", "Количество", "q"], ["Sum.Outgoing", "Сумма, ₸", "n"]] },
+};
+
+/* Кэш ответов на 10 минут. Отчёты тяжёлые — «Валовая прибыль» это две
+   выгрузки из айко, — а за десять минут цифры в учёте не меняются
+   настолько, чтобы гонять запрос заново на каждое нажатие кнопки. */
+async function handleErp(request, env, url) {
+  if (url.searchParams.get("raw")) return handleErpRaw(request, env, url);
+  const ck = new Request("https://erp.cache" + url.pathname + url.search);
+  const hit = await caches.default.match(ck);
+  if (hit) return hit;
+  const resp = await handleErpRaw(request, env, url);
+  if (resp.status === 200) {
+    const body = await resp.clone().text();
+    const cached = new Response(body, {
+      status: 200,
+      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "max-age=600" },
+    });
+    await caches.default.put(ck, cached.clone());
+    return cached;
+  }
+  return resp;
+}
+
+async function handleErpRaw(request, env, url) {
+  const key = String(url.searchParams.get("r") || "");
+  const d = ERP_REPORTS[key];
+  if (!d) return jsonResp({ error: "неизвестный отчёт" }, 400);
+
+  const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
+  /* На экране хватает 300 строк, для выгрузки в Excel нужен весь список. */
+  const LIM = url.searchParams.get("all") === "1" ? 100000 : 300;
+  const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);  // Алматы
+  const to = ok(url.searchParams.get("to")) ? url.searchParams.get("to") : today;
+  const from = ok(url.searchParams.get("from")) ? url.searchParams.get("from") : to.slice(0, 8) + "01";
+  if (from > to) return jsonResp({ error: "начало периода позже конца" }, 400);
+
+  /* Остатки берём не из OLAP, а из отчёта остатков айко: OLAP по всей
+     истории проводок кладёт и запрос, и склад. */
+  if (d.kind === "api") {
+    const token = await iikoAuthCached();
+    const ts = to + "T23:59:59";
+    const ru = `${IIKO.url}${d.path}?timestamp=${encodeURIComponent(ts)}`;
+    const rr = await fetch(ru, { headers: { Cookie: `key=${token}` } });
+    if (!rr.ok) return jsonResp({ error: "айко ответил " + rr.status }, 502);
+    let raw = null; try { raw = await rr.json(); } catch (e) { return jsonResp({ error: "айко вернул не JSON" }, 502); }
+    if (url.searchParams.get("raw")) return jsonResp({ raw: Array.isArray(raw) ? raw.slice(0, 3) : raw });
+    const arr = Array.isArray(raw) ? raw : [];
+    const [dS, dP] = await Promise.all([erpDict(env, "stores"), erpDict(env, "products")]);
+    const nm = (map, id) => (map && map[id]) || String(id || "").slice(0, 8);
+    const rows = arr.map((x) => ({
+      store: x.storeName || nm(dS, x.store || x.storeId),
+      product: x.productName || nm(dP, x.product || x.productId),
+      amount: Number(x.amount != null ? x.amount : x.quantity) || 0,
+      sum: Number(x.sum != null ? x.sum : x.cost) || 0,
+    })).filter((x) => x.amount || x.sum);
+    rows.sort((a, b) => b.sum - a.sum);
+    const sums = { amount: rows.reduce((s2, x) => s2 + x.amount, 0),
+                   sum: rows.reduce((s2, x) => s2 + x.sum, 0) };
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, LIM), total: rows.length,
+                      sums: sums, from: to, to: to });
+  }
+
+  /* В айко граница «to» у DateRange НЕ включается: запросив по 20-е, получишь
+     по 19-е. Поэтому в фильтр отдаём следующий день, а пользователю
+     возвращаем ту дату, которую он выбрал. */
+  const nextDay = (s) => {
+    const d0 = new Date(s + "T00:00:00Z");
+    d0.setUTCDate(d0.getUTCDate() + 1);
+    return d0.toISOString().slice(0, 10);
+  };
+  const filters = { "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM", from: from, to: nextDay(to) } };
+  if (d.types) filters.TransactionType = { filterType: "IncludeValues", values: d.types };
+
+  /* Разбор категорий: одна выгрузка, вся работа — после неё. */
+  if (d.kind === "cat") {
+    const tok = await iikoAuthCached();
+    const rr = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+      method: "POST", headers: { Cookie: `key=${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ reportType: "TRANSACTIONS", buildSummary: "true",
+        groupByRowFields: d.group, aggregateFields: d.agg, filters: filters }) });
+    if (!rr.ok) return jsonResp({ error: "айко ответил " + rr.status }, 502);
+    const pp = await rr.json();
+    const src = Array.isArray(pp && pp.data) ? pp.data : [];
+    const NO = "(не проставлена)";
+    const items = src.map((x) => ({
+      name: String(x["Product.Name"] || ""),
+      cat: x["Product.Category"] || NO,
+      /* Полный путь по дереву номенклатуры — это и есть классификация;
+         папка (последний уровень) используется для сравнения категорий. */
+      path: String(x["Product.Hierarchy"] || ""),
+      folder: String(x["Product.Hierarchy"] || "").split("/").pop() || "",
+      sum: Number(x["Sum.Outgoing"]) || 0,
+    }));
+    const fold = {};
+    items.forEach((i) => {
+      const f = (fold[i.folder] = fold[i.folder] || { n: 0, c: {} });
+      f.n++; f.c[i.cat] = (f.c[i.cat] || 0) + 1;
+    });
+    Object.keys(fold).forEach((f) => {
+      const e = Object.entries(fold[f].c).sort((a, b) => b[1] - a[1]);
+      /* Преобладающей считаем только проставленную категорию: если в папке
+         больше всего пустых, ориентиром служит самая частая из заполненных. */
+      const named = e.filter((x) => x[0] !== NO);
+      fold[f].dom = named.length ? named[0][0] : NO;
+      fold[f].mixed = e.length > 1;
+    });
+    /* Задвоенные категории: «Десерты» и «СН Десерты» — это одно и то же,
+       пока живут обе, любой разрез разваливается надвое. Ищем пары, где
+       одно имя получается из другого отбрасыванием приставки. */
+    const allCats = [...new Set(items.map((i) => i.cat))].filter((c) => c !== NO);
+    const base = (c) => String(c).toLowerCase().replace(/ё/g, "е")
+      .replace(/^(сн|сп|пп)\s+/, "").replace(/[*_\s.]/g, "");
+    const dupes = [];
+    allCats.forEach((a) => allCats.forEach((b) => {
+      if (a < b && base(a) === base(b)) dupes.push(a + " / " + b);
+    }));
+
+    const rows2 = items
+      .filter((i) => i.cat === NO || (fold[i.folder].mixed && i.cat !== fold[i.folder].dom))
+      .map((i) => {
+        const dom = fold[i.folder].dom;
+        let rec;
+        if (i.cat === NO) {
+          rec = dom === NO ? "Завести категорию для папки и проставить"
+                           : "Проставить категорию «" + dom + "»";
+        } else if (dupes.some((p) => p.split(" / ").indexOf(i.cat) >= 0)) {
+          rec = "Сначала объединить задвоенные категории, затем поставить «" + dom + "»";
+        } else {
+          rec = "Проверить: сменить «" + i.cat + "» на «" + dom + "» или перенести в свою папку";
+        }
+        /* Варианты замены — категории, которые реально встречаются в этой же
+           папке: выбирать надо из них, а не из всего справочника. */
+        const alts = Object.entries(fold[i.folder].c)
+          .filter((e) => e[0] !== NO).sort((a, b) => b[1] - a[1])
+          .map((e) => e[0] + " (" + e[1] + ")");
+        const act = i.cat === NO ? "Проставить"
+                  : (dupes.some((q) => q.split(" / ").indexOf(i.cat) >= 0) ? "Объединить" : "Сменить");
+        return { name: i.name, cat: i.cat, dom: dom, act: act, rec: rec, alts: alts,
+                 path: i.path, folder: i.folder, sum: i.sum };
+      })
+      .sort((a, b) => b.sum - a.sum);
+
+    /* Справочник папок: что в каждой лежит и какие категории в ней встречаются. */
+    const folders = Object.keys(fold).sort().map((f) => ({
+      folder: f, n: fold[f].n, dom: fold[f].dom, mixed: !!fold[f].mixed,
+      cats: Object.entries(fold[f].c).sort((a, b) => b[1] - a[1])
+              .map((e) => ({ c: e[0], n: e[1] })),
+      sum: items.filter((i) => i.folder === f).reduce((a, i) => a + i.sum, 0),
+    }));
+
+    const noCat = rows2.filter((r) => r.cat === NO);
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, 1000), total: rows2.length,
+      sums: { sum: rows2.reduce((a, x) => a + x.sum, 0) },
+      note: "позиций с отгрузкой " + items.length + " · папок " + Object.keys(fold).length
+          + " · без категории " + noCat.length
+          + " · спорных " + (rows2.length - noCat.length)
+          + (dupes.length ? " · задвоенные категории: " + dupes.join(", ") : ""),
+      dupes: dupes, folders: folders, allCats: allCats.sort(),
+      from: from, to: to });
+  }
+
+  /* Отчёт из двух выгрузок: считаем обе и складываем по ключу группировки. */
+  if (d.two) {
+    const token2 = await iikoAuthCached();
+    const key = d.group[0];
+    const pull = async (part) => {
+      const f2 = JSON.parse(JSON.stringify(filters));
+      f2.TransactionType = { filterType: "IncludeValues", values: part.types };
+      const rr = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+        method: "POST", headers: { Cookie: `key=${token2}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reportType: "TRANSACTIONS", buildSummary: "true",
+          groupByRowFields: d.group, aggregateFields: part.agg, filters: f2 }) });
+      if (!rr.ok) throw new Error("айко ответил " + rr.status);
+      const pp = await rr.json();
+      return Array.isArray(pp && pp.data) ? pp.data : [];
+    };
+    /* Последовательно, а не параллельно: два тяжёлых OLAP-запроса в одной
+       сессии resto API айко обслуживает по очереди, и параллельный вызов
+       только держит соединение дольше. */
+    const ra = await pull(d.two.a);
+    const rb = await pull(d.two.b);
+    const m = new Map();
+    const put = (list, part) => list.forEach((x) => {
+      const k = String(x[key] || "");
+      const o = m.get(k) || { [key]: k, rev: 0, cost: 0 };
+      o[part.as] += Number(x[part.agg[0]]) || 0;
+      m.set(k, o);
+    });
+    put(ra, d.two.a); put(rb, d.two.b);
+    let rows2 = [...m.values()].map((o) => {
+      o.gp = o.rev - o.cost;
+      o.mp = o.rev ? (o.gp / o.rev) * 100 : 0;
+      return o;
+    }).filter((o) => o.rev || o.cost);
+    rows2.sort((a, b) => b.gp - a.gp);
+    const sRev = rows2.reduce((s2, x) => s2 + x.rev, 0);
+    const sCost = rows2.reduce((s2, x) => s2 + x.cost, 0);
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, LIM), total: rows2.length,
+      sums: { rev: sRev, cost: sCost, gp: sRev - sCost, mp: sRev ? ((sRev - sCost) / sRev) * 100 : 0 },
+      from: from, to: to });
+  }
+
+  const body = { reportType: "TRANSACTIONS", buildSummary: "true",
+    groupByRowFields: d.group, aggregateFields: d.agg, filters: filters };
+
+  const token = await iikoAuthCached();
+  const r = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+    method: "POST", headers: { Cookie: `key=${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body) });
+  if (!r.ok) return jsonResp({ error: "айко ответил " + r.status }, 502);
+  let p = null; try { p = await r.json(); } catch (e) { return jsonResp({ error: "айко вернул не JSON" }, 502); }
+  let rows = Array.isArray(p && p.data) ? p.data : [];
+  if (d.bydate) {
+    const k0 = d.group[0];
+    rows.sort((a, b) => String(a[k0] || "").localeCompare(String(b[k0] || "")));
+  } else {
+    const sortKey = d.agg[d.agg.length - 1];
+    rows.sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+  }
+  const sums = {};
+  d.agg.forEach((k) => { sums[k] = rows.reduce((s, x) => s + (x[k] || 0), 0); });
+  return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, LIM), total: rows.length,
+                    sums: sums, from: from, to: to });
+}
+
+/* Справочники складов и номенклатуры: отчёт остатков айко отдаёт одни
+   идентификаторы. Держим карты id → имя в KV сутки — перечитывать их
+   на каждый отчёт слишком дорого, а меняются они редко. */
+const DICT_PATHS = {
+  stores: ["/resto/api/v2/entities/list?rootType=Store&includeDeleted=false",
+           "/resto/api/corporation/stores"],
+  products: ["/resto/api/v2/entities/products/list",
+             "/resto/api/v2/entities/list?rootType=Product&includeDeleted=false"],
+};
+async function erpDict(env, kind) {
+  const key = "dict:" + kind;
+  try {
+    const c = JSON.parse((await env.PLAN.get(key)) || "null");
+    if (c && c.till > Date.now() && c.m) return c.m;
+  } catch (e) {}
+  const token = await iikoAuthCached();
+  const m = {};
+  for (const path of DICT_PATHS[kind]) {
+    try {
+      const txt = (await iikoGet(token, path)).trim();
+      if (txt.startsWith("{") || txt.startsWith("[")) {
+        const j = JSON.parse(txt);
+        const arr = Array.isArray(j) ? j : (j.items || []);
+        for (const x of arr) if (x && x.id) m[x.id] = String(x.name || x.code || x.id).trim();
+      } else {
+        const re = /<(corporateItemDto|storeDto|productDto|item|store|product)\b[^>]*>([\s\S]*?)<\/\1>/g;
+        let mm;
+        while ((mm = re.exec(txt))) {
+          const b = mm[2];
+          const id = (b.match(/<id>([^<]+)<\/id>/) || [])[1];
+          const nm = (b.match(/<name>([^<]*)<\/name>/) || [])[1];
+          if (id) m[id] = (nm || id).trim();
+        }
+      }
+      if (Object.keys(m).length) break;
+    } catch (e) {}
+  }
+  if (Object.keys(m).length) {
+    try { await env.PLAN.put(key, JSON.stringify({ till: Date.now() + 864e5, m: m })); } catch (e) {}
+  }
+  return m;
+}
+
+async function handlePaycal(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  async function rows() {
+    try { return JSON.parse((await env.PLAN.get(PAYCAL_KEY)) || "{}") || {}; } catch (e) { return {}; }
+  }
+  if (act === "list") return jsonResp({ rows: await rows() });
+
+  if (act === "save" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const r = body && body.r;
+    if (!r) return jsonResp({ error: "нет строки" }, 400);
+    const id = String(r.id || "").slice(0, 40).trim()
+      || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+    const clean = {
+      id: id,
+      d: /^\d{4}-\d{2}-\d{2}$/.test(String(r.d || "")) ? r.d : "",
+      w: String(r.w || "").slice(0, 120),
+      n: String(r.n || "").slice(0, 200),
+      a: Math.round(Number(r.a) || 0),
+      st: r.st === "done" ? "done" : "plan",
+    };
+    if (!clean.d) return jsonResp({ error: "нет даты" }, 400);
+    if (!clean.a) return jsonResp({ error: "нет суммы" }, 400);
+    const all = await rows();
+    all[id] = clean;
+    const str = JSON.stringify(all);
+    if (str.length > 400000) return jsonResp({ error: "календарь переполнен" }, 413);
+    await env.PLAN.put(PAYCAL_KEY, str);
+    return jsonResp({ ok: true, r: clean, count: Object.keys(all).length });
+  }
+
+  if (act === "del" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const id = String((body && body.id) || "").slice(0, 40).trim();
+    if (!id) return jsonResp({ error: "нет ключа" }, 400);
+    const all = await rows();
+    delete all[id];
+    await env.PLAN.put(PAYCAL_KEY, JSON.stringify(all));
+    return jsonResp({ ok: true, count: Object.keys(all).length });
+  }
+  return jsonResp({ error: "неизвестное действие" }, 400);
+}
+
+async function handleCrm(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  if (act === "get") {
+    let b = null;
+    try { b = JSON.parse((await env.PLAN.get(CRM_KEY)) || "null"); } catch (e) {}
+    return jsonResp({ board: b });
+  }
+  if (act === "save" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const cols = Array.isArray(body && body.cols) ? body.cols : null;
+    if (!cols) return jsonResp({ error: "нет колонок" }, 400);
+    const clean = {
+      upd: new Date().toISOString().slice(0, 16).replace("T", " "),
+      cols: cols.slice(0, 24).map((c) => ({
+        id: String(c.id || "").slice(0, 40),
+        n: String(c.n || "").slice(0, 60),
+        cards: Array.isArray(c.cards) ? c.cards.slice(0, 200).map((k) => ({
+          id: String(k.id || "").slice(0, 40),
+          t: String(k.t || "").slice(0, 400),
+          d: k.d ? 1 : 0,
+        })) : [],
+      })),
+    };
+    const str = JSON.stringify(clean);
+    if (str.length > 400000) return jsonResp({ error: "доска переполнена" }, 413);
+    await env.PLAN.put(CRM_KEY, str);
+    return jsonResp({ ok: true, upd: clean.upd });
+  }
+  return jsonResp({ error: "неизвестное действие" }, 400);
+}
+
+async function handleBalans(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  async function rows() {
+    try { return JSON.parse((await env.PLAN.get(BALANS_KEY)) || "{}") || {}; } catch (e) { return {}; }
+  }
+  if (act === "list") return jsonResp({ rows: await rows() });
+
+  if (act === "save" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const r = body && body.r;
+    const id = String((r && r.id) || "").slice(0, 80).trim();
+    if (!id) return jsonResp({ error: "нет ключа строки" }, 400);
+    const all = await rows();
+    const clean = {
+      id: id,
+      side: r.side === "dz" ? "dz" : "kz",
+      n: String(r.n || "").slice(0, 160),
+      note: String(r.note || "").slice(0, 400),
+      open: Number(r.open) || 0,
+      from: String(r.from || "").slice(0, 10),
+      ops: Array.isArray(r.ops) ? r.ops.slice(0, 400).map((o) => ({
+        d: String(o.d || "").slice(0, 10),
+        in: Number(o.in) || 0,
+        pay: Number(o.pay) || 0,
+      })) : [],
+    };
+    if (!clean.n) return jsonResp({ error: "нет названия контрагента" }, 400);
+    clean.upd = new Date().toISOString().slice(0, 16).replace("T", " ");
+    all[id] = clean;
+    const s = JSON.stringify(all);
+    if (s.length > 900000) return jsonResp({ error: "список переполнен" }, 413);
+    await env.PLAN.put(BALANS_KEY, s);
+    return jsonResp({ ok: true, count: Object.keys(all).length, r: clean });
+  }
+
+  if (act === "del" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const id = String((body && body.id) || "").slice(0, 80).trim();
+    if (!id) return jsonResp({ error: "нет ключа строки" }, 400);
+    const all = await rows();
+    delete all[id];
+    await env.PLAN.put(BALANS_KEY, JSON.stringify(all));
+    return jsonResp({ ok: true, count: Object.keys(all).length });
+  }
+  return jsonResp({ error: "неизвестное действие" }, 400);
+}
+
+async function handleBaza(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  async function rows() {
+    try { return JSON.parse((await env.PLAN.get(BAZA_KEY)) || "{}") || {}; } catch (e) { return {}; }
+  }
+  if (act === "list") return jsonResp({ rows: await rows() });
+
+  if (act === "save" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const r = body && body.r;
+    const id = String((r && r.id) || "").slice(0, 160).trim();
+    if (!id) return jsonResp({ error: "нет ключа карточки" }, 400);
+    const all = await rows();
+    const clean = {};
+    ["n", "code", "own", "src", "st", "link", "note", "who"].forEach((k) => {
+      if (r[k] != null) clean[k] = String(r[k]).slice(0, 1200);
+    });
+    ["tags", "rel"].forEach((k) => {
+      if (Array.isArray(r[k])) clean[k] = r[k].slice(0, 40).map((x) => String(x).slice(0, 160));
+    });
+    clean.upd = new Date().toISOString().slice(0, 16).replace("T", " ");
+    all[id] = clean;
+    const s = JSON.stringify(all);
+    if (s.length > 900000) return jsonResp({ error: "база переполнена" }, 413);
+    await env.PLAN.put(BAZA_KEY, s);
+    return jsonResp({ ok: true, count: Object.keys(all).length, r: clean });
+  }
+
+  if (act === "del" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const id = String((body && body.id) || "").slice(0, 160).trim();
+    if (!id) return jsonResp({ error: "нет ключа карточки" }, 400);
+    const all = await rows();
+    delete all[id];
+    await env.PLAN.put(BAZA_KEY, JSON.stringify(all));
+    return jsonResp({ ok: true, count: Object.keys(all).length });
+  }
+  return jsonResp({ error: "неизвестное действие" }, 400);
+}
+
+async function handleAika(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  if (act === "list") {
+    let marks = {};
+    try { marks = JSON.parse((await env.PLAN.get(AIKA_MARKS_KEY)) || "{}") || {}; } catch (e) {}
+    return jsonResp({ marks });
+  }
+  if (act === "mark" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const k = String((body && body.k) || "").slice(0, 200).trim();
+    if (!k) return jsonResp({ error: "нет ключа отметки" }, 400);
+    let marks = {};
+    try { marks = JSON.parse((await env.PLAN.get(AIKA_MARKS_KEY)) || "{}") || {}; } catch (e) {}
+    if (body && body.v) {
+      marks[k] = {
+        st: String(body.v.st || "").slice(0, 12),
+        note: String(body.v.note || "").slice(0, 400),
+        when: new Date().toISOString().slice(0, 16).replace("T", " "),
+      };
+    } else {
+      delete marks[k];
+    }
+    await env.PLAN.put(AIKA_MARKS_KEY, JSON.stringify(marks).slice(0, 900000));
+    return jsonResp({ ok: true, count: Object.keys(marks).length });
+  }
+  return jsonResp({ error: "неизвестное действие" }, 400);
+}
+
+async function handleUpak(request, env, url) {
+  const act = url.searchParams.get("a") || "";
+  const key = (url.searchParams.get("n") || "").slice(0, 400);
+
+  if (act === "list") {
+    const foto = {};
+    let cursor;
+    do {
+      const r = await env.PLAN.list({ prefix: UPF_PREFIX, cursor, limit: 1000 });
+      for (const k of r.keys) foto[k.name.slice(UPF_PREFIX.length)] = Object.assign({}, k.metadata || {});
+      cursor = r.list_complete ? null : r.cursor;
+    } while (cursor);
+    let prices = {}, stops = {}, weeks = {};
+    try { prices = JSON.parse((await env.PLAN.get(UPF_PRICE_KEY)) || "{}") || {}; } catch (e) {}
+    try { stops = JSON.parse((await env.PLAN.get(UPF_STOP_KEY)) || "{}") || {}; } catch (e) {}
+    try { weeks = JSON.parse((await env.PLAN.get(UPF_WEEKS_KEY)) || "{}") || {}; } catch (e) {}
+    let sku = {};
+    try { sku = JSON.parse((await env.PLAN.get(UPF_SKU_KEY)) || "{}") || {}; } catch (e) {}
+    return jsonResp({ foto, prices, stops, weeks, sku });
+  }
+
+  if (act === "foto") {
+    if (!key) return jsonResp({ error: "нет названия позиции" }, 400);
+    const r = await env.PLAN.getWithMetadata(UPF_PREFIX + key, { type: "arrayBuffer" });
+    if (!r || !r.value) return jsonResp({ error: "фото нет" }, 404);
+    return new Response(r.value, { headers: {
+      "content-type": (r.metadata && r.metadata.ct) || "image/jpeg",
+      "cache-control": "private, max-age=300" } });
+  }
+
+  if (act === "up" && request.method === "POST") {
+    if (!key) return jsonResp({ error: "нет названия позиции" }, 400);
+    const ct = url.searchParams.get("ct") || "image/jpeg";
+    if (ct.indexOf("image/") !== 0) return jsonResp({ error: "принимаем только картинки" }, 400);
+    const buf = await request.arrayBuffer();
+    if (!buf.byteLength) return jsonResp({ error: "пустой файл" }, 400);
+    if (buf.byteLength > 3 * 1024 * 1024) return jsonResp({ error: "файл больше 3 МБ" }, 413);
+    await env.PLAN.put(UPF_PREFIX + key, buf, { metadata: {
+      ct, s: buf.byteLength, d: new Date().toISOString().slice(0, 10) } });
+    return jsonResp({ ok: true, s: buf.byteLength });
+  }
+
+  if (act === "rm" && request.method === "POST") {
+    if (!key) return jsonResp({ error: "нет названия позиции" }, 400);
+    await env.PLAN.delete(UPF_PREFIX + key);
+    return jsonResp({ ok: true });
+  }
+
+  if (act === "sku" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const k = String((body && body.k) || "").slice(0, 160).trim();
+    if (!k) return jsonResp({ error: "нет названия" }, 400);
+    let p = {};
+    try { p = JSON.parse((await env.PLAN.get(UPF_SKU_KEY)) || "{}") || {}; } catch (e) {}
+    if (body && body.v) p[k] = body.v; else delete p[k];
+    await env.PLAN.put(UPF_SKU_KEY, JSON.stringify(p).slice(0, 400000));
+    return jsonResp({ ok: true, count: Object.keys(p).length });
+  }
+
+  if (act === "price" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const n = String(body.n || "").slice(0, 400);
+    if (!n) return jsonResp({ error: "нет названия позиции" }, 400);
+    let p = {};
+    try { p = JSON.parse((await env.PLAN.get(UPF_PRICE_KEY)) || "{}") || {}; } catch (e) {}
+    const v = Number(body.v);
+    if (isFinite(v) && v > 0) p[n] = Math.round(v * 100) / 100; else delete p[n];
+    await env.PLAN.put(UPF_PRICE_KEY, JSON.stringify(p));
+    return jsonResp({ ok: true, count: Object.keys(p).length });
+  }
+
+  if (act === "weeks" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const n = String(body.n || "").slice(0, 400);
+    if (!n) return jsonResp({ error: "нет названия позиции" }, 400);
+    let p = {};
+    try { p = JSON.parse((await env.PLAN.get(UPF_WEEKS_KEY)) || "{}") || {}; } catch (e) {}
+    const v = Number(body.v);
+    if (isFinite(v) && v >= 1 && v <= 104) p[n] = Math.round(v * 10) / 10; else delete p[n];
+    await env.PLAN.put(UPF_WEEKS_KEY, JSON.stringify(p));
+    return jsonResp({ ok: true, count: Object.keys(p).length });
+  }
+
+  if (act === "stop" && request.method === "POST") {
+    let body = {};
+    try { body = await request.json(); } catch (e) {}
+    const n = String(body.n || "").slice(0, 400);
+    if (!n) return jsonResp({ error: "нет названия позиции" }, 400);
+    let p = {};
+    try { p = JSON.parse((await env.PLAN.get(UPF_STOP_KEY)) || "{}") || {}; } catch (e) {}
+    if (body.v) p[n] = { d: new Date().toISOString().slice(0, 10) }; else delete p[n];
+    await env.PLAN.put(UPF_STOP_KEY, JSON.stringify(p));
+    return jsonResp({ ok: true, count: Object.keys(p).length });
+  }
+
+  return jsonResp({ error: "неизвестный запрос" }, 404);
+}
+
+
+
+// ── Вход по паролю ───────────────────────────────────────────────────────────
+//  До 22.09.2026 сайт был открыт любому, у кого есть ссылка: на нём продажи,
+//  ОПиУ, ДДС, дебиторка и себестоимость. Теперь закрыто всё, кроме машинных
+//  запросов сборщика (?t=…), счётчика /track и галереи со своим кодом.
+//
+//  Пароль в репозиторий не попадает — репозиторий публичный, и в браузере он
+//  тоже не покидает страницу в открытом виде: PBKDF2 (150 000 итераций)
+//  считается на клиенте, на сервер уходит уже производная. Делать PBKDF2 на
+//  воркере нельзя — free-план Cloudflare даёт 10 мс процессорного времени на
+//  запрос, а 150 000 итераций это сотни миллисекунд: вход бы просто падал.
+//  Воркер делает один SHA-256 от производной и случайной соли из KV.
+//
+//  Пароль задаётся один раз на самом сайте: пока в KV пусто, открывается
+//  страница первичной настройки, и нужен одноразовый код (его SHA-256 ниже) —
+//  чтобы пароль не успел задать кто-то чужой. Забыли пароль: удалить ключ
+//  auth:v1 в KV (панель Cloudflare) — вернётся страница настройки.
+const AUTH_KEY   = "auth:v1";
+const AUTH_COOK  = "pulse_s";
+const AUTH_DAYS  = 30;
+const AUTH_SALT  = "fz-pulse-v1";   // соль клиентского PBKDF2, она же в скрипте страницы
+const AUTH_ITER  = 150000;
+const SETUP_HASH = "c294775d93b48f8e391f9a8f2c1353006d02546637986753df12254b3a3f1492";
+const FAIL_MAX   = 12;              // попыток в час с одного адреса
+
+const AUTH_OPEN = new Set(["/track", "/favicon.ico", "/robots.txt", "/cfo", "/cfo.html"]);
+
+// Раздел «1С» открыт без пароля — решение владельца от 02.10.2026: страницы
+// налогов и реализации показываем бухгалтерии и банку, не заводя им вход на
+// сайт. Сравниваем по декодированному пути: в адресе кириллица приходит
+// в процентах. nav.js намеренно оставлен под паролем — посторонний видит
+// только саму страницу, без меню остального Пульса.
+const AUTH_OPEN_1C = new Set([
+  "/nalogi_отчёт.html",
+  "/реализация.html",
+  "/realizaciya.js",
+]);
+
+function authRnd() {
+  return [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+// Сравнение за одинаковое время — чтобы по задержке нельзя было подбирать посимвольно.
+function eqConst(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+function isHex64(s) { return typeof s === "string" && /^[0-9a-f]{64}$/.test(s); }
+async function authGet(env) {
+  try { return JSON.parse((await env.PLAN.get(AUTH_KEY)) || "null"); } catch (e) { return null; }
+}
+async function authMake(dhex) {
+  const salt = authRnd();
+  return { v: 2, salt, hash: await sha256hex(dhex + "|" + salt), at: new Date().toISOString() };
+}
+async function authOk(rec, dhex) {
+  if (!rec || !isHex64(dhex)) return false;
+  return eqConst(await sha256hex(dhex + "|" + rec.salt), rec.hash);
+}
+// Токен сессии выводится из хэша и соли, которые лежат только в KV:
+// по публичному коду его не подделать. Смена пароля обнуляет все сессии.
+async function authToken(rec) {
+  return await sha256hex(rec.hash + "|" + rec.salt + "|pulse-session-v2");
+}
+function cookieGet(request, name) {
+  const raw = request.headers.get("cookie") || "";
+  for (const part of raw.split(";")) {
+    const i = part.indexOf("=");
+    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
+  }
+  return "";
+}
+function authCookie(tok) {
+  return tok
+    ? `${AUTH_COOK}=${tok}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${AUTH_DAYS * 86400}`
+    : `${AUTH_COOK}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+}
+async function authFail(env, request, add) {
+  const ip = request.headers.get("cf-connecting-ip") || "?";
+  const k = "authfail:" + (await sha256hex(ip)).slice(0, 16);
+  const n = parseInt((await env.PLAN.get(k)) || "0", 10) || 0;
+  if (add) await env.PLAN.put(k, String(n + 1), { expirationTtl: 3600 });
+  return n;
+}
+
+const AUTH_CSS = `*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:#0b1220;color:#e2e8f0;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.box{width:100%;max-width:380px;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:26px 24px}
+h1{margin:0 0 4px;font-size:19px;color:#f1f5f9}
+.sub{margin:0 0 16px;font-size:12px;color:#c9a94e;letter-spacing:.4px;text-transform:uppercase;font-weight:700}
+.lead{margin:0 0 16px;font-size:13px;color:#94a3b8}
+label{display:block;font-size:12px;color:#cbd5e1;margin-bottom:11px}
+input{width:100%;margin-top:5px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:9px;
+  padding:10px 12px;font-size:15px}
+input:focus{outline:none;border-color:#c9a94e}
+button{width:100%;margin-top:6px;background:#c9a94e;color:#1a1408;border:0;border-radius:9px;padding:11px;
+  font-size:14px;font-weight:700;cursor:pointer}
+button:hover{background:#dbbc60}button:disabled{opacity:.6;cursor:wait}
+.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:9px;
+  padding:9px 12px;font-size:12.5px;margin-bottom:14px}
+.hint{margin:12px 0 0;font-size:11px;color:#64748b;line-height:1.5}a{color:#c9a94e}`;
+
+// Пароль превращается в производную прямо в браузере и в открытом виде никуда
+// не уходит. Поля с паролем перед отправкой очищаются.
+const AUTH_JS = `
+async function der(p){
+  var e=new TextEncoder();
+  var k=await crypto.subtle.importKey("raw",e.encode(p),"PBKDF2",false,["deriveBits"]);
+  var b=await crypto.subtle.deriveBits({name:"PBKDF2",salt:e.encode("${AUTH_SALT}"),iterations:${AUTH_ITER},hash:"SHA-256"},k,256);
+  return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("");
+}
+function say(m){var e=document.getElementById("msg");if(e){e.textContent=m;e.style.display=m?"block":"none"}}
+document.addEventListener("submit",async function(ev){
+  var f=ev.target; if(!f.dataset.auth) return;
+  ev.preventDefault();
+  var b=f.querySelector("button"); if(b){b.disabled=true;b.textContent="Проверяем…"}
+  try{
+    var p1=f.querySelector("[name=p1]"), p2=f.querySelector("[name=p2]"), old=f.querySelector("[name=old]");
+    if(p1&&p1.value.length<8){say("Пароль короче 8 символов.");throw 0}
+    if(p1&&p2&&p1.value!==p2.value){say("Пароли не совпали.");throw 0}
+    if(old) f.h0.value=await der(old.value);
+    if(p1)  f.h1.value=await der(p1.value);
+    [p1,p2,old].forEach(function(x){if(x){x.value="";x.removeAttribute("name")}});
+    f.submit(); return;
+  }catch(e){ if(b){b.disabled=false;b.textContent=f.dataset.auth} }
+});`;
+
+function authShell(inner, status, cookie) {
+  const h = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" };
+  if (cookie) h["set-cookie"] = cookie;
+  return new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Пульс · вход</title><style>${AUTH_CSS}</style></head><body><div class="box">
+<div class="sub">Мастерская Сегодня</div><h1>Пульс</h1>
+<div class="err" id="msg" style="display:none"></div>
+${inner}</div><script>${AUTH_JS}</script></body></html>`, { status: status || 200, headers: h });
+}
+function authErr(t) { return t ? `<div class="err">${t}</div>` : ""; }
+
+function authLoginPage(o) {
+  const next = ((o && o.next) || "/").replace(/"/g, "&quot;");
+  return authShell(`${authErr(o && o.err)}
+<p class="lead">Внутренняя панель «Фуд Завод». Доступ по паролю.</p>
+<form method="POST" action="/__login" data-auth="Войти">
+<input type="hidden" name="next" value="${next}"><input type="hidden" name="h1">
+<label>Пароль<input name="p1" type="password" autocomplete="current-password" required autofocus></label>
+<button type="submit">Войти</button>
+<p class="hint">Вход запомнится на ${AUTH_DAYS} дней на этом устройстве.</p></form>`, (o && o.status) || 200);
+}
+function authSetupPage(o) {
+  return authShell(`${authErr(o && o.err)}
+<p class="lead">Пароль для сайта ещё не задан. Задайте его сейчас — после этого страница настройки больше не откроется.</p>
+<form method="POST" action="/__setup" data-auth="Задать пароль">
+<input type="hidden" name="h1">
+<label>Одноразовый код<input name="code" type="text" autocomplete="off" required placeholder="FZ-XXXX-XXXX-XXXX"></label>
+<label>Новый пароль<input name="p1" type="password" autocomplete="new-password" required></label>
+<label>Ещё раз<input name="p2" type="password" autocomplete="new-password" required></label>
+<button type="submit">Задать пароль</button>
+<p class="hint">Не короче 8 символов. Пароль считается прямо в браузере и никуда не уходит в открытом виде.</p></form>`,
+    (o && o.status) || 200);
+}
+function authPasswdPage(o) {
+  return authShell(`${authErr(o && o.err)}
+<p class="lead">Смена пароля. После неё на остальных устройствах придётся войти заново.</p>
+<form method="POST" action="/__passwd" data-auth="Сменить">
+<input type="hidden" name="h0"><input type="hidden" name="h1">
+<label>Текущий пароль<input name="old" type="password" autocomplete="current-password" required></label>
+<label>Новый пароль<input name="p1" type="password" autocomplete="new-password" required></label>
+<label>Ещё раз<input name="p2" type="password" autocomplete="new-password" required></label>
+<button type="submit">Сменить</button>
+<p class="hint"><a href="/">Вернуться на сайт</a></p></form>`, (o && o.status) || 200);
+}
+function authRedirect(to, cookie) {
+  const h = { location: to || "/", "cache-control": "no-store" };
+  if (cookie) h["set-cookie"] = cookie;
+  return new Response(null, { status: 303, headers: h });
+}
+function safeNext(v) {
+  const s = String(v || "/");
+  return s.startsWith("/") && !s.startsWith("//") ? s : "/";
+}
+
+async function authHandleLogin(request, env) {
+  const rec = await authGet(env);
+  if (!rec) return authSetupPage({});
+  if (request.method !== "POST") return authLoginPage({});
+  if ((await authFail(env, request, false)) >= FAIL_MAX)
+    return authLoginPage({ err: "Слишком много попыток. Попробуйте через час.", status: 429 });
+  const f = await request.formData();
+  const next = safeNext(f.get("next"));
+  if (!(await authOk(rec, String(f.get("h1") || "")))) {
+    await authFail(env, request, true);
+    return authLoginPage({ err: "Неверный пароль.", next, status: 401 });
+  }
+  return authRedirect(next, authCookie(await authToken(rec)));
+}
+async function authHandleSetup(request, env) {
+  if (await authGet(env)) return authRedirect("/");
+  if (request.method !== "POST") return authSetupPage({});
+  const f = await request.formData();
+  const code = String(f.get("code") || "").trim().toUpperCase();
+  const h1 = String(f.get("h1") || "");
+  if (!eqConst(await sha256hex(code), SETUP_HASH)) {
+    await authFail(env, request, true);
+    return authSetupPage({ err: "Код не подошёл.", status: 401 });
+  }
+  if (!isHex64(h1)) return authSetupPage({ err: "Браузер не смог обработать пароль. Включите JavaScript.", status: 400 });
+  const rec = await authMake(h1);
+  await env.PLAN.put(AUTH_KEY, JSON.stringify(rec));
+  return authRedirect("/", authCookie(await authToken(rec)));
+}
+async function authHandlePasswd(request, env) {
+  const rec = await authGet(env);
+  if (!rec) return authRedirect("/");
+  if (request.method !== "POST") {
+    return eqConst(cookieGet(request, AUTH_COOK), await authToken(rec))
+      ? authPasswdPage({}) : authLoginPage({ next: "/__passwd", status: 401 });
+  }
+  const f = await request.formData();
+  const h1 = String(f.get("h1") || "");
+  if (!(await authOk(rec, String(f.get("h0") || "")))) {
+    await authFail(env, request, true);
+    return authPasswdPage({ err: "Текущий пароль неверен.", status: 401 });
+  }
+  if (!isHex64(h1)) return authPasswdPage({ err: "Браузер не смог обработать пароль.", status: 400 });
+  const nr = await authMake(h1);
+  await env.PLAN.put(AUTH_KEY, JSON.stringify(nr));
+  return authRedirect("/", authCookie(await authToken(nr)));
+}
+//  null — пускаем дальше, Response — запрос дальше не идёт.
+async function authGate(request, env, url) {
+  const p = url.pathname;
+  if (p === "/__login")  return await authHandleLogin(request, env);
+  if (p === "/__setup")  return await authHandleSetup(request, env);
+  if (p === "/__passwd") return await authHandlePasswd(request, env);
+  if (p === "/__logout") return authRedirect("/", authCookie(""));
+  if (AUTH_OPEN.has(p)) return null;
+  if (doorFor(p)) return null;   // у общих дверей свой пароль, см. handleShare
+  // Сборщик данных (GitHub Actions и cron) ходит со своим токеном.
+  if (svcOk(url.searchParams, env)) return null;
+  // Галерея «Мальдивы» закрыта собственным кодом — её не трогаем.
+  let dec = p; try { dec = decodeURIComponent(p); } catch (e) {}
+  if (AUTH_OPEN_1C.has(dec) || AUTH_OPEN_1C.has(p)) return null;
+  if (p.indexOf("/api/gal") === 0 || dec.indexOf("мальдив") >= 0) return null;
+  const rec = await authGet(env);
+  const next = p + (url.search || "");
+  if (!rec) return authSetupPage({ next });
+  if (eqConst(cookieGet(request, AUTH_COOK), await authToken(rec))) return null;
+  // Для данных и картинок страницу входа не отдаём: пусть страница увидит 401.
+  const wantsHtml = (request.headers.get("accept") || "").indexOf("text/html") >= 0;
+  if (!wantsHtml) return new Response("unauthorized", { status: 401, headers: { "cache-control": "no-store" } });
+  return authLoginPage({ next, status: 401 });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.pathname === "/dz_kz.js") {
+    const _gate = await authGate(request, env, url);
+    if (_gate) return _gate;
+
+    /* 24.09.2026. Пока ассеты отдавались Cloudflare напрямую, эти пути брались
+       из репозитория, и собственные сборки воркера до них не доезжали. После
+       включения run_worker_first (это понадобилось для пароля) каждый запрос
+       пошёл через воркер, и он начал перекрывать файлы своими версиями: по
+       /dz_kz.js сайт откатился на 04.09, потому что разбор заголовков «ДЗ на …»
+       в воркере остался старый, а в parse_dz_kz.py его давно починили.
+       Истина для этих путей — файл из репозитория: его собирает ночной прогон,
+       он полнее и свежее. Сборка в воркере остаётся доступной по ?rebuild=1. */
+    const _repoWins = REPO_WINS.has(url.pathname) && url.searchParams.get("rebuild") !== "1";
+    if (url.pathname === "/dz_kz.js" && !_repoWins) {
       const cache = caches.default;
       const noCache = url.searchParams.has("nocache");
       let resp = noCache ? null : await cache.match(CACHE_KEY);
@@ -142,7 +1245,7 @@ export default {
     if (url.pathname === "/api/plan") {
       return handlePlan(request, env);
     }
-    if (url.pathname === "/sales_live.js") {
+    if (url.pathname === "/sales_live.js" && !_repoWins) {
       return salesJs(env, url);
     }
     if (url.pathname === "/sales_today.js") {
@@ -155,9 +1258,20 @@ export default {
       return salesCore(env, url);
     }
     if (url.pathname === "/sku_live.js") {
-      return skuJs(env, url);
+      /* 23.09.2026. Раньше отсюда всегда отдавался снимок из KV, который
+         собирает buildSku() прямо из айко. Этот сбор молча падал с 24.07.2026
+         (ошибка гасилась в .catch у крона), а KV отдавал июльский снимок —
+         и «SKU-аналитика 360», «Повышение цен» и «Себестоимость и маржа»
+         два месяца показывали июльские цифры со свежей датой сверху.
+         Настоящий источник — SKU_iiko/generate.py: он собирает sku_live.js
+         каждую ночь и кладёт файл в репозиторий. Его и отдаём.
+         ?rebuild=1 по-прежнему запускает сбор в воркере — для разбора. */
+      if (!_repoWins) return skuJs(env, url);
     }
     if (url.pathname === "/sku_totals.json") {
+      /* Читает тот же снимок из KV, что и старый маршрут sku_live.js, то есть
+         может быть несвежим. Сейчас его никто не вызывает; если понадобится —
+         считать надо от sku_live.js из репозитория. */
       const p = JSON.parse((await env.PLAN.get(SKU_KEY)) || "null");
       const out = { updated: p?.meta?.pulled, through: p?.meta?.through,
                     sku_count: p?.skus?.length || 0,
@@ -221,6 +1335,38 @@ export default {
     if (url.pathname === "/api/halal") {
       return handleHalal(request, env);
     }
+    if (url.pathname === "/api/upak") return handleUpak(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/aika") return handleAika(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/baza") return handleBaza(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/erp") return handleErp(request, env, url)
+
+    if (url.pathname === "/api/uslugi") return handleUsl(request, env, url)
+
+    if (url.pathname === "/api/uslresp") return handleUslResp(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/paycal") return handlePaycal(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/crm") return handleCrm(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/balans") return handleBalans(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    // Отладчик OLAP: им калибруем новые сборщики, не гоняя GitHub Actions.
+    if (url.pathname === "/api/olap-probe") return iikoProbe(url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, LIM) }, 500));
+    if (url.pathname === "/api/calc") return handleCalc(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/zp") return handleZp(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/suppliers") return handleSuppliers(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (url.pathname === "/api/salesplan") return handleSalesPlan(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 160) }, 500));
+    if (doorFor(url.pathname))
+      return handleShare(request, env, url).catch((e) => new Response(String(e).slice(0,160), { status: 500 }));
+    if (url.pathname === "/__team") return handleShareAdmin(request, env, url);
     if (url.pathname === "/track") return handleTrack(url, request, env, ctx);
     if (url.pathname === "/mstats") return handleStats(url, env);
     if (url.pathname === "/mlabel") return handleLabel(url, env);
@@ -253,7 +1399,10 @@ export default {
     // 03:00 UTC = 08:00 по Алматы — обновляем продажи из айко
     if (event.cron === "0 3 * * *") {
       ctx.waitUntil(buildSales(env).catch((e) => console.error("продажи:", String(e))));
-      ctx.waitUntil(buildSku(env).catch((e) => console.error("sku:", String(e))));
+      /* buildSku здесь больше не вызываем: sku_live.js собирает ночной
+         прогон в GitHub Actions (SKU_iiko/generate.py) и кладёт в репозиторий.
+         Второй сбор в воркере два месяца падал незаметно и только жёг
+         запросы к айко. Ручной запуск остался на /sku_live.js?rebuild=1. */
       // buildDays здесь НЕ вызываем: 03:00 UTC покрывает часовой крон ниже.
       // Два параллельных вызова читали и писали бы одни и те же ключи, и тот,
       // кто закончит вторым, затёр бы только что найденные правки.
@@ -336,8 +1485,11 @@ async function iikoProbe(url) {
       const sum = Array.isArray(data)
         ? data.reduce((s, x) => { for (const k in x) if (typeof x[k] === "number") (s[k] = (s[k] || 0) + x[k]); return s; }, {})
         : null;
+      /* ?n= — сколько строк вернуть. По умолчанию 120: столько влезает
+         в беглый просмотр. Для разборов вроде «все SKU месяца» нужно больше. */
+      const n = Math.max(1, Math.min(3000, +(url.searchParams.get("n") || 120) || 120));
       return J({ status: r.status, rows: Array.isArray(data) ? data.length : null, sums: sum,
-                 sample: Array.isArray(data) ? data.slice(0, 120) : p });
+                 sample: Array.isArray(data) ? data.slice(0, n) : p });
     }
     return J({ hint: "?cols=TRANSACTIONS | ?q=<base64url olap>" });
   } catch (e) { return J({ error: String(e && e.stack || e) }, 500); }
@@ -524,9 +1676,39 @@ async function iikoJsonAny(token, paths) {
   throw last || new Error("нет рабочего пути");
 }
 
+/* Справочник контрагентов. /resto/api/v2/entities/list?rootType=Supplier
+   на этом сервере отвечает 409, а /resto/api/suppliers отдаёт XML, а не JSON —
+   поэтому JSON пробуем первым, а XML разбираем регуляркой: тянуть парсер
+   в воркер ради пары полей ни к чему. */
+async function iikoCtrList(token) {
+  let last = null;
+  for (const p of IIKO_CTR_PATHS) {
+    try {
+      const txt = (await iikoGet(token, p)).trim();
+      if (txt.startsWith("{") || txt.startsWith("[")) {
+        const j = JSON.parse(txt);
+        const arr = Array.isArray(j) ? j : (j.items || []);
+        if (arr.length) return arr;
+        continue;
+      }
+      const out = [];
+      const re = /<(employee|supplier|item)\b[^>]*>([\s\S]*?)<\/\1>/g;
+      let m;
+      while ((m = re.exec(txt))) {
+        const body = m[2];
+        const id = (body.match(/<id>([^<]+)<\/id>/) || [])[1];
+        const nm = (body.match(/<name>([^<]*)<\/name>/) || [])[1];
+        if (id) out.push({ id, name: nm || id });
+      }
+      if (out.length) return out;
+    } catch (e) { last = e; }
+  }
+  throw last || new Error("справочник контрагентов недоступен");
+}
+
 async function ctrBalance(env, url) {
   const p = url.searchParams;
-  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  if (!svcOk(p, env)) return new Response("forbidden", { status: 403 });
   const on = p.get("on") || "";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(on) && !p.get("ts"))
     return new Response("need on=YYYY-MM-DD", { status: 400 });
@@ -535,7 +1717,7 @@ async function ctrBalance(env, url) {
 
   const [accs, ctrs, bal] = await Promise.all([
     iikoJsonAny(token, IIKO_ACC_PATHS),
-    iikoJsonAny(token, IIKO_CTR_PATHS),
+    iikoCtrList(token),
     iikoJson(token, `/resto/api/v2/reports/balance/counteragents?timestamp=${encodeURIComponent(ts)}`),
   ]);
   const nameOf = (list) => {
@@ -576,7 +1758,7 @@ async function ctrBalance(env, url) {
 const PROBE_OK = ["/resto/api/v2/reports/balance", "/resto/api/v2/entities", "/resto/api/suppliers"];
 async function iikoApiProbe(env, url) {
   const p = url.searchParams;
-  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  if (!svcOk(p, env)) return new Response("forbidden", { status: 403 });
   const path = p.get("path") || "";
   if (!PROBE_OK.some((x) => path.startsWith(x)))
     return new Response("путь не разрешён", { status: 400 });
@@ -592,7 +1774,7 @@ async function iikoApiProbe(env, url) {
 
 async function payWeek(env, url) {
   const p = url.searchParams;
-  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  if (!svcOk(p, env)) return new Response("forbidden", { status: 403 });
   const from = p.get("from"), to = p.get("to");
   if (!from || !to) return new Response("need from & to", { status: 400 });
   const toExcl = new Date(Date.parse(to) + 86400000).toISOString().slice(0, 10);
@@ -641,7 +1823,17 @@ async function payWeek(env, url) {
       возвратов вместо пяти с половиной миллионов (см. iiko_export.py).      */
 const RET_TYPE_INVOICE = "INCOMING_RETURNED_INVOICE_REVENUE";
 const RET_TYPE_SERVICE = "INCOMING_SERVICE";
-const RET_SERVICE_ACCOUNT = "Торговая выручка";
+/* 19.10.2026. Счёт у этих актов уже меняли: июль–август «Торговая выручка»,
+   с сентября завели «Возвраты Ммарт» — и 7,4 млн ₸ выпали из всех отчётов
+   (сентябрь показывал 4,1 млн вместо 7,0, октябрь — ноль вместо 4,6).
+   Поэтому ловим не по счёту, а по номенклатуре «Возврат товара»: она одна
+   и та же независимо от того, на какой счёт бухгалтерия положит документ.
+   Список счетов оставлен как подстраховка на случай пустой номенклатуры. */
+const RET_SERVICE_PRODUCT = "возврат товара";
+const RET_SERVICE_ACCOUNTS = ["Торговая выручка", "Возвраты Ммарт"];
+const isRetService = (acc, prod) =>
+  String(prod || "").trim().toLowerCase() === RET_SERVICE_PRODUCT ||
+  RET_SERVICE_ACCOUNTS.indexOf(String(acc || "").trim()) >= 0;
 
 async function olapReturns(token, from, toExcl) {
   const ask = async (types, groupAccount) => {
@@ -651,7 +1843,7 @@ async function olapReturns(token, from, toExcl) {
       body: JSON.stringify({
         reportType: "TRANSACTIONS", buildSummary: "true",
         groupByRowFields: groupAccount
-          ? ["Counteragent.Name", "Account.Name"] : ["Counteragent.Name"],
+          ? ["Counteragent.Name", "Account.Name", "Product.Name"] : ["Counteragent.Name"],
         aggregateFields: ["Sum.Incoming"],
         filters: {
           "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM",
@@ -672,7 +1864,7 @@ async function olapReturns(token, from, toExcl) {
   for (const x of await ask([RET_TYPE_INVOICE], false))
     add(x["Counteragent.Name"], x["Sum.Incoming"] || 0);
   for (const x of await ask([RET_TYPE_SERVICE], true)) {
-    if (String(x["Account.Name"] || "").trim() !== RET_SERVICE_ACCOUNT) continue;
+    if (!isRetService(x["Account.Name"], x["Product.Name"])) continue;
     add(x["Counteragent.Name"], x["Sum.Incoming"] || 0);
   }
   return agg;
@@ -681,7 +1873,7 @@ async function olapReturns(token, from, toExcl) {
 /* Только возвраты, без отгрузки — чтобы было видно, из чего складывается нетто. */
 async function returnsWeek(env, url) {
   const p = url.searchParams;
-  if (p.get("t") !== "fzw2026") return new Response("forbidden", { status: 403 });
+  if (!svcOk(p, env)) return new Response("forbidden", { status: 403 });
   const from = p.get("from"), to = p.get("to");
   if (!from || !to) return new Response("need from & to", { status: 400 });
   const toExcl = new Date(Date.parse(to) + 86400000).toISOString().slice(0, 10);
@@ -697,7 +1889,7 @@ async function returnsWeek(env, url) {
 
 async function salesWeek(env, url) {
   const p = url.searchParams;
-  if (p.get("t") !== "fzw2026")
+  if (!svcOk(p, env))
     return new Response("forbidden", { status: 403 });
   const isoD = (d) => d.toISOString().slice(0, 10);
   let from = p.get("from"), to = p.get("to");
@@ -713,16 +1905,22 @@ async function salesWeek(env, url) {
   const toExcl = isoD(new Date(Date.parse(to) + 86400000));
   const token = await iikoAuth();
   const rows = await iikoMonth(token, from, toExcl);
+  /* ?raw=1 — не сворачивать по ведущему номеру, а отдать каждую точку
+     отдельной строкой. Нужно, чтобы считать экономику отдельных точек
+     (например, какие из лавок Яндекса возим в Астану). Возвраты при этом
+     не вычитаются: они приходят свёрнутыми по номеру и на точки не делятся. */
+  const rawPts = p.get("raw") === "1";
   const agg = {};
   for (const r of rows) {
     const ca = String(r["Counteragent.Name"] || "").trim();
     if (!ca) continue;
-    agg[ctrKey(ca)] = (agg[ctrKey(ca)] || 0) + (r["Sum.Incoming"] || 0);
+    const k = rawPts ? ca : ctrKey(ca);
+    agg[k] = (agg[k] || 0) + (r["Sum.Incoming"] || 0);
   }
   /* Отгрузка нетто: из реализации вычитаем возвраты. Без этого ДЗ в таблице
      росла на всю сумму возвращённого товара — долг, которого нет.
      ?gross=1 — прежнее поведение, без вычета, если нужно сравнить. */
-  if (p.get("gross") !== "1") {
+  if (p.get("gross") !== "1" && !rawPts) {
     const ret = await olapReturns(token, from, toExcl);
     for (const [k, v] of Object.entries(ret)) agg[k] = (agg[k] || 0) - v;
   }
@@ -1506,6 +2704,653 @@ async function handleHalal(request, env) {
   }
 
   return jsonResp({ error: "Метод не поддерживается" }, 405);
+}
+
+// ── План продаж ───────────────────────────────────────────────────────────
+// Сумму ставят по контрагенту на месяц; по позициям она раскладывается уже
+// на странице, пропорционально фактической структуре закупа этого клиента.
+// Поэтому в хранилище лежит только разрез по контрагентам:
+//   salesplan:2026-09 -> {items:{"85":115000000,...}, updated:"...", by:"..."}
+// Маршрут закрыт тем же паролем, что и весь сайт: authGate отрабатывает
+// раньше маршрутизации, так что отдельной проверки здесь не нужно.
+/* ── Поставщики: карточки контактов ──────────────────────────────────────
+   Список поставщиков приходит из iiko, а телефоны, почта, менеджер и
+   условия оплаты нигде не живут: они в головах и в переписке. Храним их
+   рядом с сайтом, в том же KV, что и план продаж, одним ключом —
+   справочник маленький (сотни строк), дробить по ключам незачем.
+   Запись — тем же паролем, что и весь сайт: authGate отрабатывает раньше. */
+const SUPPLIERS_KEY = "suppliers:v1";
+const SUP_FIELDS = ["contact", "phone", "email", "terms", "dogovor", "note"];
+
+async function handleSuppliers(request, env, url) {
+  if (request.method === "GET") {
+    const raw = await env.PLAN.get(SUPPLIERS_KEY);
+    return jsonResp(raw ? JSON.parse(raw) : { items: {}, updated: "" });
+  }
+  if (request.method !== "POST") return jsonResp({ error: "метод не поддерживается" }, 405);
+
+  let body;
+  try { body = await request.json(); } catch (e) { return jsonResp({ error: "тело не разобралось" }, 400); }
+
+  const prev = JSON.parse((await env.PLAN.get(SUPPLIERS_KEY)) || "null") || { items: {} };
+  // merge — правим по одной карточке, replace — загрузили файл целиком
+  const items = (body.mode === "replace") ? {} : Object.assign({}, prev.items || {});
+  const inc = body.items || {};
+  let n = 0;
+  for (const name of Object.keys(inc)) {
+    if (++n > 4000) break;
+    const key = String(name).slice(0, 200).trim();
+    if (!key) continue;
+    const src = inc[name] || {};
+    const row = {};
+    let any = false;
+    for (const f of SUP_FIELDS) {
+      const v = String(src[f] == null ? "" : src[f]).slice(0, 400).trim();
+      if (v) { row[f] = v; any = true; }
+    }
+    if (any) items[key] = row; else delete items[key];
+  }
+  const rec = { items, updated: new Date().toISOString().slice(0, 16).replace("T", " "),
+                by: String(body.by || "").slice(0, 60) };
+  await env.PLAN.put(SUPPLIERS_KEY, JSON.stringify(rec));
+  return jsonResp({ ok: true, count: Object.keys(items).length, updated: rec.updated });
+}
+
+const SALESPLAN_PREFIX = "salesplan:";
+
+async function handleSalesPlan(request, env, url) {
+  // ?all=1 — все месяцы разом: страница «План-факт» строит по ним год
+  // целиком и накопленный итог, дёргать двенадцать запросов незачем.
+  if (url.searchParams.get("all") === "1") {
+    const out = {};
+    let cursor;
+    do {
+      const r = await env.PLAN.list({ prefix: SALESPLAN_PREFIX, cursor, limit: 1000 });
+      for (const k of r.keys) {
+        const mk = k.name.slice(SALESPLAN_PREFIX.length);
+        if (!/^\d{4}-\d{2}$/.test(mk)) continue;
+        try { out[mk] = JSON.parse((await env.PLAN.get(k.name)) || "null") || { items: {} }; }
+        catch (e) { out[mk] = { items: {} }; }
+      }
+      cursor = r.list_complete ? null : r.cursor;
+    } while (cursor);
+    return jsonResp({ months: out });
+  }
+
+  const m = (url.searchParams.get("m") || "").slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(m)) return jsonResp({ error: "нужен месяц вида 2026-09" }, 400);
+  const key = SALESPLAN_PREFIX + m;
+
+  if (request.method === "GET") {
+    const raw = await env.PLAN.get(key);
+    return jsonResp(raw ? JSON.parse(raw) : { items: {}, updated: "" });
+  }
+  if (request.method !== "POST") return jsonResp({ error: "метод не поддерживается" }, 405);
+
+  let body;
+  try { body = await request.json(); } catch (e) { return jsonResp({ error: "тело не разобралось" }, 400); }
+
+  const prev = JSON.parse((await env.PLAN.get(key)) || "null") || { items: {} };
+  // merge — правим отдельные строки, replace — вставили план целиком
+  const items = (body.mode === "replace") ? {} : Object.assign({}, prev.items || {});
+  const inc = body.items || {};
+  let n = 0;
+  for (const k of Object.keys(inc)) {
+    if (++n > 3000) break;                       // на случай кривой вставки
+    const code = String(k).slice(0, 120);
+    const v = Math.round(Number(inc[k]) || 0);
+    if (v > 0) items[code] = v; else delete items[code];
+  }
+  const d = almatyNow();
+  const pad = (x) => String(x).padStart(2, "0");
+  const rec = {
+    items,
+    updated: pad(d.getUTCDate()) + "." + pad(d.getUTCMonth() + 1) + "." + d.getUTCFullYear()
+             + " " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()),
+    by: String(body.by || "").slice(0, 40),
+  };
+  await env.PLAN.put(key, JSON.stringify(rec));
+  return jsonResp(rec);
+}
+
+/* ——— Услуги по видам работ ———————————————————————————————————————
+   Один разрез айко (INCOMING_SERVICE — вкладка «Услуги» в поступлениях)
+   разложенный по видам работ, поставщикам и месяцам. Справочник ниже —
+   это та самая классификация из файла «Услуги по видам работ», только
+   ключом служит номенклатура айко, а не поставщик: один поставщик
+   нередко закрывает два разных вида (Экспресс-Сервис — и аренда, и
+   коммуналка), и по поставщику разрез разваливается. */
+const USL_VID = {
+  "Доставка": "Транспорт и доставка",
+  "Аренда": "Аренда помещений",
+  "Электроэнергия": "Коммунальные услуги",
+  "Холодная/Горячая вода": "Коммунальные услуги",
+  "Газ": "Коммунальные услуги",
+  "Услуги охраны": "Охрана",
+  "Вывоз мусора - м3": "Вывоз и утилизация отходов",
+  "Вывоз и утилизация биоотходов": "Вывоз и утилизация отходов",
+  "Химчистка": "Аренда и стирка спецодежды",
+  "Страхование": "Страхование",
+  "Интернет": "Связь и интернет",
+  "Дератизация,дезинсекция помещений": "Дезинсекция и дератизация",
+  "Ремонт произв оборуд": "Ремонт и обслуживание оборудования",
+  "Ремонт холодильника": "Ремонт и обслуживание оборудования",
+  "Расходной материал техотдела": "Ремонт и обслуживание оборудования",
+  "Заточка ножей мясорубки": "Ремонт и обслуживание оборудования",
+  "Перезарядка огнетушителя": "Ремонт и обслуживание оборудования",
+  "Заправка картриджа": "Ремонт и обслуживание оборудования",
+  "Удаленный доступ к программе \"Бухгалтерия-онлайн\"": "Программы и IT-сервисы",
+  "IIko-обслуживание термопринтеров": "Программы и IT-сервисы",
+  "Колл-центр IIko-лицензии (КафеСофт)": "Программы и IT-сервисы",
+  "IIko-обслуживание пакет Стандарт": "Программы и IT-сервисы",
+  "Облачный сервис Битрикс24": "Программы и IT-сервисы",
+  "Услуга Shared-хостинг тариф B-5": "Программы и IT-сервисы",
+  "Программа д/ЭВМ \"Green-API\"": "Программы и IT-сервисы",
+  "Настройка и запуск системы": "Программы и IT-сервисы",
+  "Производственный экологический контроль": "Сертификация, лаборатория, экология",
+  "Аттестация рабочих мест": "Сертификация, лаборатория, экология",
+  "Сертификат изготовление": "Сертификация, лаборатория, экология",
+  "Присвоение штрихкодов": "Сертификация, лаборатория, экология",
+  "Услуги медицинских лабораторий": "Сертификация, лаборатория, экология",
+  "Демонтажные работы": "Монтаж, стройка и ремонт помещений",
+  "Строительно-монтажные работы": "Монтаж, стройка и ремонт помещений",
+  "Монтаж оборудования": "Монтаж, стройка и ремонт помещений",
+  "Вентиляция": "Монтаж, стройка и ремонт помещений",
+  "Монтаж системы пожаротушения": "Монтаж, стройка и ремонт помещений",
+  "Видеонаблюдение (монтажные работы,материалы)": "Монтаж, стройка и ремонт помещений",
+  "Ремонт помещения": "Монтаж, стройка и ремонт помещений",
+  "Строительные материалы (разные) Услуга": "Монтаж, стройка и ремонт помещений",
+  "Работы разные": "Монтаж, стройка и ремонт помещений",
+  "Услуги повара": "Аутсорс персонала",
+  "Реклама в Соц сетях на популярных страницах": "Маркетинг и реклама",
+  "Аренда квартир": "Аренда жилья для сотрудников",
+  "Переделка": "Переделка продукции",
+  "Прочие услуги": "Прочие услуги",
+  "Расходы буд.периодов": "Прочие услуги",
+  "ГосУслуги РешениеВопросов": "Прочие услуги",
+  "Доплата за ИП|ТОО": "Прочие услуги",
+  "Корпоратив или подарки": "Прочие услуги",
+  "Комиссия банка": "Прочие услуги",
+};
+/* Справочно: это тоже проходит вкладкой «Услуги», но подрядными работами
+   не является — в итог по услугам не попадает, иначе 182 млн налогов
+   перебьют всё остальное и разрез перестанет о чём-либо говорить. */
+const USL_REF = {
+  "Налоги": "Налоги и сборы",
+  "Возмещение затрат": "Возмещение затрат площадкам",
+  "Возврат товара": "Возвраты товара",
+};
+
+async function handleUsl(request, env, url) {
+  /* Версия в ключе кэша: после выкладки нового формата ответа старое тело
+     иначе живёт в кэше ещё полчаса и страница читает поля, которых в нём нет. */
+  const ck = new Request("https://usl.cache/v2" + url.pathname + url.search);
+  const hit = await caches.default.match(ck);
+  if (hit) return hit;
+  const resp = await handleUslRaw(request, env, url);
+  if (resp.status === 200) {
+    const r2 = new Response(resp.clone().body, resp);
+    r2.headers.set("cache-control", "max-age=1800");
+    try { await caches.default.put(ck, r2); } catch (e) {}
+  }
+  return resp;
+}
+
+async function handleUslRaw(request, env, url) {
+  const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
+  const year = String(url.searchParams.get("year") || today.slice(0, 4)).replace(/\D/g, "").slice(0, 4) || today.slice(0, 4);
+  const from = year + "-01-01";
+  const to = (year === today.slice(0, 4)) ? today : year + "-12-31";
+
+  const tok = await iikoAuthCached();
+  const rr = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+    method: "POST", headers: { Cookie: `key=${tok}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      reportType: "TRANSACTIONS", buildSummary: "true",
+      groupByRowFields: ["Counteragent.Name", "Product.Name", "DateTime.Month"],
+      aggregateFields: ["Sum.Incoming"],
+      filters: {
+        "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM", from: from, to: to },
+        TransactionType: { filterType: "IncludeValues", values: ["INCOMING_SERVICE"] },
+      },
+    }),
+  });
+  if (!rr.ok) return jsonResp({ error: "айко ответил " + rr.status }, 502);
+  const pp = await rr.json();
+  const src = Array.isArray(pp && pp.data) ? pp.data : [];
+
+  const nm = (s) => String(s == null ? "" : s).replace(/\s+/g, " ").trim();
+  const mIdx = (s) => { const n = parseInt(String(s || "").slice(0, 2), 10); return (n >= 1 && n <= 12) ? n - 1 : -1; };
+
+  const map = new Map();
+  const unknown = new Set();
+  let lastMonth = -1;
+  src.forEach((x) => {
+    const sup = nm(x["Counteragent.Name"]) || "(без контрагента)";
+    const nom = nm(x["Product.Name"]) || "(без номенклатуры)";
+    const i = mIdx(x["DateTime.Month"]);
+    const v = Number(x["Sum.Incoming"]) || 0;
+    if (i < 0 || !v) return;
+    if (i > lastMonth) lastMonth = i;
+    const ref = USL_REF[nom] || null;
+    let vid = ref || USL_VID[nom];
+    if (!vid) { vid = "Прочие услуги"; unknown.add(nom); }
+    const k = vid + "\u0000" + sup + "\u0000" + nom;
+    let r = map.get(k);
+    if (!r) { r = { v: vid, s: sup, p: nom, ref: !!ref, m: new Array(12).fill(0), sum: 0 }; map.set(k, r); }
+    r.m[i] += v; r.sum += v;
+  });
+
+  const rows = [...map.values()].sort((a, b) => b.sum - a.sum);
+  const nMon = lastMonth + 1;
+  /* Текущий месяц ещё не закрыт: документы за него проводят по ходу дела,
+     и если делить годовую сумму на него тоже, «в среднем за месяц» выйдет
+     заниженным. Среднее считаем по закрытым месяцам. */
+  const curY = today.slice(0, 4), curM = parseInt(today.slice(5, 7), 10);
+  const nFull = Math.max(1, (year === curY) ? Math.min(nMon, curM - 1) : nMon);
+  const svc = rows.filter((r) => !r.ref);
+  const ref = rows.filter((r) => r.ref);
+  const tot = (arr) => {
+    const m = new Array(12).fill(0); let s = 0;
+    arr.forEach((r) => { for (let i = 0; i < 12; i++) m[i] += r.m[i]; s += r.sum; });
+    return { m: m, sum: s };
+  };
+  /* Виды работ — со своими помесячными итогами: таблица на странице
+     раскрывается сверху вниз, и считать это в браузере заново незачем. */
+  const byVid = {};
+  svc.forEach((r) => {
+    const g = (byVid[r.v] = byVid[r.v] || { v: r.v, m: new Array(12).fill(0), sum: 0, sup: new Set(), n: 0 });
+    for (let i = 0; i < 12; i++) g.m[i] += r.m[i];
+    g.sum += r.sum; g.sup.add(r.s); g.n++;
+  });
+  const vids = Object.values(byVid).map((g) => ({ v: g.v, m: g.m, sum: g.sum, sup: g.sup.size, n: g.n }))
+    .sort((a, b) => b.sum - a.sum);
+
+  return jsonResp({
+    year: year, from: from, to: to, nMon: nMon, nFull: nFull,
+    rows: rows, vids: vids,
+    svcTot: tot(svc), refTot: tot(ref),
+    sup: new Set(svc.map((r) => r.s)).size,
+    unknown: [...unknown],
+    note: "Источник — проводки айко типа «Поступление услуг» (INCOMING_SERVICE) за " + from + " — " + to +
+          ". Налоги, возмещение затрат площадкам и возвраты товара показаны отдельно и в итог по услугам не входят.",
+  });
+}
+
+/* Ответственные за подачу данных по услугам. Нужны бюджету: вид работ без
+   человека, который приносит цифру, в плане не живёт. Правятся прямо на
+   странице, поэтому лежат в KV, а не в коде. Ключ — либо вид работ целиком,
+   либо конкретная строка «вид\u0000поставщик\u0000услуга», если по одному
+   поставщику отвечает не тот, кто за весь вид. */
+const USL_RESP_KEY = "uslresp:v1";
+/* Предзаполнено из файла «Услуги по видам работ» — колонка «Инициатор».
+   Служит значением по умолчанию, пока по виду работ ничего не назначено. */
+const USL_RESP_SEED = {
+  "Коммунальные услуги": "Акерке",
+  "Аренда помещений": "Акерке",
+  "Связь и интернет": "Акерке",
+  "Программы и IT-сервисы": "Адиль",
+  "Страхование": "Бухгалтерия",
+  "Ремонт и обслуживание оборудования": "Руслан Абитов",
+  "Монтаж, стройка и ремонт помещений": "Руслан Абитов",
+};
+
+async function handleUslResp(request, env, url) {
+  if (request.method === "POST") {
+    let body = null;
+    try { body = await request.json(); } catch (e) {}
+    if (!body || typeof body !== "object" || Array.isArray(body))
+      return jsonResp({ error: "пустой запрос" }, 400);
+    const clean = {};
+    Object.keys(body).slice(0, 2000).forEach((k) => {
+      const v = String(body[k] == null ? "" : body[k]).replace(/\s+/g, " ").trim().slice(0, 80);
+      if (v) clean[String(k).slice(0, LIM)] = v;
+    });
+    await env.PLAN.put(USL_RESP_KEY, JSON.stringify(clean).slice(0, 180000));
+    return jsonResp({ ok: true, n: Object.keys(clean).length });
+  }
+  let saved = null;
+  try { saved = JSON.parse((await env.PLAN.get(USL_RESP_KEY)) || "null"); } catch (e) {}
+  return jsonResp({ resp: saved || {}, seed: USL_RESP_SEED, saved: !!saved });
+}
+
+/* ——— Общие двери для коллег ——————————————————————————————————
+   Коллегам нужна живая страница, но не нужен вход в Пульс. Поэтому
+   отдельные двери: свой адрес, свой общий пароль (его задаёт владелец
+   на /__team, сюда приходит только SHA-256) и белый список файлов —
+   наружу уходит ровно то, из чего собрана страница, и ничего больше.
+   Данные те же самые, что на Пульсе: ночная сборка из айко обновляет
+   их, копия читает те же файлы.
+   Новую дверь заводим одной записью в DOORS: адрес, страница, список
+   её файлов — больше нигде ничего менять не нужно. */
+const SHARE_DAYS = 30;
+const DOORS = [
+  { path: "/k", kv: "team:v1",  cook: "fz_team",  page: "продажи_2026.html",
+    title: "Продажи", api: ["/api/erp"],   /* 23.10.2026: защиту от копирования сняли — копия работает один в один с Пульсом */
+    files: ["sku_analytics.js", "sales_meta.js", "peredacha_data.js", "dz_kz.js",
+            "contractor_items.js", "sales_live.js", "opiu_rev.js", "returns_meta.js",
+            "astana_meta.js", "revisions.js", "sales_today.js"] },
+  { path: "/o", kv: "olive:v1", cook: "fz_olive", page: "olive.html",
+    title: "Продажи Olive",
+    files: ["oliv_data.js", "sales_sum.js", "dz_kz.js", "sales_meta.js"] },
+  { path: "/sku", kv: "sku360:v1", cook: "fz_sku", page: "sku360.html",
+    title: "SKU-аналитика 360°", nocopy: true,
+    files: ["sku_live.js"], api: ["/api/erp"] },
+  { path: "/zakup", kv: "zakup:v1", cook: "fz_zakup", page: "закуп.html",
+    title: "Закуп", nocopy: true,
+    files: ["zakup_data.js"], api: ["/api/halal"] },
+  { path: "/dengi", kv: "dengi:v1", cook: "fz_dengi", page: "дашборд_ддс.html",
+    title: "Про деньги",
+    files: [] },
+  { path: "/plan", kv: "plan:v1", cook: "fz_plan", page: "дашборд_гугл_live.html",
+    title: "План оплат на неделю",
+    files: ["ddsp_days.js", "dz_kz.js"] },
+  { path: "/dolgi", kv: "dolgi:v1", cook: "fz_dolgi", page: "дз_кз.html",
+    title: "Дебиторка и кредиторка",
+    files: ["balans.js", "dz_kz.js", "kz_ana.js", "saldo.js"], api: ["/api/balans"] },
+  { path: "/prosrochka", kv: "prosrochka:v1", cook: "fz_prosrochka", page: "просрочка.html",
+    title: "Работа с просрочкой",
+    files: ["dz_kz.js"] },
+  { path: "/uslugi", kv: "uslugi:v1", cook: "fz_uslugi", page: "услуги.html",
+    title: "Услуги по видам работ",
+    files: [], api: ["/api/uslugi", "/api/uslresp"] },
+  { path: "/sebes", kv: "sebes:v1", cook: "fz_sebes", page: "дашборд_себестоимость_2025-2026.html",
+    title: "Полная себестоимость",
+    files: [] },
+  { path: "/marja", kv: "marja:v1", cook: "fz_marja", page: "себестоимость_маржа.html",
+    title: "Кто приносит прибыль",
+    files: ["contractor_items.js", "sku_live.js"] },
+  { path: "/rychagi", kv: "rychagi:v1", cook: "fz_rychagi", page: "рычаги.html",
+    title: "Рычаги прибыли",
+    files: [] },
+  { path: "/ceny", kv: "ceny:v1", cook: "fz_ceny", page: "повышение_цен.html",
+    title: "Повышение цен",
+    files: ["contractor_items.js", "sku_margin.js"] },
+  { path: "/assortiment", kv: "assortiment:v1", cook: "fz_assortiment", page: "развитие_ассортимента.html",
+    title: "Развитие ассортимента",
+    files: ["contractor_items.js", "sku_margin.js"] },
+  { path: "/upak", kv: "upak:v1", cook: "fz_upak", page: "упаковка.html",
+    title: "Упаковка",
+    files: ["etiketki_data.js", "upak_data.js"], api: ["/api/upak"] },
+  { path: "/sklady", kv: "sklady:v1", cook: "fz_sklady", page: "склады.html",
+    title: "Склады",
+    files: [] },
+  { path: "/proizvodstvo", kv: "proizvodstvo:v1", cook: "fz_proizvodstvo", page: "производство.html",
+    title: "Производство",
+    files: ["production_data.js"] },
+  { path: "/etiketki", kv: "etiketki:v1", cook: "fz_etiketki", page: "этикетки.html",
+    title: "Этикетки",
+    files: ["etiketki_data.js"] },
+  { path: "/skuiiko", kv: "skuiiko:v1", cook: "fz_skuiiko", page: "дашборд_sku_iiko.html",
+    title: "SKU iiko · живые данные",
+    files: [], api: ["/api/erp"] },
+  { path: "/opiu", kv: "opiu:v1", cook: "fz_opiu", page: "опиу_2025_2026.html",
+    title: "ОПиУ 2025–2026",
+    files: [] },
+  { path: "/audit", kv: "audit:v1", cook: "fz_audit", page: "опиу_аудит.html",
+    title: "Аудит ОПиУ",
+    files: ["opiu_audit.js", "opiu_detail.js", "opiu_rev.js"] },
+  { path: "/realizaciya", kv: "realizaciya:v1", cook: "fz_realizaciya", page: "реализация.html",
+    title: "Реализация",
+    files: [] },
+  { path: "/kalkulyator", kv: "kalkulyator:v1", cook: "fz_kalkulyator", page: "калькулятор.html",
+    title: "Калькулятор налогов",
+    files: [], api: ["/api/calc"] },
+  { path: "/jurnal", kv: "jurnal:v1", cook: "fz_jurnal", page: "журнал.html",
+    title: "Журнал изменений",
+    files: [] },
+  { path: "/korol", kv: "korol:v1", cook: "fz_korol", page: "korol.html",
+    title: "Король качества",
+    open: true,   // решение владельца 22.10.2026: журнал рекламаций открыт без пароля
+    files: [] },
+  { path: "/oplaty", kv: "oplaty:v1", cook: "fz_oplaty", page: "bitrix_отчёт_оплаты.html",
+    title: "Согласование оплат",
+    files: [] },
+  { path: "/ins", kv: "instr:v1", cook: "fz_instr", page: "инструкция_продажа.html",
+    title: "Инструкция: как создать продажу",   /* 26.10.2026: регламент для менеджеров и операторов */
+    files: [] },
+];
+/* Живые запросы, которые странице разрешено делать за дверью. Обработчик
+   зовём напрямую: через свой же origin не выйдет — там пароль Пульса. */
+const SHARE_API = {
+  "/api/erp":     (rq, env, u) => handleErp(rq, env, u),
+  "/api/balans":  (rq, env, u) => handleBalans(rq, env, u),
+  "/api/upak":    (rq, env, u) => handleUpak(rq, env, u),
+  "/api/calc":    (rq, env, u) => handleCalc(rq, env, u),
+  "/api/uslugi":  (rq, env, u) => handleUsl(rq, env, u),
+  "/api/uslresp": (rq, env, u) => handleUslResp(rq, env, u),
+  /* халяль-пометки и ответственных за услуги коллеги не только читают,
+     но и ставят: формы требуют ФИО и пишут его в журнал. */
+  "/api/halal":   (rq, env, u) => handleHalal(rq, env),
+};
+function doorFor(p) {
+  for (const d of DOORS) if (p === d.path || p.indexOf(d.path + "/") === 0) return d;
+  return null;
+}
+
+
+/* ——— Защита копии от копирования ————————————————————————————
+   Полностью закрыть данные нельзя: браузер всё равно их получает,
+   иначе страницу не нарисовать. Это защита от лёгкого копирования —
+   выделения, правой кнопки, Ctrl+C/S/P, перетаскивания и печати —
+   плюс водяной знак, который остаётся на скриншоте. */
+const NOCOPY = `
+<style id="nc">
+  *:not(input):not(textarea){ -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+    -webkit-touch-callout:none; }
+  img,table,canvas{ -webkit-user-drag:none; user-drag:none; pointer-events:auto; }
+  @media print{ body>*{display:none!important} body::after{
+    content:"Печать этой страницы отключена. Вопросы — финансовому директору.";
+    display:block;padding:40px;font:600 16px -apple-system,sans-serif;color:#111} }
+  #ncwm{position:fixed;inset:0;z-index:2147483000;pointer-events:none;opacity:.055;
+    background-repeat:repeat;background-position:0 0}
+</style>
+<div id="ncwm"></div>
+<script>(function(){
+  var W=document.getElementById('ncwm');
+  if(W){ var d=new Date(), p=function(x){return ('0'+x).slice(-2);};
+    var txt='ФУД ЗАВОД · копия для команды · '+p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear();
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="420" height="190">'
+      +'<text x="0" y="110" transform="rotate(-28 0 110)" font-family="Arial" font-size="19" font-weight="700" fill="#94a3b8">'
+      +txt+'</text></svg>';
+    W.style.backgroundImage='url("data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)))+'")'; }
+  var stop=function(e){ e.preventDefault(); e.stopPropagation(); return false; };
+  ['contextmenu','copy','cut','dragstart','selectstart'].forEach(function(n){
+    document.addEventListener(n, function(e){
+      var t=e.target||{}; if(t.tagName==='INPUT'||t.tagName==='TEXTAREA') return;
+      return stop(e);
+    }, true);
+  });
+  document.addEventListener('keydown', function(e){
+    var k=(e.key||'').toLowerCase(), c=e.ctrlKey||e.metaKey;
+    if(k==='f12') return stop(e);
+    if(c && e.shiftKey && (k==='i'||k==='j'||k==='c')) return stop(e);
+    if(c && (k==='c'||k==='x'||k==='s'||k==='p'||k==='u'||k==='a')){
+      var t=e.target||{}; if(t.tagName==='INPUT'||t.tagName==='TEXTAREA') return;
+      return stop(e);
+    }
+  }, true);
+  /* выгрузку в Excel за дверью не оставляем */
+  var kill=function(){
+    var n=document.querySelectorAll('button,a,div,span');
+    for(var i=0;i<n.length;i++){
+      var s=(n[i].textContent||'').toLowerCase();
+      if(n[i].hasAttribute('data-keep') || n[i].closest('[data-keep]')) continue;
+      if(s.length<40 && (s.indexOf('excel')>=0 || s.indexOf('xlsx')>=0 || s.indexOf('csv')>=0
+         || s.indexOf('скачать')>=0 || s.indexOf('выгруз')>=0)) n[i].style.display='none';
+    }
+    var a=document.querySelectorAll('a[download]');
+    for(var j=0;j<a.length;j++) a[j].style.display='none';
+  };
+  /* сохранение файла из скрипта страницы тоже закрываем */
+  try{ var _c=URL.createObjectURL;
+       URL.createObjectURL=function(b){ return window.__fzExport ? _c.call(URL,b) : 'about:blank'; }; }catch(e){}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',kill); else kill();
+  setTimeout(kill,1500); setTimeout(kill,4000);
+  window.XLSX=undefined;
+})();<\/script>`;
+
+async function shareRec(env, d) {
+  try { return JSON.parse((await env.PLAN.get(d.kv)) || "null"); } catch (e) { return null; }
+}
+async function shareToken(rec) {
+  return await sha256hex(rec.hash + "|" + rec.salt + "|team-session-v1");
+}
+function shareCookie(d, v) {
+  const base = `${d.cook}=${v}; Path=${d.path}; HttpOnly; Secure; SameSite=Lax`;
+  return v ? `${base}; Max-Age=${SHARE_DAYS * 86400}` : `${base}; Max-Age=0`;
+}
+function sharePage(d, err) {
+  return new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>${d.title} · Фуд Завод</title><style>${AUTH_CSS}</style></head><body><div class="box">
+<div class="sub">Фуд Завод</div><h1>${d.title}</h1>
+${err ? `<div class="err">${err}</div>` : ""}
+<p class="lead">Страница для команды. Пароль спросите у финансового директора.</p>
+<form method="POST" action="${d.path}/__login">
+<label>Пароль<input name="p" type="password" autocomplete="current-password" required autofocus></label>
+<button type="submit">Открыть</button>
+<p class="hint">Вход запомнится на ${SHARE_DAYS} дней на этом устройстве.</p></form>
+</div></body></html>`, { status: err ? 401 : 200,
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+
+async function handleShare(request, env, url) {
+  const d = doorFor(url.pathname);
+  const rest = url.pathname.slice(d.path.length).replace(/^\//, "");
+
+  if (rest === "__login" && request.method === "POST") {
+    const rec = await shareRec(env, d);
+    if (!rec) return sharePage(d, "Пароль ещё не задан.");
+    const form = await request.formData();
+    const pw = String(form.get("p") || "");
+    if (!eqConst(await sha256hex(pw + "|" + rec.salt), rec.hash)) return sharePage(d, "Неверный пароль.");
+    return new Response("", { status: 303,
+      headers: { location: d.path, "set-cookie": shareCookie(d, await shareToken(rec)), "cache-control": "no-store" } });
+  }
+  if (rest === "__logout") {
+    return new Response("", { status: 303, headers: { location: d.path, "set-cookie": shareCookie(d, "") } });
+  }
+
+  /* Дверь с open:true пускает всех: пароль не спрашиваем и cookie не проверяем. */
+  if (!d.open) {
+    const rec = await shareRec(env, d);
+    if (!rec) return sharePage(d, "Доступ ещё не открыт: владелец не задал пароль.");
+    /* Владельцу второй пароль ни к чему: если он уже вошёл в Пульс, пускаем —
+       иначе невозможно посмотреть глазами коллеги, не заводя себе вход заново. */
+    let owner = false;
+    try {
+      const ar = await authGet(env);
+      owner = !!ar && eqConst(cookieGet(request, AUTH_COOK), await authToken(ar));
+    } catch (e) {}
+    if (!owner && !eqConst(cookieGet(request, d.cook), await shareToken(rec))) {
+      const wantsHtml = (request.headers.get("accept") || "").indexOf("text/html") >= 0;
+      return wantsHtml ? sharePage(d, null)
+                       : new Response("unauthorized", { status: 401, headers: { "cache-control": "no-store" } });
+    }
+  }
+
+  /* сама страница */
+  if (!rest || rest === "/") {
+    const r = await env.ASSETS.fetch(new URL("/" + encodeURIComponent(d.page), url.origin));
+    if (!r.ok) return new Response("страница не найдена", { status: 404 });
+    let t = await r.text();
+    /* Пути к данным перевешиваем на дверь: иначе страница постучится в корень,
+       а он закрыт паролем Пульса и ответит 401. */
+    for (const n of d.files) {
+      t = t.split('"/' + n).join('"' + d.path + "/" + n).split("'/" + n).join("'" + d.path + "/" + n);
+      t = t.split('src="' + n).join('src="' + d.path + "/" + n);
+    }
+    for (const a of (d.api || [])) {
+      t = t.split('"' + a).join('"' + d.path + a).split("'" + a).join("'" + d.path + a);
+    }
+    t = t.replace(/<script src="[^"]*nav\.js[^"]*"[^>]*>\s*<\/script>/g, "");
+    /* Ссылки обратно в Пульс коллегам ни к чему: там их ждёт пароль. */
+    t = t.replace(/<a [^>]*href="(?:\/)?index\.html"[^>]*>[\s\S]*?<\/a>/g, "");
+    t = t.replace(/<a [^>]*class="back"[^>]*>[\s\S]*?<\/a>/g, "");
+    if (d.nocopy) {
+      t = t.indexOf("</body>") >= 0 ? t.replace("</body>", NOCOPY + "</body>") : t + NOCOPY;
+    }
+    return new Response(t, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+  }
+
+  /* живой запрос в айко — только из белого списка */
+  if (rest.indexOf("api/") === 0) {
+    const ap = "/" + rest.split("?")[0];
+    if ((d.api || []).indexOf(ap) < 0 || !SHARE_API[ap])
+      return new Response("нет доступа", { status: 403 });
+    return SHARE_API[ap](request, env, new URL(ap + url.search, url.origin));
+  }
+
+  /* данные — только из белого списка */
+  const name = rest.split("?")[0];
+  if (d.files.indexOf(name) < 0) return new Response("нет доступа", { status: 403 });
+  /* Файл данных имеет смысл только как скрипт своей страницы. Открыть его
+     отдельной вкладкой и сохранить — уже не выйдет. */
+  if (d.nocopy) {
+    const dest = request.headers.get("sec-fetch-dest") || "";
+    const site = request.headers.get("sec-fetch-site") || "";
+    if (dest === "document" || (site && site !== "same-origin"))
+      return new Response("нет доступа", { status: 403 });
+  }
+  const r = await env.ASSETS.fetch(new URL("/" + name, url.origin));
+  if (!r.ok) return new Response("", { status: r.status });
+  return new Response(r.body, { status: 200,
+    headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-store" } });
+}
+
+/* Пароли для коллег задаёт владелец из своей сессии — страница под общим
+   паролем Пульса, поэтому постороннему сюда не попасть. */
+/* Когда пароль задавали последний раз. Нужно, чтобы владелец видел,
+   сохранилась ли правка: сам пароль не показать — он хранится отпечатком. */
+function whenSet(rec){
+  if (!rec || !rec.at) return "";
+  const d = new Date(rec.at);
+  if (isNaN(d)) return "";
+  const p = (x) => String(x).padStart(2, "0");
+  const mins = Math.round((Date.now() - d.getTime()) / 60000);
+  const when = `${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  if (mins < 1)  return "— только что";
+  if (mins < 60) return `— ${mins} мин назад`;
+  return "— " + when;
+}
+
+async function handleShareAdmin(request, env, url) {
+  const sel = (url.searchParams.get("d") || "/k");
+  const page = async (msg, cur) => {
+    const rows = [];
+    for (const d of DOORS) {
+      const rec = await shareRec(env, d);
+      rows.push(`<label style="display:flex;gap:10px;align-items:center;margin:6px 0;cursor:pointer">
+<input type="radio" name="d" value="${d.path}" ${d.path === cur ? "checked" : ""} style="width:auto;margin:0">
+<span><b>${d.title}</b> — <code>${d.path}</code>
+<span style="opacity:.6">${rec ? ("пароль задан " + whenSet(rec)) : "пароля ещё нет"}</span></span></label>`);
+    }
+    return new Response(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Доступ для команды</title>
+<style>${AUTH_CSS}</style></head><body><div class="box"><div class="sub">Фуд Завод</div>
+<h1>Доступ для команды</h1>${msg
+  ? `<div class="err" style="${/Готово/.test(msg)
+      ? "background:#052e16;border-color:#15803d;color:#86efac" : ""}">${msg}</div>` : ""}
+<p class="lead">Общий пароль к отдельной странице для коллег.
+Открыта только она — остальной Пульс остаётся закрытым.</p>
+<form method="POST" action="/__team">
+${rows.join("")}
+<label>Новый пароль<input name="p" type="password" minlength="3" required autofocus></label>
+<button type="submit">Сохранить</button>
+<p class="hint">Пароль хранится только отпечатком, увидеть его потом нельзя — можно задать новый.</p></form>
+</div></body></html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+  };
+
+  if (request.method !== "POST") return page(null, sel);
+  const form = await request.formData();
+  const d = doorFor(String(form.get("d") || "/k")) || DOORS[0];
+  const pw = String(form.get("p") || "");
+  if (pw.length < 3) return page("Слишком короткий пароль.", d.path);
+  const salt = crypto.randomUUID();
+  await env.PLAN.put(d.kv, JSON.stringify({
+    v: 1, salt, hash: await sha256hex(pw + "|" + salt), at: new Date().toISOString() }));
+  return page(`Готово! Пароль для «${d.title}» сохранён. Отправьте коллегам адрес ${d.path} и пароль — разными сообщениями.`, d.path);
 }
 
 function jsonResp(obj, status) {
