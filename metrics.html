@@ -897,7 +897,9 @@
   }
   document.getElementById("go").addEventListener("click",function(){ login(document.getElementById("pw").value,false); });
   document.getElementById("pw").addEventListener("keydown",function(e){ if(e.key==="Enter") login(this.value,false); });
-  var saved=sessionStorage.getItem("mpw"); if(saved) login(saved,true);
+  /* Пароль на чтение снят: открываем сразу, экран входа не показываем.
+     Если сервер всё же ответит 401 (старая сборка воркера) — вернём форму. */
+  login(sessionStorage.getItem("mpw")||"",true);
 
   // Таблицы пересобираются при каждой смене периода — навешиваем сортировку
   // на всё новое, что появилось в разметке.

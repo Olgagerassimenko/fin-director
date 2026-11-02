@@ -2101,10 +2101,10 @@ async function handleLabel(url, env) {
   return jsonResp({ ok: true, vid: vid, name: name });
 }
 
+/* 02.11.2026, решение Ольги: страницу метрик открыли без пароля — там только
+   счётчик просмотров, личных и финансовых данных нет. Переименование
+   устройств (/mlabel) пароль по-прежнему требует: это запись, а не чтение. */
 async function handleStats(url, env) {
-  const key = url.searchParams.get("key") || "";
-  const h = await sha256hex(key);
-  if (h !== METRICS_HASH) return jsonResp({ error: "Неверный пароль" }, 401);
   const raw = await env.PLAN.get(M_KEY);
   return jsonResp(raw ? JSON.parse(raw) : { pages: {}, updated: "" });
 }
