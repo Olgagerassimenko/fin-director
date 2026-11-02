@@ -1743,15 +1743,22 @@ function parseKz(rows) {
   return { total: Math.round(latestTotal), date: lastDate, dynamics, top: top.slice(0, 30) };
 }
 
+/* Колонку остатка дебиторки в книге называют по-разному: старые недели —
+   «ДЗ на дд.мм.гг», с 11.09.2026 — «Баланс по поставщикам и дебиторам на …».
+   Пока здесь был только первый вариант, воркер видел колонки лишь по
+   04.09.2026: график «нам должны» рисовался пустым, а итог показывал
+   позапрошлую цифру как сегодняшнюю. Тот же шаблон — в parse_dz_kz.py. */
+const DZ_COL_PAT = /дз\s+на|д\/з\s+на|д\.з\.\s*на|баланс\s+по\s+поставщикам.{0,40}?\s+на\s*\d/i;
+
 function parseDz(rows) {
-  let [hi, header] = findHeaderRow(rows, /дз\s+на|д\/з\s+на|д\.з\.\s+на/i);
+  let [hi, header] = findHeaderRow(rows, DZ_COL_PAT);
   if (header === null) [hi, header] = findHeaderRow(rows, /дз|д\/з/i);
   if (header === null) return null;
 
   const dzCols = [];
   header.forEach((cell, i) => {
     const c = String(cell).trim();
-    if (/дз\s+на|д\/з\s+на|д\.з\.\s*на/i.test(c)) {
+    if (DZ_COL_PAT.test(c)) {
       const m = c.match(/(\d{1,2}\.\d{2}\.\d{2,4})/);
       dzCols.push([i, m ? fmtDate(m[1]) : c.slice(0, 20)]);
     }
