@@ -63,7 +63,7 @@ a.card,.card{
   display:grid;grid-template-columns:auto 1fr;grid-auto-rows:min-content;
   column-gap:13px;row-gap:3px;align-content:center;text-decoration:none;
   padding:13px 34px 13px 18px;min-height:72px;height:100%;
-  background:linear-gradient(90deg,rgba(var(--cr),.17) 0,rgba(var(--cr),0) 96px),#fff;
+  background:linear-gradient(90deg,rgba(var(--cr),.11) 0,rgba(var(--cr),0) 92px),#fff;
   border:1px solid #e4e8f0;border-radius:12px;
   box-shadow:0 1px 2px rgba(10,18,38,.05),0 8px 20px rgba(10,18,38,.10);
   transition:transform .16s cubic-bezier(.2,.7,.2,1),box-shadow .16s,border-color .16s;
@@ -85,7 +85,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .card-icon{grid-column:1;grid-row:1/span 2;align-self:center;
   width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;
   font-size:20px;margin:0;flex-shrink:0;
-  background:rgba(var(--cr),.22);border:1px solid rgba(var(--cr),.5);box-shadow:none;}
+  background:rgba(var(--cr),.14);border:1px solid rgba(var(--cr),.3);box-shadow:none;}
 .card-title{grid-column:2;grid-row:1;
   font-size:14px;font-weight:800;color:#0f172a;margin:0;letter-spacing:-.01em;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
@@ -148,48 +148,14 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pulse-hdr{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
 .pulse-t{font-size:11px;font-weight:800;color:#fff;letter-spacing:.14em;text-transform:uppercase;}
 .pulse-s{font-size:11px;color:rgba(255,255,255,.45);}
-/* grid-auto-rows:1fr — плашки в одном ряду одной высоты. Без этого ряд
-   выглядел рваным: у одной плашки две строки, у соседней пять. */
-.pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:11px;
-  grid-auto-rows:1fr;align-items:stretch;}
-.pt{position:relative;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;
-  background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.028));
-  border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px 14px;--g:#a78bfa;
-  transition:transform .18s,border-color .25s,background .25s,box-shadow .3s;}
-/* Свечение как на внутренних страницах: цветной круг в углу под содержимым
-   (там так сделаны карточки «Нам должны» и «Мы должны»). Цвет — по смыслу
-   плашки, поэтому ряд читается ещё до чтения цифр: зелёное — наши деньги,
-   красное — чужие, золотое — достижение. Под курсором разгорается. */
-.pt::before{content:'';position:absolute;top:-70px;right:-70px;width:210px;height:210px;
-  background:radial-gradient(circle,var(--g) 0%,rgba(0,0,0,0) 68%);
-  opacity:.20;pointer-events:none;transition:opacity .35s,transform .35s;}
-.pt:hover::before{opacity:.40;transform:scale(1.08);}
-/* тонкий блик по верхней кромке — чтобы плашка читалась объёмной, а не плоской */
-.pt::after{content:'';position:absolute;inset:0;border-radius:14px;pointer-events:none;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.07);}
-.pt>*{position:relative;z-index:1;}
-.pt:hover{transform:translateY(-2px);border-color:var(--g);
-  background:rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(0,0,0,.38);}
-#p-sales{--g:#60a5fa} #p-fc{--g:#a78bfa} #p-cash{--g:#34d399} #p-win{--g:#fbbf24}
-#p-zak{--g:#38bdf8} #p-up{--g:#f87171} #p-fresh{--g:#a78bfa} #p-oliv{--g:#9ec948}
-#p-cat{--g:#f59e0b}
-/* Переключатель «+ Olive» — в цвете направления, чтобы было видно, что это
-   кнопка, а не подпись, и чтобы включённое состояние читалось издалека. */
-.olv-sw{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;
-  font-size:10.5px;font-weight:800;letter-spacing:.02em;cursor:pointer;vertical-align:1px;
-  background:#9ec948;color:#14310a;border:1px solid #b6dd63;box-shadow:0 0 10px rgba(158,201,72,.45)}
-.olv-sw:hover{background:#b6dd63;box-shadow:0 0 14px rgba(158,201,72,.7)}
-.olv-sw.on{background:#2b8a3e;color:#fff;border-color:#4ade80;box-shadow:0 0 14px rgba(74,222,128,.6)}
-#p-dz{--g:#34d399} #p-kz{--g:#f87171} .pt-edu{--g:#c4b5fd}
-@media (prefers-reduced-motion:reduce){ .pt,.pt::before{transition:none} .pt:hover{transform:none} }
-/* Прижимать подпись к низу (margin-top:auto) оказалось плохо: у короткой
-   плашки между цифрой и подписью зияла дыра в полплашки. Содержимое идёт
-   подряд сверху, а пустота — там, где ей и место, внизу. */
-.pt .pt-d{padding-top:4px;}
+.pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:11px;}
+.pt{display:block;text-decoration:none;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px 14px;transition:.18s;}
+.pt:hover{transform:translateY(-2px);border-color:rgba(167,139,250,.65);
+  background:rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(0,0,0,.35);}
 .pt-l{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
   color:rgba(255,255,255,.5);min-height:12px;}
 .pt-v{font-size:21px;font-weight:900;color:#fff;margin-top:7px;letter-spacing:-.5px;}
-#p-zak .pt-v,#p-up .pt-v,#p-fresh .pt-v{font-size:inherit;font-weight:inherit;letter-spacing:normal;margin-top:6px;}
 .pt-d{font-size:11px;margin-top:4px;color:rgba(255,255,255,.45);}
 .pt .up{color:#34d399;font-weight:800;}
 .pt .down{color:#fb7185;font-weight:800;}
@@ -201,10 +167,6 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
 .pt-edu .pt-v{font-size:15px;line-height:1.3;}
 /* Плитка прогноза — единственная, которая не ведёт в отчёт, а раскрывает расчёт
    прямо на месте. Знак «?» справа подсказывает, что по ней можно кликнуть. */
-.pt-chip{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:8.5px;
-  letter-spacing:.06em;background:rgba(167,139,250,.22);color:#ddd6fe;border:1px solid rgba(167,139,250,.35);
-  cursor:pointer;vertical-align:middle;}
-.pt-chip:hover{background:rgba(167,139,250,.38);color:#fff;}
 .pt-fc{cursor:pointer;background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.35);}
 .pt-fc:hover{background:rgba(124,58,237,.28);}
 .fc-q{float:right;font-size:11px;font-weight:900;color:rgba(196,181,253,.9);letter-spacing:0;}
@@ -326,38 +288,10 @@ a.card.key .card-title{padding-right:100px;}
   <div class="pulse">
     <div class="pulse-hdr"><span class="pulse-t">Пульс на сегодня</span><span class="pulse-s" id="pulse-upd">—</span></div>
     <div class="pulse-grid">
-      <!-- 24.09.2026: вместо «Топ-товара» — остаток наличных. Топ-товар почти
-           не менялся, длинное название не влезало в плитку и обрезалось на
-           середине слова; разрез по товарам остался в «Продажах». Деньги на
-           руках — то, на что смотрят каждый день. -->
-      <a class="pt" href="дашборд_ддс_прямой.html#DAY1" id="p-cash"
-         title="Остаток на кассовых счетах. Открывает «ДДС за день» на сегодняшней дате — там видно, откуда деньги пришли и куда ушли.">
-        <div class="pt-l">Наличные в кассе<span class="pt-chip" id="p-cash-more" role="button" tabindex="0">счета</span></div>
-        <div class="pt-v" id="p-cash-v">—</div>
-        <div class="pt-d" id="p-cash-d">загрузка…</div>
-      </a>
-      <a class="pt" href="дз_кз.html#mismatch" id="p-dz" title="Сколько нам должны покупатели — открывает разбор «Кто нам недоплатил»">
-        <div class="pt-l">Нам должны · ДЗ</div>
-        <div class="pt-v" id="p-dz-v">—</div>
-        <div class="pt-d" id="p-dz-d">загрузка…</div>
-      </a>
-      <a class="pt" href="дз_кз.html#kzmis" id="p-kz" title="Сколько мы должны поставщикам — открывает разбор «Кому недоплатили мы»">
-        <div class="pt-l">Мы должны · КЗ</div>
-        <div class="pt-v" id="p-kz-v">—</div>
-        <div class="pt-d" id="p-kz-d">загрузка…</div>
-      </a>
-      <a class="pt" id="p-sales" href="продажи_2026.html" title="Выручка Фуд Завода за последний месяц, без возвратов и без Olive — из iiko">
-        <div class="pt-l">Продажи ФУД ЗАВОД<span class="olv-sw" id="p-olv-sw" role="button" tabindex="0" title="Считать вместе с направлением Olive">+ Olive</span></div>
+      <a class="pt" href="продажи_2026.html" title="Выручка последнего месяца за вычетом возвратов, из iiko">
+        <div class="pt-l">Продажи за месяц</div>
         <div class="pt-v" id="p-sales-v">—</div>
         <div class="pt-d" id="p-sales-d">загрузка…</div>
-      </a>
-      <!-- Olive вынесена из продаж завода 06.10.2026: это отдельное направление,
-           и в общей выручке оно смазывало картину. Цифра берётся из того же
-           sales_sum.js (ключ oliv), поэтому две плитки всегда согласованы. -->
-      <a class="pt" id="p-oliv" href="olive.html" title="Контрагент Olive — отдельное направление, в продажах завода не учитывается">
-        <div class="pt-l">Продажи OLIVE</div>
-        <div class="pt-v" id="p-oliv-v">—</div>
-        <div class="pt-d" id="p-oliv-d">загрузка…</div>
       </a>
       <!-- Прогноз вместо «Топ-категории»: категория месяца — справка, а прогноз
            отвечает на вопрос, с которым директор открывает страницу: закроем ли
@@ -367,63 +301,23 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-v" id="p-fc-v">—</div>
         <div class="pt-d" id="p-fc-d">загрузка…</div>
       </div>
-      <!-- 24.09.2026: вместо «Возвратов» — достижение месяца. Возвраты
-           остались на дашборде продаж, где их видно в разрезе; на главной
-           полезнее то, чем месяц запомнился. Рекорд не выдумывается:
-           считается по закрытым месяцам, и если рекорда нет — так и пишем. -->
-      <a class="pt" href="продажи_2026.html" id="p-win"
-         title="Считается по закрытым месяцам: текущий идёт неполным и в сравнении всегда проигрывал бы">
-        <div class="pt-l">Достижение месяца</div>
-        <div class="pt-v" id="p-win-v">—</div>
-        <div class="pt-d" id="p-win-d">загрузка…</div>
+      <a class="pt" href="продажи_2026.html" title="Позиция с наибольшей выручкой за месяц">
+        <div class="pt-l">Топ-товар</div>
+        <div class="pt-v" id="p-sku-v">—</div>
+        <div class="pt-d" id="p-sku-d">загрузка…</div>
       </a>
-      <!-- Рекорд закупа за неделю: что взяли крупнее всего. Считается только
-           по закрытым неделям — в текущей закуп ещё идёт, и «рекорд» по ней
-           был бы недосчитанным. Данные — маленький zakup_top.js, чтобы не
-           тянуть на главную мегабайт zakup_data.js ради двух строк. -->
-      <a class="pt" href="закуп.html" id="p-zak" title="Крупнейшая закупка за последнюю полную неделю">
-        <div class="pt-l" id="p-zak-l">Закуп недели</div>
-        <div class="pt-v" id="p-zak-v">—</div>
-        <div class="pt-d" id="p-zak-d">загрузка…</div>
+      <a class="pt" href="продажи_2026.html" title="Возвраты покупателей за месяц, уже вычтены из выручки">
+        <div class="pt-l">Возвраты</div>
+        <div class="pt-v" id="p-ret-v">—</div>
+        <div class="pt-d" id="p-ret-d">загрузка…</div>
       </a>
-      <!-- Дебиторка и кредиторка разведены по разным плашкам: это разные
-           деньги и разные разговоры — одну сумму мы собираем, другую отдаём.
-           В подписи у каждой крупнейший контрагент: с него начинается разбор. -->
-      <!-- Конкретика по закупу: что подорожало и что взяли впервые.
-           Данные — маленький zakup_top.js: тянуть на главную мегабайтный
-           zakup_data.js ради четырёх строк нельзя. Плитка «Кто больше всех
-           купил» убрана 06.10.2026 — её место заняли продажи Olive. -->
-      <a class="pt" href="закуп.html" id="p-up" title="Рост цены закупа неделя к неделе">
-        <div class="pt-l" id="p-up-l">Подорожало за неделю</div>
-        <div class="pt-v" id="p-up-v">—</div>
-        <div class="pt-d" id="p-up-d">загрузка…</div>
-      </a>
-      <!-- Категории SKU: разметка номенклатуры в айко. Считается в айко
-           по запросу, поэтому плашка наполняется после загрузки страницы,
-           а ответ воркер держит в кэше 10 минут. -->
-      <a class="pt" href="sku360.html#cats" id="p-cat"
-         title="Позиции с отгрузкой в этом месяце, у которых категория не проставлена или спорная. Открывает вкладку «Категории» в SKU-аналитике 360°.">
-        <div class="pt-l">Категории SKU</div>
-        <div class="pt-v" id="p-cat-v">—</div>
-        <div class="pt-d" id="p-cat-d">считаю в айко…</div>
-      </a>
-      <a class="pt" href="закуп.html" id="p-fresh" title="Позиции, которых раньше в закупе не было">
-        <div class="pt-l">Взяли впервые</div>
-        <div class="pt-v" id="p-fresh-v">—</div>
-        <div class="pt-d" id="p-fresh-d">загрузка…</div>
+      <a class="pt" href="дз_кз.html" title="Нам должны и мы должны">
+        <div class="pt-l">Долги</div>
+        <div class="pt-v" id="p-debt-v">—</div>
+        <div class="pt-d" id="p-debt-d">загрузка…</div>
       </a>
       <!-- «Путеводитель» стоит последним, справа от долгов: это не показатель дня,
            а ссылка на справку, и в ряду цифр ей место с краю. -->
-      <!-- 02.10.2026. Реализация в 1С: в айко отгрузка видна день в день,
-           а в бухгалтерскую базу попадает позже. Плашка показывает, на какую
-           сумму месяц уже внесён; «3 мес.» раскрывает картину по месяцам,
-           чтобы было видно, это обычное отставание или месяц забыли. -->
-      <a class="pt" href="%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F.html" id="p-rz"
-         title="Внесено в 1С по месяцам — загрузка…">
-        <div class="pt-l">Реализация в 1С<span class="pt-chip" id="p-rz-more" role="button" tabindex="0">3 мес.</span></div>
-        <div class="pt-v" id="p-rz-v">—</div>
-        <div class="pt-d" id="p-rz-d">загрузка…</div>
-      </a>
       <a class="pt pt-edu" href="путеводитель.html" title="Как читать Пульс — что есть на сайте и с чего начать">
         <div class="pt-l">Путеводитель</div>
         <div class="pt-v">🧭 Как читать Пульс</div>
@@ -431,8 +325,6 @@ a.card.key .card-title{padding-right:100px;}
       </a>
     </div>
     <div class="fc-box" id="p-fc-box" style="display:none"></div>
-    <div class="fc-box" id="p-cash-box" style="display:none"></div>
-    <div class="fc-box" id="p-rz-box" style="display:none"></div>
   </div>
 
   <!-- БЛОК 01: ДЕНЬГИ -->
@@ -475,7 +367,7 @@ a.card.key .card-title{padding-right:100px;}
       </a>
       <a class="card" style="--c1:#e0834e;--c2:#c85a34;--cr:224,131,78" href="дз_кз.html">
         <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">⚖️</div><div class="card-title">Дебиторка и кредиторка</div></div>
+        <div class="card-hd"><div class="card-icon">⚖️</div><div class="card-title">Дебиторка и Кредиторка</div></div>
         <div class="card-desc">ДЗ и КЗ по контрагентам: итоги, динамика, топ должников.</div>
         <div class="card-tags">
           <span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">🔄 Google Диск · каждое утро</span>
@@ -489,16 +381,6 @@ a.card.key .card-title{padding-right:100px;}
         <div class="card-tags">
           <span class="card-badge" style="background:#f5f3ff;color:#6d28d9;">🔄 Google Диск · каждое утро</span>
           <span class="card-badge" style="background:#fef2f2;color:#b91c1c;">📞 список на обзвон</span>
-        </div>
-      </a>
-      <a class="card" style="--c1:#2fa39a;--c2:#17706d;--cr:47,163,154" href="услуги.html" data-new="2026-10-16">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🧾</div><div class="card-title">Услуги по видам работ</div></div>
-        <div class="card-desc">Что покупаем услугами, а не товаром: аренда, коммуналка, доставка, охрана, ремонт, IT — по видам работ, поставщикам и месяцам.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · онлайн</span>
-          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">🧾 факт по месяцам</span>
-          <span class="card-badge" style="background:#f0fdf4;color:#166534;">⬇️ выгрузка в Excel</span>
         </div>
       </a>
     </div>
@@ -521,9 +403,9 @@ a.card.key .card-title{padding-right:100px;}
           <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📅 2026 · помесячно, постатейно</span>
         </div>
       </a>
-      <div class="card card-disabled" style="--c1:#6366f1;--c2:#4338ca;--cr:99,102,241">
+      <div class="card card-disabled" style="--c1:#10b981;--c2:#059669;--cr:16,185,129">
         <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🎯</div><div class="card-title">ОПиУ — Планирование</div></div>
+        <div class="card-hd"><div class="card-icon">🧭</div><div class="card-title">ОПиУ — Планирование</div></div>
         <div class="card-desc">Плановый отчёт о прибылях и убытках. Бюджет по статьям на период.</div>
         <span class="card-badge" style="background:#f0fdf4;color:#166534;">В разработке</span>
       </div>
@@ -558,21 +440,12 @@ a.card.key .card-title{padding-right:100px;}
       </a>
       <a class="card key" style="--c1:#e0995a;--c2:#d97706;--cr:224,153,90" href="продажи_2026.html">
         <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🛒</div><div class="card-title">Продажи ФУД ЗАВОД</div></div>
-        <div class="card-desc">Динамика продаж 2026: топ SKU, каналы сбыта, помесячно. Интерактивный дашборд. Olive вынесена в отдельный отчёт и здесь не учитывается.</div>
+        <div class="card-hd"><div class="card-icon">🛒</div><div class="card-title">Продажи 2026</div></div>
+        <div class="card-desc">Динамика продаж 2026: топ SKU, каналы сбыта, помесячно. Интерактивный дашборд.</div>
         <div class="card-tags">
           <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждое утро</span>
           <span class="card-badge" style="background:#ecfeff;color:#0e7490;">🛒 категории · товары · возвраты</span>
           <span class="card-badge" id="sales-upd" style="background:#f0fdf4;color:#166534;">🕒 …</span>
-        </div>
-      </a>
-      <a class="card" data-new="2026-10-06" style="--c1:#9ec948;--c2:#6f9c22;--cr:158,201,72" href="olive.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🫒</div><div class="card-title">Продажи Olive</div></div>
-        <div class="card-desc">Отдельное направление: сколько Olive берёт у завода — по месяцам, категориям и позициям, с полным списком и выгрузкой.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждое утро</span>
-          <span class="card-badge" style="background:#f7fee7;color:#4d7c0f;">🫒 месяцы · категории · позиции</span>
         </div>
       </a>
       <a class="card" style="--c1:#e8c766;--c2:#d4af37;--cr:232,199,102" href="закуп.html">
@@ -592,15 +465,6 @@ a.card.key .card-title{padding-right:100px;}
           <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждое утро</span>
           <span class="card-badge" style="background:#fffbeb;color:#b45309;">📦 норматив запаса · точка заказа</span>
           <span class="card-badge" style="background:#fef2f2;color:#b91c1c;">💸 связка с долгами по оплатам</span>
-        </div>
-      </a>
-      <a class="card" data-new="2026-10-07" style="--c1:#fbbf24;--c2:#92400e;--cr:251,191,36" href="%D1%8D%D1%82%D0%B8%D0%BA%D0%B5%D1%82%D0%BA%D0%B8.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🏷</div><div class="card-title">Этикетки</div></div>
-        <div class="card-desc">Какая этикетка на каких блюдах стоит — из технологических карт iiko. У кого набор этикеток одинаковый, что надо завести в номенклатуре, а что заводить нельзя, и какие этикетки больше не нужны.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#fff7ed;color:#c2410c;">🏷 техкарты iiko</span>
-          <span class="card-badge" style="background:#f8fafc;color:#475569;">🧩 блюда · наборы · номенклатура</span>
         </div>
       </a>
       <a class="card" style="--c1:#8b5cf6;--c2:#6d28d9;--cr:139,92,246" href="производство.html">
@@ -623,46 +487,6 @@ a.card.key .card-title{padding-right:100px;}
       <div class="fin-sub">Можно ли верить цифрам</div>
     </div>
     <div class="cards">
-                        <a class="card" data-new="2026-10-23" style="--c1:#34d399;--c2:#047857;--cr:52,211,153" href="%D0%B0%D0%B7%D1%81.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">⛽</div><div class="card-title">RP АЗС</div></div>
-        <div class="card-desc">74 заправки: выпечка навынос, цена ровно средняя по заводу, рваный объём и канал ровно в ноль.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 айко</span>
-          <span class="card-badge" style="background:#f8fafc;color:#475569;">🏷 цена средняя</span>
-          <span class="card-badge" style="background:#fef2f2;color:#b91c1c;">📊 разброс ×3,8</span>
-        </div>
-      </a>
-      <a class="card" data-new="2026-10-23" style="--c1:#fbbf24;--c2:#b45309;--cr:251,191,36" href="%D1%8F%D0%BD%D0%B4%D0%B5%D0%BA%D1%81.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🛵</div><div class="card-title">Яндекс Лавка</div></div>
-        <div class="card-desc">16 дарксторов: премия к цене 10%, падение объёма четвёртый месяц подряд и чего стоит возмещение.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 айко</span>
-          <span class="card-badge" style="background:#f0fdf4;color:#166534;">🏷 цена +10%</span>
-          <span class="card-badge" style="background:#fef2f2;color:#b91c1c;">📉 −24 млн с марта</span>
-        </div>
-      </a>
-      <a class="card" data-new="2026-10-23" style="--c1:#60a5fa;--c2:#1d4ed8;--cr:96,165,250" href="%D0%B4%D1%84%D0%B7.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🚛</div><div class="card-title">ДФЗ</div></div>
-        <div class="card-desc">Дистрибьютор целиком: 41% выручки четырьмя процентами доставок, скидка 21% и сколько она стоит заводу.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 айко</span>
-          <span class="card-badge" style="background:#fef2f2;color:#b91c1c;">🏷 скидка 21%</span>
-          <span class="card-badge" style="background:#f0fdf4;color:#166534;">📦 4% доставок</span>
-        </div>
-      </a>
-      <a class="card" data-new="2026-10-23" style="--c1:#f59e0b;--c2:#b45309;--cr:245,158,11" href="%D0%BC%D0%B0%D0%B9%D0%BC%D0%B0%D1%80%D1%82.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🏪</div><div class="card-title">Маймарт</div></div>
-        <div class="card-desc">Канал целиком: продажи по месяцам и точкам, возвраты по трём счетам, логистика и реальный вклад в прибыль.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 айко</span>
-          <span class="card-badge" style="background:#fef2f2;color:#b91c1c;">↩️ возврат 26%</span>
-          <span class="card-badge" style="background:#fff7ed;color:#c2410c;">🚚 40% рейсов</span>
-        </div>
-      </a>
       <a class="card" style="--c1:#8b6ad6;--c2:#5b3fa8;--cr:139,106,214" href="опиу_аудит.html">
         <div class="card-accent"></div>
         <div class="card-hd"><div class="card-icon">🔎</div><div class="card-title">Аудит ОПиУ</div></div>
@@ -679,15 +503,6 @@ a.card.key .card-title{padding-right:100px;}
         <div class="card-tags">
           <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 счётчик · в реальном времени</span>
           <span class="card-badge" style="background:#ecfeff;color:#0e7490;">🔒 доступ по паролю</span>
-        </div>
-      </a>
-      <a class="card" data-new="2026-10-06" style="--c1:#e8c766;--c2:#b8902f;--cr:232,199,102" href="%D0%B6%D1%83%D1%80%D0%BD%D0%B0%D0%BB.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🗂</div><div class="card-title">Журнал изменений</div></div>
-        <div class="card-desc">Что меняли на сайте и когда: правки по дням и разделам, автоматические обновления данных — отдельной строкой. Собирается сам.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#fffbeb;color:#b45309;">🗂 история правок</span>
-          <span class="card-badge" style="background:#f8fafc;color:#475569;">⚙️ собирается автоматически</span>
         </div>
       </a>
     </div>
@@ -749,143 +564,13 @@ a.card.key .card-title{padding-right:100px;}
     <div class="fin-section-hdr">
       <span class="fin-num">06</span>
       <div class="fin-divider"></div>
-      <div class="fin-title">1С</div>
-      <div class="fin-sub">Отчёты из бухгалтерской базы — то, чего нет в iiko</div>
-    </div>
-    <div class="cards">
-      <a class="card" style="--c1:#d98b3a;--c2:#b56a1f;--cr:217,139,58" href="nalogi_%D0%BE%D1%82%D1%87%D1%91%D1%82.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🧾</div><div class="card-title">Налоги</div></div>
-        <div class="card-desc">Расчёты с бюджетом по видам налогов: начислено, оплачено, задолженность. Динамика по месяцам.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#fff7ed;color:#c2410c;">🔄 1С · каждый час</span>
-          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">💸 начислено · оплачено · долг</span>
-        </div>
-      </a>
-      <a class="card" style="--c1:#d98b3a;--c2:#b56a1f;--cr:217,139,58" href="%D0%BA%D0%B0%D0%BB%D1%8C%D0%BA%D1%83%D0%BB%D1%8F%D1%82%D0%BE%D1%80.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🧮</div><div class="card-title">Калькулятор</div></div>
-        <div class="card-desc">Все налоги Казахстана по ставкам 2026 года, каждый отдельной плашкой: НДС, зарплата, КПН, дивиденды, имущество, спецрежимы, пеня. Вводите параметры — считает сразу, расчёт можно сохранить.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#fff7ed;color:#c2410c;">🧮 ставки 2026</span>
-          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">💾 история расчётов</span>
-        </div>
-      </a>
-      <a class="card" style="--c1:#d98b3a;--c2:#b56a1f;--cr:217,139,58" href="%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">📑</div><div class="card-title">Реализация</div></div>
-        <div class="card-desc">Сколько дохода уже внесено в бухгалтерскую базу — помесячно, в сравнении с отгрузкой по айко и с разрезом по юрлицам.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#fff7ed;color:#c2410c;">🔄 1С · каждый час</span>
-          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">📊 внесено · не внесено · доля</span>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <!-- БЛОК 07: ЗАРПЛАТА
-       Закрытый раздел: у него свой пароль, отдельный от пароля сайта.
-       Внутри — полный расчёт по сотруднику и фонд оплаты труда. -->
-  <div class="fin-section">
-    <div class="fin-section-hdr">
-      <span class="fin-num">07</span>
-      <div class="fin-divider"></div>
-      <div class="fin-title">Зарплата</div>
-      <div class="fin-sub">Закрытый раздел — вход по отдельному паролю</div>
-    </div>
-    <div class="cards">
-      <a class="card" data-new="2026-10-06" style="--c1:#f59e0b;--c2:#b45309;--cr:245,158,11" href="%D0%B7%D0%B0%D1%80%D0%BF%D0%BB%D0%B0%D1%82%D0%B0.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">👥</div><div class="card-title">Расчёт зарплаты</div></div>
-        <div class="card-desc">Полный расчёт по сотруднику: оклад или часы, ночные, праздничные, сверхурочные, премии, вычеты и удержания. Считает ИПН, ОПВ, ВОСМС и всё, что компания платит сверху, — до полной стоимости сотрудника. Можно собрать весь ФОТ и выгрузить в Excel.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#fff7ed;color:#c2410c;">🧮 ставки РК 2026</span>
-          <span class="card-badge" style="background:#f1f5f9;color:#334155;">🔒 свой пароль</span>
-        </div>
-      </a>
-      <a class="card" data-new="2026-10-08" style="--c1:#5b8def;--c2:#3a62c4;--cr:91,141,239" href="https://hr.erp-system-fz.kz/employees/" target="_blank" rel="noopener">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🧑‍🏭</div><div class="card-title">Сотрудники · HR-платформа</div></div>
-        <div class="card-desc">Кадровая база завода: 207 человек в 27 подразделениях, 108 на банке, 130 уволенных. Оклады и часовые ставки, графики, права доступа, даты приёма и приёма в 1С, санкнижки. Там же штатное расписание, орг. структура, кадровые действия и журнал изменений. Открывается тем же входом, что и остальная платформа.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">👥 207 сотрудников</span>
-          <span class="card-badge" style="background:#f1f5f9;color:#334155;">🔗 HR-платформа</span>
-          <span class="card-badge" style="background:#fff7ed;color:#c2410c;">📋 источник ФОТ</span>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <!-- БЛОК 08: ПРОБА — то, что ещё обкатывается. Отчёты сюда кладут, пока
-       не решено, нужны ли они каждый день; оттуда они либо уезжают в
-       основные блоки, либо исчезают. -->
-  <div class="fin-section">
-    <div class="fin-section-hdr">
-      <span class="fin-num">08</span>
-      <div class="fin-divider"></div>
-      <div class="fin-title">Проба</div>
-      <div class="fin-sub">Новые отчёты, пока обкатываются</div>
-    </div>
-    <div class="cards">
-      <a class="card key" data-new="2026-10-08" style="--c1:#2fa39a;--c2:#1f7f86;--cr:47,163,154" href="%D0%B0%D0%B9%D0%BA%D0%B0.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🧿</div><div class="card-title">Айка</div></div>
-        <div class="card-desc">Что происходит в iiko и что с этим стало со счетами. Движение денег закрытого периода по статьям и месяцам, обороты и сальдо по всем 117 счетам, журнал действий — кто, когда и какой документ трогал. Отдельно следит за тем, не правят ли закрытые месяцы задним числом.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#ecfeff;color:#0e7490;">💸 ДДС по статьям</span>
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждые 3 часа</span>
-          <span class="card-badge" style="background:#fff7ed;color:#c2410c;">🚨 контроль закрытого периода</span>
-        </div>
-      </a>
-      <a class="card" data-new="2026-10-08" style="--c1:#e0a62f;--c2:#b97d12;--cr:224,166,47" href="%D0%B1%D0%B0%D0%B7%D0%B0.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">📚</div><div class="card-title">База компании</div></div>
-        <div class="card-desc">Единый список всего, из чего состоит завод: юрлица, склады, люди, счета учёта, системы, процессы и показатели. У каждой карточки один хозяин и один источник истины — чтобы одно и то же не вели в двух местах. Склады, счета, люди и системы заводятся автоматически из iiko и платформы, остальное вписывается руками.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#fff7ed;color:#c2410c;">🧭 где чья правда</span>
-          <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 заготовка из iiko</span>
-          <span class="card-badge" style="background:#f1f5f9;color:#334155;">✍️ вписывается руками</span>
-        </div>
-      </a>
-    </div>
-  </div>
-
-
-  <!-- БЛОК 09: ЕРП — Пульс, разложенный по разделам 1С:ERP. Нужен, чтобы
-       видеть, какую часть ERP завод уже закрыл и что осталось за её
-       пределами: разговор с внедренцами идёт по этой карте. -->
-  <div class="fin-section">
-    <div class="fin-section-hdr">
-      <span class="fin-num">09</span>
-      <div class="fin-divider"></div>
-      <div class="fin-title">ЕРП</div>
-      <div class="fin-sub">Пульс в разделах 1С:ERP — что уже закрыто, чего нет</div>
-    </div>
-    <div class="cards">
-      <a class="card key" data-new="2026-10-14" style="--c1:#e8b53a;--c2:#c98500;--cr:232,181,58" href="%D0%B5%D1%80%D0%BF.html">
-        <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🗂️</div><div class="card-title">ЕРП</div></div>
-        <div class="card-desc">Пульс, разложенный по разделам 1С:ERP Управление предприятием 2, в её же интерфейсе «Такси»: производство, казначейство, бюджетирование, финансовый результат, НСИ. Внутри каждого раздела — те же команды, что в ERP. Синяя ссылка — такой отчёт в Пульсе уже есть и он живой, серая — такого нет. Честная карта того, какую часть ERP завод закрыл, не покупая ERP. На начальной странице — монитор руководителя с живыми цифрами.</div>
-        <div class="card-tags">
-          <span class="card-badge" style="background:#fffbeb;color:#92400e;">🗂️ 16 разделов ERP</span>
-          <span class="card-badge" style="background:#ecfdf5;color:#047857;">✅ что уже закрыто</span>
-          <span class="card-badge" style="background:#f1f5f9;color:#334155;">📋 разговор с внедренцами</span>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <div class="fin-section">
-    <div class="fin-section-hdr">
-      <span class="fin-num">10</span>
-      <div class="fin-divider"></div>
       <div class="fin-title">Прочее и архив</div>
       <div class="fin-sub">Редко нужные отчёты и прежние версии — чтобы не мешались</div>
     </div>
     <div class="cards">
       <a class="card" style="--c1:#8b7cd8;--c2:#6d5bbd;--cr:139,124,216" href="склады.html">
         <div class="card-accent"></div>
-        <div class="card-hd"><div class="card-icon">🏬</div><div class="card-title">Склады</div></div>
+        <div class="card-hd"><div class="card-icon">🏭</div><div class="card-title">Склады</div></div>
         <div class="card-desc">Что и на сколько лежит на складах: сырьё, готовая продукция, расходники. Запас в днях и залежавшиеся позиции.</div>
         <div class="card-tags">
           <span class="card-badge" style="background:#eff6ff;color:#1d4ed8;">🔄 iiko · каждое утро</span>
@@ -1227,13 +912,6 @@ a.card.key .card-title{padding-right:100px;}
     if(a>=1e3) return Math.round(x/1e3)+' тыс ₸';
     return Math.round(x)+' ₸'; }
   function num(x){ return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
-  /* money() округляет миллионы до целых — 2 783 010 читалось как «3 млн».
-     Там, где важна точность до десятых, берём money1(). */
-  function money1(x){ var a=Math.abs(x);
-    if(a>=1e9) return (x/1e9).toFixed(2).replace('.',',')+' млрд ₸';
-    if(a>=1e6) return (x/1e6).toFixed(1).replace('.',',')+' млн ₸';
-    if(a>=1e3) return Math.round(x/1e3)+' тыс ₸';
-    return Math.round(x)+' ₸'; }
   function chg(now,was,good){
     if(!was) return '';
     var d=now-was, cls=(d>0)===(good>0)?'up':'down';
@@ -1246,158 +924,19 @@ a.card.key .card-title{padding-right:100px;}
            'Ноябрь':'ноябрю','Декабрь':'декабрю'};
   function dat(s){ var k=String(s||'').split(' ')[0]; return DAT[k]||String(s||'').toLowerCase(); }
 
-  /* Категории SKU. Запрос в айко идёт после отрисовки страницы и ничего
-     не блокирует: плашка догружается сама. Месяц — текущий. */
-  setTimeout(function(){
-    var a=new Date(Date.now()+5*3600000), q=function(x){ return ('0'+x).slice(-2); };
-    var y=a.getUTCFullYear(), m=q(a.getUTCMonth()+1);
-    var from=y+'-'+m+'-01', to=y+'-'+m+'-'+q(a.getUTCDate());
-    fetch('/api/erp?r=cat&from='+from+'&to='+to)
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        if(!j||j.error||j.total==null){ set('p-cat','—','нет данных'); return; }
-        var no=0, dis=0;
-        (j.rows||[]).forEach(function(r){
-          if(r.cat==='(не проставлена)') no++; else dis++;
-        });
-        var dup=(j.dupes||[]).length;
-        set('p-cat', num(j.total)+' позиц.',
-          '<span class="down">'+no+'</span> без категории · '+dis+' спорных'
-          + (dup?' · '+dup+' задвоенные пары':'')
-          + ' · на разбор');
-      })
-      .catch(function(){ set('p-cat','—','айко не ответил'); });
-  }, 1500);
-
   var SUM=null;
-  /* Считать ли Olive вместе с заводом. Выбор личный и хранится в браузере. */
-  var OLV=false; try{ OLV=localStorage.getItem('pulse-olv')==='1'; }catch(e){}
-  var MNR=['','января','февраля','марта','апреля','мая','июня','июля','августа',
-           'сентября','октября','ноября','декабря'];
-
-  /* Сравнение неполного месяца с ПОЛНЫМ прошлым врёт: 14 дней октября против
-     всего сентября давали «−49 %», хотя темп тот же. Берём подневную выручку
-     и сравниваем те же числа месяца. */
-  function samePeriod(){
-    var D=(window.REVISIONS&&window.REVISIONS.days)||null;
-    if(!D||!SUM) return null;
-    var k=String(SUM.month||''); if(!/^\d{4}-\d{2}$/.test(k)) return null;
-    var y=+k.slice(0,4), m=+k.slice(5,7), pm=m-1, py=y;
-    if(pm<1){ pm=12; py--; }
-    var pk=py+'-'+('0'+pm).slice(-2);
-    /* Сегодняшний день неполный: в сравнении он занижал бы текущий месяц
-       против полного дня прошлого. Берём только закрытые дни. */
-    var _a=new Date(Date.now()+5*3600000), _p=function(x){ return ('0'+x).slice(-2); };
-    var todayISO=_a.getUTCFullYear()+'-'+_p(_a.getUTCMonth()+1)+'-'+_p(_a.getUTCDate());
-    var cur=Object.keys(D).filter(function(x){ return x.indexOf(k+'-')===0 && x<todayISO; });
-    if(!cur.length) return null;
-    var d=Math.max.apply(null,cur.map(function(x){ return +x.slice(8); }));
-    var prev=Object.keys(D).filter(function(x){ return x.indexOf(pk+'-')===0 && +x.slice(8)<=d; });
-    if(prev.length<d) return null;                 /* прошлый месяц неполный — не сравниваем */
-    return { d:d, m:m, pm:pm, pD:dim(py,pm),
-             cur:cur.reduce(function(a,x){ return a+(D[x]||0); },0),
-             prev:prev.reduce(function(a,x){ return a+(D[x]||0); },0) };
-  }
-
-  /* По умолчанию Olive в продажи завода не входит — это отдельное
-     направление со своей плашкой. Кнопкой «+ Olive» их можно сложить. */
-  function renderSales(){
-    if(!SUM) return;
-    var O=SUM.oliv||null;
-    var sp=samePeriod();
-    /* Завод берём по закрытым дням, значит и Olive надо за те же дни:
-       подневных по ней нет, поэтому режем её месячную сумму пропорционально
-       числу дней в выгрузке (метка вида «Октябрь (1–14)»). */
-    var span=(String(SUM.label||'').match(/\((\d+)\s*[–-]\s*(\d+)\)/)||[])[2];
-    var olvCur=(OLV&&O) ? (sp&&span ? O.rev*sp.d/(+span) : O.rev) : 0;
-    var rev=(sp?sp.cur:SUM.rev)+olvCur;
-    var tail=' · '+(sp?('1–'+sp.d+' '+MNR[sp.m]):String(SUM.label||'').toLowerCase())
-            +(OLV?' с Olive':'');
-    if(FC&&FC.fc) tail+=' · прогноз '+money(FC.fc+(OLV?olivFc():0));
-    var d2;
-    if(sp && sp.prev>0){
-      /* Olive знаем только помесячно — за те же дни берём пропорцией. */
-      var prev=sp.prev+(OLV&&O&&O.prevRev?O.prevRev*sp.d/sp.pD:0);
-      d2=chg(rev,prev,1)+'к 1–'+sp.d+' '+MNR[sp.pm]+tail;
-    } else {
-      d2=chg(rev,SUM.prevRev+(OLV&&O?(O.prevRev||0):0),1)
-        +'к '+(SUM.prevLabel?dat(SUM.prevLabel):'прошлому месяцу')+tail;
-    }
-    set('p-sales', money(rev), d2);
-    var sw=document.getElementById('p-olv-sw');
-    if(sw){ sw.textContent=OLV?'✓ Olive':'+ Olive'; sw.className='olv-sw'+(OLV?' on':''); }
-    if(O) set('p-oliv', money1(O.rev),
-        chg(O.rev,O.prevRev,1)+'к '+(O.prevLabel?dat(O.prevLabel):'прошлому месяцу')
-        +' · с начала года '+money1(O.yearRev));
-    else set('p-oliv','—','нет данных');
-  }
-  /* Olive в прогнозе — линейно по дневному темпу: подневных данных по ней
-     нет, только месячная сумма. */
-  function olivFc(){
-    var O=SUM&&SUM.oliv; if(!O||!FC||!FC.d) return 0;
-    return O.rev/FC.d*FC.D;
-  }
-
   load('/sales_sum.js?v=1',function(){
     SUM=window.SALES_SUM; if(!SUM) return;
-    renderSales();
-    var sw=document.getElementById('p-olv-sw');
-    if(sw) sw.onclick=function(e){
-      e.preventDefault(); e.stopPropagation();
-      OLV=!OLV; try{ localStorage.setItem('pulse-olv',OLV?'1':'0'); }catch(e2){}
-      renderSales(); fcShow();
-    };
+    set('p-sales', money(SUM.rev),
+        chg(SUM.rev,SUM.prevRev,1)+'к '+(SUM.prevLabel?dat(SUM.prevLabel):'прошлому месяцу')+' · '+SUM.label.toLowerCase());
     /* Плитка «С начала года» заменена ссылкой на «Путеводитель» — цифры года
        остались на дашборде продаж, поэтому здесь их больше не считаем. */
     /* Топ-категория ушла с главной 05.09.2026: она почти не менялась месяцами,
        а место заняла плитка прогноза. Разрез по категориям остался в «Продажах». */
-    /* Плитка «Топ-товар» убрана 24.09.2026 — на её месте остаток наличных. */
-    renderWin(); renderFc();
+    if(SUM.topSku) set('p-sku', '<span style="font-size:15px">'+short(String(SUM.topSku.n).replace(/^Упак\s+/i,''),22)+'</span>',
+        money(SUM.topSku.rev)+(SUM.topSku.qty?' · '+num(SUM.topSku.qty)+' шт за месяц':''));
+    renderRet(); renderFc();
   });
-
-  /* ── ДОСТИЖЕНИЕ МЕСЯЦА ──────────────────────────────────────────
-     Плитка ищет, чем закрытый месяц оказался хорош, и говорит правду:
-     сначала проверяет рекорд года по выручке, потом серию роста, потом
-     превышение среднего. Не нашлось ничего — так и пишет, что рекорда нет.
-     Текущий месяц в расчёт не берём: он неполный и в сравнении с целыми
-     месяцами всегда выглядел бы провалом.                              */
-  var MES=['','январь','февраль','март','апрель','май','июнь','июль',
-           'август','сентябрь','октябрь','ноябрь','декабрь'];
-  var MES_D=['','январю','февралю','марту','апрелю','маю','июню','июлю',
-             'августу','сентябрю','октябрю','ноябрю','декабрю'];
-  function mes(k){ return MES[+String(k).slice(5,7)] || k; }
-  function mesD(k){ return MES_D[+String(k).slice(5,7)] || k; }   // «к июлю», а не «к июль»
-  function plm(n){ var a=n%10, b=n%100;
-    if(b>=11&&b<=14) return 'месяцев';
-    return a===1?'месяц':(a>=2&&a<=4)?'месяца':'месяцев'; }
-  function pct1(x){ return Math.abs(x).toFixed(1).replace('.',','); }
-  function renderWin(){
-    if(!SUM) return;
-    var ms=(SUM.months||[]).filter(function(m){ return m.k!==SUM.month && (m.rev||0)>0; });
-    if(ms.length<2){ set('p-win','—','мало закрытых месяцев'); return; }
-    var last=ms[ms.length-1], prev=ms[ms.length-2];
-    var best=ms.reduce(function(a,b){ return b.rev>a.rev ? b : a; });
-    var avg=ms.reduce(function(t,m){ return t+m.rev; },0)/ms.length;
-    var d=prev.rev ? (last.rev/prev.rev-1)*100 : 0;
-    var streak=0;
-    for(var i=ms.length-1;i>0;i--){ if(ms[i].rev>ms[i-1].rev) streak++; else break; }
-    var sub;
-    if(best.k===last.k){
-      sub='🏆 '+mes(last.k)+' — лучший месяц года · '+(d>=0?'+':'−')+pct1(d)+'% к '+mesD(prev.k);
-    } else if(streak>=2){
-      sub='🏆 '+streak+' '+plm(streak)+' роста подряд · рекорд года — '+mes(best.k)+', '+money(best.rev);
-    } else if(last.rev>avg){
-      sub='🏆 '+mes(last.k)+' выше среднего по году на '+pct1(last.rev/avg*100-100)+'%';
-    } else {
-      sub='рекорда нет: '+mes(last.k)+' '+(d>=0?'+':'−')+pct1(d)+'% к '+mesD(prev.k)
-        +' · лучший — '+mes(best.k);
-    }
-    set('p-win', money(last.rev), sub);
-    var el=document.getElementById('p-win');
-    if(el) el.title='Выручка '+num(last.rev)+' ₸ за '+mes(last.k)
-      +'. Считаем по закрытым месяцам: '+mes(ms[0].k)+'–'+mes(last.k)
-      +'. Текущий месяц не участвует, он ещё не закончился.';
-  }
 
   /* ── ПРОГНОЗ ПРОДАЖ ЗА МЕСЯЦ ────────────────────────────────────
      Считается из тех же sales_sum.js (выручка по месяцам) и sales_meta.js
@@ -1468,23 +1007,11 @@ a.card.key .card-title{padding-right:100px;}
         lbl:String(SUM.label||'').split(' ')[0],
         through:_p(d)+'.'+_p(mo)+'.'+yr};
     fcCalc(FC.w);
-    fcShow();
-    renderSales();          /* на плашке продаж появляется строка «прогноз …» */
-  }
-  /* Прогноз и факт рядом: прогноз без факта не проверишь, а факт без прогноза
-     не говорит, куда месяц идёт. */
-  function fcShow(){
-    if(!FC) return;
-    var O=(SUM&&SUM.oliv)||null;
-    var fc=FC.fc+(OLV?olivFc():0);
-    var fact=FC.rev+FC.today+((OLV&&O)?O.rev:0);
-    var prev=FC.prev+((OLV&&O&&O.prevRev)?O.prevRev:0);
-    var dl=prev>0?(fc/prev*100-100):null;
-    set('p-fc', money(fc),
+    var dl=FC.prev>0?(FC.fc/FC.prev*100-100):null;
+    set('p-fc', money(FC.fc),
         (dl===null?'':'<span class="'+(dl>=0?'up':'down')+'">'+(dl>=0?'+':'−')
           +Math.abs(dl).toFixed(1)+'%</span> к '+dat(FC.prevLbl)+' · ')
-        +'факт '+money(fact)+' за '+FC.d+(FC.today>0?'+сегодня':'')+' дн. из '+FC.D
-        +(OLV?' · с Olive':''));
+        +FC.lbl.toLowerCase()+', '+FC.d+' полных дн. из '+FC.D+(FC.today>0?' + сегодня':''));
   }
   /* Пересчёт прогноза при заданном весе текущего месяца.
      Сегодня — день идущий, но факт по нему уже есть: берём большее из факта и
@@ -1502,7 +1029,11 @@ a.card.key .card-title{padding-right:100px;}
     fcCalc(Math.max(0,Math.min(1,(+v||0)/100)));
     var b=document.getElementById('p-fc-box');
     if(b&&b.style.display!=='none') fcRender();
-    fcShow(); renderSales();
+    var dl=FC.prev>0?(FC.fc/FC.prev*100-100):null;
+    set('p-fc', money(FC.fc),
+        (dl===null?'':'<span class="'+(dl>=0?'up':'down')+'">'+(dl>=0?'+':'−')
+          +Math.abs(dl).toFixed(1)+'%</span> к '+dat(FC.prevLbl)+' · ')
+        +FC.lbl.toLowerCase()+', '+FC.d+' полных дн. из '+FC.D+(FC.today>0?' + сегодня':''));
   };
   window.pulseFcToggle=function(){
     var b=document.getElementById('p-fc-box'); if(!b) return;
@@ -1588,331 +1119,41 @@ a.card.key .card-title{padding-right:100px;}
   }
   pulseFcNew();
 
-  /* Плитка «Возвраты» убрана 24.09.2026 — разрез остался в «Продажах».
-     META по-прежнему нужна прогнозу: из неё берётся дата последних данных. */
+  /* Возвраты живут в sales_meta.js, а доля от выручки — в sales_sum.js.
+     Файлы грузятся параллельно, поэтому рисуем плитку только когда
+     пришли оба: иначе доля считалась бы от нуля и выходило «100%». */
   var META=null;
+  function renderRet(){
+    if(!META) return;
+    var R=META.returns||{}, keys=Object.keys(R).sort();
+    if(!keys.length) return;
+    /* показываем с начала года: текущий месяц ещё не набрал возвратов
+       и в одиночку давал бы обманчивый ноль */
+    var tot=0; keys.forEach(function(k){ tot+=R[k]||0; });
+    var net=(SUM&&SUM.yearRev)||0, gross=net+tot;
+    set('p-ret','−'+money(tot),
+        (gross?(tot/gross*100).toFixed(1)+'% от выручки · ':'')+'с начала года');
+  }
   load('/sales_meta.js?v=2',function(){
     META=window.SALES_META||{};
     var u=document.getElementById('pulse-upd');
     if(u&&META.pulled) u.textContent='продажи из iiko · обновлено '+META.pulled+' · данные по '+(META.through||'—');
-    renderFc();
+    renderRet(); renderFc();
   });
 
-  /* ── ЗАКУП НЕДЕЛИ ───────────────────────────────────────────────
-     Лидер закупа за последнюю ПОЛНУЮ неделю и следом второй. Рекордом
-     называем только то, что и правда максимум года по этой позиции —
-     иначе «рекорд» стоял бы на плашке каждую неделю. */
-  load('/zakup_top.js?v=1',function(){
-    var Z=window.ZAKUP_TOP;
-    if(!Z||!Z.top||!Z.top.length){ set('p-zak','—','нет данных'); return; }
-    var a=Z.top[0], b=Z.top[1];
-    /* Крупно — количество: «сколько взяли» читается в килограммах и штуках,
-       а не в тенге. Сумма остаётся рядом мелким, чтобы было с чем сверяться.
-       Неделя ушла в заголовок плашки — она общая для обеих строк. */
-    var lab=document.getElementById('p-zak-l');
-    if(lab) lab.innerHTML='Закуп недели <span style="color:#a78bfa">'+Z.label+'</span>';
-    function line(x,first){
-      if(!x) return '';
-      return '<div style="'+(first?'':'margin-top:7px')+'">'
-        + '<div style="font-size:19px;font-weight:900;color:#fff;line-height:1.15;letter-spacing:-.4px">'
-        +   (x.rec?'<span title="максимум года по этой позиции">🏆 </span>':'')
-        +   num(x.qty)+' '+(x.u||'') + '</div>'
-        + '<div style="font-size:11px;font-weight:600;color:#b9c6dd;margin-top:1px;line-height:1.35">'
-        +   short(x.n,26)+' <span style="color:#8ea0be;font-weight:500">· '+money1(x.sum)+'</span></div>'
-        + '</div>';
+  load('/dz_kz.js?v=1',function(){
+    var Z=window.DZ_KZ; if(!Z) return;
+    /* только процент, без слов: подпись собирается снаружи */
+    function pct(o,good){
+      var d=o&&o.dynamics; if(!d||d.length<2) return '—';
+      return chg(d[d.length-1].total,d[d.length-2].total,good).trim();
     }
-    set('p-zak', line(a,true)+line(b,false),
-        'всего ' + money1(Z.weekSum) + ' по ' + num(Z.n) + ' ' +
-        (Z.n%10===1&&Z.n%100!==11 ? 'позиции' : 'позициям'));
-    /* Ссылки ведут прямо в нужный разрез закупа на нужной неделе, а не
-       просто на страницу: #вкладка/режим/период разбирает сам закуп. */
-    var deep=function(id,tab){
-      var e=document.getElementById(id);
-      if(e&&Z.week) e.setAttribute('href','закуп.html#'+tab+'/week/'+Z.week);
-    };
-    deep('p-zak','ce'); deep('p-up','ce'); deep('p-fresh','tv');
-    var el=document.getElementById('p-zak');
-    if(el){
-      var parts=['Неделя '+Z.label+': закупили на '+money1(Z.weekSum)+' по '+Z.n+' позициям.'];
-      Z.top.slice(0,3).forEach(function(x,i){
-        parts.push((i+1)+'. '+x.n+' — '+num(x.sum)+' ₸ ('+num(x.qty)+' '+x.u+' по '+num(x.price)+' ₸, '+x.sup+')'
-          +(x.rec?' — максимум года':(x.maxSum?(' · максимум года '+money1(x.maxSum)+' в '+x.maxLabel):'')));
-      });
-      if(a.prev) parts.push('Неделей раньше по лидеру было '+money1(a.prev)+'.');
-      el.title=parts.join('\n');
-    }
-
-    /* Подорожание. Сортируем по переплате, а не по процентам: скачок на
-       копеечной позиции всегда выглядел бы страшнее, чем пять процентов на
-       том, что берут тоннами. */
-    var U=Z.up||[];
-    var ul=document.getElementById('p-up-l');
-    if(ul) ul.innerHTML='Подорожало <span style="color:#a78bfa">'+Z.label+'</span>';
-    if(!U.length){ set('p-up','—','за неделю цены не выросли'); }
-    else {
-      /* Цены ниже сотни показываем с десятой: 48,6→54,1 и «+11,2%» сходятся,
-         а округлённые «49→55» читались бы как двенадцать процентов. */
-      var fmtP=function(v){ return v<100 ? String(Math.round(v*10)/10).replace('.',',') : num(v); };
-      var upline=function(x,first){
-        if(!x) return '';
-        return '<div style="'+(first?'':'margin-top:7px')+'">'
-          + '<div style="font-size:19px;font-weight:900;color:#fca5a5;line-height:1.15;letter-spacing:-.4px">+'
-          +   String(x.d).replace('.',',')+'%</div>'
-          + '<div style="font-size:11px;font-weight:600;color:#b9c6dd;margin-top:1px;line-height:1.35">'
-          +   short(x.n,24)+' <span style="color:#8ea0be;font-weight:500">'+fmtP(x.was)+'→'+fmtP(x.now)+' ₸</span></div>'
-          + '</div>';
-      };
-      var over=0; U.forEach(function(x){ over+=x.over||0; });
-      set('p-up', upline(U[0],true)+upline(U[1],false), 'переплата за неделю '+money1(over));
-      var eU=document.getElementById('p-up');
-      if(eU) eU.title='Цена за единицу, '+Z.label+' против '+(Z.prevLabel||'прошлой недели')+':\n'
-        + U.map(function(x){ return '• '+x.n+': '+fmtP(x.was)+' → '+fmtP(x.now)+' ₸ (+'+x.d+'%), закупили '
-            + num(x.qty)+' на '+num(x.sum)+' ₸, переплата '+num(x.over)+' ₸'; }).join('\n')
-        + '\nБерём позиции с закупом от 150 тыс ₸: на мелочи скачок цены ничего не значит.';
-    }
-
-    /* Взяли впервые: чего не было ни на одной неделе года, и то, к чему
-       вернулись после месяца перерыва и дольше. */
-    var F=Z.fresh||[];
-    if(!F.length){ set('p-fresh','—','новых позиций за неделю нет'); }
-    else {
-      var fline=function(x,first){
-        if(!x) return '';
-        return '<div style="'+(first?'':'margin-top:7px')+'">'
-          + '<div style="font-size:19px;font-weight:900;color:#fff;line-height:1.15;letter-spacing:-.4px">'
-          +   money1(x.sum)+'</div>'
-          + '<div style="font-size:11px;font-weight:600;color:#b9c6dd;margin-top:1px;line-height:1.35">'
-          +   short(x.n,30)+' <span style="color:#8ea0be;font-weight:500">· '
-          +   (x.first?'впервые в этом году':('не брали с '+x.lastSeen))+'</span></div>'
-          + '</div>';
-      };
-      set('p-fresh', fline(F[0],true)+fline(F[1],false), 'неделя '+Z.label);
-      var eF=document.getElementById('p-fresh');
-      /* Было одной строкой: название, сумма, количество, поставщик и дата
-         подряд через запятые — в такой ленте ничего не найти. Теперь на
-         каждую позицию маленькая карточка с подписанными полями. */
-      if(eF) eF.title = 'ВЗЯЛИ ВПЕРВЫЕ · неделя ' + Z.label + '\n\n'
-        + F.map(function(x){
-            return x.n + '\n'
-              + '   сумма:  ' + num(x.sum) + ' ₸\n'
-              + '   количество:  ' + num(x.qty) + ' ' + (x.u||'') + '\n'
-              + '   поставщик:  ' + x.sup + '\n'
-              + '   ' + (x.first ? 'раньше в этом году не брали'
-                                 : 'прошлый раз брали:  ' + x.lastSeen);
-          }).join('\n\n');
-    }
-  });
-
-  /* ── НАЛИЧНЫЕ В КАССЕ ───────────────────────────────────────────
-     Остатки по счетам на последнюю дату из ддс_прямой.json. Разбивку
-     на нал и безнал делает gen_ddsp.py — там же список кассовых счетов. */
-  load('/ddsp_days.js?v=1',function(){
-    var C=(window.DDSP_DAYS||{}).cash;
-    if(!C){ set('p-cash','—','нет данных'); return; }
-    var d=String(C.date||'').split('-');
-    var when=d.length===3?(d[2]+'.'+d[1]):'';
-    set('p-cash', money1(C.nal),
-        'безнал ' + money1(C.beznal) + ' · всего ' + money1(C.nal+C.beznal) + (when?(' · на '+when):''));
-    /* «счета» раскрывают остатки по всем счетам прямо на главной: клик по
-       самой плашке ведёт в ДДС за день, а разбивку часто нужно просто
-       посмотреть, не уходя со страницы. */
-    var chip=document.getElementById('p-cash-more'), box=document.getElementById('p-cash-box');
-    if(chip&&box){
-      var draw=function(){
-        var nal=C.nalAcc||[], rows=Object.keys(C.acc||{});
-        rows.sort(function(a,b){ return (C.acc[b]||0)-(C.acc[a]||0); });
-        box.innerHTML='<div style="padding:14px 16px">'
-          + '<div style="font-size:13px;font-weight:800;color:#f1f5f9;margin-bottom:8px">Остатки по счетам на '+when+'</div>'
-          + '<table style="width:100%;border-collapse:collapse;font-size:12.5px">'
-          + rows.map(function(k){
-              var isNal=nal.indexOf(k)>=0, v=C.acc[k]||0;
-              return '<tr><td style="padding:5px 0;color:'+(isNal?'#6ee7b7':'#cbd5e1')+'">'
-                + (isNal?'● ':'○ ')+k+'</td>'
-                + '<td style="padding:5px 0;text-align:right;font-variant-numeric:tabular-nums;color:'
-                + (v?'#f1f5f9':'#64748b')+'">'+num(v)+' ₸</td></tr>';
-            }).join('')
-          + '<tr><td style="padding:8px 0 0;border-top:1px solid rgba(255,255,255,.12);font-weight:800;color:#6ee7b7">● Наличные</td>'
-          + '<td style="padding:8px 0 0;border-top:1px solid rgba(255,255,255,.12);text-align:right;font-weight:800;color:#6ee7b7">'+num(C.nal)+' ₸</td></tr>'
-          + '<tr><td style="padding:3px 0;font-weight:800;color:#cbd5e1">○ Безнал</td>'
-          + '<td style="padding:3px 0;text-align:right;font-weight:800;color:#cbd5e1">'+num(C.beznal)+' ₸</td></tr>'
-          + '</table>'
-          + '<div style="font-size:11px;color:#94a3b8;margin-top:9px">Наличными считаем главную кассу, кассу взаиморасчётов и карту Айданы. '
-          + '<a href="дашборд_ддс_прямой.html#DAY1" style="color:#c4b5fd">Открыть ДДС за день →</a></div></div>';
-      };
-      var toggle=function(e){
-        if(e){ e.preventDefault(); e.stopPropagation(); }
-        if(box.style.display==='none'){ draw(); box.style.display='block'; chip.textContent='скрыть'; }
-        else { box.style.display='none'; chip.textContent='счета'; }
-      };
-      chip.onclick=toggle;
-      chip.onkeydown=function(e){ if(e.key==='Enter'||e.key===' ') toggle(e); };
-    }
-    var el=document.getElementById('p-cash');
-    if(el&&C.acc){
-      var parts=[];
-      (C.nalAcc||[]).forEach(function(k){ if(C.acc[k]!=null) parts.push(k+' — '+num(C.acc[k])); });
-      /* Подсказка в одну строку не читалась: счета, суммы и пояснение
-         сливались в ленту текста. Разносим по строкам — глаз находит нужный
-         счёт сразу, а внизу итог. */
-      var lines = ['НАЛИЧНЫЕ В КАССАХ'];
-      (C.nalAcc||[]).forEach(function(k){
-        if(C.acc[k]!=null) lines.push('   ' + k + ':  ' + num(C.acc[k]) + ' ₸');
-      });
-      lines.push('   ─────');
-      lines.push('   итого наличными:  ' + num(C.nal) + ' ₸');
-      lines.push('');
-      lines.push('Безналичные счета:  ' + num(C.beznal) + ' ₸');
-      lines.push('Всего на счетах:  ' + num(C.nal + C.beznal) + ' ₸');
-      el.title = lines.join('\n');
-    }
-  });
-
-  /* Реализация в 1С. Файл маленький (пара килобайт) — грузим на главную целиком. */
-  load('/realizaciya.js?v=4', function(){
-    var R = window.REALIZACIYA;
-    if(!R || !R.months || !R.months.length){ set('p-rz','—','нет данных'); return; }
-    var MN=['','январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
-    /* Текущий месяц почти всегда почти пустой — он заполняется по ходу,
-       и «0 ₸ за октябрь» на главной не говорит ничего. Показываем последний
-       закрытый месяц, а про текущий пишем отдельной строкой. */
-    var all=R.months, cur=all[all.length-1];
-    var closed=all.filter(function(x){ return x.m<R.curMonth && (x.v1c||0)>0; });
-    var show = closed.length? closed[closed.length-1] : cur;
-    var done=R.months.filter(function(x){return x.m<R.curMonth && x.pct;}).map(function(x){return x.pct;}).sort(function(a,b){return a-b;});
-    var norm=done.length? done[Math.floor(done.length/2)] : null;
-    var sh=show.pct? Math.round(show.pct*100)+'%' : '—';
-    var tail = (cur!==show)
-      ? ' · '+MN[cur.m]+': '+(cur.v1c? money(cur.v1c) : 'ещё не вносили')
-      : (norm? ' · обычно '+Math.round(norm*100)+'%' : '');
-    /* Непроведённое — это не «не внесли», а «внесли и забыли провести»:
-       документ есть, в оборот 6010 он не попал, чинится одним нажатием.
-       Поэтому по каждому месяцу пишем обе цифры отдельно: что проведено и
-       что лежит непроведённым. */
-    function mrow(x){
-      if(!x) return '';
-      return '<div style="margin-top:3px;line-height:1.35">'
-        + '<b style="color:#e8eef6">' + MN[x.m] + '</b> · '
-        + '<span style="color:#4ade80">проведено</span> ' + money(x.v1c||0)
-        + (x.np ? ' · <span style="color:#fbbf24">не проведено</span> <b style="color:#fbbf24">'
-                  + money(x.np) + '</b><span style="opacity:.7"> · ' + x.npn + ' док.</span>'
-                : ' · <span style="opacity:.6">непроведённых нет</span>')
-        + (x.pct ? '<span style="opacity:.7"> · ' + Math.round(x.pct*100) + '% от отгрузки</span>' : '')
-        + '</div>';
-    }
-    set('p-rz', money(show.v1c), mrow(show) + (cur !== show ? mrow(cur) : ''));
-    /* 02.10.2026. В подсказке была проза — объяснение, что такое плашка.
-       Объяснение читают один раз, а цифры нужны каждый день: заменили текст
-       на пять последних закрытых месяцев — сколько внесено в 1С и какая это
-       доля от отгрузки по айко. Видно сразу, это обычный месяц или провал. */
-    var tEl=document.getElementById('p-rz');
-    if(tEl){
-      var last5=closed.slice(-5), s1=0, si=0;
-      var tl=[last5.length>1 ? 'ВНЕСЕНО В 1С — ПОСЛЕДНИЕ '+last5.length+' ЗАКРЫТЫХ МЕС.' : 'ВНЕСЕНО В 1С'];
-      last5.forEach(function(x){
-        s1+=x.v1c||0; si+=x.iiko||0;
-        tl.push('   '+MN[x.m]+':  '+num(x.v1c||0)+' ₸'
-          +(x.pct? '   ·  '+Math.round(x.pct*100)+'% от отгрузки' : ''));
-      });
-      if(last5.length>1){
-        tl.push('   ─────');
-        tl.push('   итого за '+last5.length+' мес.:  '+num(s1)+' ₸'
-          +(si? '   ·  '+Math.round(s1/si*100)+'% от отгрузки' : ''));
-      }
-      if(cur!==show){
-        tl.push('');
-        tl.push(MN[cur.m]+' (ещё идёт):  '+(cur.v1c? num(cur.v1c)+' ₸' : 'ещё не вносили'));
-      }
-      if(R.npTotal){
-        tl.push('');
-        tl.push('СОЗДАНО, НО НЕ ПРОВЕДЕНО:  '+num(R.npTotal)+' ₸  ·  '+R.npCount+' документов');
-        var npm=R.months.filter(function(x){return x.np;});
-        npm.slice(-4).forEach(function(x){
-          tl.push('   '+MN[x.m]+':  '+num(x.np)+' ₸  ·  '+x.npn+' док.');
-        });
-        tl.push('   в оборот 6010 они не попали — достаточно провести');
-      }
-      tl.push('');
-      tl.push('Чип «3 мес.» — разбор прямо здесь, клик по плашке — полный отчёт.');
-      tEl.title = tl.join('\n');
-    }
-    var chip=document.getElementById('p-rz-more'), box=document.getElementById('p-rz-box');
-    if(!chip||!box) return;
-    var draw=function(){
-      var last=closed.slice(-3);
-      var mx=Math.max.apply(null,last.map(function(x){return Math.max(x.v1c||0,x.iiko||0);}).concat([1]));
-      box.innerHTML='<div style="padding:14px 16px">'
-        +'<div style="font-size:13px;font-weight:800;color:#f1f5f9;margin-bottom:4px">Внесено в 1С за три закрытых месяца</div>'
-        +'<div style="font-size:11.5px;color:#94a3b8;margin-bottom:10px">полоса — внесено в 1С, засечка — отгрузка по айко</div>'
-        + last.map(function(x){
-            var w1=Math.max(0,(x.v1c||0)/mx*100), wi=(x.iiko||0)/mx*100;
-            var low = norm && x.pct && x.pct < norm-0.05;
-            return '<div style="display:grid;grid-template-columns:78px 1fr 150px;gap:10px;align-items:center;margin:7px 0;font-size:12.5px">'
-              +'<div style="color:#cbd5e1;font-weight:700">'+MN[x.m]+'</div>'
-              +'<div style="position:relative;height:22px;background:rgba(148,163,184,.18);border-radius:7px;overflow:hidden">'
-              +'<span style="position:absolute;left:0;top:0;bottom:0;width:'+w1.toFixed(1)+'%;border-radius:7px;background:linear-gradient(90deg,'+(low?'#f87171,#dc2626':'#fbbf24,#d97706')+')"></span>'
-              +(x.iiko?'<span style="position:absolute;top:0;bottom:0;left:'+wi.toFixed(1)+'%;width:2px;background:#34d399"></span>':'')
-              +'</div>'
-              +'<div style="text-align:right;color:#e2e8f0;font-weight:700">'+money(x.v1c)
-              +(x.pct?' <span style="color:'+(low?'#fca5a5':'#94a3b8')+';font-weight:500">'+Math.round(x.pct*100)+'%</span>':'')+'</div></div>';
-          }).join('')
-        +'<div style="margin-top:10px;font-size:11.5px;color:#94a3b8;line-height:1.5">Красным — месяцы, внесённые заметно хуже обычного. Текущий месяц сюда не берём: он ещё заполняется.</div>'
-        +'</div>';
-    };
-    var tog=function(e){ e.preventDefault(); e.stopPropagation(); draw();
-      box.style.display = (box.style.display==='none'?'block':'none'); };
-    chip.addEventListener('click', tog);
-    chip.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' ') tog(e); });
-  });
-
-  /* ── КТО КОМУ ДОЛЖЕН ────────────────────────────────────────────
-     Раньше плашки читали dz_kz.js — разбор гугл-книги, который по дороге
-     выбрасывал часть строк: дебиторку он показывал без 14,1 млн, снятых
-     как безнадёжные, и расходился с самой книгой на 1,6 млн по кредиторке.
-     Теперь берём balans.js — тот же срез книги, с которым сверяется вкладка
-     «Таблица ДЗ и КЗ», чтобы на Пульсе везде стояло одно число. */
-  load('/balans.js?v=2',function(){
-    var B=window.BALANS; if(!B||!B.sides) return;
-    var DAY=864e5, base=new Date(B.base+'T00:00:00');
-    function side(k){
-      var S=B.sides[k]; if(!S) return null;
-      var ad=new Date((B.anchor&&B.anchor[k]||B.base)+'T00:00:00');
-      var ai=Math.round((ad-base)/DAY);
-      var rows=S.rows.map(function(r){
-        var v=r.open; for(var n=0;n<r.mv.length;n++){ if(r.mv[n][0]<=ai) v+=r.mv[n][1]-r.mv[n][2]; }
-        return {name:r.n, debt:v};
-      });
-      /* Итог считаем по всем строкам, вместе с переплатами в минусе — иначе
-         он разойдётся с книгой; в список крупнейших берём только должников. */
-      var sum=rows.reduce(function(a,x){return a+x.debt;},0);
-      rows=rows.filter(function(x){ return x.debt>0; });
-      rows.sort(function(a,b){ return b.debt-a.debt; });
-      return {total:sum, top:rows,
-              date:ad.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})};
-    }
-    /* Три крупнейших контрагента вместо одного: долг почти всегда собран
-       в нескольких именах, и по одному лидеру не видно, сколько их. */
-    function top3(o){
-      if(!o||!o.top.length) return '';
-      return '<div style="margin-top:5px">' + o.top.slice(0,3).map(function(x){
-        var sh=o.total? Math.round(x.debt/o.total*100) : 0;
-        return '<div style="display:flex;justify-content:space-between;gap:8px;line-height:1.45;align-items:baseline">'
-          + '<span style="color:#dbe4f2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"'
-          + ' title="'+String(x.name).replace(/"/g,'&quot;')+'">'
-          + String(x.name).replace(/^\d+-\s*/,'')+'</span>'
-          + '<span style="white-space:nowrap;color:#8ea0be">'+money1(x.debt)
-          + (sh?(' <b style="color:#cbd5e1;font-weight:700">'+sh+'%</b>'):'')+'</span></div>';
-      }).join('') + '</div>';
-    }
-    var D=side('dz'), K=side('kz');
-    if(D) set('p-dz', money(D.total), 'на ' + D.date + top3(D));
-    if(K) set('p-kz', money(K.total), 'на ' + K.date + top3(K));
-    function tip(id,o,head){
-      var e=document.getElementById(id); if(!e||!o) return;
-      e.title=head+'\n'+o.top.slice(0,5).map(function(x,i){ return (i+1)+'. '+x.name+' — '+num(x.debt)+' ₸'; }).join('\n')
-        + '\n\nСрез книги на '+o.date+', всего контрагентов в плюсе: '+o.top.length;
-    }
-    tip('p-dz', D, 'Кто нам должен, крупнейшие:');
-    tip('p-kz', K, 'Кому мы должны, крупнейшие:');
+    /* рост любого из долгов трактуем как минус: дебиторка — деньги, которые
+       до нас не дошли, кредиторка — которые мы ещё должны отдать */
+    if(Z.dz&&Z.kz) set('p-debt',
+      '<span style="font-size:16px">ДЗ '+money(Z.dz.total)+'</span><br>'
+      +'<span style="font-size:16px">КЗ '+money(Z.kz.total)+'</span>',
+      'за неделю ДЗ '+pct(Z.dz,-1)+' · КЗ '+pct(Z.kz,-1)+' · на '+(Z.dz.date||'—'));
   });
 })();
 </script>
