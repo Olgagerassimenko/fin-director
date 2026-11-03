@@ -124,6 +124,31 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/dz_kz.js") {
+      /* Файл из репозитория главнее сборки воркера. Ночная сборка
+         (parse_dz_kz.py) считает по той же книге, но отдаёт заметно больше:
+         остаток прошлой недели по каждому контрагенту (колонка «Δ нед.»),
+         снятых как безнадёжные, недельную аналитику ana/anaWeeks для вкладок
+         «Кто нам недоплатил» и соседних, и берёт итог из строки ИТОГО, а не
+         суммой всех строк. Пока здесь работала только сборка воркера, эти
+         блоки на странице молча пропадали, а вкладки показывали зашитый
+         в код запасной набор за 04–10.07. Сборка воркера осталась запасным
+         вариантом — на случай, если файла в репозитории нет. */
+      if (!url.searchParams.has("nocache")) {
+        try {
+          const fromRepo = await env.ASSETS.fetch(new Request(new URL("/dz_kz.js", url.origin), request));
+          if (fromRepo && fromRepo.status === 200) {
+            const body = await fromRepo.text();
+            if (body.includes("window.DZ_KZ") && body.includes("\"dynamics\"")) {
+              return new Response(body, {
+                headers: {
+                  "content-type": "application/javascript; charset=utf-8",
+                  "cache-control": "no-store, must-revalidate",
+                },
+              });
+            }
+          }
+        } catch (e) { /* файла нет или не прочитался — считаем сами, ниже */ }
+      }
       const cache = caches.default;
       const noCache = url.searchParams.has("nocache");
       let resp = noCache ? null : await cache.match(CACHE_KEY);
@@ -1835,6 +1860,12 @@ function parseDz(rows) {
     if (i > prevDzCol2 && i < prevDzCol && /отгрузк/i.test(c)) shipPrevCol = i;
   });
   const cell = (row, ci) => (ci >= 0 && ci < row.length ? num(row[ci]) : null);
+  /* Вкладки «Кто нам недоплатил», «Кому недоплатили мы» и соседние берут
+     данные из поля ana: отгрузка и поступление за последнюю закрытую неделю
+     по каждому контрагенту. Пока воркер его не отдавал, страница подставляла
+     зашитый в код запасной набор за 04–10.07 — выглядело как свежая
+     аналитика, а показывало июль. Считаем теми же колонками, что консигнацию. */
+  const ana = [];
   const consign = [];
   for (const row of data) {
     const name = (row[0] || "").trim();
@@ -1844,6 +1875,11 @@ function parseDz(rows) {
     const ship = cell(row, shipCol) || 0;
     const pay = cell(row, payCol) || 0;
     const shipPrev = cell(row, shipPrevCol) || 0;
+    /* Снятых с учёта в аналитику не мешаем: у них нет ни отгрузок, ни оплат,
+       и в таблицах они были бы вечными строками с нулями. */
+    if (!isExcludedDz(name) && (ship > 0 || pay > 0)) {
+      ana.push({ name, kc: Math.round(ship), kd: Math.round(pay) });
+    }
     if (dz <= 0 && ship <= 0 && pay <= 0) continue;
     consign.push({
       name,
@@ -1857,12 +1893,24 @@ function parseDz(rows) {
   consign.sort((a, b) => b.dz - a.dz);
   const prevDate = prevDzCol >= 0 ? dzCols[li - 1][1] : "";
   const consignMeta = { date: lastDate, prevDate, shipLabel, payLabel };
+  /* Подпись периода — две даты из заголовка колонки отгрузки: «04.09–10.09». */
+  const periodLabel = (txt) => {
+    const ds = String(txt || "").match(/\d{1,2}\.\d{2}/g) || [];
+    return ds.length >= 2 ? ds[0] + "–" + ds[1] : (ds[0] || "");
+  };
+  const anaMeta = {
+    period: periodLabel(shipLabel),
+    totalShip: Math.round(ana.reduce((s2, a) => s2 + a.kc, 0)),
+    totalPay: Math.round(ana.reduce((s2, a) => s2 + a.kd, 0)),
+  };
 
   return {
     total: Math.round(latestTotal), date: lastDate, dynamics, top: top.slice(0, 30),
     /* Блок «Сняты как безнадёжно просроченные» на странице рисуется только
        если эти поля есть: без них он молча исчезает. */
     excluded, excludedTotal: Math.round(excludedTotal), excludedNote: EXCLUDED_DZ_NOTE,
+    prevDate,
+    ana, anaMeta,
     consign: consign.slice(0, 60), consignMeta,
   };
 }
