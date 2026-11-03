@@ -1753,6 +1753,21 @@ function parseKz(rows) {
    Пока здесь был только первый вариант, воркер видел колонки лишь по
    04.09.2026: график «нам должны» рисовался пустым, а итог показывал
    позапрошлую цифру как сегодняшнюю. Тот же шаблон — в parse_dz_kz.py. */
+/* Контрагенты, снятые с учёта как безнадёжно просроченные — решение
+   финдиректора от 05.09.2026. Остаток у них не менялся ни на тенге месяцами:
+   ни отгрузок, ни оплат. В сумме «нам должны» их не держим — это не оборотная
+   дебиторка, а замороженные деньги, по которым нужен резерв и взыскание.
+   Исключаем во ВСЕХ периодах, иначе на графике был бы фальшивый обвал в день
+   снятия. Сопоставляем по коду в начале названия: имена пишут по-разному,
+   код стабилен. Тот же список — в parse_dz_kz.py. */
+const EXCLUDED_DZ_CODES = ["84", "89", "95"];
+const EXCLUDED_DZ_NOTE = "сняты как безнадёжно просроченные: остаток не менялся месяцами, ни отгрузок, ни оплат";
+function dzCode(name) {
+  const m = String(name || "").match(/^\s*(\d{1,4})\s*[-–—.]/);
+  return m ? m[1] : null;
+}
+function isExcludedDz(name) { return EXCLUDED_DZ_CODES.includes(dzCode(name)); }
+
 const DZ_COL_PAT = /дз\s+на|д\/з\s+на|д\.з\.\s*на|баланс\s+по\s+поставщикам.{0,40}?\s+на\s*\d/i;
 
 function parseDz(rows) {
@@ -1777,6 +1792,7 @@ function parseDz(rows) {
     let total = 0;
     for (const row of data) {
       if (!isCompany(row[0] || "")) continue;
+      if (isExcludedDz(row[0])) continue;
       const v = ci < row.length ? num(row[ci]) : null;
       if (v && v > 0) total += v;
     }
@@ -1787,15 +1803,16 @@ function parseDz(rows) {
   /* Остаток на прошлую дату нужен странице для колонки «Δ нед.»: без него
      она молча пустая. Так же это делает parse_dz_kz.py. */
   const prevCol = dzCols.length > 1 ? dzCols[dzCols.length - 2][0] : -1;
-  const top = []; let latestTotal = 0;
+  const top = [], excluded = []; let latestTotal = 0, excludedTotal = 0;
   for (const row of data) {
     const name = (row[0] || "").trim();
     if (!isCompany(name)) continue;
     const v = lastCol < row.length ? num(row[lastCol]) : null;
     if (v && v > 0) {
-      latestTotal += v;
       const pv = (prevCol >= 0 && prevCol < row.length) ? num(row[prevCol]) : null;
-      top.push({ name, debt: Math.round(v), prev: (pv && pv > 0) ? Math.round(pv) : 0 });
+      const item = { name, debt: Math.round(v), prev: (pv && pv > 0) ? Math.round(pv) : 0 };
+      if (isExcludedDz(name)) { excluded.push(item); excludedTotal += v; }
+      else { latestTotal += v; top.push(item); }
     }
   }
   top.sort((a, b) => b.debt - a.debt);
@@ -1843,6 +1860,9 @@ function parseDz(rows) {
 
   return {
     total: Math.round(latestTotal), date: lastDate, dynamics, top: top.slice(0, 30),
+    /* Блок «Сняты как безнадёжно просроченные» на странице рисуется только
+       если эти поля есть: без них он молча исчезает. */
+    excluded, excludedTotal: Math.round(excludedTotal), excludedNote: EXCLUDED_DZ_NOTE,
     consign: consign.slice(0, 60), consignMeta,
   };
 }
