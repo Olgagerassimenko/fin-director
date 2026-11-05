@@ -164,6 +164,8 @@ export default {
       }
       return resp;
     }
+    if (url.pathname === "/api/erp") return handleErp(request, env, url)
+      .catch((e) => jsonResp({ error: String(e).slice(0, 300) }, 500));
     if (url.pathname === "/api/plan") {
       return handlePlan(request, env);
     }
@@ -373,6 +375,357 @@ async function iikoProbe(url) {
    трёхсот. Число одновременных сессий ограничено лицензией, и лишние
    мешают работать людям в офисе. */
 let IIKO_TOK = { v: null, till: 0 };
+/* ── ЕРП-отчёты «по запросу в айко» (/api/erp): восстановлено из 33cba396,
+   утрачено при «Починке деплоя» 02.11.2026. Зависит от jsonResp,
+   iikoAuthCached, IIKO, iikoGet, env.PLAN — все есть в этом воркере. */
+const ERP_REPORTS = {
+  osv: { n: "Оборотно-сальдовая ведомость по счетам",
+    group: ["Account.Name"], agg: ["Sum.Incoming", "Sum.Outgoing"],
+    cols: [["Account.Name", "Счёт", "l"], ["Sum.Incoming", "Приход", "n"], ["Sum.Outgoing", "Расход", "n"]] },
+  cash: { n: "Движение денежных средств по статьям",
+    types: ["PAYIN", "PAYOUT"], group: ["Account.Name"], agg: ["Sum.Incoming", "Sum.Outgoing"],
+    cols: [["Account.Name", "Статья", "l"], ["Sum.Incoming", "Поступление", "n"], ["Sum.Outgoing", "Выплата", "n"]] },
+  ship: { n: "Отгрузка по контрагентам",
+    types: ["OUTGOING_INVOICE_REVENUE"], group: ["Counteragent.Name"], agg: ["Sum.Outgoing"],
+    cols: [["Counteragent.Name", "Покупатель", "l"], ["Sum.Outgoing", "Отгружено, ₸", "n"]] },
+  shipit: { n: "Отгрузка по номенклатуре",
+    types: ["OUTGOING_INVOICE_REVENUE"], group: ["Product.Name"], agg: ["Amount", "Sum.Outgoing"],
+    cols: [["Product.Name", "Номенклатура", "l"], ["Amount", "Количество", "q"], ["Sum.Outgoing", "Сумма, ₸", "n"]] },
+  buy: { n: "Закупки по поставщикам",
+    types: ["INVOICE"], group: ["Counteragent.Name"], agg: ["Sum.Incoming"],
+    cols: [["Counteragent.Name", "Поставщик", "l"], ["Sum.Incoming", "Приход, ₸", "n"]] },
+  buyit: { n: "Закупки по номенклатуре",
+    types: ["INVOICE"], group: ["Product.Name"], agg: ["Amount", "Sum.Incoming"],
+    cols: [["Product.Name", "Номенклатура", "l"], ["Amount", "Количество", "q"], ["Sum.Incoming", "Сумма, ₸", "n"]] },
+  prod: { n: "Выпуск продукции",
+    types: ["PRODUCTION"], group: ["Product.Name"], agg: ["Amount", "Sum.Incoming"],
+    cols: [["Product.Name", "Продукция", "l"], ["Amount", "Выпущено", "q"], ["Sum.Incoming", "Себестоимость, ₸", "n"]] },
+  gp: { n: "Валовая прибыль по позициям",
+    /* Расходная накладная создаёт в айко две проводки: выручку
+       (OUTGOING_INVOICE_REVENUE) и списание себестоимости со склада
+       (OUTGOING_INVOICE). Берём обе и вычитаем — это и есть валовая
+       прибыль по позиции. Сверено за сентябрь: 267,6 млн выручки
+       против 127,1 млн себестоимости, то есть 47,5 % — ровно норматив
+       «1.1.Себестоимость продуктовая» из ОПиУ. */
+    two: { a: { types: ["OUTGOING_INVOICE_REVENUE"], agg: ["Sum.Outgoing"], as: "rev" },
+           b: { types: ["OUTGOING_INVOICE"], agg: ["Sum.Outgoing"], as: "cost" } },
+    group: ["Product.Name"],
+    cols: [["Product.Name", "Номенклатура", "l"], ["rev", "Выручка, ₸", "n"],
+           ["cost", "Себестоимость, ₸", "n"], ["gp", "Валовая прибыль, ₸", "n"],
+           ["mp", "Маржа, %", "p"]] },
+  cat: { n: "Категории SKU: спорные и непроставленные",
+    /* В айко у каждой позиции есть папка и отдельно «категория». Папка —
+       это место в дереве номенклатуры, категория — разрез для отчётности,
+       и проставляют её руками. Считаем для каждой папки преобладающую
+       категорию и показываем тех, кто из неё выбивается, плюс тех, у кого
+       категории нет вовсе. Это не приговор: бывает, что папка смешанная
+       намеренно, — но проверять надо именно эти строки. */
+    kind: "cat", types: ["OUTGOING_INVOICE_REVENUE"],
+    group: ["Product.Name", "Product.Category", "Product.Hierarchy"],
+    agg: ["Sum.Outgoing"],
+    cols: [["name", "Номенклатура", "l"], ["path", "Классификация", "l"],
+           ["cat", "Категория сейчас", "l"], ["dom", "Должна быть", "l"],
+           ["act", "Действие", "l"], ["rec", "Что сделать", "l"],
+           ["sum", "Отгрузка за период, ₸", "n"]] },
+  stock: { n: "Остатки на складах на дату",
+    kind: "api", path: "/resto/api/v2/reports/balance/stores",
+    cols: [["store", "Склад", "l"], ["product", "Номенклатура", "l"],
+           ["amount", "Количество", "q"], ["sum", "Сумма, ₸", "n"]] },
+  shipday: { n: "Отгрузка по дням",
+    types: ["OUTGOING_INVOICE_REVENUE"], group: ["DateTime.DateTyped"], agg: ["Sum.Outgoing"], bydate: 1,
+    cols: [["DateTime.DateTyped", "Дата", "l"], ["Sum.Outgoing", "Отгружено, ₸", "n"]] },
+  buyday: { n: "Закупки по дням",
+    types: ["INVOICE"], group: ["DateTime.DateTyped"], agg: ["Sum.Incoming"], bydate: 1,
+    cols: [["DateTime.DateTyped", "Дата", "l"], ["Sum.Incoming", "Приход, ₸", "n"]] },
+  cashday: { n: "Движение денежных средств по дням",
+    types: ["PAYIN", "PAYOUT"], group: ["DateTime.DateTyped"], agg: ["Sum.Incoming", "Sum.Outgoing"], bydate: 1,
+    cols: [["DateTime.DateTyped", "Дата", "l"], ["Sum.Incoming", "Поступление", "n"], ["Sum.Outgoing", "Выплата", "n"]] },
+  prodstore: { n: "Выпуск по складам",
+    types: ["PRODUCTION"], group: ["Store"], agg: ["Amount", "Sum.Incoming"],
+    cols: [["Store", "Склад", "l"], ["Amount", "Выпущено", "q"], ["Sum.Incoming", "Себестоимость, ₸", "n"]] },
+  movestore: { n: "Обороты по складам",
+    group: ["Store"], agg: ["Sum.Incoming", "Sum.Outgoing"],
+    cols: [["Store", "Склад", "l"], ["Sum.Incoming", "Приход, ₸", "n"], ["Sum.Outgoing", "Расход, ₸", "n"]] },
+  chess: { n: "Обороты: счёт и корреспондирующий счёт",
+    group: ["Account.Name", "Contr-Account.Name"], agg: ["Sum.Incoming"],
+    cols: [["Account.Name", "Счёт", "l"], ["Contr-Account.Name", "Корр. счёт", "l"],
+           ["Sum.Incoming", "Оборот, ₸", "n"]] },
+  docs: { n: "Журнал документов",
+    group: ["TransactionType", "Document"], agg: ["Sum.Incoming"],
+    cols: [["TransactionType", "Вид операции", "l"], ["Document", "Документ", "l"],
+           ["Sum.Incoming", "Сумма, ₸", "n"]] },
+  wo: { n: "Списания, брак и недостачи",
+    types: ["WRITEOFF"], group: ["Account.Name", "Product.Name"], agg: ["Amount", "Sum.Outgoing"],
+    cols: [["Account.Name", "Склад / статья", "l"], ["Product.Name", "Номенклатура", "l"],
+           ["Amount", "Количество", "q"], ["Sum.Outgoing", "Сумма, ₸", "n"]] },
+};
+
+/* Кэш ответов на 10 минут. Отчёты тяжёлые — «Валовая прибыль» это две
+   выгрузки из айко, — а за десять минут цифры в учёте не меняются
+   настолько, чтобы гонять запрос заново на каждое нажатие кнопки. */
+async function handleErp(request, env, url) {
+  if (url.searchParams.get("raw")) return handleErpRaw(request, env, url);
+  const ck = new Request("https://erp.cache" + url.pathname + url.search);
+  const hit = await caches.default.match(ck);
+  if (hit) return hit;
+  const resp = await handleErpRaw(request, env, url);
+  if (resp.status === 200) {
+    const body = await resp.clone().text();
+    const cached = new Response(body, {
+      status: 200,
+      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "max-age=600" },
+    });
+    await caches.default.put(ck, cached.clone());
+    return cached;
+  }
+  return resp;
+}
+
+async function handleErpRaw(request, env, url) {
+  const key = String(url.searchParams.get("r") || "");
+  const d = ERP_REPORTS[key];
+  if (!d) return jsonResp({ error: "неизвестный отчёт" }, 400);
+
+  const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
+  /* На экране хватает 300 строк, для выгрузки в Excel нужен весь список. */
+  const LIM = url.searchParams.get("all") === "1" ? 100000 : 300;
+  const today = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);  // Алматы
+  const to = ok(url.searchParams.get("to")) ? url.searchParams.get("to") : today;
+  const from = ok(url.searchParams.get("from")) ? url.searchParams.get("from") : to.slice(0, 8) + "01";
+  if (from > to) return jsonResp({ error: "начало периода позже конца" }, 400);
+
+  /* Остатки берём не из OLAP, а из отчёта остатков айко: OLAP по всей
+     истории проводок кладёт и запрос, и склад. */
+  if (d.kind === "api") {
+    const token = await iikoAuthCached();
+    const ts = to + "T23:59:59";
+    const ru = `${IIKO.url}${d.path}?timestamp=${encodeURIComponent(ts)}`;
+    const rr = await fetch(ru, { headers: { Cookie: `key=${token}` } });
+    if (!rr.ok) return jsonResp({ error: "айко ответил " + rr.status }, 502);
+    let raw = null; try { raw = await rr.json(); } catch (e) { return jsonResp({ error: "айко вернул не JSON" }, 502); }
+    if (url.searchParams.get("raw")) return jsonResp({ raw: Array.isArray(raw) ? raw.slice(0, 3) : raw });
+    const arr = Array.isArray(raw) ? raw : [];
+    const [dS, dP] = await Promise.all([erpDict(env, "stores"), erpDict(env, "products")]);
+    const nm = (map, id) => (map && map[id]) || String(id || "").slice(0, 8);
+    const rows = arr.map((x) => ({
+      store: x.storeName || nm(dS, x.store || x.storeId),
+      product: x.productName || nm(dP, x.product || x.productId),
+      amount: Number(x.amount != null ? x.amount : x.quantity) || 0,
+      sum: Number(x.sum != null ? x.sum : x.cost) || 0,
+    })).filter((x) => x.amount || x.sum);
+    rows.sort((a, b) => b.sum - a.sum);
+    const sums = { amount: rows.reduce((s2, x) => s2 + x.amount, 0),
+                   sum: rows.reduce((s2, x) => s2 + x.sum, 0) };
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, LIM), total: rows.length,
+                      sums: sums, from: to, to: to });
+  }
+
+  /* В айко граница «to» у DateRange НЕ включается: запросив по 20-е, получишь
+     по 19-е. Поэтому в фильтр отдаём следующий день, а пользователю
+     возвращаем ту дату, которую он выбрал. */
+  const nextDay = (s) => {
+    const d0 = new Date(s + "T00:00:00Z");
+    d0.setUTCDate(d0.getUTCDate() + 1);
+    return d0.toISOString().slice(0, 10);
+  };
+  const filters = { "DateTime.DateTyped": { filterType: "DateRange", periodType: "CUSTOM", from: from, to: nextDay(to) } };
+  if (d.types) filters.TransactionType = { filterType: "IncludeValues", values: d.types };
+
+  /* Разбор категорий: одна выгрузка, вся работа — после неё. */
+  if (d.kind === "cat") {
+    const tok = await iikoAuthCached();
+    const rr = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+      method: "POST", headers: { Cookie: `key=${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ reportType: "TRANSACTIONS", buildSummary: "true",
+        groupByRowFields: d.group, aggregateFields: d.agg, filters: filters }) });
+    if (!rr.ok) return jsonResp({ error: "айко ответил " + rr.status }, 502);
+    const pp = await rr.json();
+    const src = Array.isArray(pp && pp.data) ? pp.data : [];
+    const NO = "(не проставлена)";
+    const items = src.map((x) => ({
+      name: String(x["Product.Name"] || ""),
+      cat: x["Product.Category"] || NO,
+      /* Полный путь по дереву номенклатуры — это и есть классификация;
+         папка (последний уровень) используется для сравнения категорий. */
+      path: String(x["Product.Hierarchy"] || ""),
+      folder: String(x["Product.Hierarchy"] || "").split("/").pop() || "",
+      sum: Number(x["Sum.Outgoing"]) || 0,
+    }));
+    const fold = {};
+    items.forEach((i) => {
+      const f = (fold[i.folder] = fold[i.folder] || { n: 0, c: {} });
+      f.n++; f.c[i.cat] = (f.c[i.cat] || 0) + 1;
+    });
+    Object.keys(fold).forEach((f) => {
+      const e = Object.entries(fold[f].c).sort((a, b) => b[1] - a[1]);
+      /* Преобладающей считаем только проставленную категорию: если в папке
+         больше всего пустых, ориентиром служит самая частая из заполненных. */
+      const named = e.filter((x) => x[0] !== NO);
+      fold[f].dom = named.length ? named[0][0] : NO;
+      fold[f].mixed = e.length > 1;
+    });
+    /* Задвоенные категории: «Десерты» и «СН Десерты» — это одно и то же,
+       пока живут обе, любой разрез разваливается надвое. Ищем пары, где
+       одно имя получается из другого отбрасыванием приставки. */
+    const allCats = [...new Set(items.map((i) => i.cat))].filter((c) => c !== NO);
+    const base = (c) => String(c).toLowerCase().replace(/ё/g, "е")
+      .replace(/^(сн|сп|пп)\s+/, "").replace(/[*_\s.]/g, "");
+    const dupes = [];
+    allCats.forEach((a) => allCats.forEach((b) => {
+      if (a < b && base(a) === base(b)) dupes.push(a + " / " + b);
+    }));
+
+    const rows2 = items
+      .filter((i) => i.cat === NO || (fold[i.folder].mixed && i.cat !== fold[i.folder].dom))
+      .map((i) => {
+        const dom = fold[i.folder].dom;
+        let rec;
+        if (i.cat === NO) {
+          rec = dom === NO ? "Завести категорию для папки и проставить"
+                           : "Проставить категорию «" + dom + "»";
+        } else if (dupes.some((p) => p.split(" / ").indexOf(i.cat) >= 0)) {
+          rec = "Сначала объединить задвоенные категории, затем поставить «" + dom + "»";
+        } else {
+          rec = "Проверить: сменить «" + i.cat + "» на «" + dom + "» или перенести в свою папку";
+        }
+        /* Варианты замены — категории, которые реально встречаются в этой же
+           папке: выбирать надо из них, а не из всего справочника. */
+        const alts = Object.entries(fold[i.folder].c)
+          .filter((e) => e[0] !== NO).sort((a, b) => b[1] - a[1])
+          .map((e) => e[0] + " (" + e[1] + ")");
+        const act = i.cat === NO ? "Проставить"
+                  : (dupes.some((q) => q.split(" / ").indexOf(i.cat) >= 0) ? "Объединить" : "Сменить");
+        return { name: i.name, cat: i.cat, dom: dom, act: act, rec: rec, alts: alts,
+                 path: i.path, folder: i.folder, sum: i.sum };
+      })
+      .sort((a, b) => b.sum - a.sum);
+
+    /* Справочник папок: что в каждой лежит и какие категории в ней встречаются. */
+    const folders = Object.keys(fold).sort().map((f) => ({
+      folder: f, n: fold[f].n, dom: fold[f].dom, mixed: !!fold[f].mixed,
+      cats: Object.entries(fold[f].c).sort((a, b) => b[1] - a[1])
+              .map((e) => ({ c: e[0], n: e[1] })),
+      sum: items.filter((i) => i.folder === f).reduce((a, i) => a + i.sum, 0),
+    }));
+
+    const noCat = rows2.filter((r) => r.cat === NO);
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, 1000), total: rows2.length,
+      sums: { sum: rows2.reduce((a, x) => a + x.sum, 0) },
+      note: "позиций с отгрузкой " + items.length + " · папок " + Object.keys(fold).length
+          + " · без категории " + noCat.length
+          + " · спорных " + (rows2.length - noCat.length)
+          + (dupes.length ? " · задвоенные категории: " + dupes.join(", ") : ""),
+      dupes: dupes, folders: folders, allCats: allCats.sort(),
+      from: from, to: to });
+  }
+
+  /* Отчёт из двух выгрузок: считаем обе и складываем по ключу группировки. */
+  if (d.two) {
+    const token2 = await iikoAuthCached();
+    const key = d.group[0];
+    const pull = async (part) => {
+      const f2 = JSON.parse(JSON.stringify(filters));
+      f2.TransactionType = { filterType: "IncludeValues", values: part.types };
+      const rr = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+        method: "POST", headers: { Cookie: `key=${token2}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reportType: "TRANSACTIONS", buildSummary: "true",
+          groupByRowFields: d.group, aggregateFields: part.agg, filters: f2 }) });
+      if (!rr.ok) throw new Error("айко ответил " + rr.status);
+      const pp = await rr.json();
+      return Array.isArray(pp && pp.data) ? pp.data : [];
+    };
+    /* Последовательно, а не параллельно: два тяжёлых OLAP-запроса в одной
+       сессии resto API айко обслуживает по очереди, и параллельный вызов
+       только держит соединение дольше. */
+    const ra = await pull(d.two.a);
+    const rb = await pull(d.two.b);
+    const m = new Map();
+    const put = (list, part) => list.forEach((x) => {
+      const k = String(x[key] || "");
+      const o = m.get(k) || { [key]: k, rev: 0, cost: 0 };
+      o[part.as] += Number(x[part.agg[0]]) || 0;
+      m.set(k, o);
+    });
+    put(ra, d.two.a); put(rb, d.two.b);
+    let rows2 = [...m.values()].map((o) => {
+      o.gp = o.rev - o.cost;
+      o.mp = o.rev ? (o.gp / o.rev) * 100 : 0;
+      return o;
+    }).filter((o) => o.rev || o.cost);
+    rows2.sort((a, b) => b.gp - a.gp);
+    const sRev = rows2.reduce((s2, x) => s2 + x.rev, 0);
+    const sCost = rows2.reduce((s2, x) => s2 + x.cost, 0);
+    return jsonResp({ n: d.n, cols: d.cols, rows: rows2.slice(0, LIM), total: rows2.length,
+      sums: { rev: sRev, cost: sCost, gp: sRev - sCost, mp: sRev ? ((sRev - sCost) / sRev) * 100 : 0 },
+      from: from, to: to });
+  }
+
+  const body = { reportType: "TRANSACTIONS", buildSummary: "true",
+    groupByRowFields: d.group, aggregateFields: d.agg, filters: filters };
+
+  const token = await iikoAuthCached();
+  const r = await fetch(`${IIKO.url}/resto/api/v2/reports/olap`, {
+    method: "POST", headers: { Cookie: `key=${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body) });
+  if (!r.ok) return jsonResp({ error: "айко ответил " + r.status }, 502);
+  let p = null; try { p = await r.json(); } catch (e) { return jsonResp({ error: "айко вернул не JSON" }, 502); }
+  let rows = Array.isArray(p && p.data) ? p.data : [];
+  if (d.bydate) {
+    const k0 = d.group[0];
+    rows.sort((a, b) => String(a[k0] || "").localeCompare(String(b[k0] || "")));
+  } else {
+    const sortKey = d.agg[d.agg.length - 1];
+    rows.sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+  }
+  const sums = {};
+  d.agg.forEach((k) => { sums[k] = rows.reduce((s, x) => s + (x[k] || 0), 0); });
+  return jsonResp({ n: d.n, cols: d.cols, rows: rows.slice(0, LIM), total: rows.length,
+                    sums: sums, from: from, to: to });
+}
+
+/* Справочники складов и номенклатуры: отчёт остатков айко отдаёт одни
+   идентификаторы. Держим карты id → имя в KV сутки — перечитывать их
+   на каждый отчёт слишком дорого, а меняются они редко. */
+const DICT_PATHS = {
+  stores: ["/resto/api/v2/entities/list?rootType=Store&includeDeleted=false",
+           "/resto/api/corporation/stores"],
+  products: ["/resto/api/v2/entities/products/list",
+             "/resto/api/v2/entities/list?rootType=Product&includeDeleted=false"],
+};
+async function erpDict(env, kind) {
+  const key = "dict:" + kind;
+  try {
+    const c = JSON.parse((await env.PLAN.get(key)) || "null");
+    if (c && c.till > Date.now() && c.m) return c.m;
+  } catch (e) {}
+  const token = await iikoAuthCached();
+  const m = {};
+  for (const path of DICT_PATHS[kind]) {
+    try {
+      const txt = (await iikoGet(token, path)).trim();
+      if (txt.startsWith("{") || txt.startsWith("[")) {
+        const j = JSON.parse(txt);
+        const arr = Array.isArray(j) ? j : (j.items || []);
+        for (const x of arr) if (x && x.id) m[x.id] = String(x.name || x.code || x.id).trim();
+      } else {
+        const re = /<(corporateItemDto|storeDto|productDto|item|store|product)\b[^>]*>([\s\S]*?)<\/\1>/g;
+        let mm;
+        while ((mm = re.exec(txt))) {
+          const b = mm[2];
+          const id = (b.match(/<id>([^<]+)<\/id>/) || [])[1];
+          const nm = (b.match(/<name>([^<]*)<\/name>/) || [])[1];
+          if (id) m[id] = (nm || id).trim();
+        }
+      }
+      if (Object.keys(m).length) break;
+    } catch (e) {}
+  }
+  if (Object.keys(m).length) {
+    try { await env.PLAN.put(key, JSON.stringify({ till: Date.now() + 864e5, m: m })); } catch (e) {}
+  }
+  return m;
+}
+
 async function iikoAuthCached() {
   if (IIKO_TOK.v && Date.now() < IIKO_TOK.till) return IIKO_TOK.v;
   const t = await iikoAuth();
