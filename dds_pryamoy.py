@@ -15,9 +15,14 @@ HERE=os.path.dirname(os.path.abspath(__file__))
 src=open(os.path.join(HERE,"iiko_export.py"),encoding="utf-8").read()
 URL=re.search(r'URL\s*=\s*"([^"]+)"',src).group(1);LOGIN=re.search(r'LOGIN\s*=\s*"([^"]+)"',src).group(1);PASS=re.search(r'PASS\s*=\s*"([^"]+)"',src).group(1)
 YEAR=2026; FZ="2aafb9a8-7c62-499f-80b7-c3935348b891"
-ACTIVE=["99Главная касса","Касса Взаиморасчеты","ФЗ Айдана каспи","ФЗ Жусан Банк","ФЗ Каспи","ФЗ Каспи копилка","ФЗ ДЕПОЗИТ каспи","ФЗ РБК Каламкас","Цой Д.Л.Каспи","ФЗ Ермагамбет отдел продаж"]
-SHORT={"99Главная касса":"Гл. касса","Касса Взаиморасчеты":"Взаиморасчёты","ФЗ Айдана каспи":"Айдана","ФЗ Жусан Банк":"Жусан","ФЗ Каспи":"Каспи","ФЗ Каспи копилка":"Каспи копилка","ФЗ ДЕПОЗИТ каспи":"Депозит каспи","ФЗ РБК Каламкас":"РБК Каламкас","Цой Д.Л.Каспи":"Цой Д.Л.","ФЗ Ермагамбет отдел продаж":"Ермагамбет"}
+ACTIVE=["99Главная касса","Касса Взаиморасчеты","ФЗ Айдана каспи","ФЗ Жусан Банк","ФЗ Каспи","ФЗ Каспи копилка","ФЗ ДЕПОЗИТ каспи","ФЗ РБК Каламкас","Цой Д.Л.Каспи","ФЗ Ермагамбет отдел продаж","ФЗ Малышев каспи","ФЗ Малышев жусан банк"]
+SHORT={"99Главная касса":"Гл. касса","Касса Взаиморасчеты":"Взаиморасчёты","ФЗ Айдана каспи":"Айдана","ФЗ Жусан Банк":"Жусан","ФЗ Каспи":"Каспи","ФЗ Каспи копилка":"Каспи копилка","ФЗ ДЕПОЗИТ каспи":"Депозит каспи","ФЗ РБК Каламкас":"РБК Каламкас","Цой Д.Л.Каспи":"Цой Д.Л.","ФЗ Ермагамбет отдел продаж":"Ермагамбет","ФЗ Малышев каспи":"Малышев каспи","ФЗ Малышев жусан банк":"Малышев Жусан"}
 _ACT=set(ACTIVE); REVCAT="1.Выручка"
+# В iiko у счёта «ФЗ Малышев жусан банк» в конце имени стоит пробел, а фильтр
+# OLAP сравнивает строки точно. Поэтому в фильтр отдаём оба написания: внутри
+# отчёта имена всё равно сводятся к каноническому через _canon, и лишней
+# колонки не появится.
+ACTIVE_F=ACTIVE+["ФЗ Малышев жусан банк "]
 _NORM={a.replace(" ","").lower():a for a in ACTIVE}
 def _canon(nm): return _NORM.get((nm or "").replace(" ","").lower())
 LOG=open(os.path.join(HERE,"ддс_прямой_LOG.txt"),"w",encoding="utf-8")
@@ -60,7 +65,7 @@ def articles(d1,d2):
           "aggregateFields":["Sum.Incoming","Sum.Outgoing"],
           "filters":{"DateTime.DateTyped":{"filterType":"DateRange","periodType":"CUSTOM","from":d1.isoformat(),"to":d2.isoformat(),"includeLow":True,"includeHigh":False},
                      "Department":{"filterType":"IncludeValues","values":["Фуд завод"]},
-                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE}}}
+                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE_F}}}
     agg={}
     for row in _olap(body):
         # Раньше строки без статьи ДДС отбрасывались, и расшифровка не сходилась
@@ -85,7 +90,7 @@ def revenue_by_contr(d1,d2):
           "aggregateFields":["Sum.Incoming","Sum.Outgoing"],
           "filters":{"DateTime.DateTyped":{"filterType":"DateRange","periodType":"CUSTOM","from":d1.isoformat(),"to":d2.isoformat(),"includeLow":True,"includeHigh":False},
                      "Department":{"filterType":"IncludeValues","values":["Фуд завод"]},
-                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE},
+                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE_F},
                      "CashFlowCategory":{"filterType":"IncludeValues","values":[REVCAT]}}}
     out=[]
     for row in _olap(body):
@@ -108,7 +113,7 @@ def daily_contr(d1,d2):
           "aggregateFields":["Sum.Incoming","Sum.Outgoing"],
           "filters":{"DateTime.DateTyped":{"filterType":"DateRange","periodType":"CUSTOM","from":d1.isoformat(),"to":d2.isoformat(),"includeLow":True,"includeHigh":False},
                      "Department":{"filterType":"IncludeValues","values":["Фуд завод"]},
-                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE}}}
+                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE_F}}}
     cats=[]; ctrs=[]; ci={}; ki={}
     byDay={}
     for row in _olap(body):
@@ -130,7 +135,7 @@ def daily_all(d1,d2):
           "aggregateFields":["Sum.Incoming","Sum.Outgoing"],
           "filters":{"DateTime.DateTyped":{"filterType":"DateRange","periodType":"CUSTOM","from":d1.isoformat(),"to":d2.isoformat(),"includeLow":True,"includeHigh":False},
                      "Department":{"filterType":"IncludeValues","values":["Фуд завод"]},
-                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE}}}
+                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE_F}}}
     byDay={}
     for row in _olap(body):
         # Раньше строки без статьи ДДС отбрасывались, и расшифровка не сходилась
@@ -153,7 +158,7 @@ def daily_rev(d1,d2):
           "aggregateFields":["Sum.Incoming","Sum.Outgoing"],
           "filters":{"DateTime.DateTyped":{"filterType":"DateRange","periodType":"CUSTOM","from":d1.isoformat(),"to":d2.isoformat(),"includeLow":True,"includeHigh":False},
                      "Department":{"filterType":"IncludeValues","values":["Фуд завод"]},
-                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE},
+                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE_F},
                      "CashFlowCategory":{"filterType":"IncludeValues","values":[REVCAT]}}}
     byDay={}
     for row in _olap(body):
@@ -171,7 +176,7 @@ def daily_net_acc(d1,d2):
           "aggregateFields":["Sum.Incoming","Sum.Outgoing"],
           "filters":{"DateTime.DateTyped":{"filterType":"DateRange","periodType":"CUSTOM","from":d1.isoformat(),"to":d2.isoformat(),"includeLow":True,"includeHigh":False},
                      "Department":{"filterType":"IncludeValues","values":["Фуд завод"]},
-                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE}}}
+                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE_F}}}
     dn={}
     for row in _olap(body):
         dt=str(row.get("DateTime.DateTyped") or "")[:10]
