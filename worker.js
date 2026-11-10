@@ -182,6 +182,25 @@ export default {
       return salesCore(env, url);
     }
     if (url.pathname === "/sku_live.js") {
+      /* Файл ночной сборки главнее сборки воркера — как и для dz_kz.js.
+         Сбор SKU в воркере лежит в хранилище и пересобирается только когда
+         ключ пуст: с 24.07.2026 он отдавал июльский снимок, из-за чего
+         «SKU 360», «Повышение цен» и «Себестоимость и маржа» показывали
+         данные четырёхмесячной давности, а ежедневный прогон падал на
+         проверке свежести. Сборка воркера осталась запасным вариантом. */
+      if (url.searchParams.get("rebuild") !== "1") {
+        try {
+          const fromRepo = await env.ASSETS.fetch(new Request(new URL("/sku_live.js", url.origin), request));
+          if (fromRepo && fromRepo.status === 200) {
+            const body = await fromRepo.text();
+            if (body.includes("window.SKU_DATA_LIVE") && body.includes("SKU_LIVE_META")) {
+              return new Response(body, { headers: {
+                "content-type": "application/javascript; charset=utf-8",
+                "cache-control": "no-store, must-revalidate" } });
+            }
+          }
+        } catch (e) { /* файла нет — считаем сами, ниже */ }
+      }
       return skuJs(env, url);
     }
     if (url.pathname === "/sku_totals.json") {
