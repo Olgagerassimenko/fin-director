@@ -123,4 +123,75 @@
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',scheduleWrap);}else{scheduleWrap();}
   window.addEventListener('load',scheduleWrap);
   try{var _mo=new MutationObserver(function(){if(window.innerWidth<=640){clearTimeout(window.__pnwt);window.__pnwt=setTimeout(wrapTables,300);}});_mo.observe(document.body,{childList:true,subtree:true});}catch(e){}
+
+  /* ── Откуда данные: плашка внизу слева на каждой странице ──────────────
+     Пульс собирается из нескольких систем, и по странице это не видно.
+     SRC — что тянет именно эта страница; GAP — чего в O·ERP нет и что
+     поэтому пока живёт только в айко. pulse-source-badge */
+  var SRC={
+    'index.html':['айко · 1С · Google · Битрикс','Сводка: продажи, закуп, деньги — айко; налоги и реализация — 1С; план оплат — Google; оплаты — Битрикс.'],
+    'дашборд_ддс_прямой.html':['айко','Проводки по денежным счетам (отчёт «Транзакции»), остатки — отчёт по счетам.'],
+    'дашборд_ддс.html':['айко · Google','Остатки денег из айко, план платежей — из Google-таблицы.'],
+    'дашборд_гугл_live.html':['Google','Таблица «План оплат», лист текущего месяца.'],
+    'дз_кз.html':['Google','Книга ДЗ/КЗ: столбцы «ДЗ на …» и «Баланс по поставщикам».'],
+    'продажи_2026.html':['айко · сверка с O·ERP','Выручка расходных накладных за вычетом возвратов. С 06.11.2026 накладные заводят в O·ERP — см. блок «Сверка с O·ERP» вверху страницы.'],
+    'olive.html':['айко','Контрагент 98 (O-live) отдельно от продаж завода.'],
+    'закуп.html':['айко','Приходные накладные и поставщики.'],
+    'производство.html':['айко','Выпуск, разделка, переработка, списания.'],
+    'sku360.html':['айко','Продажи, себестоимость и остатки по позициям.'],
+    'себестоимость_маржа.html':['айко','Маржа по позициям и контрагентам.'],
+    'дашборд_себестоимость_2025-2026.html':['айко','ОПиУ и контрагенты.'],
+    'рычаги.html':['айко','Цены, потери, ассортимент.'],
+    'опиу_2026.html':['айко','Счета ОПиУ, обороты по месяцам.'],
+    'опиу_аудит.html':['айко · 1С','Сверка разносок бухгалтерии с айко.'],
+    'реализация.html':['1С','Регистр «Типовой», счета 6010/6020/6030, по OData.'],
+    'nalogi_отчёт.html':['1С','Налоговые регистры и платежи, по OData.'],
+    'nalogi_analitika_отчёт.html':['1С','Налоговая аналитика по OData.'],
+    'bitrix_отчёт_оплаты.html':['Битрикс','Сделки и оплаты из CRM.'],
+    'упаковка.html':['айко','Склады, движение и поставщики упаковки.'],
+    'услуги.html':['айко','Акты и услуги контрагентов.'],
+    'просрочка.html':['айко','Остатки со сроками годности.'],
+    'передача.html':['айко','Передачи между подразделениями.'],
+    'маймарт.html':['айко','Возвраты и полная себестоимость Маймарт.'],
+    'азс.html':['айко','Канал 99 — РП АЗС.'],
+    'дфз.html':['айко','Канал 85 — ДФЗ.'],
+    'яндекс.html':['айко','Каналы Яндекс Лавка и дарксторы.'],
+    'повышение_цен.html':['айко','Маржа и цены по позициям.'],
+    'развитие_ассортимента.html':['айко','Ассортимент и продажи по позициям.'],
+    'план.html':['Google','План оплат.'],
+    'баланс.html':['1С','Оборотно-сальдовая по OData.'],
+    'сальдо.html':['1С','Остатки по счетам из бухгалтерии.'],
+    'калькулятор.html':['айко','Техкарты и себестоимость позиций.'],
+    'зарплата.html':['айко','Счёт оплаты труда, выплаты по подразделениям.'],
+    'этикетки.html':['айко','Номенклатура и сроки хранения.'],
+    'склады.html':['айко','Остатки и движение по складам.'],
+    'журнал.html':['репозиторий','История изменений сайта из git.']
+  };
+  var GAP='Чего в O·ERP нет (и это берём только из айко): техкарты и калькуляции · остатки и движение по складам · баланс по контрагентам · чеки и кассовые смены · сотрудники и выплаты · сроки и способы хранения.';
+  function srcBadge(){
+    try{
+      if(document.getElementById('psrc'))return;
+      var key=decodeURIComponent(cur), info=SRC[key]||SRC[cur];
+      if(!info) info=['айко','Данные ночного прогона из айко.'];
+      var ss=document.createElement('style');
+      ss.textContent='#psrc{position:fixed;right:16px;bottom:12px;z-index:9998;font-family:Inter,sans-serif;display:flex;flex-direction:column;align-items:flex-end}'
+        +'#psrc .pb{display:inline-flex;align-items:center;gap:6px;background:rgba(15,23,42,.92);border:1px solid #27354f;'
+        +'color:#94a3b8;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;'
+        +'box-shadow:0 3px 12px rgba(0,0,0,.35)}'
+        +'#psrc .pb:hover{color:#e2e8f0;border-color:#3b4a66}'
+        +'#psrc .pp{display:none;max-width:330px;margin-bottom:8px;background:rgba(15,23,42,.97);border:1px solid #27354f;'
+        +'border-radius:12px;padding:12px 14px;font-size:11.5px;line-height:1.6;color:#cbd5e1;box-shadow:0 8px 26px rgba(0,0,0,.5)}'
+        +'#psrc.open .pp{display:block}'
+        +'@media(max-width:640px){#psrc{right:8px;bottom:8px}#psrc .pp{max-width:72vw}}';
+      document.head.appendChild(ss);
+      var d=document.createElement('div'); d.id='psrc';
+      d.innerHTML='<div class="pp"><b style="color:#e2e8f0">Источник данных</b><br>'+info[1]
+        +'<div style="margin-top:8px;color:#64748b">'+GAP+'</div></div>'
+        +'<div class="pb">ⓘ источник: '+info[0]+'</div>';
+      d.querySelector('.pb').addEventListener('click',function(){d.classList.toggle('open');});
+      document.body.appendChild(d);
+    }catch(e){}
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',srcBadge);}else{srcBadge();}
+
 })();

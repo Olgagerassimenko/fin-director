@@ -13,6 +13,7 @@
 <script src="contractor_items.js" onerror="window.CTR={}"></script>
 <script src="sku_analytics.js" onerror="console.warn('sku_analytics.js not loaded')"></script>
 <script src="dz_kz.js?v=4" onerror="window.DZ_KZ=null"></script>
+<script src="oerp_sverka.js?v=1" onerror="window.OERP_SVERKA=null"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh}
@@ -406,6 +407,76 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
 </div>
 <div class="month-bar" id="month-bar"><label>Период:</label></div>
 <div id="recalc-note" style="display:none"></div>
+<!--OERP-SVERKA-START-->
+<div id="oerp-sverka" data-keep="1" style="margin:12px 0 6px"></div>
+<script>
+(function(){
+  var S=window.OERP_SVERKA, host=document.getElementById('oerp-sverka');
+  if(!S||!host) return;
+  var M=function(v){ var s=(v<0?'−':''), a=Math.abs(Math.round(v));
+      return s+a.toLocaleString('ru-RU').replace(/ /g,' '); };
+  var MLN=function(v){ return (v/1e6).toFixed(1).replace('.',',')+' млн'; };
+  var RU={'01':'Январь','02':'Февраль','03':'Март','04':'Апрель','05':'Май','06':'Июнь','07':'Июль',
+          '08':'Август','09':'Сентябрь','10':'Октябрь','11':'Ноябрь','12':'Декабрь'};
+  var ms=S.months||[], last=ms[ms.length-1]||{}, ok=ms.filter(function(m){return Math.abs(m.diff)<1;}).length;
+  var warn='';
+  if(S.breakFrom){
+    var bd=S.breakFrom.split('-'), bru=bd[2]+'.'+bd[1]+'.'+bd[0];
+    warn='<div style="margin:0 0 12px;padding:12px 14px;border-radius:12px;border:1px solid #ef444455;'
+      +'background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(15,23,42,.6))">'
+      +'<div style="font-weight:800;font-size:13.5px;color:#fca5a5">⚠ Айко не получает расходные накладные с '+bru+'</div>'
+      +'<div style="font-size:12.5px;color:#cbd5e1;margin-top:5px;line-height:1.6">'
+      +'Ноябрь на этой странице считается из айко — <b>'+MLN(last.iiko||0)+'</b>, '
+      +'а в O·ERP за те же дни <b>'+MLN(last.net||0)+'</b> (разница '+MLN(Math.abs(last.diff||0))+'). '
+      +'Пока накладные заводят только в O·ERP, ноябрьские цифры страницы, SKU 360, маржи и ОПиУ из айко занижены.</div></div>';
+  }
+  var rows=ms.map(function(m){
+    var d=Math.abs(m.diff)<1, col=d?'#4ade80':(Math.abs(m.diff)>5e6?'#f87171':'#fbbf24');
+    return '<tr style="border-top:1px solid #1e293b">'
+      +'<td style="padding:6px 8px;color:#e2e8f0;white-space:nowrap">'+(RU[m.k.slice(5)]||m.k)+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#cbd5e1">'+M(m.iiko)+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#94a3b8">'+M(m.sale)+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+(m.ret?M(-m.ret):'—')+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#64748b">'+(m.svc?M(-m.svc):'—')+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#cbd5e1">'+M(m.net)+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;font-weight:800;color:'+col+'">'+(d?'сходится':M(m.diff))+'</td></tr>';
+  }).join('');
+  var drows=(S.days||[]).map(function(x){
+    var dd=x.d.split('-'), diff=x.iiko-x.oerp, col=Math.abs(diff)<3e5?'#4ade80':(x.iiko===0?'#f87171':'#fbbf24');
+    return '<tr style="border-top:1px solid #16213a">'
+      +'<td style="padding:5px 8px;color:#cbd5e1">'+dd[2]+'.'+dd[1]+'</td>'
+      +'<td style="padding:5px 8px;text-align:right;color:#cbd5e1">'+M(x.iiko)+'</td>'
+      +'<td style="padding:5px 8px;text-align:right;color:#cbd5e1">'+M(x.oerp)+'</td>'
+      +'<td style="padding:5px 8px;text-align:right;font-weight:700;color:'+col+'">'+M(diff)+'</td></tr>';
+  }).join('');
+  host.innerHTML=
+   '<div class="card" style="padding:15px 17px;border:1px solid #243049;border-radius:14px;background:#0f172a">'
+   +'<div style="display:flex;flex-wrap:wrap;gap:9px;align-items:baseline;margin-bottom:10px">'
+   +'<div style="font-weight:800;font-size:14.5px;color:#e2e8f0">🔀 Сверка с O·ERP</div>'
+   +'<div style="font-size:12px;color:#94a3b8">закрытых месяцев сходится к тенге: <b style="color:#4ade80">'+ok+' из '+(ms.length-1)+'</b></div>'
+   +'</div>'
+   +warn
+   +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+   +'<thead><tr style="color:#64748b;font-size:11px;text-align:left">'
+   +'<th style="padding:4px 8px">Месяц</th><th style="padding:4px 8px;text-align:right">Айко (страница)</th>'
+   +'<th style="padding:4px 8px;text-align:right">O·ERP отгрузка</th><th style="padding:4px 8px;text-align:right">Возвраты</th>'
+   +'<th style="padding:4px 8px;text-align:right">Сервисные возвраты</th><th style="padding:4px 8px;text-align:right">O·ERP нетто</th>'
+   +'<th style="padding:4px 8px;text-align:right">Расхождение</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+   +'<details style="margin-top:10px"><summary style="cursor:pointer;font-size:12.5px;color:#93c5fd;font-weight:700">По дням — где айко обрывается</summary>'
+   +'<div style="overflow-x:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+   +'<thead><tr style="color:#64748b;font-size:11px;text-align:left"><th style="padding:4px 8px">День</th>'
+   +'<th style="padding:4px 8px;text-align:right">Айко</th><th style="padding:4px 8px;text-align:right">O·ERP</th>'
+   +'<th style="padding:4px 8px;text-align:right">Разница</th></tr></thead><tbody>'+drows+'</tbody></table></div></details>'
+   +'<div style="margin-top:11px;font-size:11.5px;color:#64748b;line-height:1.6">'
+   +'Айко — выручка расходных накладных за вычетом возвратов, как на всей странице. O·ERP нетто — отгрузка минус возвраты '
+   +'покупателей минус сервисные возвраты, без контрагента 98 (Olive). '
+   +'<br>Снимок O·ERP на '+(S.asof||'')+' — цифры не обновляются вместе со страницей: O·ERP тянется отдельно, по запросу.'
+   +'<br>Чего в O·ERP нет и что остаётся только из айко: '+(S.gaps||[]).join(' · ')+'.'
+   +'</div></div>';
+})();
+</script>
+<!--OERP-SVERKA-END-->
+
 <!--PERIOD-EXPORT-START-->
 <div id="fz-period-export" data-keep="1" style="margin:10px 0 6px;padding:13px 16px;border:1px solid #1e293b;
      border-radius:14px;background:linear-gradient(135deg,rgba(74,222,128,.07),rgba(15,23,42,.6));
