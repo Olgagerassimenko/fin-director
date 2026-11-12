@@ -39,6 +39,14 @@ _miss=sorted({nm for nm,tp in ACC.values() if tp=="CASH" and not _canon(nm)})
 if _miss: log("ВНИМАНИЕ: денежные счета iiko вне списка ДДС:", "; ".join(_miss))
 log("счетов в ДДС:", len(ACTIVE))
 
+# Фильтр OLAP сравнивает имена счетов ПОБУКВЕННО, а в iiko у имён бывают лишние
+# пробелы (как у «ФЗ Малышев жусан банк »). Остатки это переживали (_canon
+# убирает пробелы), а расшифровка по статьям молча оставалась пустой. Поэтому
+# список для фильтра собираем из настоящих имён iiko, а не руками.
+_REAL=sorted({nm for nm,tp in ACC.values() if _canon(nm)})
+ACTIVE_F=sorted(set(ACTIVE)|set(_REAL))
+log("имена счетов для фильтра OLAP (как в iiko):", "; ".join(repr(x) for x in _REAL))
+
 def _olap(body):
     r=s.post(f"{URL}/resto/api/v2/reports/olap",headers={"Cookie":f"key={tok}","Content-Type":"application/json"},data=json.dumps(body),verify=False,timeout=180)
     return r.json().get("data",[]) if r.status_code==200 else []
@@ -59,15 +67,34 @@ def cash_by_acc(d):
     return {k:round(v) for k,v in res.items()}
 
 # ---- статьи по счетам за период [d1,d2) ----
+def _tx(d1,d2,groups,accs=ACTIVE_F,dept=True,extra=None):
+    """Проводки OLAP. accs=None — без фильтра по счёту, dept=False — без фильтра
+    по подразделению: так добираем счёта, по которым обычный запрос пуст."""
+    flt={"DateTime.DateTyped":{"filterType":"DateRange","periodType":"CUSTOM","from":d1.isoformat(),"to":d2.isoformat(),"includeLow":True,"includeHigh":False}}
+    if dept: flt["Department"]={"filterType":"IncludeValues","values":["Фуд завод"]}
+    if accs: flt["Account.Name"]={"filterType":"IncludeValues","values":accs}
+    if extra: flt.update(extra)
+    return _olap({"reportType":"TRANSACTIONS","buildSummary":"true","groupByRowFields":groups,
+                  "aggregateFields":["Sum.Incoming","Sum.Outgoing"],"filters":flt})
+
+def _with_missing(d1,d2,groups,rows,what):
+    """Счёт, по которому OLAP не вернул ни строки, раньше молча выпадал из
+    расшифровки: «99Главная касса» и «ФЗ Каспи копилка» так уносили до 7,5 млн
+    за месяц. Добираем такие счёта запросом без фильтров по подразделению и
+    имени счёта — остаётся только отбор по _canon."""
+    seen={_canon(r.get("Account.Name")) for r in rows}
+    miss=[a for a in ACTIVE if a not in seen]
+    if not miss: return rows
+    extra=[r for r in _tx(d1,d2,groups,accs=None,dept=False) if _canon(r.get("Account.Name")) in set(miss)]
+    if extra:
+        got=sorted({_canon(r.get("Account.Name")) for r in extra})
+        log(f"  добрал проводки вне фильтра ({what} {d1}..{d2}): {'; '.join(got)} — строк {len(extra)}")
+    return rows+extra
+
+_ART_G=["CashFlowCategory.Type","CashFlowCategory","Account.Name"]
 def articles(d1,d2):
-    body={"reportType":"TRANSACTIONS","buildSummary":"true",
-          "groupByRowFields":["CashFlowCategory.Type","CashFlowCategory","Account.Name"],
-          "aggregateFields":["Sum.Incoming","Sum.Outgoing"],
-          "filters":{"DateTime.DateTyped":{"filterType":"DateRange","periodType":"CUSTOM","from":d1.isoformat(),"to":d2.isoformat(),"includeLow":True,"includeHigh":False},
-                     "Department":{"filterType":"IncludeValues","values":["Фуд завод"]},
-                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE_F}}}
     agg={}
-    for row in _olap(body):
+    for row in _with_missing(d1,d2,_ART_G,_tx(d1,d2,_ART_G),"статьи"):
         # Раньше строки без статьи ДДС отбрасывались, и расшифровка не сходилась
         # с изменением остатка денег (до 7,5 млн за месяц уходило в никуда).
         cat=row.get("CashFlowCategory") or "— без статьи ДДС"
@@ -81,6 +108,27 @@ def articles(d1,d2):
         b=e["byAcc"].setdefault(acc,{"in":0,"out":0})
         b["in"]+=inc; b["out"]+=o
     out=list(agg.values()); out.sort(key=lambda x:-abs(x["net"]))
+    return out
+
+def reconcile(arts,st,en,label):
+    """Расшифровка по статьям обязана сходиться с изменением остатка денег.
+    Если что-то всё же не разнеслось — показываем это строкой, а не прячем."""
+    gap={}
+    for a in ACTIVE:
+        mov=round(en.get(a,0)-st.get(a,0))
+        art=round(sum(x.get("byAcc",{}).get(a,{}).get("in",0)-x.get("byAcc",{}).get(a,{}).get("out",0) for x in arts))
+        if mov-art: gap[a]=mov-art
+    if not gap:
+        log(f"  сверка {label}: статьи сходятся с остатками"); return arts
+    diff=sum(gap.values())
+    log(f"  ВНИМАНИЕ {label}: статьи не сходятся с остатками на {diff:,.0f} — "
+        +"; ".join(f"{k} {v:,.0f}" for k,v in gap.items()))
+    e={"type":"OTHER","cat":"— не разнесено по статьям","in":0,"out":0,"net":0,"byAcc":{}}
+    for a,v in gap.items():
+        e["byAcc"][a]={"in":max(v,0),"out":max(-v,0)}
+        e["in"]+=max(v,0); e["out"]+=max(-v,0)
+    e["net"]=e["in"]-e["out"]
+    out=arts+[e]; out.sort(key=lambda x:-abs(x["net"]))
     return out
 
 # ---- выручка по контрагентам (от кого) ----
@@ -130,14 +178,9 @@ def daily_contr(d1,d2):
 
 # ---- дневная детализация за весь период (для произвольного выбора дат) ----
 def daily_all(d1,d2):
-    body={"reportType":"TRANSACTIONS","buildSummary":"true",
-          "groupByRowFields":["DateTime.DateTyped","CashFlowCategory.Type","CashFlowCategory","Account.Name"],
-          "aggregateFields":["Sum.Incoming","Sum.Outgoing"],
-          "filters":{"DateTime.DateTyped":{"filterType":"DateRange","periodType":"CUSTOM","from":d1.isoformat(),"to":d2.isoformat(),"includeLow":True,"includeHigh":False},
-                     "Department":{"filterType":"IncludeValues","values":["Фуд завод"]},
-                     "Account.Name":{"filterType":"IncludeValues","values":ACTIVE_F}}}
+    _g=["DateTime.DateTyped","CashFlowCategory.Type","CashFlowCategory","Account.Name"]
     byDay={}
-    for row in _olap(body):
+    for row in _with_missing(d1,d2,_g,_tx(d1,d2,_g),"дни"):
         # Раньше строки без статьи ДДС отбрасывались, и расшифровка не сходилась
         # с изменением остатка денег (до 7,5 млн за месяц уходило в никуда).
         cat=row.get("CashFlowCategory") or "— без статьи ДДС"
@@ -235,6 +278,7 @@ with _cf.ThreadPoolExecutor(max_workers=_POOL) as _ex:
     _mres=list(_ex.map(_month_fetch,range(1,lastm+1)))
 for mi,d1,d2,arts,st,en,rev in _mres:
     _balcache[d1.isoformat()]=st; _balcache[d2.isoformat()]=en   # переиспользуем для года и дневных остатков
+    arts=reconcile(arts,st,en,f"{YEAR}-{mi:02d}")
     sIn=sum(a["in"] for a in arts if not re.search(r"внутрен|внутригрупп",a["cat"],re.I))
     sOut=sum(a["out"] for a in arts if not re.search(r"внутрен|внутригрупп",a["cat"],re.I))
     stTot=sum(st.values()); enTot=sum(en.values())
@@ -259,7 +303,7 @@ year={"from":"","to":"","startByAcc":{},"endByAcc":{},"start":0,"end":0,"net":0,
 if ymonths:
     d1=bom(ymonths[0]); d2=eom(ymonths[-1])
     yst=bal(d1); yen=bal(d2)
-    yarts=articles(d1,d2); yrev=revenue_by_contr(d1,d2)
+    yarts=reconcile(articles(d1,d2),yst,yen,"ГОД"); yrev=revenue_by_contr(d1,d2)
     year={"from":f"{YEAR}-{ymonths[0]:02d}","to":f"{YEAR}-{ymonths[-1]:02d}",
           "startByAcc":yst,"endByAcc":yen,"start":sum(yst.values()),"end":sum(yen.values()),
           "net":sum(yen.values())-sum(yst.values()),"articles":yarts,"revByContr":yrev}
