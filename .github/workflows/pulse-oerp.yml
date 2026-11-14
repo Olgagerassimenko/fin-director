@@ -1,0 +1,42 @@
+name: Пульс — O·ERP (продажи напрямую)
+
+# Пока нет секрета OERP_TOKEN, прогон тихо завершается: ничего не ломает и не шумит.
+# Как только токен добавлен — первый прогон записывает карту API (oerp_api_map.txt),
+# дальше по ней включается выгрузка продаж и ДЗ/КЗ вместо ручных снимков.
+
+on:
+  schedule:
+    - cron: "23 1,7,13 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pulse-daily
+  cancel-in-progress: false
+
+jobs:
+  oerp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: "Выгрузка из O·ERP"
+        env:
+          OERP_TOKEN: ${{ secrets.OERP_TOKEN }}
+        run: python oerp_export.py
+
+      - name: "Сохранить результат"
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse@fz.local"
+          git add -A oerp_api_map.txt oerp_sverka.js 2>/dev/null || true
+          git diff --cached --quiet && { echo "нечего сохранять"; exit 0; }
+          git commit -m "O·ERP: обновление из API [skip ci]"
+          git pull --rebase origin main || true
+          git push origin HEAD:main
