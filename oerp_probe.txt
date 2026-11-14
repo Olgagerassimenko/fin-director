@@ -1,0 +1,86 @@
+разведка O·ERP, 2026-11-14 04:46 UTC
+
+new.erp-system-fz.kz: DNS ok (188.241.217.188)
+  /                      200 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
+  /api/                  404 application/json; charset=utf-8  | {"message":"Cannot GET /api/","error":"Not Found","statusCode":404}
+  /api/docs              404 application/json; charset=utf-8  | {"message":"Cannot GET /api/docs","error":"Not Found","statusCode":404}
+  /api/docs/             404 application/json; charset=utf-8  | {"message":"Cannot GET /api/docs/","error":"Not Found","statusCode":404}
+  /api/schema            404 application/json; charset=utf-8  | {"message":"Cannot GET /api/schema","error":"Not Found","statusCode":404}
+  /api/schema/           404 application/json; charset=utf-8  | {"message":"Cannot GET /api/schema/","error":"Not Found","statusCode":404}
+  /api/v1/               404 application/json; charset=utf-8  | {"message":"Cannot GET /api/v1/","error":"Not Found","statusCode":404}
+  /swagger/              404 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
+  /redoc/                404 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
+  /openapi.json          404 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
+  /api/token/            404 application/json; charset=utf-8  | {"message":"Cannot GET /api/token/","error":"Not Found","statusCode":404}
+  /api/auth/login        404 application/json; charset=utf-8  | {"message":"Cannot GET /api/auth/login","error":"Not Found","statusCode":404}
+  /api/login/            404 application/json; charset=utf-8  | {"message":"Cannot GET /api/login/","error":"Not Found","statusCode":404}
+  /accounts/login/       404 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
+  /admin/                404 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
+
+erp-system-fz.kz: DNS ok (188.241.217.188)
+  /                      200 text/html; charset=utf-8  | <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="utf-8">     <meta name="viewport" content="width=device-width
+  /api/                  404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/docs              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/docs/             404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/schema            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/schema/           404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/v1/               401 application/json Bearer realm="erp-api" | {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Author
+  /swagger/              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /redoc/                404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /openapi.json          404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/token/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/auth/login        404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/login/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /accounts/login/       404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /admin/                200 text/html; charset=utf-8  | <!DOCTYPE html>  <html lang="ru-ru" dir="ltr"> <head> <title>Войти | Административный сайт Djan
+
+catalog.erp-system-fz.kz: DNS ok (188.241.217.188)
+  /                      200 text/html; charset=utf-8  | <!DOCTYPE html> <html lang="ru" data-theme="light"> <head>     <meta charset="utf-8">     <meta name="viewport" content=
+  /api/                  404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/docs              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/docs/             404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/schema            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/schema/           404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/v1/               401 application/json Bearer realm="catalog-api" | {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Author
+  /swagger/              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /redoc/                404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /openapi.json          404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/token/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/auth/login        — TimeoutError: The read operation timed out
+  /api/login/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /accounts/login/       404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /admin/                404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+
+zavod.erp-system-fz.kz: DNS ok (188.241.217.188)
+  /                      200 text/html; charset=utf-8  | <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="utf-8">     <meta name="viewport" content="width=device-width
+  /api/                  404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/docs              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/docs/             404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/schema            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/schema/           404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/v1/               401 application/json Bearer realm="erp-api" | {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Author
+  /swagger/              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /redoc/                404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /openapi.json          404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/token/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/auth/login        404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/login/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /accounts/login/       404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /admin/                200 text/html; charset=utf-8  | <!DOCTYPE html>  <html lang="ru-ru" dir="ltr"> <head> <title>Войти | Административный сайт Djan
+
+hr.erp-system-fz.kz: DNS ok (188.241.217.188)
+  /                      200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
+  /api/                  404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/docs              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/docs/             404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/schema            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/schema/           404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/v1/               401 application/json Bearer realm="hrplatform" | {"error": "Нужен действующий токен: заголовок «Authorization: Bearer <токен>»."}
+  /swagger/              200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
+  /redoc/                200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
+  /openapi.json          200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
+  /api/token/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/auth/login        404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /api/login/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+  /accounts/login/       200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
+  /admin/                200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
