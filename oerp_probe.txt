@@ -1,86 +1,68 @@
-разведка O·ERP, 2026-11-14 04:46 UTC
+разведка O·ERP (вторая), 2026-11-14 05:59 UTC
+хост https://erp-system-fz.kz
 
-new.erp-system-fz.kz: DNS ok (188.241.217.188)
-  /                      200 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
-  /api/                  404 application/json; charset=utf-8  | {"message":"Cannot GET /api/","error":"Not Found","statusCode":404}
-  /api/docs              404 application/json; charset=utf-8  | {"message":"Cannot GET /api/docs","error":"Not Found","statusCode":404}
-  /api/docs/             404 application/json; charset=utf-8  | {"message":"Cannot GET /api/docs/","error":"Not Found","statusCode":404}
-  /api/schema            404 application/json; charset=utf-8  | {"message":"Cannot GET /api/schema","error":"Not Found","statusCode":404}
-  /api/schema/           404 application/json; charset=utf-8  | {"message":"Cannot GET /api/schema/","error":"Not Found","statusCode":404}
-  /api/v1/               404 application/json; charset=utf-8  | {"message":"Cannot GET /api/v1/","error":"Not Found","statusCode":404}
-  /swagger/              404 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
-  /redoc/                404 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
-  /openapi.json          404 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
-  /api/token/            404 application/json; charset=utf-8  | {"message":"Cannot GET /api/token/","error":"Not Found","statusCode":404}
-  /api/auth/login        404 application/json; charset=utf-8  | {"message":"Cannot GET /api/auth/login","error":"Not Found","statusCode":404}
-  /api/login/            404 application/json; charset=utf-8  | {"message":"Cannot GET /api/login/","error":"Not Found","statusCode":404}
-  /accounts/login/       404 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
-  /admin/                404 text/html; charset=utf-8  | <!DOCTYPE html><!--WxYtE12fwHSWC6KbOg_6A--><html lang="ru"><head><meta charSet="utf-8"/><meta name="viewport" content="w
+GET  /api/v1/                           401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/                           405                           {"error": {"code": "read_only", "message": "API только для чтения: разрешены GET и HEAD."}}
 
-erp-system-fz.kz: DNS ok (188.241.217.188)
-  /                      200 text/html; charset=utf-8  | <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="utf-8">     <meta name="viewport" content="width=device-width
-  /api/                  404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/docs              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/docs/             404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/schema            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/schema/           404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/v1/               401 application/json Bearer realm="erp-api" | {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Author
-  /swagger/              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /redoc/                404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /openapi.json          404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/token/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/auth/login        404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/login/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /accounts/login/       404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /admin/                200 text/html; charset=utf-8  | <!DOCTYPE html>  <html lang="ru-ru" dir="ltr"> <head> <title>Войти | Административный сайт Djan
+GET  /api/v1/zzzz-нет-такой-ветки       —    UnicodeEncodeError       
+POST /api/v1/zzzz-нет-такой-ветки       —    UnicodeEncodeError       
 
-catalog.erp-system-fz.kz: DNS ok (188.241.217.188)
-  /                      200 text/html; charset=utf-8  | <!DOCTYPE html> <html lang="ru" data-theme="light"> <head>     <meta charset="utf-8">     <meta name="viewport" content=
-  /api/                  404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/docs              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/docs/             404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/schema            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/schema/           404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/v1/               401 application/json Bearer realm="catalog-api" | {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Author
-  /swagger/              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /redoc/                404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /openapi.json          404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/token/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/auth/login        — TimeoutError: The read operation timed out
-  /api/login/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /accounts/login/       404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /admin/                404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
+GET  /api/v1/health                     401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/health                     401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
 
-zavod.erp-system-fz.kz: DNS ok (188.241.217.188)
-  /                      200 text/html; charset=utf-8  | <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="utf-8">     <meta name="viewport" content="width=device-width
-  /api/                  404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/docs              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/docs/             404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/schema            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/schema/           404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/v1/               401 application/json Bearer realm="erp-api" | {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Author
-  /swagger/              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /redoc/                404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /openapi.json          404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/token/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/auth/login        404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/login/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /accounts/login/       404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /admin/                200 text/html; charset=utf-8  | <!DOCTYPE html>  <html lang="ru-ru" dir="ltr"> <head> <title>Войти | Административный сайт Djan
+GET  /api/v1/ping                       401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/ping                       401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
 
-hr.erp-system-fz.kz: DNS ok (188.241.217.188)
-  /                      200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
-  /api/                  404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/docs              404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/docs/             404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/schema            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/schema/           404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/v1/               401 application/json Bearer realm="hrplatform" | {"error": "Нужен действующий токен: заголовок «Authorization: Bearer <токен>»."}
-  /swagger/              200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
-  /redoc/                200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
-  /openapi.json          200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
-  /api/token/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/auth/login        404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /api/login/            404 text/html; charset=utf-8  |  <!doctype html> <html lang="en"> <head>   <title>Not Found</title> </head> <body>   <h1>Not Found</h1><p>The requested 
-  /accounts/login/       200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
-  /admin/                200 text/html; charset=utf-8  |  <!DOCTYPE html> <html lang="ru"> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-widt
+GET  /api/v1/docs                       401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/docs                       401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/schema                     401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/schema                     401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/openapi.json               401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/openapi.json               401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/meta                       401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/meta                       401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/auth                       401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/auth                       401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/auth/                      401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/auth/                      405                           {"error": {"code": "read_only", "message": "API только для чтения: разрешены GET и HEAD."}}
+
+GET  /api/v1/auth/login                 401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/auth/login                 401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/auth/token                 401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/auth/token                 401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/token                      401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/token                      401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/tokens                     401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/tokens                     401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/login                      401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/login                      401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/session                    401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/session                    401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/documents                  401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/documents                  401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/document                   401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/document                   401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/counterparties             401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/counterparties             401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/sales                      401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/sales                      401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/reports                    401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/reports                    401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+
+GET  /api/v1/export                     401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
+POST /api/v1/export                     401  Bearer realm="erp-api"   {"error": {"code": "unauthorized", "message": "Нужен действующий токен в заголовке Authorization: Bearer <токе
