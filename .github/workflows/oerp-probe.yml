@@ -1,0 +1,66 @@
+name: O·ERP — разведка доступа
+
+# Разовая проверка: есть ли у O·ERP API, которым может пользоваться прогон Пульса.
+# Ни из облака Claude, ни из Linux-машины Ольги домен erp-system-fz.kz не открывается —
+# проверить можно только отсюда, с раннера GitHub. Пароли здесь не используются:
+# смотрим только, что отвечают публичные адреса и какой способ входа требуется.
+# Результат кладём файлом oerp_probe.txt в репозиторий, чтобы его можно было прочитать
+# без доступа к журналам прогонов.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Разведка
+        run: |
+          python - <<'PY'
+          import json, socket, ssl, urllib.request, urllib.error, datetime
+          HOSTS = ["new.erp-system-fz.kz", "erp-system-fz.kz", "catalog.erp-system-fz.kz",
+                   "zavod.erp-system-fz.kz", "hr.erp-system-fz.kz"]
+          PATHS = ["/", "/api/", "/api/docs", "/api/docs/", "/api/schema", "/api/schema/",
+                   "/api/v1/", "/swagger/", "/redoc/", "/openapi.json", "/api/token/",
+                   "/api/auth/login", "/api/login/", "/accounts/login/", "/admin/"]
+          out = ["разведка O·ERP, " + datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"), ""]
+          for h in HOSTS:
+              try:
+                  ip = socket.gethostbyname(h); out.append(f"{h}: DNS ok ({ip})")
+              except Exception as e:
+                  out.append(f"{h}: DNS не разрешается — {e}"); continue
+              for p in PATHS:
+                  url = f"https://{h}{p}"
+                  req = urllib.request.Request(url, headers={"User-Agent": "pulse-probe", "Accept": "application/json,*/*"})
+                  try:
+                      with urllib.request.urlopen(req, timeout=20) as r:
+                          body = r.read(400)
+                          ct = r.headers.get("content-type", "")
+                          auth = r.headers.get("www-authenticate", "")
+                          out.append(f"  {p:22} {r.status} {ct[:40]} {auth[:30]} | " + body[:120].decode("utf-8", "replace").replace("\n", " "))
+                  except urllib.error.HTTPError as e:
+                      body = e.read(300)
+                      out.append(f"  {p:22} {e.code} {e.headers.get('content-type','')[:40]} {e.headers.get('www-authenticate','')[:30]} | " + body[:120].decode("utf-8", "replace").replace("\n", " "))
+                  except Exception as e:
+                      out.append(f"  {p:22} — {type(e).__name__}: {str(e)[:80]}")
+              out.append("")
+          txt = "\n".join(out)
+          open("oerp_probe.txt", "w", encoding="utf-8").write(txt)
+          print(txt[:4000])
+          PY
+      - name: Сохранить результат
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse@fz.local"
+          git add oerp_probe.txt
+          git commit -m "O·ERP: разведка доступа [skip ci]" || echo "без изменений"
+          git pull --rebase origin main || true
+          git push origin HEAD:main
