@@ -1,1 +1,1 @@
-window.ZAKUP_TOP={"up": [], "fresh": [], "updated": "17.11.2026 03:49", "through": "16.11.2026", "week": "2026-45", "label": "09.11–15.11", "prevLabel": "02.11–08.11", "weekSum": 0, "prevWeekSum": 7806363, "n": 0, "top": []};
+window.ZAKUP_TOP={"up": [], "fresh": [], "updated": "17.11.2026 04:42", "through": "16.11.2026", "week": "2026-45", "label": "09.11–15.11", "prevLabel": "02.11–08.11", "weekSum": 0, "prevWeekSum": 7806363, "n": 0, "top": []};
