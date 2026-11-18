@@ -323,8 +323,27 @@ a.card.key .card-title{padding-right:100px;}
        Плитки заполняются из тех же файлов данных, что и дашборды:
        opiu_audit.js — прибыль, dz_kz.js — долги, ddsp_days.js — деньги.
        Файл не загрузился — плитка остаётся с прочерком, страница цела. -->
+  <!-- ДЗ/КЗ вынесены из замороженного пульса 18.11.2026: база айко закрыта
+       на 31.10.2026, а долги продолжают считаться каждый час и остаются
+       актуальными на сегодня. -->
+  <div class="pulse" style="margin-bottom:14px;">
+    <div class="pulse-hdr"><span class="pulse-t">Долги · на сегодня</span><span class="pulse-s">обновляется каждый час</span></div>
+    <div class="pulse-grid">
+      <a class="pt" href="дз_кз.html#mismatch" id="p-dz" title="Сколько нам должны покупатели — открывает разбор «Кто нам недоплатил»">
+        <div class="pt-l">Нам должны · ДЗ</div>
+        <div class="pt-v" id="p-dz-v">—</div>
+        <div class="pt-d" id="p-dz-d">загрузка…</div>
+      </a>
+      <a class="pt" href="дз_кз.html#kzmis" id="p-kz" title="Сколько мы должны поставщикам — открывает разбор «Кому недоплатили мы»">
+        <div class="pt-l">Мы должны · КЗ</div>
+        <div class="pt-v" id="p-kz-v">—</div>
+        <div class="pt-d" id="p-kz-d">загрузка…</div>
+      </a>
+    </div>
+  </div>
+
   <div class="pulse">
-    <div class="pulse-hdr"><span class="pulse-t">Пульс на сегодня</span><span class="pulse-s" id="pulse-upd">—</span></div>
+    <div class="pulse-hdr"><span class="pulse-t">Пульс до 31.10.2026</span><span class="pulse-s" id="pulse-upd">—</span></div>
     <div class="pulse-grid">
       <!-- 24.09.2026: вместо «Топ-товара» — остаток наличных. Топ-товар почти
            не менялся, длинное название не влезало в плитку и обрезалось на
@@ -335,16 +354,6 @@ a.card.key .card-title{padding-right:100px;}
         <div class="pt-l">Наличные в кассе<span class="pt-chip" id="p-cash-more" role="button" tabindex="0">счета</span></div>
         <div class="pt-v" id="p-cash-v">—</div>
         <div class="pt-d" id="p-cash-d">загрузка…</div>
-      </a>
-      <a class="pt" href="дз_кз.html#mismatch" id="p-dz" title="Сколько нам должны покупатели — открывает разбор «Кто нам недоплатил»">
-        <div class="pt-l">Нам должны · ДЗ</div>
-        <div class="pt-v" id="p-dz-v">—</div>
-        <div class="pt-d" id="p-dz-d">загрузка…</div>
-      </a>
-      <a class="pt" href="дз_кз.html#kzmis" id="p-kz" title="Сколько мы должны поставщикам — открывает разбор «Кому недоплатили мы»">
-        <div class="pt-l">Мы должны · КЗ</div>
-        <div class="pt-v" id="p-kz-v">—</div>
-        <div class="pt-d" id="p-kz-d">загрузка…</div>
       </a>
       <a class="pt" id="p-sales" href="продажи_2026.html" title="Выручка Фуд Завода за последний месяц, без возвратов и без Olive — из iiko">
         <div class="pt-l">Продажи ФУД ЗАВОД<span class="olv-sw" id="p-olv-sw" role="button" tabindex="0" title="Считать вместе с направлением Olive">+ Olive</span></div>
@@ -1594,7 +1603,7 @@ a.card.key .card-title{padding-right:100px;}
   load('/sales_meta.js?v=2',function(){
     META=window.SALES_META||{};
     var u=document.getElementById('pulse-upd');
-    if(u&&META.pulled) u.textContent='продажи из iiko · обновлено '+META.pulled+' · данные по '+(META.through||'—');
+    if(u) u.textContent='база айко закрыта 31.10.2026 · данные не обновляются';
     renderFc();
   });
 
