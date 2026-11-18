@@ -145,7 +145,7 @@ a.card:hover::after{color:var(--c1);transform:translateX(3px);}
    плитки кликабельны и ведут в отчёт, откуда взята цифра. */
 .pulse{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
   border-radius:18px;padding:16px 18px;margin:4px 0 28px;}
-.pulse-hdr{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.ptabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}.ptab{appearance:none;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:rgba(255,255,255,.62);font-family:Inter,sans-serif;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-radius:999px;cursor:pointer;transition:all .15s;}.ptab:hover{background:rgba(255,255,255,.09);color:#fff;}.ptab.active{background:rgba(124,58,237,.55);border-color:#a78bfa;color:#fff;}@media(max-width:640px){.ptab{flex:1 1 auto;text-align:center;}}.pulse-hdr{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
 .pulse-t{font-size:11px;font-weight:800;color:#fff;letter-spacing:.14em;text-transform:uppercase;}
 .pulse-s{font-size:11px;color:rgba(255,255,255,.45);}
 /* grid-auto-rows:1fr — плашки в одном ряду одной высоты. Без этого ряд
@@ -343,7 +343,71 @@ a.card.key .card-title{padding-right:100px;}
     </div>
   </div>
 
-  <div class="pulse">
+  <!-- Две базы: айко закрыта 31.10.2026, с 01.11 учёт ведётся в O·ERP.
+       Вкладки переключают два независимых пульса — исторический не
+       обновляется вовсе, текущий считается из модуля «Аналитика». -->
+  <div class="ptabs">
+    <button class="ptab active" data-pane="pane-new" type="button">с 01.11.2026 · O·ERP</button>
+    <button class="ptab" data-pane="pane-old" type="button">до 31.10.2026 · айко</button>
+  </div>
+
+  <div class="pulse" id="pane-new">
+    <div class="pulse-hdr"><span class="pulse-t">Пульс с 01.11.2026</span><span class="pulse-s" id="po-upd">—</span></div>
+    <div class="pulse-grid">
+      <a class="pt" href="дашборд_ддс_прямой.html" id="po-cash" title="Остатков по счетам в O·ERP нет — деньги ведутся в 1С">
+        <div class="pt-l">Наличные в кассе</div>
+        <div class="pt-v" id="po-cash-v">—</div>
+        <div class="pt-d" id="po-cash-d">—</div>
+      </a>
+      <a class="pt" href="продажи_2026.html" id="po-sales" title="Расходные накладные O·ERP, проведённые, без контрагента 98 (Olive)">
+        <div class="pt-l">Продажи ФУД ЗАВОД</div>
+        <div class="pt-v" id="po-sales-v">—</div>
+        <div class="pt-d" id="po-sales-d">загрузка…</div>
+      </a>
+      <a class="pt" href="olive.html" id="po-oliv" title="Контрагент 98 — направление Olive, в продажах завода не учитывается">
+        <div class="pt-l">Продажи OLIVE</div>
+        <div class="pt-v" id="po-oliv-v">—</div>
+        <div class="pt-d" id="po-oliv-d">загрузка…</div>
+      </a>
+      <div class="pt" id="po-fc" title="Линейный прогноз по текущему темпу">
+        <div class="pt-l">Прогноз продаж</div>
+        <div class="pt-v" id="po-fc-v">—</div>
+        <div class="pt-d" id="po-fc-d">загрузка…</div>
+      </div>
+      <a class="pt" href="продажи_2026.html" id="po-win" title="Сравнение с тем же числом прошлого месяца — иначе неполный месяц всегда проигрывает">
+        <div class="pt-l">Достижение месяца</div>
+        <div class="pt-v" id="po-win-v">—</div>
+        <div class="pt-d" id="po-win-d">загрузка…</div>
+      </a>
+      <a class="pt" href="закуп.html" id="po-zak" title="Приходные накладные O·ERP за последнюю полную неделю">
+        <div class="pt-l">Закуп недели</div>
+        <div class="pt-v" id="po-zak-v">—</div>
+        <div class="pt-d" id="po-zak-d">загрузка…</div>
+      </a>
+      <a class="pt" href="закуп.html" id="po-up" title="Рост средней цены прихода неделя к неделе">
+        <div class="pt-l">Подорожало за неделю</div>
+        <div class="pt-v" id="po-up-v">—</div>
+        <div class="pt-d" id="po-up-d">загрузка…</div>
+      </a>
+      <a class="pt" href="sku360.html#cats" id="po-cat" title="Позиции с отгрузкой в этом месяце без категории номенклатуры">
+        <div class="pt-l">Категории SKU</div>
+        <div class="pt-v" id="po-cat-v">—</div>
+        <div class="pt-d" id="po-cat-d">загрузка…</div>
+      </a>
+      <a class="pt" href="закуп.html" id="po-fresh" title="Позиции, которых раньше в приходах не было">
+        <div class="pt-l">Взяли впервые</div>
+        <div class="pt-v" id="po-fresh-v">—</div>
+        <div class="pt-d" id="po-fresh-d">загрузка…</div>
+      </a>
+      <a class="pt" href="%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F.html" id="po-rz" title="Реализация в 1С — последний закрытый месяц">
+        <div class="pt-l">Реализация в 1С</div>
+        <div class="pt-v" id="po-rz-v">—</div>
+        <div class="pt-d" id="po-rz-d">загрузка…</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="pulse" id="pane-old" style="display:none">
     <div class="pulse-hdr"><span class="pulse-t">Пульс до 31.10.2026</span><span class="pulse-s" id="pulse-upd">—</span></div>
     <div class="pulse-grid">
       <!-- 24.09.2026: вместо «Топ-товара» — остаток наличных. Топ-товар почти
@@ -1943,6 +2007,85 @@ a.card.key .card-title{padding-right:100px;}
     var b=document.createElement('span');
     b.className='card-new'; b.textContent='NEW';
     t.appendChild(b);
+  });
+})();
+</script>
+<script>
+/* ── ДВЕ БАЗЫ ────────────────────────────────────────────────────────────
+   Айко закрыта 31.10.2026: с 06.11 она перестала получать накладные, и её
+   цифры за ноябрь недосчитаны на 130 млн. Учёт переехал в O·ERP, поэтому
+   пульсов теперь два и они НЕ склеиваются: исторический заморожен, текущий
+   считается из модуля «Аналитика» и лежит в pulse_oerp.js.
+   Склейка была бы хуже всего — на стыке баз получился бы провал,
+   которого в жизни не было. */
+(function(){
+  var tabs=document.querySelectorAll('.ptab');
+  [].forEach.call(tabs,function(b){
+    b.addEventListener('click',function(){
+      [].forEach.call(tabs,function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      ['pane-new','pane-old'].forEach(function(id){
+        var el=document.getElementById(id);
+        if(el) el.style.display = (id===b.getAttribute('data-pane') ? '' : 'none');
+      });
+    });
+  });
+
+  function num(v){ return (v==null?'—':String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g,' ')); }
+  function money(v){
+    if(v==null) return '—';
+    var a=Math.abs(v);
+    if(a>=1e9) return (v/1e9).toFixed(2).replace('.',',')+' млрд ₸';
+    if(a>=1e6) return Math.round(v/1e6)+' млн ₸';
+    if(a>=1e3) return Math.round(v/1e3)+' тыс ₸';
+    return num(v)+' ₸';
+  }
+  function set(id,v,d){
+    var a=document.getElementById(id+'-v'), b=document.getElementById(id+'-d');
+    if(a) a.textContent=v; if(b) b.innerHTML=d||'';
+  }
+  function load(src,cb){
+    var sc=document.createElement('script'); sc.src=src; sc.onload=cb;
+    sc.onerror=function(){ cb(); }; document.head.appendChild(sc);
+  }
+
+  load('/pulse_oerp.js?v=1', function(){
+    var P=window.PULSE_OERP;
+    if(!P){ set('po-sales','—','файл не загрузился'); return; }
+    var u=document.getElementById('po-upd');
+    if(u) u.textContent='из O·ERP · '+P.from+'–'+P.to+' · данные на '+P.asof;
+
+    set('po-cash','—', P.cashNote);
+    set('po-sales', money(P.sale), P.from+'–'+P.to+' · без Olive'
+        + (P.future ? '<div style="margin-top:4px;color:#8ea0be">вперёд проведено '+money(P.future)+'</div>' : ''));
+    set('po-oliv', money(P.olive), 'контрагент 98 · отдельное направление');
+    set('po-fc', money(P.fc), P.fcNote);
+    var sign = P.prevPct>0 ? '+' : '';
+    set('po-win', sign+String(P.prevPct).replace('.',',')+'%',
+        'к '+P.prevLabel+' ('+money(P.prevSame)+')');
+    set('po-zak', money(P.zak.total),
+        P.zak.period+' · '+P.zak.docs+' накл.<div style="margin-top:4px;color:#8ea0be">крупнейший — '
+        +P.zak.top+', '+money(P.zak.topSum)+'</div>');
+    set('po-up', '+'+String(P.up.pct).replace('.',',')+'%',
+        P.up.name+' · '+num(P.up.was)+' → '+num(P.up.now)+' ₸<div style="margin-top:4px;color:#8ea0be">'
+        +P.up.period+'</div>');
+    set('po-cat', String(P.sku.noCat),
+        P.sku.noCat===0 ? 'все '+P.sku.sold+' позиции с категорией'
+                        : 'из '+P.sku.sold+' позиций с отгрузкой');
+    set('po-fresh', String(P.fresh.cnt),
+        (P.fresh.example? P.fresh.example+' · ':'')+P.fresh.period);
+  });
+
+  /* Реализация в 1С — тот же файл, что и в историческом пульсе: 1С продолжает
+     вестись и после перехода, поэтому плитка одинакова в обеих вкладках. */
+  load('/realizaciya.js?v=4', function(){
+    var R=window.REALIZACIYA;
+    if(!R||!R.months||!R.months.length){ set('po-rz','—','нет данных'); return; }
+    var MN=['','январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+    var closed=R.months.filter(function(x){ return x.m<R.curMonth && (x.v1c||0)>0; });
+    var show=closed.length? closed[closed.length-1] : R.months[R.months.length-1];
+    var mi=parseInt(show.m,10);
+    set('po-rz', money(show.v1c), (MN[mi]||('месяц '+show.m))+' · последний закрытый месяц');
   });
 })();
 </script>
