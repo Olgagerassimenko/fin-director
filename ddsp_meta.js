@@ -1,1 +1,1 @@
-window.DDSP_META={"updated": "18.11.2026", "through": "17.11.2026"};
+window.DDSP_META={"updated": "31.10.2026", "through": "30.10.2026"};
