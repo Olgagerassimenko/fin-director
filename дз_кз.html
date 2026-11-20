@@ -305,6 +305,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
       <div class="sec-title">📉 Мы должны — растёт или падает</div>
       <canvas id="ch-kz" height="130"></canvas>
     </div>
+    <!-- OERP-BAL: книга заполняется раз в неделю, O·ERP знает остаток на каждый день -->
+    <div class="chart-wrap" id="oerp-bal-wrap" style="display:none">
+      <div class="sec-title">💠 Баланс по поставщикам по дням · O·ERP</div>
+      <canvas id="ch-oerp-kz" height="130"></canvas>
+      <div id="oerp-bal-note" style="font-size:11.5px;color:#64748b;margin-top:8px;line-height:1.55"></div>
+    </div>
   </div>
 
   <!-- TABLES -->
@@ -732,8 +738,21 @@ function detailHTML(r, id){
       rows+='<tr><td>'+esc(W[i])+'</td><td>'+fmt(A[i]||0)+'</td>'
         +'<td style="color:'+((B[i]||0)>0?'#34d399':'#64748b')+'">'+((B[i]||0)>0?fmt(B[i]):'—')+'</td></tr>';
     }
+    let balLine='';
+    (function(){
+      const B=O.bal; if(!B) return;
+      let v=null;
+      if(isDz){ const m=String(r.name).match(/^\s*(\d{1,4})\s*[-–—.]/); v = m ? B.buyers[m[1]] : null; }
+      else { const kk=String(r.name).toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim();
+             const rec=B.suppliers[kk]; v = rec ? rec.v : null; }
+      if(v==null) return;
+      const diff=r.debt-v;
+      balLine='<div style="margin:6px 0 2px;font-size:12.5px;color:#cbd5e1">Баланс по O·ERP на '+esc(B.date)+': <b>'+fmt(v)+'</b>'
+        +(Math.abs(diff)>1000?' <span style="color:#94a3b8">· книга '+fmt(r.debt)+', разница '+(diff>0?'+':'−')+fmt(Math.abs(diff))+'</span>':' <span style="color:#34d399">· сходится с книгой</span>')
+        +'</div>';
+    })();
     oerp='<div style="margin-top:12px;padding-top:10px;border-top:1px dashed #243049">'
-      +'<h4 style="color:#93c5fd">O·ERP · с '+esc(O.from)+'</h4>'
+      +'<h4 style="color:#93c5fd">O·ERP · с '+esc(O.from)+'</h4>'+balLine
       +'<table><thead><tr><th>Неделя</th><th>'+head[0]+'</th><th>'+head[1]+'</th></tr></thead><tbody>'+rows
       +'<tr><td style="color:#cbd5e1;font-weight:700">Итого</td>'
       +'<td style="font-weight:700">'+fmt(sa)+'</td>'
@@ -930,8 +949,45 @@ function trend(curr, prev){
      borderColor:'#ef4444',backgroundColor:g2,borderWidth:2.5,pointRadius:5,
      pointBackgroundColor:'#ef4444',tension:.35,fill:true}
   ]},options:chartOpts('#ef4444','КЗ')});
+
 })();
 
+  
+
+</script>
+<script>
+// OERP-BAL: дневной баланс по поставщикам из O·ERP. Книгу он не заменяет —
+  // она шире по смыслу (только закупочные поставщики), зато здесь остаток
+  // пересчитан на каждый день, а не на пятницу.
+(function(){
+    const O=window.OERP_DZKZ; if(!O||!O.kzDays||!O.kzDays.length) return;
+    const wrap=document.getElementById('oerp-bal-wrap'), cv=document.getElementById('ch-oerp-kz');
+    if(!wrap||!cv) return;
+    wrap.style.display='';
+    const labels=O.kzDays.map(x=>x.d.slice(8,10)+'.'+x.d.slice(5,7));
+    const g3=cv.getContext('2d').createLinearGradient(0,0,0,180);
+    g3.addColorStop(0,'rgba(147,197,253,.30)');g3.addColorStop(1,'rgba(147,197,253,0)');
+    try{
+      if(typeof Chart!=='undefined') new Chart(cv,{type:'line',data:{labels,datasets:[
+        {label:'КЗ по O·ERP',data:O.kzDays.map(x=>x.v),
+         borderColor:'#93c5fd',backgroundColor:g3,borderWidth:2.5,pointRadius:2.5,
+         pointBackgroundColor:'#93c5fd',tension:.3,fill:true}
+      ]},options:{responsive:true,interaction:{mode:'index',intersect:false},
+         plugins:{legend:{display:false},
+           tooltip:{backgroundColor:'#1e293b',borderColor:'#334155',borderWidth:1,padding:10,
+             callbacks:{label:c=>' КЗ по O·ERP: '+fmt(c.parsed.y)}}},
+         scales:{x:{ticks:{color:'#c3d0e2',font:{size:11}},grid:{color:'#ffffff12'},border:{display:false}},
+                 y:{ticks:{color:'#c3d0e2',font:{size:11},callback:v=>fmt(v)},grid:{color:'#ffffff12'},border:{display:false}}}}});
+    }catch(e){ cv.style.display='none'; }
+    const last=O.kzDays[O.kzDays.length-1], first=O.kzDays[0];
+    const d=last.v-first.v, bal=O.bal||{};
+    const book=(window.DZ_KZ&&window.DZ_KZ.kz)||{};
+    const n=document.getElementById('oerp-bal-note');
+    if(n) n.innerHTML='На '+last.d.split('-').reverse().join('.')+' — <b style="color:#cbd5e1">'+fmt(last.v)+'</b>'
+      +' ('+(d>=0?'+':'−')+fmt(Math.abs(d))+' с начала месяца).'
+      +(book.total?' В книге на '+book.date+' — '+fmt(book.total)+'; O·ERP считает по всем расчётам, книга — только по закупочным поставщикам.':'')
+      +'<br>'+(bal.src||'');
+})();
 // ── ANALYTICS DATA (живые из парсера DZ_KZ.dz.ana; иначе резерв за 04–10.07) ──
 const ANA = (window.DZ_KZ && window.DZ_KZ.dz && Array.isArray(window.DZ_KZ.dz.ana) && window.DZ_KZ.dz.ana.length) ? window.DZ_KZ.dz.ana : [
   {name:"0-Частное лицо",          kc:4629,      kd:101864  },
