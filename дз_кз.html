@@ -6,6 +6,7 @@
 <title>Дебиторка и Кредиторка · Фуд Завод</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="dz_kz.js?v=4" onerror="window.DZ_KZ=null"></script>
+<script src="oerp_dzkz.js?v=1" onerror="window.OERP_DZKZ=null"></script>
 <script src="saldo.js?v=1" onerror="window.SALDO=null"></script>
 <script src="kz_ana.js?v=1" onerror="window.KZ_ANA=null"></script>
 <script src="balans.js?v=5" onerror="window.BALANS=null"></script>
@@ -707,12 +708,47 @@ function detailHTML(r, id){
     else right='<h4>Движение за неделю</h4><div class="det-note">В таблице нет отгрузок и оплат по этому контрагенту за последнюю неделю.</div>';
   }
 
+
+  /* OERP-DZKZ: с 01.11.2026 накладные заводят в O·ERP, айко их больше не видит.
+     Недели ноября дополняем оттуда: по покупателю — отгрузка и оплата, по
+     поставщику — приход и оплата. Всё, что раньше 01.11, остаётся как было:
+     из айко и книги ДЗ/КЗ. */
+  let oerp='';
+  (function(){
+    const O=window.OERP_DZKZ; if(!O) return;
+    let rec=null, head=['Отгрузка','Оплата'], a='ship', b='pay';
+    if(isDz){
+      const m=String(r.name).match(/^\s*(\d{1,4})\s*[-–—.]/);
+      rec = m ? (O.buyers||{})[m[1]] : null;
+    } else {
+      const key=String(r.name).toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim();
+      rec=(O.suppliers||{})[key]; head=['Приход','Оплата']; a='got'; b='pay';
+    }
+    if(!rec) return;
+    const A=rec[a]||[], B=rec[b]||[], W=O.weeks||[];
+    const sa=A.reduce((x,y)=>x+(y||0),0), sb=B.reduce((x,y)=>x+(y||0),0);
+    let rows='';
+    for(let i=W.length-1;i>=0;i--){
+      rows+='<tr><td>'+esc(W[i])+'</td><td>'+fmt(A[i]||0)+'</td>'
+        +'<td style="color:'+((B[i]||0)>0?'#34d399':'#64748b')+'">'+((B[i]||0)>0?fmt(B[i]):'—')+'</td></tr>';
+    }
+    oerp='<div style="margin-top:12px;padding-top:10px;border-top:1px dashed #243049">'
+      +'<h4 style="color:#93c5fd">O·ERP · с '+esc(O.from)+'</h4>'
+      +'<table><thead><tr><th>Неделя</th><th>'+head[0]+'</th><th>'+head[1]+'</th></tr></thead><tbody>'+rows
+      +'<tr><td style="color:#cbd5e1;font-weight:700">Итого</td>'
+      +'<td style="font-weight:700">'+fmt(sa)+'</td>'
+      +'<td style="font-weight:700;color:'+(sb>0?'#34d399':'#64748b')+'">'+(sb>0?fmt(sb):'—')+'</td></tr>'
+      +'</tbody></table>'
+      +'<div class="det-note">'+esc(isDz?O.srcBuy:O.srcSup)+'. Снимок на '+esc(O.asof)+'.'
+      +(sa>sb?' Разрыв за период: <b style="color:#fbbf24">'+fmt(sa-sb)+'</b> — '+(isDz?'отгрузили больше, чем получили денег.':'взяли товара больше, чем оплатили.'):'')
+      +'</div></div>';
+  })();
   const dl=delta(r);
   return '<div class="row-det">'
     +'<div style="font-size:13px;color:#e8eef6;font-weight:700;margin-bottom:10px">'+esc(r.name)
     +' · <span style="color:'+color+'">'+fmt(r.debt)+'</span>'
     +' <span class="'+dl.cls+'" style="font-size:12px">'+dl.txt+' за неделю</span></div>'
-    +'<div class="det-grid"><div>'+left+'</div><div>'+right+'</div></div></div>';
+    +'<div class="det-grid"><div>'+left+'</div><div>'+right+oerp+'</div></div></div>';
 }
 
 function renderList(id){
