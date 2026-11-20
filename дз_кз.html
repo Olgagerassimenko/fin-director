@@ -72,6 +72,19 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .row-fill{height:100%;border-radius:2px}
 .row-val{font-size:15px;font-weight:800;white-space:nowrap;min-width:74px;text-align:right}
 .row-dlt{font-size:12px;font-weight:700;white-space:nowrap;min-width:78px;text-align:right}
+.row{cursor:pointer}
+.row.open{background:#ffffff06}
+.row-chev{font-size:10px;color:#64748b;width:12px;flex-shrink:0;transition:transform .15s}
+.row.open .row-chev{transform:rotate(90deg);color:#94a3b8}
+.row-det{padding:12px 16px 16px 50px;border-top:1px solid #ffffff05;background:#0b1220}
+.row-det h4{margin:0 0 8px;font-size:12.5px;color:#cbd5e1;font-weight:800}
+.row-det table{width:100%;border-collapse:collapse;font-size:12px}
+.row-det th{color:#64748b;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;text-align:right;padding:3px 6px;font-weight:700}
+.row-det th:first-child{text-align:left}
+.row-det td{padding:3px 6px;text-align:right;color:#cbd5e1;border-top:1px solid #16213a}
+.row-det td:first-child{text-align:left;color:#94a3b8}
+.det-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.det-note{font-size:11.5px;color:#64748b;margin-top:8px;line-height:1.55}
 .dlt-up{color:#f87171}.dlt-dn{color:#34d399}.dlt-flat{color:#64748b}.dlt-new{color:#fbbf24}
 .col-headers{display:flex;align-items:center;gap:8px;padding:6px 16px 4px;border-top:1px solid #1e293b}
 .col-h{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em}
@@ -612,17 +625,109 @@ function sortRows(rows, key, dir){
   });
 }
 
+
+/* ── Раскрытие строки: история долга по неделям и движение за них ──────────
+   Раньше по контрагенту было видно только сумму и дельту за неделю, а это
+   не отвечает на вопрос «долг копится или это обычная отгрузка перед
+   оплатой». Данные для ответа уже лежат в dz_kz.js: hist — долг по неделям,
+   consign.ships/pays — отгрузки и поступления теми же неделями (ДЗ),
+   anaWeeks — приход товара и оплаты по поставщику (КЗ). */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function sign(v){ return (v>0?'+':v<0?'−':'')+fmt(Math.abs(v)); }
+
+function spark(points, color){
+  const vals=points.map(p=>p.v); if(!vals.length) return '';
+  const w=100, hh=30, max=Math.max(...vals,1), min=Math.min(...vals,0);
+  const span=(max-min)||1;
+  const xy=i=>[ (points.length>1 ? i/(points.length-1)*w : w/2), hh-((vals[i]-min)/span)*hh ];
+  const line=points.map((p,i)=>xy(i).map(n=>n.toFixed(1)).join(',')).join(' ');
+  const last=xy(points.length-1);
+  return '<svg viewBox="0 0 '+w+' '+hh+'" preserveAspectRatio="none" style="width:100%;height:44px;display:block">'
+   +'<polyline points="'+line+'" fill="none" stroke="'+color+'" stroke-width="1.6" vector-effect="non-scaling-stroke"'
+   +' stroke-linejoin="round" stroke-linecap="round"/>'
+   +'<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="1.8" fill="'+color+'" vector-effect="non-scaling-stroke"/></svg>';
+}
+
+function byName(list, name){
+  if(!list) return null;
+  const n=String(name).trim().toLowerCase();
+  return list.find(x=>String(x.name||x.n||'').trim().toLowerCase()===n)||null;
+}
+
+function detailHTML(r, id){
+  const D=window.DZ_KZ, isDz=(id==='dz-list'), side=isDz?D.dz:D.kz;
+  const color=isDz?'#34d399':'#f87171';
+  const hist=(r.hist||[]).filter(x=>x&&x.d);
+  let left='<h4>Долг по неделям</h4>';
+  if(hist.length){
+    left+=spark(hist,color)+'<table><thead><tr><th>Неделя</th><th>Долг</th><th>Δ</th></tr></thead><tbody>';
+    hist.slice().reverse().forEach((x,i,arr)=>{
+      const prev=arr[i+1]?arr[i+1].v:null;
+      const d=prev===null?null:x.v-prev;
+      const c=d===null?'#64748b':(d>0?'#f87171':d<0?'#34d399':'#64748b');
+      left+='<tr><td>'+esc(x.d)+'</td><td>'+fmt(x.v)+'</td>'
+        +'<td style="color:'+c+'">'+(d===null?'—':sign(d))+'</td></tr>';
+    });
+    left+='</tbody></table>';
+  } else {
+    left+='<div class="det-note">История по неделям появится после ближайшего обновления таблицы.</div>';
+  }
+
+  let right='';
+  if(isDz){
+    const c=byName(side.consign, r.name), weeks=(side.consignMeta&&side.consignMeta.weeks)||[];
+    if(c && (c.ships||c.pays)){
+      right='<h4>Отгрузки и поступления</h4><table><thead><tr><th>Неделя</th><th>Отгрузка</th><th>Оплата</th></tr></thead><tbody>';
+      (c.ships||[]).forEach((s,i)=>{
+        const pay=(c.pays||[])[i]||0;
+        right+='<tr><td>'+esc(weeks[i]||('неделя '+(i+1)))+'</td><td>'+fmt(s)+'</td>'
+          +'<td style="color:'+(pay>0?'#34d399':'#64748b')+'">'+(pay>0?fmt(pay):'—')+'</td></tr>';
+      });
+      right+='</tbody></table>';
+      const paid=(c.pays||[]).reduce((a,b)=>a+(b||0),0);
+      if(!paid) right+='<div class="det-note">За показанные недели оплат не было — долг только накапливался.</div>';
+    }
+  } else {
+    const weeks=(side.anaWeeks||[]).slice(-8);
+    const rows=weeks.map(w=>({lbl:w.label||w.date, r:byName(w.rows, r.name)})).filter(x=>x.r);
+    if(rows.length){
+      right='<h4>Приход товара и оплаты</h4><table><thead><tr><th>Неделя</th><th>Приход</th><th>Оплата</th></tr></thead><tbody>';
+      rows.reverse().forEach(x=>{
+        right+='<tr><td>'+esc(x.lbl)+'</td><td>'+fmt(x.r.kc||0)+'</td>'
+          +'<td style="color:'+((x.r.kd||0)>0?'#34d399':'#64748b')+'">'+((x.r.kd||0)>0?fmt(x.r.kd):'—')+'</td></tr>';
+      });
+      right+='</tbody></table>';
+    }
+  }
+  if(!right){
+    const a=byName(side.ana, r.name), m=side.anaMeta||{};
+    if(a) right='<h4>За период '+esc(m.period||'')+'</h4><table><tbody>'
+      +'<tr><td>'+(isDz?'Отгружено':'Приход товара')+'</td><td>'+fmt(a.kc||0)+'</td></tr>'
+      +'<tr><td>'+(isDz?'Поступило':'Оплачено')+'</td><td>'+fmt(a.kd||0)+'</td></tr></tbody></table>';
+    else right='<h4>Движение за неделю</h4><div class="det-note">В таблице нет отгрузок и оплат по этому контрагенту за последнюю неделю.</div>';
+  }
+
+  const dl=delta(r);
+  return '<div class="row-det">'
+    +'<div style="font-size:13px;color:#e8eef6;font-weight:700;margin-bottom:10px">'+esc(r.name)
+    +' · <span style="color:'+color+'">'+fmt(r.debt)+'</span>'
+    +' <span class="'+dl.cls+'" style="font-size:12px">'+dl.txt+' за неделю</span></div>'
+    +'<div class="det-grid"><div>'+left+'</div><div>'+right+'</div></div></div>';
+}
+
 function renderList(id){
   const st=LISTS[id]; const el=document.getElementById(id); if(!el||!st) return;
   el.innerHTML=sortRows(st.rows,st.key,st.dir).map(r=>{
     const nm=r.name.length>44?r.name.slice(0,42)+'…':r.name;
     const dl=delta(r);
-    return`<div class="row">
+    const open=st.open===r.name;
+    return`<div class="row${open?' open':''}" data-row="${encodeURIComponent(r.name)}" data-list="${id}">
       <span class="row-num">${r.__rank}</span>
+      <span class="row-chev">▶</span>
       <span class="row-name">${nm}</span>
       <span class="row-dlt ${dl.cls}" title="${dl.tip}">${dl.txt}</span>
       <span class="row-val" style="color:${st.color}">${fmt(r.debt)}</span>
-    </div>`;
+    </div>`+(open?detailHTML(r,id):'');
   }).join('');
   document.querySelectorAll('.col-h.srt[data-for="'+id+'"]').forEach(h=>{
     const on=h.dataset.key===st.key;
@@ -639,6 +744,14 @@ function buildList(id, rows, color){
 }
 
 document.addEventListener('click',e=>{
+  const rw=e.target.closest('.row[data-row]');
+  if(rw){
+    const st=LISTS[rw.dataset.list]; if(!st) return;
+    const nm=decodeURIComponent(rw.dataset.row);
+    st.open = (st.open===nm) ? null : nm;
+    renderList(rw.dataset.list);
+    return;
+  }
   const h=e.target.closest('.col-h.srt'); if(!h) return;
   const st=LISTS[h.dataset.for]; if(!st) return;
   if(st.key===h.dataset.key) st.dir=-st.dir;

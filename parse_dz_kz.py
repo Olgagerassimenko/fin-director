@@ -68,6 +68,13 @@ def debug_rows(rows, n=6):
         nonempty = [(j, repr(c[:50])) for j, c in enumerate(row) if c.strip()][:6]
         print(f"    row[{i}]: {nonempty}")
 
+# Написания недельной колонки остатка на листе КЗ. KZ_TOP_PAT — те из них,
+# по которым берём сам долг и дельту недели (без «Задолженность на …»:
+# так подписана служебная колонка в середине листа).
+KZ_COL_PAT = (r"задолженность\s+на\s+\d|кз\s+на\s+\d|"
+              r"баланс\s+по\s+поставщикам.{0,40}?\s+на\s*\d")
+KZ_TOP_PAT = (r"кз\s+на|баланс\s+по\s+поставщикам.{0,40}?\s+на\s*\d")
+
 def parse_kz(rows):
     print("  Диагностика КЗ (первые 6 строк):")
     debug_rows(rows)
@@ -94,9 +101,11 @@ def parse_kz(rows):
     for i, cell in enumerate(header):
         c = str(cell).strip()
         m_date = None
-        if re.search(r"задолженность\s+на\s+\d", c, re.I | re.UNICODE):
-            m_date = re.search(r"(\d{1,2}\.\d{2}\.\d{2,4})", c)
-        elif re.search(r"кз\s+на\s+\d", c, re.I | re.UNICODE):
+        # Колонку остатка в таблице называют по-разному: «КЗ на 20.11.26»,
+        # «Задолженность на 20.11.26», а с осени и «Баланс по поставщикам …
+        # на 20.11.26» — как на листе ДЗ. Пока третье написание не ловилось,
+        # КЗ замирала на последней неделе со старым названием.
+        if re.search(KZ_COL_PAT, c, re.I | re.UNICODE):
             m_date = re.search(r"(\d{1,2}\.\d{2}\.\d{2,4})", c)
         if m_date:
             lbl = fmt_date(m_date.group(1))
@@ -147,7 +156,7 @@ def parse_kz(rows):
     print(f"  КЗ итого (|ИТОГО|): {latest_total:,.0f}  ({last_date})")
 
     kz_cols_only = [(i, lbl) for i, lbl in debt_cols
-                    if re.search(r"кз\s+на", header[i], re.I | re.UNICODE)]
+                    if re.search(KZ_TOP_PAT, header[i], re.I | re.UNICODE)]
     top_col_i = kz_cols_only[-1][0] if kz_cols_only else last_col_i
     # предыдущая колонка «КЗ на …» — база для дельты неделя к неделе
     prev_col_i = kz_cols_only[-2][0] if len(kz_cols_only) >= 2 else None
@@ -156,6 +165,10 @@ def parse_kz(rows):
     # КЗ (кредиторка): в столбце "КЗ на ..." ОТРИЦАТЕЛЬНЫЕ значения — это наши
     # долги поставщикам. Положительные — выданные авансы/переплаты (это НЕ КЗ).
     # Топ кредиторов строим по крупнейшим отрицательным остаткам (по модулю).
+    # hist — долг этого поставщика по всем недельным колонкам «КЗ на …».
+    # Без него строку на странице некуда раскрывать: видно сумму и дельту,
+    # но не видно, копится долг месяцами или появился на этой неделе.
+    hist_cols = (kz_cols_only or debt_cols)[-10:]
     top = []
     for row in data_rows:
         name = (row[0] if row else "").strip()
@@ -167,6 +180,11 @@ def parse_kz(rows):
                 pv = num(row[prev_col_i]) if prev_col_i < len(row) else None
                 # долг показываем положительным; аванс/переплата = нулевой долг
                 item["prev"] = round(-pv) if (pv and pv < 0) else 0
+            h = []
+            for ci, lbl in hist_cols:
+                hv = num(row[ci]) if ci < len(row) else None
+                h.append({"d": lbl, "v": round(-hv) if (hv and hv < 0) else 0})
+            item["hist"] = h
             top.append(item)
     top.sort(key=lambda x: -x["debt"])
 
@@ -417,6 +435,13 @@ def parse_dz(rows):
             if dz_prev_col_i is not None:
                 pv = num(row[dz_prev_col_i]) if dz_prev_col_i < len(row) else None
                 item["prev"] = round(pv) if (pv and pv > 0) else 0
+            # hist — долг по всем недельным колонкам остатка. По нему строка
+            # раскрывается в историю: видно, растёт долг неделями или это
+            # разовая отгрузка перед оплатой.
+            item["hist"] = [{"d": lbl,
+                             "v": (lambda x: round(x) if (x and x > 0) else 0)(
+                                  num(row[ci]) if ci < len(row) else None)}
+                            for ci, lbl in dz_cols[-10:]]
             if is_excluded_dz(name):
                 excluded.append(item)
             else:
