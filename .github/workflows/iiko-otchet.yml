@@ -1,0 +1,82 @@
+name: Айко — сравнение 1–22 ноября и 1–22 октября
+
+# Разовый прогон под отчёт финдиректора. Из облака Claude айко недоступен
+# (домен закрыт прокси), поэтому спрашиваем айко отсюда, с раннера, и кладём
+# ответ файлом в репозиторий — журналы прогонов читаются не отовсюду.
+# Только чтение: четыре OLAP-запроса, ничего не меняем.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  otchet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install requests
+      - name: "Спросить айко"
+        run: |
+          python - <<'PY'
+          import json, re, hashlib, datetime, warnings, requests
+          warnings.filterwarnings("ignore")
+          src = open("iiko_export.py", encoding="utf-8").read()
+          URL   = re.search(r'URL\s*=\s*"([^"]+)"', src).group(1)
+          LOGIN = re.search(r'LOGIN\s*=\s*"([^"]+)"', src).group(1)
+          PASS  = re.search(r'PASS\s*=\s*"([^"]+)"', src).group(1)
+          REV   = "OUTGOING_INVOICE_REVENUE"
+          SRV   = "INCOMING_SERVICE"
+          s = requests.Session()
+          tok = s.get(f"{URL}/resto/api/auth",
+                      params={"login": LOGIN, "pass": hashlib.sha1(PASS.encode()).hexdigest()},
+                      verify=False, timeout=60).text.strip().strip('"')
+          H = {"Cookie": f"key={tok}", "Content-Type": "application/json"}
+          def olap(groups, d1, d2, types=None, extra=None, aggs=("Sum.Incoming",)):
+              flt = {"DateTime.DateTyped": {"filterType":"DateRange","periodType":"CUSTOM",
+                     "from": d1, "to": d2, "includeLow": True, "includeHigh": True}}
+              if types: flt["TransactionType"] = {"filterType":"IncludeValues","values":types}
+              if extra: flt.update(extra)
+              body = {"reportType":"TRANSACTIONS","buildSummary":"true",
+                      "groupByRowFields": groups, "aggregateFields": list(aggs), "filters": flt}
+              r = s.post(f"{URL}/resto/api/v2/reports/olap", headers=H, data=json.dumps(body),
+                         verify=False, timeout=600)
+              return r.json().get("data", []) if r.status_code == 200 else [{"ОШИБКА": r.status_code, "текст": r.text[:200]}]
+          out = {"снято": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"), "url": URL}
+          per = {"окт": ("2026-10-01","2026-10-22"), "ноя": ("2026-11-01","2026-11-22")}
+          for k,(d1,d2) in per.items():
+              out[f"выручка_по_контрагентам_{k}"] = olap(["Counteragent.Name"], d1, d2, [REV])
+              out[f"выручка_по_дням_{k}"]         = olap(["DateTime.DateTyped"], d1, d2, [REV])
+              out[f"сервисные_возвраты_{k}"]      = olap(["Counteragent.Name","Account.Name"], d1, d2, [SRV])
+              out[f"оплата_труда_{k}"]            = olap(["Account.Name"], d1, d2, None, None,
+                                                         ("Sum.Incoming","Sum.Outgoing"))
+          # до какого числа в айко вообще есть проводки
+          out["любые_проводки_по_дням_ноябрь"] = olap(["DateTime.DateTyped"], "2026-11-01", "2026-11-30")
+          json.dump(out, open("iiko_otchet.json","w",encoding="utf-8"), ensure_ascii=False, indent=1)
+          # короткая сводка в текст
+          def tot(rows, key="Sum.Incoming"):
+              return round(sum((r.get(key) or 0) for r in rows if isinstance(r, dict)))
+          L = ["айко, снято " + out["снято"], ""]
+          for k in ("окт","ноя"):
+              L.append(f"{k}: выручка {tot(out['выручка_по_контрагентам_'+k]):,} | "
+                       f"контрагентов {len(out['выручка_по_контрагентам_'+k])} | "
+                       f"дней с продажами {len(out['выручка_по_дням_'+k])} | "
+                       f"сервисные возвраты {tot(out['сервисные_возвраты_'+k]):,}")
+          L.append("дней с любыми проводками в ноябре: %d" % len(out["любые_проводки_по_дням_ноябрь"]))
+          txt = "\n".join(L).replace(",", " ")
+          open("iiko_otchet.txt","w",encoding="utf-8").write(txt)
+          print(txt)
+          PY
+      - name: "Сохранить результат"
+        run: |
+          git config user.name "pulse-bot"
+          git config user.email "pulse@fz.local"
+          git add iiko_otchet.json iiko_otchet.txt
+          git commit -m "Айко: выгрузка под сравнение октября и ноября [skip ci]" || echo "без изменений"
+          git pull --rebase origin main || true
+          git push origin HEAD:main
