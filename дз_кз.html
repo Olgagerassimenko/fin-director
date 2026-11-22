@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="dz_kz.js?v=4" onerror="window.DZ_KZ=null"></script>
 <script src="oerp_dzkz.js?v=1" onerror="window.OERP_DZKZ=null"></script>
+<script src="oerp_saldo.js?v=1" onerror="window.OERP_SALDO=null"></script>
 <script src="saldo.js?v=1" onerror="window.SALDO=null"></script>
 <script src="kz_ana.js?v=1" onerror="window.KZ_ANA=null"></script>
 <script src="balans.js?v=5" onerror="window.BALANS=null"></script>
@@ -114,6 +115,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
 .a-card-lbl{font-size:10px;color:#9db0c9;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
 .a-card-val{font-size:18px;font-weight:800;color:#f1f5f9}
 .a-card-val.red{color:#f87171}.a-card-val.green{color:#4ade80}.a-card-val.yellow{color:#fbbf24}
+.sal-q.sal-on{background:#1d4ed8;color:#fff;border-color:#2563eb}
+.a-table tr.sal-row{cursor:pointer}
+.a-table tr.sal-row:hover td{background:#ffffff06}
+.a-table tr.sal-det td{background:#0b1220;padding:10px 14px}
+.sal-det-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.sal-det h5{margin:0 0 6px;font-size:12px;color:#cbd5e1;font-weight:800}
 /* Баланс на дату: поле даты в тёмной теме по умолчанию белое — перекрашиваем. */
 .sal-date{background:#0f1e33;color:#e8eef6;border:1px solid #2b3d5c;border-radius:8px;
   padding:5px 9px;font-size:12.5px;font-family:inherit;font-weight:700;color-scheme:dark}
@@ -471,6 +478,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#18233d;color:#f1f5f9;m
       <div class="kz-per">
         <b>Баланс на</b>
         <input type="date" id="sal-date" class="sal-date">
+        <div class="sal-quick" id="sal-src" title="Откуда берём остаток">
+          <span class="sal-q sal-on" data-src="oerp">O·ERP</span>
+          <span class="sal-q" data-src="iiko">айко</span>
+        </div>
         <div class="sal-quick">
           <span class="sal-q" data-back="0">сегодня</span>
           <span class="sal-q" data-back="7">неделю назад</span>
@@ -1511,10 +1522,21 @@ function buildConsign(){
    складываем здесь: так файл в разы легче, чем остаток на каждый день.
    Знак: плюс — мы должны поставщику, минус — у него наша переплата. */
 (function buildSaldo(){
-  const S=window.SALDO, body=document.getElementById('sal-body');
+  /* Два источника одного и того же остатка: айко (счёт 3.06, только контрагенты
+     из листа КЗ) и O·ERP (все счета расчётов). С 06.11.2026 отгрузки заводят
+     только в O·ERP, поэтому он стоит первым; айко оставлен для сверки. */
+  const SRC_SETS={
+    oerp:{data:window.OERP_SALDO, label:'O·ERP',
+          hint:'Остаток на <b>{д}</b> по счетам расчётов в O·ERP. '},
+    iiko:{data:window.SALDO, label:'айко',
+          hint:'Остаток на <b>{д}</b> по счёту «{сч}» в айко, только контрагенты из листа КЗ. '}
+  };
+  let SRC = (SRC_SETS.oerp.data && SRC_SETS.oerp.data.rows && SRC_SETS.oerp.data.rows.length) ? 'oerp' : 'iiko';
+  let S = SRC_SETS[SRC].data;
+  const body=document.getElementById('sal-body');
   if(!body) return;
   if(!S||!S.rows||!S.rows.length){
-    body.innerHTML='<p class="kz-note">Сальдо из айко ещё не собралось — оно обновляется каждые полчаса.</p>';
+    body.innerHTML='<p class="kz-note">Остаток ещё не собрался — он обновляется каждые полчаса.</p>';
     return;
   }
   const inp=document.getElementById('sal-date');
@@ -1522,14 +1544,20 @@ function buildConsign(){
   const iso=d=>d.getFullYear()+'-'+P(d.getMonth()+1)+'-'+P(d.getDate());
   const ru =d=>P(d.getDate())+'.'+P(d.getMonth()+1)+'.'+d.getFullYear();
   const day=864e5;
-  const base=new Date(S.base+'T00:00:00');
-  const last=new Date(base.getTime()+S.maxDay*day);
-  inp.min=iso(base); inp.max=iso(last); inp.value=iso(last);
-  const upd=document.getElementById('sal-upd');
-  if(upd) upd.textContent='обновлено '+S.updated;
-
-  // накопленные суммы считаем один раз на строку — дальше это просто поиск
-  S.rows.forEach(r=>{ let a=r.open; r.cum=r.mv.map(([i,d])=>[i,a+=d]); });
+  let base, last;
+  function prep(){
+    S=SRC_SETS[SRC].data;
+    base=new Date(S.base+'T00:00:00');
+    last=new Date(base.getTime()+S.maxDay*day);
+    const keep=inp.value ? new Date(inp.value+'T00:00:00') : null;
+    inp.min=iso(base); inp.max=iso(last);
+    inp.value = (keep && keep>=base && keep<=last) ? iso(keep) : iso(last);
+    const upd=document.getElementById('sal-upd');
+    if(upd) upd.textContent='обновлено '+S.updated+' · источник '+SRC_SETS[SRC].label;
+    // накопленные суммы считаем один раз на строку — дальше это просто поиск
+    S.rows.forEach(r=>{ if(!r.cum){ let a=r.open; r.cum=r.mv.map(([i,d])=>[i,a+=d]); } });
+  }
+  prep();
 
   function balance(r, idx){
     let v=r.open;
@@ -1553,13 +1581,13 @@ function buildConsign(){
     set('sal-cnt', String(rows.length));
     set('sal-hint','');
     const h=document.getElementById('sal-hint');
-    if(h) h.innerHTML='Остаток на <b>'+ru(d)+'</b> по счёту «'+S.account+'» в айко, '
-      +'только контрагенты из листа КЗ. <b style="color:#f87171">Плюс</b> — мы должны, '
+    if(h) h.innerHTML=SRC_SETS[SRC].hint.replace('{д}',ru(d)).replace('{сч}',S.account)
+      +'<b style="color:#f87171">Плюс</b> — мы должны, '
       +'<b style="color:#4ade80">минус</b> — у поставщика лежит наша переплата. '
-      +'Столбцы сортируются по клику.';
+      +'Столбцы сортируются по клику, строка раскрывается в историю по дням.';
     body.innerHTML='<div class="kz-scroll"><table class="a-table"><thead><tr>'
       +'<th>Поставщик</th><th class="r">Баланс на '+ru(d)+'</th></tr></thead><tbody>'
-      +rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td class="r" data-v="'+x.v+'" style="color:'
+      +rows.map(x=>'<tr class="sal-row" data-nm="'+encodeURIComponent(x.name)+'"><td>'+esc(x.name)+'</td><td class="r" data-v="'+x.v+'" style="color:'
         +(x.v>0?'#f87171':'#4ade80')+'">'+fmt(x.v)+'</td></tr>').join('')
       +'</tbody><tfoot><tr><td id="sal-foot-lbl">Итого</td><td class="r" id="sal-foot">'+fmt(owe-pre)+'</td></tr></tfoot></table></div>'
       +((S.missing&&S.missing.length)
@@ -1609,7 +1637,7 @@ function buildConsign(){
       const tb=body.querySelector('tbody');
       const vis=[].filter.call(tb.rows,r=>r.style.display!=='none');
       const aoa=[['Баланс по поставщикам на '+ru(d)],
-                 [S.account+' (айко), только контрагенты из листа КЗ'],
+                 [S.account+' · источник: '+SRC_SETS[SRC].label],
                  ['плюс — мы должны, минус — переплата у поставщика'],
                  [],
                  ['Контрагент','Баланс, ₸']];
@@ -1638,10 +1666,63 @@ function buildConsign(){
   render=function(){ _render(); applyFind(); };
 
   inp.addEventListener('change',render);
-  document.querySelectorAll('.sal-q').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.sal-quick .sal-q[data-back]').forEach(b=>b.addEventListener('click',()=>{
     const d=new Date(last.getTime()-(+b.dataset.back)*day);
     inp.value=iso(d < base ? base : d); render();
   }));
+
+  /* Переключатель источника: тот же остаток, посчитанный айко и O·ERP.
+     Расхождение между ними — не ошибка: в книге КЗ только закупочные
+     поставщики, в O·ERP — все расчёты с контрагентами. */
+  const srcBox=document.getElementById('sal-src');
+  if(srcBox) srcBox.addEventListener('click',e=>{
+    const b=e.target.closest('.sal-q[data-src]'); if(!b) return;
+    const want=b.dataset.src, set=SRC_SETS[want];
+    if(!set||!set.data||!set.data.rows||!set.data.rows.length){
+      b.title='данных этого источника пока нет'; return;
+    }
+    SRC=want;
+    srcBox.querySelectorAll('.sal-q').forEach(x=>x.classList.toggle('sal-on',x===b));
+    prep(); render();
+  });
+
+  /* Проваливание в строку: остаток этого контрагента по дням и движения,
+     которые его двигали. Раньше по строке была видна только сумма. */
+  body.addEventListener('click',e=>{
+    const tr=e.target.closest('tr.sal-row'); if(!tr) return;
+    const nx=tr.nextElementSibling;
+    if(nx&&nx.classList.contains('sal-det')){ nx.remove(); return; }
+    body.querySelectorAll('tr.sal-det').forEach(x=>x.remove());
+    const nm=decodeURIComponent(tr.dataset.nm||'');
+    const row=S.rows.find(r=>r.name===nm); if(!row) return;
+    const d=new Date(inp.value+'T00:00:00');
+    const idx=Math.round((d-base)/day);
+    const from=Math.max(0, idx-29);
+    const pts=[]; for(let i=from;i<=idx;i++) pts.push({i, v:balance(row,i)});
+    const vals=pts.map(x=>x.v), mx=Math.max(...vals,1), mn=Math.min(...vals,0), sp=(mx-mn)||1;
+    const W=100,H=30;
+    const line=pts.map((x,k)=>((pts.length>1?k/(pts.length-1)*W:W/2).toFixed(1))+','+((H-((x.v-mn)/sp)*H).toFixed(1))).join(' ');
+    const dLbl=i=>ru(new Date(base.getTime()+i*day));
+    const moves=row.mv.filter(([i])=>i>from&&i<=idx).slice(-14).reverse();
+    const mvRows=moves.length
+      ? moves.map(([i,dv])=>'<tr><td>'+dLbl(i)+'</td><td class="r" style="color:'+(dv>0?'#f87171':'#4ade80')+'">'
+          +(dv>0?'+':'−')+fmt(Math.abs(dv))+'</td><td class="r">'+fmt(balance(row,i))+'</td></tr>').join('')
+      : '<tr><td colspan="3" style="color:#64748b">за показанный месяц движений не было</td></tr>';
+    const det=document.createElement('tr');
+    det.className='sal-det';
+    det.innerHTML='<td colspan="2"><div class="sal-det">'
+      +'<div style="font-size:13px;color:#e8eef6;font-weight:700;margin-bottom:8px">'+esc(nm)
+      +' · остаток на '+ru(d)+': <span style="color:'+(balance(row,idx)>0?'#f87171':'#4ade80')+'">'+fmt(balance(row,idx))+'</span></div>'
+      +'<div class="sal-det-grid"><div><h5>Остаток по дням (месяц)</h5>'
+      +'<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:46px;display:block">'
+      +'<polyline points="'+line+'" fill="none" stroke="#93c5fd" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>'
+      +'<div style="font-size:11px;color:#64748b;margin-top:4px">'+dLbl(from)+' — '+dLbl(idx)+'</div></div>'
+      +'<div><h5>Что двигало остаток</h5><table class="a-table" style="margin:0"><thead><tr><th>Дата</th>'
+      +'<th class="r">Изменение</th><th class="r">Остаток</th></tr></thead><tbody>'+mvRows+'</tbody></table></div>'
+      +'</div></div></td>';
+    tr.parentNode.insertBefore(det, tr.nextSibling);
+  });
+
   render();
 })();
 

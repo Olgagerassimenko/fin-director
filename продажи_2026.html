@@ -418,9 +418,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
   var MLN=function(v){ return (v/1e6).toFixed(1).replace('.',',')+' млн'; };
   var RU={'01':'Январь','02':'Февраль','03':'Март','04':'Апрель','05':'Май','06':'Июнь','07':'Июль',
           '08':'Август','09':'Сентябрь','10':'Октябрь','11':'Ноябрь','12':'Декабрь'};
-  var ms=S.months||[], last=ms[ms.length-1]||{}, ok=ms.filter(function(m){return Math.abs(m.diff)<1;}).length;
+  var esc2=function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  var ms=S.months||[], last=ms[ms.length-1]||{}, ok=ms.filter(function(m){return m.diff!=null&&Math.abs(m.diff)<1;}).length;
   var warn='';
-  if(S.breakFrom){
+  if(S.iikoThrough){
+    warn='<div style="margin:0 0 12px;padding:12px 14px;border-radius:12px;border:1px solid #ef444455;'
+      +'background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(15,23,42,.6))">'
+      +'<div style="font-weight:800;font-size:13.5px;color:#fca5a5">⚠ Продажи из айко остановились на '+esc2(S.iikoThrough)+'</div>'
+      +'<div style="font-size:12.5px;color:#cbd5e1;margin-top:5px;line-height:1.6">'+esc2(S.iikoNote||'')
+      +' Всё, что выше по странице (месяц, SKU, маржа, ОПиУ из айко), считается по октябрю и раньше.</div></div>';
+  } else if(S.breakFrom){
     var bd=S.breakFrom.split('-'), bru=bd[2]+'.'+bd[1]+'.'+bd[0];
     warn='<div style="margin:0 0 12px;padding:12px 14px;border-radius:12px;border:1px solid #ef444455;'
       +'background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(15,23,42,.6))">'
@@ -431,6 +438,19 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
       +'Пока накладные заводят только в O·ERP, ноябрьские цифры страницы, SKU 360, маржи и ОПиУ из айко занижены.</div></div>';
   }
   var rows=ms.map(function(m){
+    /* С 31.10.2026 выгрузка продаж из айко остановилась: за ноябрь там не ноль,
+       а просто нет данных. Показываем это словами, иначе месяц читается как провал. */
+    if(m.noIiko){
+      return '<tr style="border-top:1px solid #1e293b">'
+        +'<td style="padding:6px 8px;color:#e2e8f0;white-space:nowrap">'+(RU[m.k.slice(5)]||m.k)
+        +(m.partial?' <span style="color:#64748b">('+m.partial+')</span>':'')+'</td>'
+        +'<td style="padding:6px 8px;text-align:right;color:#64748b">нет в айко</td>'
+        +'<td style="padding:6px 8px;text-align:right;color:#94a3b8">'+M(m.sale)+'</td>'
+        +'<td style="padding:6px 8px;text-align:right;color:#64748b">—</td>'
+        +'<td style="padding:6px 8px;text-align:right;color:#64748b">—</td>'
+        +'<td style="padding:6px 8px;text-align:right;color:#cbd5e1">'+M(m.net)+'</td>'
+        +'<td style="padding:6px 8px;text-align:right;font-weight:800;color:#93c5fd">только O·ERP</td></tr>';
+    }
     var d=Math.abs(m.diff)<1, col=d?'#4ade80':(Math.abs(m.diff)>5e6?'#f87171':'#fbbf24');
     return '<tr style="border-top:1px solid #1e293b">'
       +'<td style="padding:6px 8px;color:#e2e8f0;white-space:nowrap">'+(RU[m.k.slice(5)]||m.k)+'</td>'
@@ -494,6 +514,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#f1f5f9;m
    +'Айко — выручка расходных накладных за вычетом возвратов, как на всей странице. O·ERP нетто — отгрузка минус возвраты '
    +'покупателей минус сервисные возвраты, без контрагента 98 (Olive). '
    +'<br>Снимок O·ERP на '+(S.asof||'')+' — цифры не обновляются вместе со страницей: O·ERP тянется отдельно, по запросу.'
+   +'<br>Январь–август сходились к тенге. 31.10.2026 выгрузку айко за сентябрь и октябрь пересчитали вверх (+2,0 и +10,7 млн), '
+   +'и к тенге они больше не сходятся; причина на стороне айко, который с того же дня перестал обновляться.'
    +'<br>Чего в O·ERP нет и что остаётся только из айко: '+(S.gaps||[]).join(' · ')+'.'
    +'</div></div>';
 })();
