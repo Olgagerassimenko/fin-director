@@ -1,0 +1,2662 @@
+{
+ "снято": "2026-11-22 13:12 UTC",
+ "url": "https://fudzavod.iiko.it",
+ "выручка_по_контрагентам_окт": [
+  {
+   "Counteragent.Name": "0Частное лицо Покупатель",
+   "Sum.Incoming": 1094
+  },
+  {
+   "Counteragent.Name": "1-Базилик 1 (Шевченко)",
+   "Sum.Incoming": 3993866
+  },
+  {
+   "Counteragent.Name": "100-Сrave cafe (Cейфуллина): CV Склад ГП с Фуд завода",
+   "Sum.Incoming": 575322
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Абылай хана,62",
+   "Sum.Incoming": 3519223
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Айтеке Би,16 Астана",
+   "Sum.Incoming": 675698
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Байтурсынова 4/1 Астана",
+   "Sum.Incoming": 535786
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Бухар Жырау,25/1 Астана",
+   "Sum.Incoming": 753915
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Васнецова,25",
+   "Sum.Incoming": 2318130
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Кожамкулова,202",
+   "Sum.Incoming": 3249088
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Коктерек,2",
+   "Sum.Incoming": 1257982
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Майлина,10 Астана",
+   "Sum.Incoming": 387136
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Мамыр3,д.3",
+   "Sum.Incoming": 1744440
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Навои,58/1",
+   "Sum.Incoming": 2211192
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Розыбакиева 275А",
+   "Sum.Incoming": 3103432
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Самал-2, дом 105",
+   "Sum.Incoming": 2452023
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Сатпаева.90/21",
+   "Sum.Incoming": 2296577
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Тимирязева 38/1",
+   "Sum.Incoming": 1601335
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Толе би,51 Астана",
+   "Sum.Incoming": 1039379
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка г.Алматы, Илийский р-н, с.Аскар Токпанов, уч.15Д, ул.Бережинского,20",
+   "Sum.Incoming": 7819431
+  },
+  {
+   "Counteragent.Name": "104-DQ12 ТОО г.Тараз, Конаева 12",
+   "Sum.Incoming": 643744
+  },
+  {
+   "Counteragent.Name": "107-AL Group ул.Мусатай Карима 12/12 офис 11",
+   "Sum.Incoming": 321864
+  },
+  {
+   "Counteragent.Name": "111 ГЛОВО г. Алматы, ул. Желтоксан, дом 37А",
+   "Sum.Incoming": 815605
+  },
+  {
+   "Counteragent.Name": "111 ГЛОВО г.Алматы, ул.Серкебаева, 31",
+   "Sum.Incoming": 1647101
+  },
+  {
+   "Counteragent.Name": "127-TREND ENERGY г. Алматы, мкр Саялы ул. Аккайнар д.1/18, АЗС №31 Саялы",
+   "Sum.Incoming": 175073
+  },
+  {
+   "Counteragent.Name": "127-TREND ENERGY г. Текели, ул. Кунаева д.15, АЗС №14 Текели",
+   "Sum.Incoming": 226864
+  },
+  {
+   "Counteragent.Name": "2-Базилик 2 (Желтоксан)",
+   "Sum.Incoming": 1144721
+  },
+  {
+   "Counteragent.Name": "7-Kaspi Банк (Склад ГП): Склад ГП КБ",
+   "Sum.Incoming": 15260923
+  },
+  {
+   "Counteragent.Name": "85-ДФЗ (дистрибьютор)",
+   "Sum.Incoming": 81785898
+  },
+  {
+   "Counteragent.Name": "86-Crave Cafe (Жетысу-4,2а): СН Склад ГП с Фудзавода",
+   "Sum.Incoming": 720780
+  },
+  {
+   "Counteragent.Name": "9-Базилик 5 (Аксай)",
+   "Sum.Incoming": 1701419
+  },
+  {
+   "Counteragent.Name": "90- Аль-Фараби 103 н.п.407 (Примавера)",
+   "Sum.Incoming": 341204
+  },
+  {
+   "Counteragent.Name": "90-АЛЬ-ФАРАБИ 17/1 к 5б (Нурлы Тау 5Б)",
+   "Sum.Incoming": 391516
+  },
+  {
+   "Counteragent.Name": "90-Аксай 4 д119 н.п.252 (магазин Опера)",
+   "Sum.Incoming": 256931
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 19 нп 515",
+   "Sum.Incoming": 104001
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 27/1 (Магазин №92)",
+   "Sum.Incoming": 395293
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 27/3, нп 700 (№83 Аль-Фараби 27)",
+   "Sum.Incoming": 498393
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 41/7, нп 1102 (№85 Метрополь)",
+   "Sum.Incoming": 438536
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 69 Б",
+   "Sum.Incoming": 1840626
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 7, пом. ВП 3-1-5А в БЦ Нурлы Тау",
+   "Sum.Incoming": 443641
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби ул.Ондасынова ,28/3 Юбилейный  7, пом. ВП 3-1-5А в БЦ Нурлы Тау",
+   "Sum.Incoming": 1241864
+  },
+  {
+   "Counteragent.Name": "90-Аль-фараби 111а н.п.298 (Актолкын)",
+   "Sum.Incoming": 483919
+  },
+  {
+   "Counteragent.Name": "90-Бостандыкский, пр.Аль-Фараби, д.15/1 (Орион 3)",
+   "Sum.Incoming": 818217
+  },
+  {
+   "Counteragent.Name": "90-Бухар Жырау 27/5 н.п.569 (Бухар-Жырау)",
+   "Sum.Incoming": 153809
+  },
+  {
+   "Counteragent.Name": "90-Гагарина 124 н.п 760 (дом на Абая)",
+   "Sum.Incoming": 400328
+  },
+  {
+   "Counteragent.Name": "90-Гагарина 277/7 (магазин Seven Hills)",
+   "Sum.Incoming": 415914
+  },
+  {
+   "Counteragent.Name": "90-Гагарина 310 корп 4 н.п.250 (Комфорт сити 4)",
+   "Sum.Incoming": 266739
+  },
+  {
+   "Counteragent.Name": "90-Гагарина 310 корп.8 н.п.220 (Комфорт сити 8)",
+   "Sum.Incoming": 257258
+  },
+  {
+   "Counteragent.Name": "90-ЖК Мега Тауэрс Кекилбаева 270 н.п. 523",
+   "Sum.Incoming": 281321
+  },
+  {
+   "Counteragent.Name": "90-Жазылбека 20 н.п.124 (магазин Каргалы)",
+   "Sum.Incoming": 635813
+  },
+  {
+   "Counteragent.Name": "90-Жарокова 219 (маг.30)",
+   "Sum.Incoming": 126309
+  },
+  {
+   "Counteragent.Name": "90-Жибек жолы 135, литер А40-А40а",
+   "Sum.Incoming": 227353
+  },
+  {
+   "Counteragent.Name": "90-Керемет 7, пом. 444",
+   "Sum.Incoming": 614535
+  },
+  {
+   "Counteragent.Name": "90-Куанышбаева мкр-н 2, дом 28А, часть 1",
+   "Sum.Incoming": 242378
+  },
+  {
+   "Counteragent.Name": "90-Курмангазы-Радостовца 178/82 маг (Green House)",
+   "Sum.Incoming": 450649
+  },
+  {
+   "Counteragent.Name": "90-ММ АЛЬ-ФАРАБИ 21/6 ММ 79",
+   "Sum.Incoming": 234518
+  },
+  {
+   "Counteragent.Name": "90-Масанчи 88/99 (Масанчи HP)",
+   "Sum.Incoming": 186908
+  },
+  {
+   "Counteragent.Name": "90-Масанчи 98 Б н.п.43 ( КУАТна Абая-Масанчи)",
+   "Sum.Incoming": 223977
+  },
+  {
+   "Counteragent.Name": "90-Мауленова 112/88 (Мауленова HP)",
+   "Sum.Incoming": 870699
+  },
+  {
+   "Counteragent.Name": "90-Мирас д157,блок 3 ч/лит Е1отм -3,9 (Солнечная Долина)",
+   "Sum.Incoming": 270183
+  },
+  {
+   "Counteragent.Name": "90-Навои 210 корпус 1 н.п.123 (Навои)",
+   "Sum.Incoming": 413718
+  },
+  {
+   "Counteragent.Name": "90-Навои 7 н.п.375 (Авоська)",
+   "Sum.Incoming": 230098
+  },
+  {
+   "Counteragent.Name": "90-Назарбаева 248, пом. 8,9,10 в БЦ Сарканд",
+   "Sum.Incoming": 410945
+  },
+  {
+   "Counteragent.Name": "90-Назарбаева 270а (магазин Горный Гигант)",
+   "Sum.Incoming": 149902
+  },
+  {
+   "Counteragent.Name": "90-Омаровой 25 пом 41а ( маг.Европолис)",
+   "Sum.Incoming": 266548
+  },
+  {
+   "Counteragent.Name": "90-Орион Альфараби 9 блок 4 г н.п.202",
+   "Sum.Incoming": 251405
+  },
+  {
+   "Counteragent.Name": "90-Панфилова 80 н.п.2",
+   "Sum.Incoming": 197248
+  },
+  {
+   "Counteragent.Name": "90-Райымбека 165 (Райымбека НР)",
+   "Sum.Incoming": 161544
+  },
+  {
+   "Counteragent.Name": "90-Райымбека 210/ 12 корпус 5 н.п.141 ЖК Ауэзов Сити",
+   "Sum.Incoming": 139933
+  },
+  {
+   "Counteragent.Name": "90-Райымбека 210/ 5 н.п.285 (Ауэзов Сити 2)",
+   "Sum.Incoming": 201852
+  },
+  {
+   "Counteragent.Name": "90-Райымбека 210/ 6 н.п.268 (Ауэзов Сити 3)",
+   "Sum.Incoming": 73737
+  },
+  {
+   "Counteragent.Name": "90-Райымбека 210/3 блок 12 (Ауэзов Сити 4)",
+   "Sum.Incoming": 89884
+  },
+  {
+   "Counteragent.Name": "90-Розыбакиева 197/1 н.п.273 Эстет",
+   "Sum.Incoming": 227607
+  },
+  {
+   "Counteragent.Name": "90-Розыбакиева 63/5 (Бокс Парк)",
+   "Sum.Incoming": 38090
+  },
+  {
+   "Counteragent.Name": "90-Розыбакиева, 217Б блок 15 (Эстет 4)",
+   "Sum.Incoming": 382264
+  },
+  {
+   "Counteragent.Name": "90-Розыбакиева, д 217А, н.п.306 (Эстет 3) магаз.№86",
+   "Sum.Incoming": 282674
+  },
+  {
+   "Counteragent.Name": "90-Сатпаева 90/73н.п.135 (Акварель 2)",
+   "Sum.Incoming": 430228
+  },
+  {
+   "Counteragent.Name": "90-Таттимбета 9 Б ( Коктобе)",
+   "Sum.Incoming": 520168
+  },
+  {
+   "Counteragent.Name": "90-Театральный Жамбыла д. 48",
+   "Sum.Incoming": 300978
+  },
+  {
+   "Counteragent.Name": "90-Утепова  31 блок 10 нп.3515  ЖК Рамс Сити",
+   "Sum.Incoming": 112199
+  },
+  {
+   "Counteragent.Name": "90-Шевченко 97/Масанчи 71 (Буфет НР) магазин 67",
+   "Sum.Incoming": 61296
+  },
+  {
+   "Counteragent.Name": "90-мкр-н Коктем-3, дом 17",
+   "Sum.Incoming": 1004290
+  },
+  {
+   "Counteragent.Name": "90-мкрн САМАЛ 3, 15к1",
+   "Sum.Incoming": 459134
+  },
+  {
+   "Counteragent.Name": "90-пр-т Абылай хана д,3А",
+   "Sum.Incoming": 120160
+  },
+  {
+   "Counteragent.Name": "90-пр. Сейфуллина, д. 498, н.п. 24А",
+   "Sum.Incoming": 279413
+  },
+  {
+   "Counteragent.Name": "90-ул. Желтоксан 175, маг. 93 Казрадио",
+   "Sum.Incoming": 154803
+  },
+  {
+   "Counteragent.Name": "90-ул.Сатпаева 90/ 67  нп 67 (магазин \"Акварель\")",
+   "Sum.Incoming": 143221
+  },
+  {
+   "Counteragent.Name": "96-ТОО DSF (дистрибьютор)",
+   "Sum.Incoming": 6685338
+  },
+  {
+   "Counteragent.Name": "97-ИП Ник и Ко (Кейтеринг)",
+   "Sum.Incoming": 370094
+  },
+  {
+   "Counteragent.Name": "98-O-live: Склад O-live ",
+   "Sum.Incoming": 7117910
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 1",
+   "Sum.Incoming": 556702
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 10",
+   "Sum.Incoming": 386222
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 13 А",
+   "Sum.Incoming": 84154
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 15",
+   "Sum.Incoming": 56878
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 17",
+   "Sum.Incoming": 70070
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 18",
+   "Sum.Incoming": 327502
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 201",
+   "Sum.Incoming": 1014898
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 202",
+   "Sum.Incoming": 840054
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 203",
+   "Sum.Incoming": 334046
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 204",
+   "Sum.Incoming": 1273256
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 205",
+   "Sum.Incoming": 456550
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 206",
+   "Sum.Incoming": 900314
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 207",
+   "Sum.Incoming": 498204
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 21 А",
+   "Sum.Incoming": 175136
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 22",
+   "Sum.Incoming": 49890
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 23",
+   "Sum.Incoming": 49518
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 26",
+   "Sum.Incoming": 509612
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 27",
+   "Sum.Incoming": 56880
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 28",
+   "Sum.Incoming": 129950
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 29",
+   "Sum.Incoming": 246462
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 30",
+   "Sum.Incoming": 66688
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 301",
+   "Sum.Incoming": 294822
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 302",
+   "Sum.Incoming": 450460
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 303",
+   "Sum.Incoming": 601058
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 304",
+   "Sum.Incoming": 108492
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 305",
+   "Sum.Incoming": 765190
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 306",
+   "Sum.Incoming": 618028
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 307",
+   "Sum.Incoming": 133650
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 308",
+   "Sum.Incoming": 91566
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 309",
+   "Sum.Incoming": 216832
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 31",
+   "Sum.Incoming": 75108
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 32",
+   "Sum.Incoming": 199810
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 33",
+   "Sum.Incoming": 94986
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 34",
+   "Sum.Incoming": 117722
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 36",
+   "Sum.Incoming": 85036
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 37",
+   "Sum.Incoming": 35238
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 38",
+   "Sum.Incoming": 430122
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 39",
+   "Sum.Incoming": 108636
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 4",
+   "Sum.Incoming": 165546
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 42",
+   "Sum.Incoming": 203646
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 45",
+   "Sum.Incoming": 137058
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 46",
+   "Sum.Incoming": 57186
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 47",
+   "Sum.Incoming": 258324
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 48",
+   "Sum.Incoming": 102442
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 5",
+   "Sum.Incoming": 156124
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 50",
+   "Sum.Incoming": 78514
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 51",
+   "Sum.Incoming": 424790
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 52",
+   "Sum.Incoming": 224672
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 53",
+   "Sum.Incoming": 139748
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 54",
+   "Sum.Incoming": 212334
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 55",
+   "Sum.Incoming": 62428
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 57",
+   "Sum.Incoming": 100428
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 58",
+   "Sum.Incoming": 59058
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 59",
+   "Sum.Incoming": 51148
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 6",
+   "Sum.Incoming": 89466
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 60",
+   "Sum.Incoming": 117956
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 61",
+   "Sum.Incoming": 67528
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 62",
+   "Sum.Incoming": 188052
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 63",
+   "Sum.Incoming": 147856
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 65",
+   "Sum.Incoming": 266614
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 66",
+   "Sum.Incoming": 26670
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 67",
+   "Sum.Incoming": 300966
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 68",
+   "Sum.Incoming": 121070
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 69",
+   "Sum.Incoming": 96760
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 7",
+   "Sum.Incoming": 642034
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 70",
+   "Sum.Incoming": 73216
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 71",
+   "Sum.Incoming": 95412
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 72",
+   "Sum.Incoming": 607958
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 73",
+   "Sum.Incoming": 240812
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 74",
+   "Sum.Incoming": 449076
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 75",
+   "Sum.Incoming": 60776
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 9",
+   "Sum.Incoming": 158486
+  },
+  {
+   "Counteragent.Name": "Аллазова Телли",
+   "Sum.Incoming": 330
+  },
+  {
+   "Counteragent.Name": "Альжанова Зауреш",
+   "Sum.Incoming": 750
+  },
+  {
+   "Counteragent.Name": "Аман Бану",
+   "Sum.Incoming": 2175
+  },
+  {
+   "Counteragent.Name": "Арестов Эдуард",
+   "Sum.Incoming": 1800
+  },
+  {
+   "Counteragent.Name": "Бейсембаева Галия",
+   "Sum.Incoming": 4775
+  },
+  {
+   "Counteragent.Name": "Билисбекова Жумагуль",
+   "Sum.Incoming": 915
+  },
+  {
+   "Counteragent.Name": "Герасименко Ольга",
+   "Sum.Incoming": 12904
+  },
+  {
+   "Counteragent.Name": "Дубинина Нина",
+   "Sum.Incoming": 635
+  },
+  {
+   "Counteragent.Name": "Есжанова Гюзяль",
+   "Sum.Incoming": 27478
+  },
+  {
+   "Counteragent.Name": "Жумабиева Айнур",
+   "Sum.Incoming": 284
+  },
+  {
+   "Counteragent.Name": "Жунискулова Гульжазира",
+   "Sum.Incoming": 940
+  },
+  {
+   "Counteragent.Name": "Изгибаев Медетбек",
+   "Sum.Incoming": 330
+  },
+  {
+   "Counteragent.Name": "Иналка Фуд Сервис ТОО",
+   "Sum.Incoming": 504960
+  },
+  {
+   "Counteragent.Name": "Инкарбекова Шугыла",
+   "Sum.Incoming": 1880
+  },
+  {
+   "Counteragent.Name": "Ирсымбетов Жамбыл",
+   "Sum.Incoming": 1500
+  },
+  {
+   "Counteragent.Name": "Калиева Бакыт",
+   "Sum.Incoming": 330
+  },
+  {
+   "Counteragent.Name": "Калмурзаева Гулсауир",
+   "Sum.Incoming": 1500
+  },
+  {
+   "Counteragent.Name": "Куанышбек Гулдераим",
+   "Sum.Incoming": 330
+  },
+  {
+   "Counteragent.Name": "Кузенова Мария",
+   "Sum.Incoming": 1455
+  },
+  {
+   "Counteragent.Name": "Култаева Жадыра",
+   "Sum.Incoming": 330
+  },
+  {
+   "Counteragent.Name": "Мамбетаев Оралгалы",
+   "Sum.Incoming": 515
+  },
+  {
+   "Counteragent.Name": "Мухтарова Арайлым",
+   "Sum.Incoming": 6430
+  },
+  {
+   "Counteragent.Name": "Нугымбетова Дана",
+   "Sum.Incoming": 330
+  },
+  {
+   "Counteragent.Name": "Нурлан Ляззат",
+   "Sum.Incoming": 6045
+  },
+  {
+   "Counteragent.Name": "Ти Ирина",
+   "Sum.Incoming": 15076
+  },
+  {
+   "Counteragent.Name": "Худобаева Зарифа",
+   "Sum.Incoming": 8738
+  },
+  {
+   "Counteragent.Name": "Шашубаева Гулжан",
+   "Sum.Incoming": 1725
+  }
+ ],
+ "выручка_по_дням_окт": [
+  {
+   "DateTime.DateTyped": "2026-10-01",
+   "Sum.Incoming": 12976111
+  },
+  {
+   "DateTime.DateTyped": "2026-10-02",
+   "Sum.Incoming": 11257871
+  },
+  {
+   "DateTime.DateTyped": "2026-10-03",
+   "Sum.Incoming": 307041
+  },
+  {
+   "DateTime.DateTyped": "2026-10-04",
+   "Sum.Incoming": 8035663
+  },
+  {
+   "DateTime.DateTyped": "2026-10-05",
+   "Sum.Incoming": 13472617
+  },
+  {
+   "DateTime.DateTyped": "2026-10-06",
+   "Sum.Incoming": 8612126
+  },
+  {
+   "DateTime.DateTyped": "2026-10-07",
+   "Sum.Incoming": 10290033
+  },
+  {
+   "DateTime.DateTyped": "2026-10-08",
+   "Sum.Incoming": 12986918
+  },
+  {
+   "DateTime.DateTyped": "2026-10-09",
+   "Sum.Incoming": 11649902
+  },
+  {
+   "DateTime.DateTyped": "2026-10-10",
+   "Sum.Incoming": 251460
+  },
+  {
+   "DateTime.DateTyped": "2026-10-11",
+   "Sum.Incoming": 7405964
+  },
+  {
+   "DateTime.DateTyped": "2026-10-12",
+   "Sum.Incoming": 12821414
+  },
+  {
+   "DateTime.DateTyped": "2026-10-13",
+   "Sum.Incoming": 8719408
+  },
+  {
+   "DateTime.DateTyped": "2026-10-14",
+   "Sum.Incoming": 11063471
+  },
+  {
+   "DateTime.DateTyped": "2026-10-15",
+   "Sum.Incoming": 11215327
+  },
+  {
+   "DateTime.DateTyped": "2026-10-16",
+   "Sum.Incoming": 14346595
+  },
+  {
+   "DateTime.DateTyped": "2026-10-17",
+   "Sum.Incoming": 230287
+  },
+  {
+   "DateTime.DateTyped": "2026-10-18",
+   "Sum.Incoming": 6042657
+  },
+  {
+   "DateTime.DateTyped": "2026-10-19",
+   "Sum.Incoming": 12275110
+  },
+  {
+   "DateTime.DateTyped": "2026-10-20",
+   "Sum.Incoming": 13261676
+  },
+  {
+   "DateTime.DateTyped": "2026-10-21",
+   "Sum.Incoming": 10445259
+  }
+ ],
+ "сервисные_возвраты_окт": [
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90- Аль-Фараби 103 н.п.407 (Примавера)",
+   "Sum.Incoming": 107168
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90- Аль-Фараби 103 н.п.407 (Примавера)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-АЛЬ-ФАРАБИ 17/1 к 5б (Нурлы Тау 5Б)",
+   "Sum.Incoming": 116982
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-АЛЬ-ФАРАБИ 17/1 к 5б (Нурлы Тау 5Б)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Аксай 4 д119 н.п.252 (магазин Опера)",
+   "Sum.Incoming": 103174
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Аксай 4 д119 н.п.252 (магазин Опера)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Аль-Фараби 19 нп 515",
+   "Sum.Incoming": 72379
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Аль-Фараби 19 нп 515",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Аль-Фараби 27/1 (Магазин №92)",
+   "Sum.Incoming": 80073
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Аль-Фараби 27/1 (Магазин №92)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Аль-Фараби 27/3, нп 700 (№83 Аль-Фараби 27)",
+   "Sum.Incoming": 245472
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Аль-Фараби 27/3, нп 700 (№83 Аль-Фараби 27)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Аль-Фараби 41/7, нп 1102 (№85 Метрополь)",
+   "Sum.Incoming": 90433
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Аль-Фараби 41/7, нп 1102 (№85 Метрополь)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Аль-Фараби 69 Б",
+   "Sum.Incoming": 523583
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Аль-Фараби 69 Б",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Аль-Фараби 7, пом. ВП 3-1-5А в БЦ Нурлы Тау",
+   "Sum.Incoming": 115387
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Аль-Фараби 7, пом. ВП 3-1-5А в БЦ Нурлы Тау",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Аль-Фараби ул.Ондасынова ,28/3 Юбилейный  7, пом. ВП 3-1-5А в БЦ Нурлы Тау",
+   "Sum.Incoming": 137145
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Аль-Фараби ул.Ондасынова ,28/3 Юбилейный  7, пом. ВП 3-1-5А в БЦ Нурлы Тау",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Аль-фараби 111а н.п.298 (Актолкын)",
+   "Sum.Incoming": 163430
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Аль-фараби 111а н.п.298 (Актолкын)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Бостандыкский, пр.Аль-Фараби, д.15/1 (Орион 3)",
+   "Sum.Incoming": 209704
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Бостандыкский, пр.Аль-Фараби, д.15/1 (Орион 3)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Бухар Жырау 27/5 н.п.569 (Бухар-Жырау)",
+   "Sum.Incoming": 111293
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Бухар Жырау 27/5 н.п.569 (Бухар-Жырау)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Гагарина 124 н.п 760 (дом на Абая)",
+   "Sum.Incoming": 95486
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Гагарина 124 н.п 760 (дом на Абая)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Гагарина 277/7 (магазин Seven Hills)",
+   "Sum.Incoming": 109127
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Гагарина 277/7 (магазин Seven Hills)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Гагарина 310 корп 4 н.п.250 (Комфорт сити 4)",
+   "Sum.Incoming": 135531
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Гагарина 310 корп 4 н.п.250 (Комфорт сити 4)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Гагарина 310 корп.8 н.п.220 (Комфорт сити 8)",
+   "Sum.Incoming": 69173
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Гагарина 310 корп.8 н.п.220 (Комфорт сити 8)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-ЖК Мега Тауэрс Кекилбаева 270 н.п. 523",
+   "Sum.Incoming": 100093
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-ЖК Мега Тауэрс Кекилбаева 270 н.п. 523",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Жазылбека 20 н.п.124 (магазин Каргалы)",
+   "Sum.Incoming": 61183
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Жазылбека 20 н.п.124 (магазин Каргалы)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Жарокова 219 (маг.30)",
+   "Sum.Incoming": 76225
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Жарокова 219 (маг.30)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Жибек жолы 135, литер А40-А40а",
+   "Sum.Incoming": 107919
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Жибек жолы 135, литер А40-А40а",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Керемет 7, пом. 444",
+   "Sum.Incoming": 135838
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Керемет 7, пом. 444",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Куанышбаева мкр-н 2, дом 28А, часть 1",
+   "Sum.Incoming": 9346
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Куанышбаева мкр-н 2, дом 28А, часть 1",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Курмангазы-Радостовца 178/82 маг (Green House)",
+   "Sum.Incoming": 77645
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Курмангазы-Радостовца 178/82 маг (Green House)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-ММ АЛЬ-ФАРАБИ 21/6 ММ 79",
+   "Sum.Incoming": 113071
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-ММ АЛЬ-ФАРАБИ 21/6 ММ 79",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Масанчи 88/99 (Масанчи HP)",
+   "Sum.Incoming": 67846
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Масанчи 88/99 (Масанчи HP)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Масанчи 98 Б н.п.43 ( КУАТна Абая-Масанчи)",
+   "Sum.Incoming": 148259
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Масанчи 98 Б н.п.43 ( КУАТна Абая-Масанчи)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Мауленова 112/88 (Мауленова HP)",
+   "Sum.Incoming": 187102
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Мауленова 112/88 (Мауленова HP)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Мирас д157,блок 3 ч/лит Е1отм -3,9 (Солнечная Долина)",
+   "Sum.Incoming": 78673
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Мирас д157,блок 3 ч/лит Е1отм -3,9 (Солнечная Долина)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Навои 210 корпус 1 н.п.123 (Навои)",
+   "Sum.Incoming": 134015
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Навои 210 корпус 1 н.п.123 (Навои)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Навои 7 н.п.375 (Авоська)",
+   "Sum.Incoming": 39766
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Навои 7 н.п.375 (Авоська)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Назарбаева 248, пом. 8,9,10 в БЦ Сарканд",
+   "Sum.Incoming": 155072
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Назарбаева 248, пом. 8,9,10 в БЦ Сарканд",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Назарбаева 270а (магазин Горный Гигант)",
+   "Sum.Incoming": 113695
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Назарбаева 270а (магазин Горный Гигант)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Омаровой 25 пом 41а ( маг.Европолис)",
+   "Sum.Incoming": 80047
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Омаровой 25 пом 41а ( маг.Европолис)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Орион Альфараби 9 блок 4 г н.п.202",
+   "Sum.Incoming": 109843
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Орион Альфараби 9 блок 4 г н.п.202",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Панфилова 80 н.п.2",
+   "Sum.Incoming": 70355
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Панфилова 80 н.п.2",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Райымбека 165 (Райымбека НР)",
+   "Sum.Incoming": 53436
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Райымбека 165 (Райымбека НР)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Райымбека 210/ 12 корпус 5 н.п.141 ЖК Ауэзов Сити",
+   "Sum.Incoming": 16578
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Райымбека 210/ 12 корпус 5 н.п.141 ЖК Ауэзов Сити",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Райымбека 210/ 5 н.п.285 (Ауэзов Сити 2)",
+   "Sum.Incoming": 43439
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Райымбека 210/ 5 н.п.285 (Ауэзов Сити 2)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Райымбека 210/ 6 н.п.268 (Ауэзов Сити 3)",
+   "Sum.Incoming": 44375
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Райымбека 210/ 6 н.п.268 (Ауэзов Сити 3)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Райымбека 210/3 блок 12 (Ауэзов Сити 4)",
+   "Sum.Incoming": 21363
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Райымбека 210/3 блок 12 (Ауэзов Сити 4)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Розыбакиева 197/1 н.п.273 Эстет",
+   "Sum.Incoming": 141828
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Розыбакиева 197/1 н.п.273 Эстет",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Розыбакиева 63/5 (Бокс Парк)",
+   "Sum.Incoming": 19342
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Розыбакиева 63/5 (Бокс Парк)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Розыбакиева, 217Б блок 15 (Эстет 4)",
+   "Sum.Incoming": 102866
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Розыбакиева, 217Б блок 15 (Эстет 4)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Розыбакиева, д 217А, н.п.306 (Эстет 3) магаз.№86",
+   "Sum.Incoming": 40691
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Розыбакиева, д 217А, н.п.306 (Эстет 3) магаз.№86",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Сатпаева 90/73н.п.135 (Акварель 2)",
+   "Sum.Incoming": 144502
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Сатпаева 90/73н.п.135 (Акварель 2)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Таттимбета 9 Б ( Коктобе)",
+   "Sum.Incoming": 42063
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Таттимбета 9 Б ( Коктобе)",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Театральный Жамбыла д. 48",
+   "Sum.Incoming": 63719
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Театральный Жамбыла д. 48",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Утепова  31 блок 10 нп.3515  ЖК Рамс Сити",
+   "Sum.Incoming": 39925
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Утепова  31 блок 10 нп.3515  ЖК Рамс Сити",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-Шевченко 97/Масанчи 71 (Буфет НР) магазин 67",
+   "Sum.Incoming": 8366
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-Шевченко 97/Масанчи 71 (Буфет НР) магазин 67",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-мкр-н Коктем-3, дом 17",
+   "Sum.Incoming": 388112
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-мкр-н Коктем-3, дом 17",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-мкрн САМАЛ 3, 15к1",
+   "Sum.Incoming": 166728
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-мкрн САМАЛ 3, 15к1",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-пр-т Абылай хана д,3А",
+   "Sum.Incoming": 40978
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-пр-т Абылай хана д,3А",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-пр. Сейфуллина, д. 498, н.п. 24А",
+   "Sum.Incoming": 107359
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-пр. Сейфуллина, д. 498, н.п. 24А",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-ул. Желтоксан 175, маг. 93 Казрадио",
+   "Sum.Incoming": 124034
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-ул. Желтоксан 175, маг. 93 Казрадио",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Counteragent.Name": "90-ул.Сатпаева 90/ 67  нп 67 (магазин \"Акварель\")",
+   "Sum.Incoming": 53708
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "90-ул.Сатпаева 90/ 67  нп 67 (магазин \"Акварель\")",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "2.1.ЗП Производство",
+   "Counteragent.Name": "EasyTap Business ТОО",
+   "Sum.Incoming": 1940108
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "EasyTap Business ТОО",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "3.3.15.Видеонаблюдение,пожарная сигнализация",
+   "Counteragent.Name": "GLOBA ИП",
+   "Sum.Incoming": 49500
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "GLOBA ИП",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "3.3.1.Админ.расходы ПРОЧИЕ",
+   "Counteragent.Name": "Office expert канцтовары",
+   "Sum.Incoming": 21299
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "Office expert канцтовары",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "1.9.Ремонт/Обслуживание производ.оборудования",
+   "Counteragent.Name": "Public Health Inspection ТОО",
+   "Sum.Incoming": 115395
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "Public Health Inspection ТОО",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "3.3.1.Админ.расходы ПРОЧИЕ",
+   "Counteragent.Name": "Qloom подписка Wazzup",
+   "Sum.Incoming": 292400
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "Qloom подписка Wazzup",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "НУРТАЗИН М.Б. ИП",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Логистика доставка ",
+   "Counteragent.Name": "НУРТАЗИН М.Б. ИП",
+   "Sum.Incoming": 928000
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "Переделка",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "Переделки, недовозы",
+   "Counteragent.Name": "Переделка",
+   "Sum.Incoming": 1993295
+  },
+  {
+   "Account.Name": "3.3.1.Админ.расходы ПРОЧИЕ",
+   "Counteragent.Name": "Страховая компания Евразия",
+   "Sum.Incoming": 1097608
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "Страховая компания Евразия",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "3.3.1.Админ.расходы ПРОЧИЕ",
+   "Counteragent.Name": "ФУД ВЕНДИНГ",
+   "Sum.Incoming": 983000
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "ФУД ВЕНДИНГ",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "3.1.Аренда (пр-во)",
+   "Counteragent.Name": "Экспресс-Сервис ТОО",
+   "Sum.Incoming": 50000
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "Экспресс-Сервис ТОО",
+   "Sum.Incoming": 0
+  }
+ ],
+ "оплата_труда_окт": [
+  {
+   "Account.Name": "1.1.Себестоимость продуктовая",
+   "Sum.Incoming": 96977641,
+   "Sum.Outgoing": 1429831
+  },
+  {
+   "Account.Name": "1.13.Коррекция отрицательных остатков на складе",
+   "Sum.Incoming": 1,
+   "Sum.Outgoing": 1
+  },
+  {
+   "Account.Name": "1.2.Производ.расходы прочие",
+   "Sum.Incoming": 163840,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.24.Бракераж",
+   "Sum.Incoming": 416,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.25.Проработка блюд (текущих)",
+   "Sum.Incoming": 40732,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.26.За счет МОЛ",
+   "Sum.Incoming": 29802,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.28.Брак",
+   "Sum.Incoming": 1163084,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.30.Возвраты от дистрибьютеров",
+   "Sum.Incoming": 2117228,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.5.Расходный материал производство",
+   "Sum.Incoming": 47000,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.7.Истек срок хранения (порча)",
+   "Sum.Incoming": 90402,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.9.Ремонт/Обслуживание производ.оборудования",
+   "Sum.Incoming": 170395,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "2.1.ЗП Производство",
+   "Sum.Incoming": 1940108,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "2.4.Питание персонала",
+   "Sum.Incoming": 301848,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "2.5.1.Расходы по реализации Прочие",
+   "Sum.Incoming": 132660,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "2.5.5.Проработка новых блюд",
+   "Sum.Incoming": 16748,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "2.5.9.Продвижение товара",
+   "Sum.Incoming": 218675,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3.1.Аренда (пр-во)",
+   "Sum.Incoming": 50000,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3.3.1.Админ.расходы ПРОЧИЕ",
+   "Sum.Incoming": 2647298,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3.3.15.Видеонаблюдение,пожарная сигнализация",
+   "Sum.Incoming": 49500,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3.3.16.Регистрация нерезидентов",
+   "Sum.Incoming": 15000,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3.3.17.Вакансии размещение",
+   "Sum.Incoming": 20000,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3.3.5.Услуги банка",
+   "Sum.Incoming": 478959,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3.3.9.Расходы по ТОО, ИП",
+   "Sum.Incoming": 10813,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "4-Подотчет",
+   "Sum.Incoming": 4757000,
+   "Sum.Outgoing": 6503761
+  },
+  {
+   "Account.Name": "99Главная касса ",
+   "Sum.Incoming": 60160202,
+   "Sum.Outgoing": 55654875
+  },
+  {
+   "Account.Name": "Авансы выданные",
+   "Sum.Incoming": 16259171,
+   "Sum.Outgoing": 5050933
+  },
+  {
+   "Account.Name": "Возвраты Ммарт",
+   "Sum.Incoming": 6014945,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "Доходы прочие (аренда,ЧЛ и проч.)",
+   "Sum.Incoming": 0,
+   "Sum.Outgoing": 20000
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Sum.Incoming": 328312857,
+   "Sum.Outgoing": 305539881
+  },
+  {
+   "Account.Name": "Касса Взаиморасчеты",
+   "Sum.Incoming": 59362385,
+   "Sum.Outgoing": 59362385
+  },
+  {
+   "Account.Name": "Лагман+Плов ФЗ",
+   "Sum.Incoming": 1016401,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "Логистика доставка ",
+   "Sum.Incoming": 928000,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "Основной склад (инвентарь) ФЗ",
+   "Sum.Incoming": 390780,
+   "Sum.Outgoing": 327077
+  },
+  {
+   "Account.Name": "Основной склад (несъедобное) ФЗ",
+   "Sum.Incoming": 13818769,
+   "Sum.Outgoing": 13526521
+  },
+  {
+   "Account.Name": "Основной склад (сырье) ФЗ",
+   "Sum.Incoming": 88073473,
+   "Sum.Outgoing": 89989579
+  },
+  {
+   "Account.Name": "Переделки, недовозы",
+   "Sum.Incoming": 1993295,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "Расчеты с гостями",
+   "Sum.Incoming": 504960,
+   "Sum.Outgoing": 7800000
+  },
+  {
+   "Account.Name": "Склад ГП ФЗ",
+   "Sum.Incoming": 101399070,
+   "Sum.Outgoing": 97842937
+  },
+  {
+   "Account.Name": "Склад Инвентарь ФЗ",
+   "Sum.Incoming": 274577,
+   "Sum.Outgoing": 189119
+  },
+  {
+   "Account.Name": "Склад Пекарня+Кондитерка ФЗ",
+   "Sum.Incoming": 21171942,
+   "Sum.Outgoing": 30484528
+  },
+  {
+   "Account.Name": "Склад Производство ФЗ",
+   "Sum.Incoming": 77610703,
+   "Sum.Outgoing": 70174869
+  },
+  {
+   "Account.Name": "Склад Расходный материалов ФЗ",
+   "Sum.Incoming": 2237760,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "Склад Сайт",
+   "Sum.Incoming": 29987,
+   "Sum.Outgoing": 91004
+  },
+  {
+   "Account.Name": "Склад ТЕСТ",
+   "Sum.Incoming": 0,
+   "Sum.Outgoing": 745646
+  },
+  {
+   "Account.Name": "Текущие расчеты с сотрудниками",
+   "Sum.Incoming": 63940125,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "Торговая выручка",
+   "Sum.Incoming": 0,
+   "Sum.Outgoing": 199660295
+  },
+  {
+   "Account.Name": "ФЗ Айдана жусан банк ",
+   "Sum.Incoming": 11500000,
+   "Sum.Outgoing": 11534500
+  },
+  {
+   "Account.Name": "ФЗ Айдана каспи",
+   "Sum.Incoming": 33515324,
+   "Sum.Outgoing": 33669668
+  },
+  {
+   "Account.Name": "ФЗ ВТБ банк ",
+   "Sum.Incoming": 0,
+   "Sum.Outgoing": 58000
+  },
+  {
+   "Account.Name": "ФЗ Ермагамбет отдел продаж",
+   "Sum.Incoming": 424385,
+   "Sum.Outgoing": 424385
+  },
+  {
+   "Account.Name": "ФЗ Жусан Банк",
+   "Sum.Incoming": 3100380,
+   "Sum.Outgoing": 2358500
+  },
+  {
+   "Account.Name": "ФЗ Каспи",
+   "Sum.Incoming": 167109234,
+   "Sum.Outgoing": 180691696
+  },
+  {
+   "Account.Name": "ФЗ Малышев каспи",
+   "Sum.Incoming": 50000,
+   "Sum.Outgoing": 1950
+  },
+  {
+   "Account.Name": "ФЗ РБК Каламкас",
+   "Sum.Incoming": 159570466,
+   "Sum.Outgoing": 157074000
+  },
+  {
+   "Account.Name": "ФЗ Сапакова Кредит (Нурбанк)",
+   "Sum.Incoming": 0,
+   "Sum.Outgoing": 2400
+  }
+ ],
+ "выручка_по_контрагентам_ноя": [
+  {
+   "Counteragent.Name": "0Частное лицо Покупатель",
+   "Sum.Incoming": 381268
+  },
+  {
+   "Counteragent.Name": "1-Базилик 1 (Шевченко)",
+   "Sum.Incoming": 716130
+  },
+  {
+   "Counteragent.Name": "100-Сrave cafe (Cейфуллина): CV Склад ГП с Фуд завода",
+   "Sum.Incoming": 77246
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Абылай хана,62",
+   "Sum.Incoming": 726784
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Айтеке Би,16 Астана",
+   "Sum.Incoming": 68204
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Байтурсынова 4/1 Астана",
+   "Sum.Incoming": 48348
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Бухар Жырау,25/1 Астана",
+   "Sum.Incoming": 130678
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Васнецова,25",
+   "Sum.Incoming": 459545
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Кожамкулова,202",
+   "Sum.Incoming": 643235
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Коктерек,2",
+   "Sum.Incoming": 243554
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Майлина,10 Астана",
+   "Sum.Incoming": 44832
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Мамыр3,д.3",
+   "Sum.Incoming": 365669
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Навои,58/1",
+   "Sum.Incoming": 443772
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Розыбакиева 275А",
+   "Sum.Incoming": 611238
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Самал-2, дом 105",
+   "Sum.Incoming": 526425
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Сатпаева.90/21",
+   "Sum.Incoming": 431903
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Тимирязева 38/1",
+   "Sum.Incoming": 370494
+  },
+  {
+   "Counteragent.Name": "102-Яндекс лавка Толе би,51 Астана",
+   "Sum.Incoming": 179514
+  },
+  {
+   "Counteragent.Name": "107-AL Group ул.Мусатай Карима 12/12 офис 11",
+   "Sum.Incoming": 47225
+  },
+  {
+   "Counteragent.Name": "111 ГЛОВО г. Алматы, ул. Желтоксан, дом 37А",
+   "Sum.Incoming": 168742
+  },
+  {
+   "Counteragent.Name": "111 ГЛОВО г.Алматы, ул.Серкебаева, 31",
+   "Sum.Incoming": 359049
+  },
+  {
+   "Counteragent.Name": "127-TREND ENERGY г. Алматы, мкр Саялы ул. Аккайнар д.1/18, АЗС №31 Саялы",
+   "Sum.Incoming": 55677
+  },
+  {
+   "Counteragent.Name": "128-SET24  г.Алматы, ул.У.Исаева, 159",
+   "Sum.Incoming": 637437
+  },
+  {
+   "Counteragent.Name": "129-Fitness Food Business",
+   "Sum.Incoming": 29400
+  },
+  {
+   "Counteragent.Name": "2-Базилик 2 (Желтоксан)",
+   "Sum.Incoming": 238320
+  },
+  {
+   "Counteragent.Name": "85-ДФЗ (дистрибьютор)",
+   "Sum.Incoming": 8706101
+  },
+  {
+   "Counteragent.Name": "86-Crave Cafe (Жетысу-4,2а): СН Склад ГП с Фудзавода",
+   "Sum.Incoming": 191865
+  },
+  {
+   "Counteragent.Name": "9-Базилик 5 (Аксай)",
+   "Sum.Incoming": 391070
+  },
+  {
+   "Counteragent.Name": "90- Аль-Фараби 103 н.п.407 (Примавера)",
+   "Sum.Incoming": 61697
+  },
+  {
+   "Counteragent.Name": "90-АЛЬ-ФАРАБИ 17/1 к 5б (Нурлы Тау 5Б)",
+   "Sum.Incoming": 66981
+  },
+  {
+   "Counteragent.Name": "90-Аксай 4 д119 н.п.252 (магазин Опера)",
+   "Sum.Incoming": 35320
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 19 нп 515",
+   "Sum.Incoming": 25789
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 27/1 (Магазин №92)",
+   "Sum.Incoming": 44503
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 27/3, нп 700 (№83 Аль-Фараби 27)",
+   "Sum.Incoming": 66296
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 41/7, нп 1102 (№85 Метрополь)",
+   "Sum.Incoming": 112675
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 69 Б",
+   "Sum.Incoming": 398535
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби 7, пом. ВП 3-1-5А в БЦ Нурлы Тау",
+   "Sum.Incoming": 207359
+  },
+  {
+   "Counteragent.Name": "90-Аль-Фараби ул.Ондасынова ,28/3 Юбилейный  7, пом. ВП 3-1-5А в БЦ Нурлы Тау",
+   "Sum.Incoming": 195237
+  },
+  {
+   "Counteragent.Name": "90-Аль-фараби 111а н.п.298 (Актолкын)",
+   "Sum.Incoming": 150602
+  },
+  {
+   "Counteragent.Name": "90-Бостандыкский, пр.Аль-Фараби, д.15/1 (Орион 3)",
+   "Sum.Incoming": 186450
+  },
+  {
+   "Counteragent.Name": "90-Бухар Жырау 27/5 н.п.569 (Бухар-Жырау)",
+   "Sum.Incoming": 27646
+  },
+  {
+   "Counteragent.Name": "90-Гагарина 124 н.п 760 (дом на Абая)",
+   "Sum.Incoming": 93862
+  },
+  {
+   "Counteragent.Name": "90-Гагарина 277/7 (магазин Seven Hills)",
+   "Sum.Incoming": 87462
+  },
+  {
+   "Counteragent.Name": "90-Гагарина 310 корп 4 н.п.250 (Комфорт сити 4)",
+   "Sum.Incoming": 17315
+  },
+  {
+   "Counteragent.Name": "90-Гагарина 310 корп.8 н.п.220 (Комфорт сити 8)",
+   "Sum.Incoming": 36746
+  },
+  {
+   "Counteragent.Name": "90-ЖК Мега Тауэрс Кекилбаева 270 н.п. 523",
+   "Sum.Incoming": 33814
+  },
+  {
+   "Counteragent.Name": "90-Жазылбека 20 н.п.124 (магазин Каргалы)",
+   "Sum.Incoming": 157806
+  },
+  {
+   "Counteragent.Name": "90-Жарокова 219 (маг.30)",
+   "Sum.Incoming": 34951
+  },
+  {
+   "Counteragent.Name": "90-Жибек жолы 135, литер А40-А40а",
+   "Sum.Incoming": 55703
+  },
+  {
+   "Counteragent.Name": "90-Керемет 7, пом. 444",
+   "Sum.Incoming": 125818
+  },
+  {
+   "Counteragent.Name": "90-Куанышбаева мкр-н 2, дом 28А, часть 1",
+   "Sum.Incoming": 67922
+  },
+  {
+   "Counteragent.Name": "90-Курмангазы-Радостовца 178/82 маг (Green House)",
+   "Sum.Incoming": 131114
+  },
+  {
+   "Counteragent.Name": "90-ММ АЛЬ-ФАРАБИ 21/6 ММ 79",
+   "Sum.Incoming": 36307
+  },
+  {
+   "Counteragent.Name": "90-Масанчи 88/99 (Масанчи HP)",
+   "Sum.Incoming": 52699
+  },
+  {
+   "Counteragent.Name": "90-Масанчи 98 Б н.п.43 ( КУАТна Абая-Масанчи)",
+   "Sum.Incoming": 13376
+  },
+  {
+   "Counteragent.Name": "90-Мауленова 112/88 (Мауленова HP)",
+   "Sum.Incoming": 272861
+  },
+  {
+   "Counteragent.Name": "90-Мирас д157,блок 3 ч/лит Е1отм -3,9 (Солнечная Долина)",
+   "Sum.Incoming": 54010
+  },
+  {
+   "Counteragent.Name": "90-Навои 210 корпус 1 н.п.123 (Навои)",
+   "Sum.Incoming": 84366
+  },
+  {
+   "Counteragent.Name": "90-Навои 7 н.п.375 (Авоська)",
+   "Sum.Incoming": 65619
+  },
+  {
+   "Counteragent.Name": "90-Назарбаева 248, пом. 8,9,10 в БЦ Сарканд",
+   "Sum.Incoming": 69323
+  },
+  {
+   "Counteragent.Name": "90-Назарбаева 270а (магазин Горный Гигант)",
+   "Sum.Incoming": 20488
+  },
+  {
+   "Counteragent.Name": "90-Омаровой 25 пом 41а ( маг.Европолис)",
+   "Sum.Incoming": 79086
+  },
+  {
+   "Counteragent.Name": "90-Орион Альфараби 9 блок 4 г н.п.202",
+   "Sum.Incoming": 48171
+  },
+  {
+   "Counteragent.Name": "90-Панфилова 80 н.п.2",
+   "Sum.Incoming": 12225
+  },
+  {
+   "Counteragent.Name": "90-Райымбека 165 (Райымбека НР)",
+   "Sum.Incoming": 65593
+  },
+  {
+   "Counteragent.Name": "90-Райымбека 210/ 12 корпус 5 н.п.141 ЖК Ауэзов Сити",
+   "Sum.Incoming": 39264
+  },
+  {
+   "Counteragent.Name": "90-Райымбека 210/ 5 н.п.285 (Ауэзов Сити 2)",
+   "Sum.Incoming": 61083
+  },
+  {
+   "Counteragent.Name": "90-Розыбакиева 197/1 н.п.273 Эстет",
+   "Sum.Incoming": 27278
+  },
+  {
+   "Counteragent.Name": "90-Розыбакиева 63/5 (Бокс Парк)",
+   "Sum.Incoming": 26872
+  },
+  {
+   "Counteragent.Name": "90-Розыбакиева, 217Б блок 15 (Эстет 4)",
+   "Sum.Incoming": 128834
+  },
+  {
+   "Counteragent.Name": "90-Розыбакиева, д 217А, н.п.306 (Эстет 3) магаз.№86",
+   "Sum.Incoming": 54149
+  },
+  {
+   "Counteragent.Name": "90-Сатпаева 90/73н.п.135 (Акварель 2)",
+   "Sum.Incoming": 95640
+  },
+  {
+   "Counteragent.Name": "90-Таттимбета 9 Б ( Коктобе)",
+   "Sum.Incoming": 74089
+  },
+  {
+   "Counteragent.Name": "90-Театральный Жамбыла д. 48",
+   "Sum.Incoming": 43464
+  },
+  {
+   "Counteragent.Name": "90-Утепова  31 блок 10 нп.3515  ЖК Рамс Сити",
+   "Sum.Incoming": 59824
+  },
+  {
+   "Counteragent.Name": "90-Шевченко 97/Масанчи 71 (Буфет НР) магазин 67",
+   "Sum.Incoming": 26930
+  },
+  {
+   "Counteragent.Name": "90-мкр-н Коктем-3, дом 17",
+   "Sum.Incoming": 233214
+  },
+  {
+   "Counteragent.Name": "90-мкрн САМАЛ 3, 15к1",
+   "Sum.Incoming": 141303
+  },
+  {
+   "Counteragent.Name": "90-пр-т Абылай хана д,3А",
+   "Sum.Incoming": 44402
+  },
+  {
+   "Counteragent.Name": "90-пр. Сейфуллина, д. 498, н.п. 24А",
+   "Sum.Incoming": 88455
+  },
+  {
+   "Counteragent.Name": "90-ул. Желтоксан 175, маг. 93 Казрадио",
+   "Sum.Incoming": 9652
+  },
+  {
+   "Counteragent.Name": "90-ул.Сатпаева 90/ 67  нп 67 (магазин \"Акварель\")",
+   "Sum.Incoming": 12097
+  },
+  {
+   "Counteragent.Name": "96-ТОО DSF (дистрибьютор)",
+   "Sum.Incoming": 6462714
+  },
+  {
+   "Counteragent.Name": "98-O-live: Склад O-live ",
+   "Sum.Incoming": 241099
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 1",
+   "Sum.Incoming": 23910
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 10",
+   "Sum.Incoming": 65200
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 13 А",
+   "Sum.Incoming": 14880
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 15",
+   "Sum.Incoming": 19380
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 17",
+   "Sum.Incoming": 23700
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 18",
+   "Sum.Incoming": 67758
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 202",
+   "Sum.Incoming": 400636
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 204",
+   "Sum.Incoming": 670194
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 205",
+   "Sum.Incoming": 373746
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 206",
+   "Sum.Incoming": 575658
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 22",
+   "Sum.Incoming": 31048
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 23",
+   "Sum.Incoming": 50770
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 26",
+   "Sum.Incoming": 133988
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 27",
+   "Sum.Incoming": 21630
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 28",
+   "Sum.Incoming": 21630
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 29",
+   "Sum.Incoming": 35778
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 30",
+   "Sum.Incoming": 41938
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 301",
+   "Sum.Incoming": 138606
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 302",
+   "Sum.Incoming": 204290
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 303",
+   "Sum.Incoming": 319350
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 304",
+   "Sum.Incoming": 90420
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 305",
+   "Sum.Incoming": 467356
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 306",
+   "Sum.Incoming": 480772
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 307",
+   "Sum.Incoming": 163678
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 308",
+   "Sum.Incoming": 202586
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 309",
+   "Sum.Incoming": 240356
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 31",
+   "Sum.Incoming": 29298
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 32",
+   "Sum.Incoming": 35110
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 33",
+   "Sum.Incoming": 14880
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 34",
+   "Sum.Incoming": 14880
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 36",
+   "Sum.Incoming": 15210
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 37",
+   "Sum.Incoming": 24138
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 39",
+   "Sum.Incoming": 37520
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 4",
+   "Sum.Incoming": 39810
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 42",
+   "Sum.Incoming": 55780
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 48",
+   "Sum.Incoming": 42246
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 5",
+   "Sum.Incoming": 24780
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 50",
+   "Sum.Incoming": 26290
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 51",
+   "Sum.Incoming": 35778
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 53",
+   "Sum.Incoming": 56218
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 54",
+   "Sum.Incoming": 31458
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 55",
+   "Sum.Incoming": 26388
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 59",
+   "Sum.Incoming": 19380
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 6",
+   "Sum.Incoming": 28638
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 60",
+   "Sum.Incoming": 24040
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 61",
+   "Sum.Incoming": 22218
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 62",
+   "Sum.Incoming": 32778
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 63",
+   "Sum.Incoming": 35778
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 65",
+   "Sum.Incoming": 63148
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 66",
+   "Sum.Incoming": 41010
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 67",
+   "Sum.Incoming": 70968
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 68",
+   "Sum.Incoming": 28980
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 70",
+   "Sum.Incoming": 28798
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 71",
+   "Sum.Incoming": 33468
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 73",
+   "Sum.Incoming": 55270
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 75",
+   "Sum.Incoming": 35680
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 77",
+   "Sum.Incoming": 41730
+  },
+  {
+   "Counteragent.Name": "99-RP АЗС 9",
+   "Sum.Incoming": 33610
+  },
+  {
+   "Counteragent.Name": "Иналка Фуд Сервис ТОО",
+   "Sum.Incoming": 188280
+  }
+ ],
+ "выручка_по_дням_ноя": [
+  {
+   "DateTime.DateTyped": "2026-11-01",
+   "Sum.Incoming": 6048235
+  },
+  {
+   "DateTime.DateTyped": "2026-11-02",
+   "Sum.Incoming": 17459089
+  },
+  {
+   "DateTime.DateTyped": "2026-11-03",
+   "Sum.Incoming": 2457522
+  },
+  {
+   "DateTime.DateTyped": "2026-11-04",
+   "Sum.Incoming": 3970573
+  },
+  {
+   "DateTime.DateTyped": "2026-11-05",
+   "Sum.Incoming": 4697212
+  }
+ ],
+ "сервисные_возвраты_ноя": [
+  {
+   "Account.Name": "1.2.Производ.расходы прочие",
+   "Counteragent.Name": "Аквафор Профешнл Казахстан ТОО",
+   "Sum.Incoming": 10000
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "Аквафор Профешнл Казахстан ТОО",
+   "Sum.Incoming": 0
+  },
+  {
+   "Account.Name": "1.2.Производ.расходы прочие",
+   "Counteragent.Name": "Земик ТОО",
+   "Sum.Incoming": 38000
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Counteragent.Name": "Земик ТОО",
+   "Sum.Incoming": 0
+  }
+ ],
+ "оплата_труда_ноя": [
+  {
+   "Account.Name": "1.1.Себестоимость продуктовая",
+   "Sum.Incoming": 17194951,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.2.Производ.расходы прочие",
+   "Sum.Incoming": 122300,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.20.Расходный материал тех.отдела",
+   "Sum.Incoming": 242500,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "1.9.Ремонт/Обслуживание производ.оборудования",
+   "Sum.Incoming": 7871,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "2.5.1.Расходы по реализации Прочие",
+   "Sum.Incoming": 151870,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3.3.1.Админ.расходы ПРОЧИЕ",
+   "Sum.Incoming": 521253,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3.3.17.Вакансии размещение",
+   "Sum.Incoming": 20000,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3.3.5.Услуги банка",
+   "Sum.Incoming": 600114,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "3050 ВФП",
+   "Sum.Incoming": 1500000,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "4-Подотчет",
+   "Sum.Incoming": 4636041,
+   "Sum.Outgoing": 3212191
+  },
+  {
+   "Account.Name": "7- Основные средства",
+   "Sum.Incoming": 699000,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "99Главная касса ",
+   "Sum.Incoming": 47400651,
+   "Sum.Outgoing": 48101887
+  },
+  {
+   "Account.Name": "Авансы выданные",
+   "Sum.Incoming": 9807924,
+   "Sum.Outgoing": 62090
+  },
+  {
+   "Account.Name": "Доход от возмещение расходов на содержание гост.туалетов",
+   "Sum.Incoming": 61200,
+   "Sum.Outgoing": 61200
+  },
+  {
+   "Account.Name": "Доходы прочие (аренда,ЧЛ и проч.)",
+   "Sum.Incoming": 0,
+   "Sum.Outgoing": 213090
+  },
+  {
+   "Account.Name": "Задолженность перед поставщиками",
+   "Sum.Incoming": 164122568,
+   "Sum.Outgoing": 203845694
+  },
+  {
+   "Account.Name": "Касса Взаиморасчеты",
+   "Sum.Incoming": 46972817,
+   "Sum.Outgoing": 47072817
+  },
+  {
+   "Account.Name": "Лагман+Плов ФЗ",
+   "Sum.Incoming": 53898,
+   "Sum.Outgoing": 89018
+  },
+  {
+   "Account.Name": "Основной склад (инвентарь) ФЗ",
+   "Sum.Incoming": 0,
+   "Sum.Outgoing": 36339
+  },
+  {
+   "Account.Name": "Основной склад (несъедобное) ФЗ",
+   "Sum.Incoming": 1398926,
+   "Sum.Outgoing": 2396636
+  },
+  {
+   "Account.Name": "Основной склад (сырье) ФЗ",
+   "Sum.Incoming": 7699530,
+   "Sum.Outgoing": 11594136
+  },
+  {
+   "Account.Name": "Расчеты с гостями",
+   "Sum.Incoming": 188280,
+   "Sum.Outgoing": 5700000
+  },
+  {
+   "Account.Name": "Склад ГП ФЗ",
+   "Sum.Incoming": 929597,
+   "Sum.Outgoing": 16960077
+  },
+  {
+   "Account.Name": "Склад Инвентарь ФЗ",
+   "Sum.Incoming": 36339,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "Склад Пекарня+Кондитерка ФЗ",
+   "Sum.Incoming": 2672214,
+   "Sum.Outgoing": 69569
+  },
+  {
+   "Account.Name": "Склад Производство ФЗ",
+   "Sum.Incoming": 9872115,
+   "Sum.Outgoing": 195905
+  },
+  {
+   "Account.Name": "Склад Расходный материалов ФЗ",
+   "Sum.Incoming": 511890,
+   "Sum.Outgoing": 0
+  },
+  {
+   "Account.Name": "Склад Сайт",
+   "Sum.Incoming": 0,
+   "Sum.Outgoing": 10800
+  },
+  {
+   "Account.Name": "Текущие расчеты с сотрудниками",
+   "Sum.Incoming": 55152537,
+   "Sum.Outgoing": 117000
+  },
+  {
+   "Account.Name": "Торговая выручка",
+   "Sum.Incoming": 0,
+   "Sum.Outgoing": 34632631
+  },
+  {
+   "Account.Name": "ФЗ Айдана каспи",
+   "Sum.Incoming": 1700008,
+   "Sum.Outgoing": 2341950
+  },
+  {
+   "Account.Name": "ФЗ Жусан Банк",
+   "Sum.Incoming": 1360520,
+   "Sum.Outgoing": 2100000
+  },
+  {
+   "Account.Name": "ФЗ Каспи",
+   "Sum.Incoming": 209002440,
+   "Sum.Outgoing": 206936164
+  },
+  {
+   "Account.Name": "ФЗ Малышев жусан банк ",
+   "Sum.Incoming": 5030000,
+   "Sum.Outgoing": 5014000
+  },
+  {
+   "Account.Name": "ФЗ Малышев каспи",
+   "Sum.Incoming": 27241500,
+   "Sum.Outgoing": 26147602
+  },
+  {
+   "Account.Name": "ФЗ РБК Каламкас",
+   "Sum.Incoming": 165330642,
+   "Sum.Outgoing": 165330700
+  },
+  {
+   "Account.Name": "касса Астана",
+   "Sum.Incoming": 27000000,
+   "Sum.Outgoing": 27000000
+  }
+ ],
+ "любые_проводки_по_дням_ноябрь": [
+  {
+   "DateTime.DateTyped": "2026-11-01",
+   "Sum.Incoming": 18111164
+  },
+  {
+   "DateTime.DateTyped": "2026-11-02",
+   "Sum.Incoming": 72356840
+  },
+  {
+   "DateTime.DateTyped": "2026-11-03",
+   "Sum.Incoming": 129164347
+  },
+  {
+   "DateTime.DateTyped": "2026-11-04",
+   "Sum.Incoming": 15413290
+  },
+  {
+   "DateTime.DateTyped": "2026-11-05",
+   "Sum.Incoming": 75768767
+  },
+  {
+   "DateTime.DateTyped": "2026-11-06",
+   "Sum.Incoming": 26757934
+  },
+  {
+   "DateTime.DateTyped": "2026-11-08",
+   "Sum.Incoming": 500182
+  },
+  {
+   "DateTime.DateTyped": "2026-11-09",
+   "Sum.Incoming": 54783328
+  },
+  {
+   "DateTime.DateTyped": "2026-11-10",
+   "Sum.Incoming": 46672102
+  },
+  {
+   "DateTime.DateTyped": "2026-11-11",
+   "Sum.Incoming": 7661500
+  },
+  {
+   "DateTime.DateTyped": "2026-11-12",
+   "Sum.Incoming": 58847783
+  },
+  {
+   "DateTime.DateTyped": "2026-11-13",
+   "Sum.Incoming": 38978704
+  },
+  {
+   "DateTime.DateTyped": "2026-11-16",
+   "Sum.Incoming": 95687080
+  },
+  {
+   "DateTime.DateTyped": "2026-11-17",
+   "Sum.Incoming": 58828481
+  },
+  {
+   "DateTime.DateTyped": "2026-11-18",
+   "Sum.Incoming": 22379133
+  },
+  {
+   "DateTime.DateTyped": "2026-11-19",
+   "Sum.Incoming": 68711851
+  },
+  {
+   "DateTime.DateTyped": "2026-11-20",
+   "Sum.Incoming": 18619010
+  },
+  {
+   "DateTime.DateTyped": "2026-11-30",
+   "Sum.Incoming": 11060875
+  }
+ ]
+}
